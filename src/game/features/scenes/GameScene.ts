@@ -233,19 +233,77 @@ export class GameScene extends Phaser.Scene {
   private buildMenu(): void {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    c.add(this.add.text(w / 2, h * 0.3, t('game.title'), {
-      fontFamily: 'monospace', fontSize: '48px', color: '#39d0d8', stroke: '#000', strokeThickness: 8,
-    }).setOrigin(0.5));
-    c.add(this.add.text(w / 2, h * 0.38, t('game.version'), {
-      fontFamily: 'monospace', fontSize: '14px', color: '#3a4350',
-    }).setOrigin(0.5));
 
-    const sy = h * 0.55;
+    // Animated background — scrolling grid lines
+    const bgGfx = this.add.graphics();
+    bgGfx.setDepth(0);
+    bgGfx.fillStyle(0x05070d, 1);
+    bgGfx.fillRect(0, 0, w, h);
+    // Grid pattern
+    bgGfx.lineStyle(1, 0x0a1a2a, 0.3);
+    for (let x = 0; x < w; x += 40) { bgGfx.beginPath(); bgGfx.moveTo(x, 0); bgGfx.lineTo(x, h); bgGfx.strokePath(); }
+    for (let y = 0; y < h; y += 40) { bgGfx.beginPath(); bgGfx.moveTo(0, y); bgGfx.lineTo(w, y); bgGfx.strokePath(); }
+    c.add(bgGfx);
+
+    // Glow behind title
+    const titleGlow = this.add.circle(w / 2, h * 0.28, 200, 0x39d0d8, 0.05);
+    titleGlow.setBlendMode(Phaser.BlendModes.ADD);
+    titleGlow.setDepth(1);
+    c.add(titleGlow);
+    this.tweens.add({ targets: titleGlow, alpha: { from: 0.03, to: 0.08 }, duration: 2000, yoyo: true, repeat: -1 });
+
+    // Title — large with gradient effect via two layers
+    const titleShadow = this.add.text(w / 2 + 2, h * 0.25 + 2, t('game.title'), {
+      fontFamily: 'monospace', fontSize: '52px', color: '#0a1a2a', stroke: '#0a1a2a', strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(2);
+    c.add(titleShadow);
+    const title = this.add.text(w / 2, h * 0.25, t('game.title'), {
+      fontFamily: 'monospace', fontSize: '52px', color: '#39d0d8', stroke: '#000', strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(3);
+    c.add(title);
+    this.tweens.add({ targets: title, alpha: { from: 0.8, to: 1 }, duration: 1500, yoyo: true, repeat: -1 });
+
+    // Subtitle
+    c.add(this.add.text(w / 2, h * 0.33, t('game.version'), {
+      fontFamily: 'monospace', fontSize: '13px', color: '#3a4350',
+    }).setOrigin(0.5).setDepth(3));
+
+    // Decorative line
+    const line = this.add.rectangle(w / 2, h * 0.4, 400, 2, 0x1a3040, 1);
+    c.add(line);
+    this.tweens.add({ targets: line, scaleX: { from: 0, to: 1 }, duration: 800, ease: 'Quad.easeOut' });
+
+    // Menu buttons — centered, larger, with better spacing
+    const sy = h * 0.52;
     this.makeMenuBtn(w / 2, sy, t('menu.start'), () => { AudioSystem.play('uiClick'); this.setState('play'); });
-    this.makeMenuBtn(w / 2, sy + 60, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.openSettingsFromMenu(); });
-    c.add(this.add.text(w / 2, h - 30, `PHASER 4.2 · MATTER.JS · WEBGL`, {
-      fontFamily: 'monospace', fontSize: '11px', color: '#3a4350',
-    }).setOrigin(0.5));
+    this.makeMenuBtn(w / 2, sy + 65, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.openSettingsFromMenu(); });
+
+    // Footer — tech stack
+    c.add(this.add.text(w / 2, h - 40, 'PHASER 4.2 · MATTER.JS · WEBGL', {
+      fontFamily: 'monospace', fontSize: '10px', color: '#1a2030',
+    }).setOrigin(0.5).setDepth(3));
+
+    // Corner decorations — cyberpunk style
+    const cornerSize = 30;
+    const cornerColor = 0x1a3040;
+    const corners = [
+      { x: 20, y: 20, dx: 1, dy: 1 },
+      { x: w - 20, y: 20, dx: -1, dy: 1 },
+      { x: 20, y: h - 20, dx: 1, dy: -1 },
+      { x: w - 20, y: h - 20, dx: -1, dy: -1 },
+    ];
+    for (const corner of corners) {
+      const cg = this.add.graphics();
+      cg.lineStyle(2, cornerColor, 0.6);
+      cg.beginPath();
+      cg.moveTo(corner.x, corner.y + corner.dy * cornerSize);
+      cg.lineTo(corner.x, corner.y);
+      cg.lineTo(corner.x + corner.dx * cornerSize, corner.y);
+      cg.strokePath();
+      cg.setDepth(3);
+      c.add(cg);
+    }
+
     this.setupMenuNav();
   }
 
@@ -663,12 +721,12 @@ export class GameScene extends Phaser.Scene {
   // ================ MENU HELPERS ================
 
   private makeMenuBtn(x: number, y: number, label: string, onClick: () => void): void {
-    const bg = this.add.rectangle(x, y, 280, 44, 0x1a2030, 0.95);
-    bg.setStrokeStyle(1, 0x39d0d8, 0.6);
+    const bg = this.add.rectangle(x, y, 320, 50, 0x0a1018, 0.9);
+    bg.setStrokeStyle(1, 0x1a3040, 0.8);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.indexOf(bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
     bg.on('pointerdown', onClick);
-    const textEl = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '16px', color: '#cfd6e0' }).setOrigin(0.5);
+    const textEl = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '18px', color: '#5a6470' }).setOrigin(0.5);
     this.stateContainer!.add([bg, textEl]);
     this.menuButtons.push(bg);
   }
@@ -691,8 +749,29 @@ export class GameScene extends Phaser.Scene {
 
   private updateMenuFocus(): void {
     this.menuButtons.forEach((bg, i) => {
-      if (i === this.menuFocusIndex) { bg.setFillStyle(0x243040, 1); bg.setStrokeStyle(2, 0x66f0ff, 1); }
-      else { bg.setFillStyle(0x1a2030, 0.95); bg.setStrokeStyle(1, 0x39d0d8, 0.6); }
+      if (i === this.menuFocusIndex) {
+        bg.setFillStyle(0x0d1820, 1);
+        bg.setStrokeStyle(2, 0x39d0d8, 0.9);
+        // Scale up slightly for focus
+        bg.setScale(1.05);
+        // Find the text child and update color
+        const textEl = this.stateContainer?.list.find(c =>
+          c instanceof Phaser.GameObjects.Text &&
+          Math.abs((c as Phaser.GameObjects.Text).x - bg.x) < 1 &&
+          Math.abs((c as Phaser.GameObjects.Text).y - bg.y) < 1
+        ) as Phaser.GameObjects.Text | undefined;
+        textEl?.setColor('#66f0ff');
+      } else {
+        bg.setFillStyle(0x0a1018, 0.9);
+        bg.setStrokeStyle(1, 0x1a3040, 0.8);
+        bg.setScale(1);
+        const textEl = this.stateContainer?.list.find(c =>
+          c instanceof Phaser.GameObjects.Text &&
+          Math.abs((c as Phaser.GameObjects.Text).x - bg.x) < 1 &&
+          Math.abs((c as Phaser.GameObjects.Text).y - bg.y) < 1
+        ) as Phaser.GameObjects.Text | undefined;
+        textEl?.setColor('#5a6470');
+      }
     });
   }
 

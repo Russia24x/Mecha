@@ -101,11 +101,49 @@ export class AreaLoader {
 
   private addSolid(result: LoadedArea, x: number, y: number, w: number, h: number): void {
     const s = this.physics.addStaticRect(x, y, w, h);
-    const vis = this.scene.add.rectangle(x, y, w, h, COLORS.METAL_DARK, 1);
-    vis.setStrokeStyle(2, COLORS.RUST, 0.4);
-    vis.setDepth(5);
+    // Visual: metal plating with top highlight + bottom shadow + rivets
+    const g = this.scene.add.graphics();
+    g.setDepth(5);
+    // Main body
+    g.fillStyle(COLORS.METAL_DARK, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    // Top highlight (lighter strip)
+    g.fillStyle(0x3a4050, 0.8);
+    g.fillRect(-w / 2, -h / 2, w, 3);
+    // Bottom shadow
+    g.fillStyle(0x1a1e28, 0.8);
+    g.fillRect(-w / 2, h / 2 - 3, w, 3);
+    // Outer border
+    g.lineStyle(1, 0x2a3040, 0.6);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+    // Rivets at corners (if platform is large enough)
+    if (w >= 60 && h >= 20) {
+      g.fillStyle(0x5a6070, 0.6);
+      const rivetOffset = 8;
+      const positions = [
+        { x: -w / 2 + rivetOffset, y: -h / 2 + rivetOffset },
+        { x: w / 2 - rivetOffset, y: -h / 2 + rivetOffset },
+        { x: -w / 2 + rivetOffset, y: h / 2 - rivetOffset },
+        { x: w / 2 - rivetOffset, y: h / 2 - rivetOffset },
+      ];
+      for (const pos of positions) {
+        g.fillCircle(pos.x, pos.y, 2);
+        g.fillStyle(0x2a3040, 0.8);
+        g.fillCircle(pos.x, pos.y, 1);
+        g.fillStyle(0x5a6070, 0.6);
+      }
+    }
+    // Warning stripes on tall walls (h > 100)
+    if (h > 100) {
+      g.fillStyle(0xffcc00, 0.3);
+      for (let sy = -h / 2 + 20; sy < h / 2 - 20; sy += 16) {
+        g.fillRect(-w / 2 + 2, sy, 4, 8);
+        g.fillRect(w / 2 - 6, sy, 4, 8);
+      }
+    }
+    g.setPosition(x, y);
     result.solids.push(s);
-    result.visualRects.push(vis);
+    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
   }
 
   /** Destroy all loaded area objects. */
