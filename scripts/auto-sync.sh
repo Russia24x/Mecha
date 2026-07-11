@@ -18,8 +18,13 @@ echo "=== MECHA Auto-Sync ==="
 echo "Commit message: $MSG"
 echo ""
 
+# Update STATUS.md timestamp
+sed -i "s/\*\*Last updated:\*\* .*/\*\*Last updated:\*\* $(date -u '+%Y-%m-%d')/" /home/z/my-project/STATUS.md 2>/dev/null || true
+
 # Stage all changes (excluding node_modules, .next, skills, upload via .gitignore)
+# Always include STATUS.md explicitly
 git add -A
+git add STATUS.md 2>/dev/null || true
 
 # Check if there are changes to commit
 if git diff --cached --quiet; then

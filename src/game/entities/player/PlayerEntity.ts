@@ -18,7 +18,7 @@ import { getWeapon } from '../../data/weapons/weapons';
 import { getSkill } from '../../data/skills/skills';
 import { SKILLS } from '../../data/skills/skills';
 import type { WeaponId, WeaponData, PlayerStats, Direction } from '../../data/types';
-import type { Projectile } from '../combat/Projectile';
+import { Projectile } from '../combat/Projectile';
 
 export class PlayerEntity {
   public sprite: Phaser.Physics.Matter.Image;

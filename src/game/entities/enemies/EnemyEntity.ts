@@ -12,7 +12,7 @@ import { SaveSystem } from '../../systems/SaveSystem';
 import { getEnemy } from '../../data/enemies/enemies';
 import { getItem } from '../../data/items/items';
 import type { EnemyTypeId, EnemyData, EnemyState } from '../../data/types';
-import type { Projectile } from '../combat/Projectile';
+import { Projectile } from '../combat/Projectile';
 
 let enemyCounter = 0;
 

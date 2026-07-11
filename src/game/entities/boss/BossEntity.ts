@@ -14,7 +14,7 @@ import { getBoss } from '../../data/bosses/bosses';
 import { COLORS } from '../../shared/Constants';
 import { t } from '../../systems/LocalizationSystem';
 import type { BossData, BossPhase } from '../../data/types';
-import type { Projectile } from '../combat/Projectile';
+import { Projectile } from '../combat/Projectile';
 
 export class BossEntity {
   public sprite: Phaser.Physics.Matter.Image;
