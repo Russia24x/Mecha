@@ -74,15 +74,15 @@ export class GameScene extends Phaser.Scene {
   private bossArenaActive = false;
   private sequenceTimers: Phaser.Time.TimerEvent[] = [];
 
-  // UI
+  // UI — created on-demand in build*Overlay methods
   private hud!: HUDUI;
   private dialogueUI!: DialogueUI;
   private pauseMenuUI!: PauseMenuUI;
-  private settingsUI!: SettingsUI;
-  private skillTreeUI!: SkillTreeUI;
-  private inventoryUI!: InventoryUI;
-  private questUI!: QuestUI;
-  private worldMapUI!: WorldMapUI;
+  private settingsUI: SettingsUI | null = null;
+  private skillTreeUI: SkillTreeUI | null = null;
+  private inventoryUI: InventoryUI | null = null;
+  private questUI: QuestUI | null = null;
+  private worldMapUI: WorldMapUI | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -193,6 +193,24 @@ export class GameScene extends Phaser.Scene {
     if (this.stateContainer) { this.stateContainer.destroy(true); this.stateContainer = null; }
   }
 
+  /** Unified method to close any overlay UI and return to hub or pause. */
+  private closeOverlay(): void {
+    // Destroy whichever overlay is active
+    if (this.settingsUI) { this.settingsUI.hide(); this.settingsUI.destroy(); this.settingsUI = null; }
+    if (this.skillTreeUI) { this.skillTreeUI.hide(); this.skillTreeUI.destroy(); this.skillTreeUI = null; }
+    if (this.inventoryUI) { this.inventoryUI.hide(); this.inventoryUI.destroy(); this.inventoryUI = null; }
+    if (this.questUI) { this.questUI.hide(); this.questUI.destroy(); this.questUI = null; }
+    if (this.worldMapUI) { this.worldMapUI.hide(); this.worldMapUI.destroy(); this.worldMapUI = null; }
+    // Return to hub (if from hub) or reopen pause menu (if from play)
+    if (this.paused) {
+      this.setState('play');
+      // Reopen pause menu after a tiny delay to avoid ESC double-trigger
+      this.time.delayedCall(50, () => { this.paused = true; this.pauseMenuUI.show(); });
+    } else {
+      this.setState('hub');
+    }
+  }
+
   update(_time: number, deltaMs: number): void {
     InputSystem.update();
     const input = InputSystem.getState();
@@ -206,27 +224,17 @@ export class GameScene extends Phaser.Scene {
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
+      // Gamepad + keyboard navigation for menu/hub/gameover/victory
       this.handleMenuGamepadNav(input);
-    } else if (this.state === 'settings') {
-      // Settings uses drag-based sliders — B/ESC = back
-      if (input.backPressed || input.pausePressed || input.heldDown && input.heldUp) {
-        // ESC handled via pausePressed; also allow explicit back
+      // ESC in hub = back to menu
+      if (this.state === 'hub' && input.pausePressed) {
+        this.setState('menu');
       }
+    } else {
+      // Overlay states (settings, skills, inventory, quests, map)
+      // B button, ESC, or Start = back
       if (input.backPressed || input.pausePressed) {
-        this.settingsUI?.hide();
-        this.settingsUI?.destroy();
-        this.setState(this.paused ? 'play' : 'hub');
-        if (this.paused) this.togglePause();
-      }
-    } else if (this.state === 'skills' || this.state === 'inventory' || this.state === 'quests' || this.state === 'map') {
-      // All overlay states — B/ESC/Start = back
-      if (input.backPressed || input.pausePressed) {
-        if (this.state === 'skills') { this.skillTreeUI?.hide(); this.skillTreeUI?.destroy(); }
-        if (this.state === 'inventory') { this.inventoryUI?.hide(); this.inventoryUI?.destroy(); }
-        if (this.state === 'quests') { this.questUI?.hide(); this.questUI?.destroy(); }
-        if (this.state === 'map') { this.worldMapUI?.hide(); this.worldMapUI?.destroy(); }
-        this.setState(this.paused ? 'play' : 'hub');
-        if (this.paused) this.togglePause();
+        this.closeOverlay();
       }
     }
 
@@ -579,28 +587,28 @@ export class GameScene extends Phaser.Scene {
   // ================ OVERLAY STATES (from pause menu) ================
 
   private buildSettingsOverlay(): void {
-    this.settingsUI = new SettingsUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
+    this.settingsUI = new SettingsUI(this, () => this.closeOverlay());
     this.settingsUI.show();
   }
 
   private buildSkillsOverlay(): void {
-    this.skillTreeUI = new SkillTreeUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
+    this.skillTreeUI = new SkillTreeUI(this, () => this.closeOverlay());
     this.skillTreeUI.show();
   }
 
   private buildInventoryOverlay(): void {
-    this.inventoryUI = new InventoryUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
+    this.inventoryUI = new InventoryUI(this, () => this.closeOverlay());
     this.inventoryUI.show();
   }
 
   private buildQuestsOverlay(): void {
-    this.questUI = new QuestUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
+    this.questUI = new QuestUI(this, () => this.closeOverlay());
     this.questUI.show();
   }
 
   private buildMapOverlay(): void {
     this.worldMapUI = new WorldMapUI(this,
-      () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); },
+      () => this.closeOverlay(),
       (areaId: string) => this.fastTravel(areaId),
     );
     this.worldMapUI.show();
@@ -860,35 +868,21 @@ export class GameScene extends Phaser.Scene {
     this.setState('play');
   }
 
-  private quitToMenu(): void {
-    this.paused = false;
-    this.pauseMenuUI.hide();
-    this.cleanupPlay();
-    this.setState('menu');
-  }
-
   private fastTravel(areaId: string): void {
     WorldSystem.travelTo(areaId, 1);
-    this.worldMapUI.hide();
+    if (this.worldMapUI) { this.worldMapUI.hide(); this.worldMapUI.destroy(); this.worldMapUI = null; }
     this.paused = false;
     this.pauseMenuUI.hide();
     this.cleanupPlay();
     this.setState('play');
   }
 
-  // Also called from pause menu "Quit to Menu" → goes to hub
+  // Called from pause menu "Quit" → goes to hub
   private quitToHub(): void {
     this.paused = false;
     this.pauseMenuUI.hide();
     this.cleanupPlay();
     this.setState('hub');
-  }
-
-  private quitToMenu(): void {
-    this.paused = false;
-    this.pauseMenuUI.hide();
-    this.cleanupPlay();
-    this.setState('menu');
   }
 
   private getNextWeapon(dir: number): import('../../data/types').WeaponId {
