@@ -27,6 +27,7 @@ import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
 import { ExperienceSystem } from '../../systems/ExperienceSystem';
 import { SkillTreeSystem } from '../../systems/SkillTreeSystem';
 import { WorldSystem } from '../../world/WorldSystem';
+import { WorldMapSystem } from '../../world/WorldMapSystem';
 import { AreaLoader, type LoadedArea } from '../../world/AreaLoader';
 import { CheckpointSystem } from '../../world/CheckpointSystem';
 import { PlayerEntity } from '../../entities/player/PlayerEntity';
@@ -244,41 +245,91 @@ export class GameScene extends Phaser.Scene {
     }
     c.add(bg);
 
-    // Stars — 80 twinkling dots
-    for (let i = 0; i < 80; i++) {
+    // Stars — 120 twinkling, drifting dots (more lively)
+    for (let i = 0; i < 120; i++) {
       const sx = Math.random() * w;
-      const sy = Math.random() * h * 0.7;
-      const size = 0.5 + Math.random() * 1.5;
-      const brightness = 0.3 + Math.random() * 0.7;
-      const star = this.add.circle(sx, sy, size, 0xc0e0ff, brightness);
+      const sy = Math.random() * h * 0.75;
+      const size = 0.5 + Math.random() * 2;
+      const brightness = 0.2 + Math.random() * 0.8;
+      const starColor = Math.random() < 0.15 ? 0xffe0a0 : Math.random() < 0.3 ? 0xa0c0ff : 0xc0e0ff;
+      const star = this.add.circle(sx, sy, size, starColor, brightness);
       star.setDepth(1);
       c.add(star);
-      // Twinkle effect
+      // Twinkle — varying intensity + duration
       this.tweens.add({
         targets: star,
-        alpha: { from: brightness * 0.3, to: brightness },
-        duration: 1000 + Math.random() * 3000,
+        alpha: { from: brightness * 0.1, to: brightness },
+        scale: { from: size * 0.5, to: size * 1.2 },
+        duration: 600 + Math.random() * 2500,
         yoyo: true, repeat: -1,
-        delay: Math.random() * 2000,
+        delay: Math.random() * 3000,
+        ease: 'Sine.inOut',
+      });
+      // Slow drift — each star moves slightly
+      this.tweens.add({
+        targets: star,
+        x: sx + (Math.random() - 0.5) * 30,
+        y: sy + (Math.random() - 0.5) * 20,
+        duration: 5000 + Math.random() * 8000,
+        yoyo: true, repeat: -1,
+        ease: 'Sine.inOut',
       });
     }
 
-    // A few brighter "beacon" stars with glow
-    for (let i = 0; i < 5; i++) {
+    // Shooting stars — occasional streaks across the sky
+    const shootingStarFunc = () => {
+      const ss = this.add.rectangle(0, 0, 40 + Math.random() * 30, 1.5, 0xffffff, 0.9);
+      ss.setBlendMode(Phaser.BlendModes.ADD);
+      ss.setDepth(1);
+      ss.setOrigin(0, 0.5);
+      ss.setRotation(0.3 + Math.random() * 0.2);
+      c.add(ss);
+      const startX = Math.random() * w * 0.7;
+      const startY = Math.random() * h * 0.3;
+      const endX = startX + 300 + Math.random() * 200;
+      const endY = startY + 120 + Math.random() * 80;
+      this.tweens.add({
+        targets: ss,
+        x: endX, y: endY,
+        alpha: { from: 0.9, to: 0 },
+        duration: 600 + Math.random() * 400,
+        onComplete: () => ss.destroy(),
+      });
+    };
+    // Schedule shooting stars at random intervals
+    this.time.addEvent({
+      delay: 3000,
+      loop: true,
+      callback: () => { if (Math.random() < 0.4) shootingStarFunc(); },
+    });
+
+    // Brighter "beacon" stars with pulsing glow
+    for (let i = 0; i < 8; i++) {
       const bx = Math.random() * w;
-      const by = Math.random() * h * 0.5;
-      const beacon = this.add.circle(bx, by, 2, 0xffffff, 1);
+      const by = Math.random() * h * 0.55;
+      const beaconColor = [0xffffff, 0x80a0ff, 0xffd0a0, 0xa0ffff][Math.floor(Math.random() * 4)];
+      const beacon = this.add.circle(bx, by, 2 + Math.random(), beaconColor, 1);
       beacon.setDepth(1);
       beacon.setBlendMode(Phaser.BlendModes.ADD);
       c.add(beacon);
-      const beaconGlow = this.add.circle(bx, by, 8, 0x6080ff, 0.15);
+      const beaconGlow = this.add.circle(bx, by, 10 + Math.random() * 6, beaconColor, 0.12);
       beaconGlow.setDepth(1);
       beaconGlow.setBlendMode(Phaser.BlendModes.ADD);
       c.add(beaconGlow);
+      // Pulse glow + scale
       this.tweens.add({
         targets: beaconGlow,
-        alpha: { from: 0.08, to: 0.2 },
-        duration: 1500 + Math.random() * 1500,
+        alpha: { from: 0.05, to: 0.25 },
+        scale: { from: 0.7, to: 1.3 },
+        duration: 1200 + Math.random() * 2000,
+        yoyo: true, repeat: -1,
+        ease: 'Sine.inOut',
+      });
+      // Beacon twinkle
+      this.tweens.add({
+        targets: beacon,
+        alpha: { from: 0.6, to: 1 },
+        duration: 800 + Math.random() * 1200,
         yoyo: true, repeat: -1,
       });
     }
