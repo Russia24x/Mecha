@@ -1,12 +1,11 @@
 /**
  * MECHA: LAST PROTOCOL — Pause Menu UI
- * Overlay on top of game. Depth 250.
- * Buttons: Resume, Restart, Settings, Quit to Menu.
- * Uses localization for all text.
+ * Grid layout with 8 buttons: Resume, Skills, Inventory, Quests, Map, Settings, Restart, Quit.
+ * Depth 250. Full gamepad support with cooldown.
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t } from '../../systems/LocalizationSystem';
+import { t, getLocale } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { InputSystem } from '../../systems/InputSystem';
 
@@ -15,38 +14,68 @@ export class PauseMenuUI {
   private scene: Phaser.Scene;
   private buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; onClick: () => void }[] = [];
   private focusIdx = 0;
+  private navCooldown = 0;
 
   constructor(scene: Phaser.Scene, callbacks: {
     onResume: () => void;
     onRestart: () => void;
     onSettings: () => void;
+    onSkills: () => void;
+    onInventory: () => void;
+    onQuests: () => void;
+    onMap: () => void;
     onQuit: () => void;
   }) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     this.container = scene.add.container(0, 0).setDepth(250).setScrollFactor(0).setVisible(false);
 
-    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.7);
+    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75);
     overlay.setInteractive();
     this.container.add(overlay);
 
-    this.container.add(scene.add.text(w / 2, h / 2 - 140, t('pause.title'), {
-      fontFamily: 'monospace', fontSize: '40px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
+    // Title
+    this.container.add(scene.add.text(w / 2, 60, t('pause.title'), {
+      fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5));
 
-    this.makeBtn(w / 2, h / 2 - 50, t('pause.resume'), callbacks.onResume);
-    this.makeBtn(w / 2, h / 2 + 10, t('pause.restart'), callbacks.onRestart);
-    this.makeBtn(w / 2, h / 2 + 70, '⚙  ' + t('menu.settings'), callbacks.onSettings);
-    this.makeBtn(w / 2, h / 2 + 130, t('pause.quit_menu'), callbacks.onQuit);
+    // Localization helper
+    const isFa = getLocale() === 'fa';
+    const L = (en: string, fa: string) => isFa ? fa : en;
+
+    // Grid layout — 2 columns × 4 rows + full-width top/bottom
+    const colW = 210;
+    const rowH = 48;
+    const gap = 10;
+    const startX = w / 2 - colW - gap / 2;
+    const startY = 120;
+
+    // Row 0: Resume (full width)
+    this.makeBtn(w / 2, startY, '▶  ' + t('pause.resume'), callbacks.onResume, colW * 2 + gap);
+
+    // Row 1: Skills | Inventory
+    this.makeBtn(startX + colW / 2, startY + rowH + gap, '⚔  ' + L('SKILLS', 'مهارت‌ها'), callbacks.onSkills, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '🎒  ' + L('INVENTORY', 'کیف'), callbacks.onInventory, colW);
+
+    // Row 2: Quests | Map
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '📜  ' + L('QUESTS', 'ماموریت‌ها'), callbacks.onQuests, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '🗺  ' + L('MAP', 'نقشه'), callbacks.onMap, colW);
+
+    // Row 3: Settings | Restart
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙  ' + t('menu.settings'), callbacks.onSettings, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻  ' + t('pause.restart'), callbacks.onRestart, colW);
+
+    // Row 4: Quit (full width)
+    this.makeBtn(w / 2, startY + (rowH + gap) * 4, '⌂  ' + t('pause.quit_menu'), callbacks.onQuit, colW * 2 + gap);
   }
 
-  private makeBtn(x: number, y: number, label: string, onClick: () => void): void {
-    const bg = this.scene.add.rectangle(x, y, 320, 44, 0x1a2030, 0.95);
-    bg.setStrokeStyle(1, 0x3a4350);
+  private makeBtn(x: number, y: number, label: string, onClick: () => void, width: number = 320): void {
+    const bg = this.scene.add.rectangle(x, y, width, 44, 0x0a1018, 0.9);
+    bg.setStrokeStyle(1, 0x1a3040, 0.8);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => { this.focusIdx = this.buttons.findIndex(b => b.bg === bg); this.updateFocus(); AudioSystem.play('uiHover'); });
     bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const textEl = this.scene.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '16px', color: '#cfd6e0' }).setOrigin(0.5);
+    const textEl = this.scene.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '15px', color: '#5a6470' }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.buttons.push({ bg, text: textEl, onClick });
   }
@@ -54,13 +83,15 @@ export class PauseMenuUI {
   private updateFocus(): void {
     this.buttons.forEach((b, i) => {
       if (i === this.focusIdx) {
-        b.bg.setFillStyle(0x243040, 1);
-        b.bg.setStrokeStyle(2, 0x66f0ff, 1);
+        b.bg.setFillStyle(0x0d1820, 1);
+        b.bg.setStrokeStyle(2, 0x39d0d8, 0.9);
+        b.bg.setScale(1.03);
         b.text.setColor('#66f0ff');
       } else {
-        b.bg.setFillStyle(0x1a2030, 0.95);
-        b.bg.setStrokeStyle(1, 0x3a4350);
-        b.text.setColor('#cfd6e0');
+        b.bg.setFillStyle(0x0a1018, 0.9);
+        b.bg.setStrokeStyle(1, 0x1a3040, 0.8);
+        b.bg.setScale(1);
+        b.text.setColor('#5a6470');
       }
     });
   }
@@ -74,8 +105,6 @@ export class PauseMenuUI {
   hide(): void {
     this.container.setVisible(false);
   }
-
-  private navCooldown = 0;
 
   /** Handle gamepad/keyboard navigation. Call from scene update. */
   handleNavigation(): void {
@@ -99,7 +128,6 @@ export class PauseMenuUI {
       this.buttons[this.focusIdx]?.onClick();
       this.navCooldown = 300;
     }
-    // B button = resume (first button)
     if (input.backPressed) {
       AudioSystem.play('uiClick');
       this.buttons[0]?.onClick();  // RESUME is always first

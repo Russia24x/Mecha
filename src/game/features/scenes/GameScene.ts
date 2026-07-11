@@ -128,6 +128,10 @@ export class GameScene extends Phaser.Scene {
       onResume: () => this.togglePause(),
       onRestart: () => this.restartStage(),
       onSettings: () => { this.pauseMenuUI.hide(); this.inSettings = true; this.settingsUI.show(); },
+      onSkills: () => { this.pauseMenuUI.hide(); this.inSkills = true; this.skillTreeUI.show(); },
+      onInventory: () => { this.pauseMenuUI.hide(); this.inInventory = true; this.inventoryUI.show(); },
+      onQuests: () => { this.pauseMenuUI.hide(); this.inQuests = true; this.questUI.show(); },
+      onMap: () => { this.pauseMenuUI.hide(); this.inMap = true; this.worldMapUI.show(); },
       onQuit: () => this.quitToMenu(),
     });
     this.settingsUI = new SettingsUI(this, () => { this.settingsUI.hide(); this.inSettings = false; this.pauseMenuUI.show(); });
