@@ -9,7 +9,7 @@ export const GAME = {
   BG_COLOR: '#0a0d14',
   TARGET_FPS: 60,
   TITLE: 'MECHA: LAST PROTOCOL',
-  VERSION: 'MVP 2.0',
+  VERSION: 'MVP 3.0',
 } as const;
 
 export const PHYSICS = {
