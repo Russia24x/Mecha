@@ -811,16 +811,18 @@ export class GameScene extends Phaser.Scene {
     // Don't toggle if an overlay is open (overlay handles its own back)
     if (OverlayManager.hasOpen) return;
     const now = this.time.now;
-    if (now - this.lastPauseToggleAt < 300) return;
+    if (now - this.lastPauseToggleAt < 200) return;
     this.lastPauseToggleAt = now;
 
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
+      this.matter.world.resume();
       AudioSystem.play('uiClick');
     } else {
       this.paused = true;
       this.pauseMenuUI.show();
+      this.matter.world.pause();
       AudioSystem.play('uiClick');
     }
   }
@@ -946,11 +948,11 @@ export class GameScene extends Phaser.Scene {
     if (input.leftStickY < -0.3 || input.heldUp) {
       this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
       this.updateMenuFocus(); AudioSystem.play('uiHover');
-      this.menuNavCooldown = 180;
+      this.menuNavCooldown = 110;  // freer — was 180
     } else if (input.leftStickY > 0.3 || input.heldDown) {
       this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
       this.updateMenuFocus(); AudioSystem.play('uiHover');
-      this.menuNavCooldown = 180;
+      this.menuNavCooldown = 110;
     }
     if (input.jumpPressed || input.firePressed) {
       AudioSystem.play('uiClick');

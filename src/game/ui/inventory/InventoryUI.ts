@@ -1,17 +1,18 @@
 /**
- * MECHA: LAST PROTOCOL — Inventory UI
+ * MECHA: LAST PROTOCOL — Inventory UI v3.2
  * Tabbed view: Weapons, Materials, Consumables, Key Items.
- * Shows item name, description, amount.
- * Weapons show upgrade level + upgrade button.
- * Depth 250.
+ * Full gamepad navigation: up/down items, left/right tabs, A to use/upgrade.
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t } from '../../systems/LocalizationSystem';
 import { InventorySystem, type InventorySlot } from '../../systems/InventorySystem';
 import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
+import { SaveSystem } from '../../systems/SaveSystem';
+import { getWeapon } from '../../data/weapons/weapons';
 import { AudioSystem } from '../../systems/AudioSystem';
-import type { ItemType } from '../../data/types';
+import { NavigableOverlay } from '../NavigableOverlay';
+import type { ItemType, WeaponId } from '../../data/types';
 
 type TabId = 'weapon' | 'material' | 'consumable' | 'key_item';
 
@@ -22,20 +23,20 @@ const TAB_LABELS: Record<TabId, string> = {
   key_item: '🔑 Key Items',
 };
 
-export class InventoryUI {
-  private container: Phaser.GameObjects.Container;
-  private scene: Phaser.Scene;
+export class InventoryUI extends NavigableOverlay {
   private selectedTab: TabId = 'material';
   private itemSlots: Phaser.GameObjects.Container[] = [];
-  private tabButtons: Phaser.GameObjects.Rectangle[] = [];
+  private tabBgs: Phaser.GameObjects.Rectangle[] = [];
+  private tabTexts: Phaser.GameObjects.Text[] = [];
+  private tabs: TabId[] = ['material', 'consumable', 'weapon', 'key_item'];
+  private currentSlots: InventorySlot[] = [];
+  private actionButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; action: () => void }[] = [];
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
-    this.scene = scene;
+    super(scene);
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    this.container = scene.add.container(0, 0).setDepth(250).setScrollFactor(0).setVisible(false);
 
     const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9);
-    // NO setInteractive — was blocking mouse clicks on buttons underneath
     this.container.add(overlay);
 
     this.container.add(scene.add.text(w / 2, 40, 'INVENTORY', {
@@ -43,20 +44,20 @@ export class InventoryUI {
     }).setOrigin(0.5));
 
     // Tabs
-    const tabs: TabId[] = ['material', 'consumable', 'weapon', 'key_item'];
     const tabW = 200, tabGap = 10;
-    const startX = (w - tabs.length * tabW - (tabs.length - 1) * tabGap) / 2;
-    tabs.forEach((tab, i) => {
+    const startX = (w - this.tabs.length * tabW - (this.tabs.length - 1) * tabGap) / 2;
+    this.tabs.forEach((tab, i) => {
       const x = startX + i * (tabW + tabGap) + tabW / 2;
       const bg = scene.add.rectangle(x, 100, tabW, 36, 0x1a2030, 0.95);
       bg.setStrokeStyle(1, 0x3a4350);
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerdown', () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
       const textEl = scene.add.text(x, 100, TAB_LABELS[tab], {
         fontFamily: 'monospace', fontSize: '11px', color: '#cfd6e0',
       }).setOrigin(0.5);
       this.container.add([bg, textEl]);
-      this.tabButtons.push(bg);
+      this.tabBgs.push(bg);
+      this.tabTexts.push(textEl);
+      // Register tab for nav (but tab switching is handled by onNavLeft/onNavRight)
+      this.registerNav(bg, textEl, () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
     });
 
     this.refresh();
@@ -64,128 +65,152 @@ export class InventoryUI {
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 40, 280, 44, 0x1a2030, 0.95);
     bg.setStrokeStyle(1, 0x39d0d8, 0.6);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onBack(); });
-    this.container.add(bg);
-    this.container.add(scene.add.text(w / 2, h - 40, t('menu.back'), { fontFamily: 'monospace', fontSize: '16px', color: '#cfd6e0' }).setOrigin(0.5));
+    const textEl = scene.add.text(w / 2, h - 40, t('menu.back'), {
+      fontFamily: 'monospace', fontSize: '16px', color: '#cfd6e0',
+    }).setOrigin(0.5);
+    this.container.add([bg, textEl]);
+    this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
   }
 
   private refresh(): void {
-    // Destroy old slots
+    // Destroy old item slots + action buttons
     this.itemSlots.forEach(s => s.destroy());
     this.itemSlots = [];
+    // Remove old action button nav elements (keep tabs + back)
+    this.navElements = this.navElements.filter(el => {
+      const isTab = this.tabBgs.includes(el.bg as Phaser.GameObjects.Rectangle);
+      const isBack = this.navElements.indexOf(el) === this.navElements.length - 1;
+      if (!isTab && !isBack) {
+        el.bg.destroy();
+        el.text.destroy();
+        return false;
+      }
+      return true;
+    });
+    this.actionButtons = [];
 
     // Highlight selected tab
-    const tabs: TabId[] = ['material', 'consumable', 'weapon', 'key_item'];
-    this.tabButtons.forEach((bg, i) => {
-      if (tabs[i] === this.selectedTab) {
-        bg.setFillStyle(0x243040, 1);
-        bg.setStrokeStyle(2, 0x66f0ff, 1);
+    this.tabs.forEach((tab, i) => {
+      if (tab === this.selectedTab) {
+        this.tabBgs[i].setFillStyle(0x243040, 1);
+        this.tabBgs[i].setStrokeStyle(2, 0x66f0ff, 1);
+        this.tabTexts[i].setColor('#66f0ff');
       } else {
-        bg.setFillStyle(0x1a2030, 0.95);
-        bg.setStrokeStyle(1, 0x3a4350);
+        this.tabBgs[i].setFillStyle(0x1a2030, 0.95);
+        this.tabBgs[i].setStrokeStyle(1, 0x3a4350);
+        this.tabTexts[i].setColor('#cfd6e0');
       }
     });
 
     // Get items for selected tab
     let slots: InventorySlot[] = [];
     if (this.selectedTab === 'weapon') {
-      // Weapons are special — show from save data
-      const save = require('../../systems/SaveSystem').SaveSystem.getPlayer();
-      const { getWeapon } = require('../../data/weapons/weapons');
-      slots = save.unlockedWeapons.map((id: string) => {
-        const weapon = getWeapon(id);
-        return weapon ? { item: { ...weapon, type: 'material' as ItemType, stackable: false, maxStack: 1, nameKey: weapon.nameKey, descriptionKey: '' }, amount: save.weaponLevels[id] ?? 1 } : null;
+      const save = SaveSystem.getPlayer();
+      const mapped = save.unlockedWeapons.map((id: string) => {
+        const weapon = getWeapon(id as WeaponId);
+        if (!weapon) return null;
+        const slot: InventorySlot = {
+          item: { ...weapon, type: 'material' as ItemType, stackable: false, maxStack: 1, nameKey: weapon.nameKey, descriptionKey: '' },
+          amount: save.weaponLevels[id] ?? 1,
+        };
+        return slot;
       }).filter((s: InventorySlot | null): s is InventorySlot => s !== null);
+      slots = mapped;
     } else {
       slots = InventorySystem.getByType(this.selectedTab as ItemType);
     }
+    this.currentSlots = slots;
 
     if (slots.length === 0) {
-      const empty = this.scene.add.text(GAME.WIDTH / 2, 300, '— EMPTY —', {
+      this.container.add(this.scene.add.text(GAME.WIDTH / 2, 300, '— EMPTY —', {
         fontFamily: 'monospace', fontSize: '14px', color: '#3a4350',
-      }).setOrigin(0.5);
-      this.container.add(empty);
-      this.itemSlots.push(this.scene.add.container(0, 0)); // placeholder
-      empty.destroy();
+      }).setOrigin(0.5));
       return;
     }
 
     // Render item cards
     const w = GAME.WIDTH;
-    const startY = 150;
-    const cardH = 70;
-    const gap = 8;
+    const startY = 160;
+    const cardH = 60;
+    const gap = 6;
     slots.forEach((slot, i) => {
       const y = startY + i * (cardH + gap);
       const slotContainer = this.scene.add.container(w / 2, y);
-      const bg = this.scene.add.rectangle(0, 0, w - 120, cardH, 0x1a2030, 0.95);
-      bg.setStrokeStyle(1, 0x3a4350, 0.5);
-      slotContainer.add(bg);
+      const cardBg = this.scene.add.rectangle(0, 0, w - 120, cardH, 0x1a2030, 0.95);
+      cardBg.setStrokeStyle(1, 0x3a4350, 0.5);
+      slotContainer.add(cardBg);
 
-      // Name
       const name = this.selectedTab === 'weapon'
         ? `${t(slot.item.nameKey)} +${slot.amount}`
         : `${t(slot.item.nameKey)} ×${slot.amount}`;
-      slotContainer.add(this.scene.add.text(-w / 2 + 80, -20, name, {
+      const nameText = this.scene.add.text(-w / 2 + 80, -16, name, {
         fontFamily: 'monospace', fontSize: '13px', color: '#cfd6e0',
-      }).setOrigin(0, 0));
+      }).setOrigin(0, 0);
+      slotContainer.add(nameText);
 
-      // Description
       if (slot.item.descriptionKey) {
-        slotContainer.add(this.scene.add.text(-w / 2 + 80, 0, t(slot.item.descriptionKey), {
+        slotContainer.add(this.scene.add.text(-w / 2 + 80, 2, t(slot.item.descriptionKey), {
           fontFamily: 'monospace', fontSize: '10px', color: '#5a6470',
         }).setOrigin(0, 0));
       }
 
-      // Upgrade button for weapons
-      if (this.selectedTab === 'weapon') {
-        const weaponId = slot.item.id as import('../../data/types').WeaponId;
-        const info = WeaponUpgradeSystem.getUpgradeInfo(weaponId);
-        if (info.canUpgrade) {
-          const upgradeBtn = this.scene.add.rectangle(w / 2 - 100, 0, 120, 30, 0x1a3020, 0.95);
-          upgradeBtn.setStrokeStyle(1, 0x40d070, 0.7);
-          upgradeBtn.setInteractive({ useHandCursor: true });
-          upgradeBtn.on('pointerdown', () => {
-            if (WeaponUpgradeSystem.upgrade(weaponId)) { this.refresh(); }
-          });
-          slotContainer.add(upgradeBtn);
-          slotContainer.add(this.scene.add.text(w / 2 - 100, 0, `UPGRADE +${info.scrapNeeded}S +${info.circuitNeeded}C`, {
-            fontFamily: 'monospace', fontSize: '9px', color: '#40d070',
-          }).setOrigin(0.5));
-        } else if (info.currentLevel < info.maxLevel) {
-          slotContainer.add(this.scene.add.text(w / 2 - 100, 0, `NEED +${info.scrapNeeded}S +${info.circuitNeeded}C`, {
-            fontFamily: 'monospace', fontSize: '9px', color: '#3a4350',
-          }).setOrigin(0.5));
-        } else {
-          slotContainer.add(this.scene.add.text(w / 2 - 100, 0, 'MAX LEVEL', {
-            fontFamily: 'monospace', fontSize: '9px', color: '#ffe060',
-          }).setOrigin(0.5));
-        }
-      }
-
-      // Use button for consumables
-      if (this.selectedTab === 'consumable') {
-        const useBtn = this.scene.add.rectangle(w / 2 - 80, 0, 80, 30, 0x1a2030, 0.95);
-        useBtn.setStrokeStyle(1, 0x39d0d8, 0.6);
-        useBtn.setInteractive({ useHandCursor: true });
-        useBtn.on('pointerdown', () => { InventorySystem.useConsumable(slot.item.id); this.refresh(); });
-        slotContainer.add(useBtn);
-        slotContainer.add(this.scene.add.text(w / 2 - 80, 0, 'USE', {
-          fontFamily: 'monospace', fontSize: '10px', color: '#39d0d8',
-        }).setOrigin(0.5));
-      }
-
       this.container.add(slotContainer);
       this.itemSlots.push(slotContainer);
+
+      // Action button (upgrade/use)
+      if (this.selectedTab === 'weapon') {
+        const weaponId = slot.item.id as WeaponId;
+        const info = WeaponUpgradeSystem.getUpgradeInfo(weaponId);
+        if (info.canUpgrade) {
+          const btnBg = this.scene.add.rectangle(w / 2 - 100, y, 130, 28, 0x1a3020, 0.95);
+          btnBg.setStrokeStyle(1, 0x40d070, 0.7);
+          const btnText = this.scene.add.text(w / 2 - 100, y, `UPGRADE +${info.scrapNeeded}S`, {
+            fontFamily: 'monospace', fontSize: '9px', color: '#40d070',
+          }).setOrigin(0.5);
+          this.container.add([btnBg, btnText]);
+          const action = () => { if (WeaponUpgradeSystem.upgrade(weaponId)) { this.refresh(); } };
+          this.actionButtons.push({ bg: btnBg, text: btnText, action });
+          this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); action(); });
+        }
+      } else if (this.selectedTab === 'consumable') {
+        const btnBg = this.scene.add.rectangle(w / 2 - 80, y, 80, 28, 0x1a2030, 0.95);
+        btnBg.setStrokeStyle(1, 0x39d0d8, 0.6);
+        const btnText = this.scene.add.text(w / 2 - 80, y, 'USE', {
+          fontFamily: 'monospace', fontSize: '10px', color: '#39d0d8',
+        }).setOrigin(0.5);
+        this.container.add([btnBg, btnText]);
+        const action = () => { InventorySystem.useConsumable(slot.item.id); this.refresh(); };
+        this.actionButtons.push({ bg: btnBg, text: btnText, action });
+        this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); action(); });
+      }
+
+      // Card itself is also focusable (for weapons without upgrade button, materials, key items)
+      if (this.selectedTab === 'material' || this.selectedTab === 'key_item' ||
+          (this.selectedTab === 'weapon' && !WeaponUpgradeSystem.getUpgradeInfo(slot.item.id as WeaponId).canUpgrade)) {
+        this.registerNav(cardBg, nameText, () => { /* view only — no action */ });
+      }
     });
   }
 
-  show(): void { this.container.setVisible(true); this.refresh(); }
-  hide(): void { this.container.setVisible(false); }
-  get isVisible(): boolean { return this.container.visible; }
+  /** Left/right switches tabs. */
+  protected onNavLeft(): void {
+    const idx = this.tabs.indexOf(this.selectedTab);
+    this.selectedTab = this.tabs[(idx - 1 + this.tabs.length) % this.tabs.length];
+    this.refresh();
+    AudioSystem.play('uiClick');
+    // Reset focus to first tab
+    this.navFocusIdx = 0;
+    this.updateNavFocus();
+  }
 
-  destroy(): void { this.container.destroy(); }
+  protected onNavRight(): void {
+    const idx = this.tabs.indexOf(this.selectedTab);
+    this.selectedTab = this.tabs[(idx + 1) % this.tabs.length];
+    this.refresh();
+    AudioSystem.play('uiClick');
+    this.navFocusIdx = 0;
+    this.updateNavFocus();
+  }
 }
 
 export default InventoryUI;

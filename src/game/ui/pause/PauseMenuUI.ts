@@ -136,12 +136,12 @@ export class PauseMenuUI {
       this.focusIdx = (this.focusIdx - 1 + this.buttons.length) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
-      this.navCooldown = 180;
+      this.navCooldown = 110;
     } else if (input.leftStickY > 0.3 || input.heldDown) {
       this.focusIdx = (this.focusIdx + 1) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
-      this.navCooldown = 180;
+      this.navCooldown = 110;
     }
     if (input.jumpPressed || input.firePressed) {
       AudioSystem.play('uiClick');
