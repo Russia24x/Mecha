@@ -1,13 +1,31 @@
 /**
- * MECHA: LAST PROTOCOL — Pause Menu UI
- * Grid layout with 8 buttons: Resume, Skills, Inventory, Quests, Map, Settings, Restart, Quit.
- * Depth 250. Full gamepad support with cooldown.
+ * MECHA: LAST PROTOCOL — Pause Menu UI v3.1
+ * Grid layout with 9 buttons: Resume, Skills, Inventory, Quests, Map,
+ * Settings, Restart, Return to Hub, Quit to Menu.
+ * Depth 250. Full gamepad + mouse support with cooldown.
+ *
+ * FIXES:
+ * - Added "Return to Hub" button (hub is separate from gameplay).
+ * - Removed setInteractive() from overlay rect (was blocking mouse on buttons).
+ * - Gamepad nav cooldown prevents skipping.
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t, getLocale } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { InputSystem } from '../../systems/InputSystem';
+
+export interface PauseMenuCallbacks {
+  onResume: () => void;
+  onRestart: () => void;
+  onSettings: () => void;
+  onSkills: () => void;
+  onInventory: () => void;
+  onQuests: () => void;
+  onMap: () => void;
+  onReturnToHub: () => void;
+  onQuit: () => void;
+}
 
 export class PauseMenuUI {
   private container: Phaser.GameObjects.Container;
@@ -16,26 +34,17 @@ export class PauseMenuUI {
   private focusIdx = 0;
   private navCooldown = 0;
 
-  constructor(scene: Phaser.Scene, callbacks: {
-    onResume: () => void;
-    onRestart: () => void;
-    onSettings: () => void;
-    onSkills: () => void;
-    onInventory: () => void;
-    onQuests: () => void;
-    onMap: () => void;
-    onQuit: () => void;
-  }) {
+  constructor(scene: Phaser.Scene, callbacks: PauseMenuCallbacks) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     this.container = scene.add.container(0, 0).setDepth(250).setScrollFactor(0).setVisible(false);
 
+    // Overlay — NO setInteractive (was blocking mouse clicks on buttons)
     const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75);
-    overlay.setInteractive();
     this.container.add(overlay);
 
     // Title
-    this.container.add(scene.add.text(w / 2, 60, t('pause.title'), {
+    this.container.add(scene.add.text(w / 2, 50, t('pause.title'), {
       fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
     }).setOrigin(0.5));
 
@@ -45,10 +54,10 @@ export class PauseMenuUI {
 
     // Grid layout — 2 columns × 4 rows + full-width top/bottom
     const colW = 210;
-    const rowH = 48;
-    const gap = 10;
+    const rowH = 44;
+    const gap = 8;
     const startX = w / 2 - colW - gap / 2;
-    const startY = 120;
+    const startY = 110;
 
     // Row 0: Resume (full width)
     this.makeBtn(w / 2, startY, '▶  ' + t('pause.resume'), callbacks.onResume, colW * 2 + gap);
@@ -65,17 +74,28 @@ export class PauseMenuUI {
     this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙  ' + t('menu.settings'), callbacks.onSettings, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻  ' + t('pause.restart'), callbacks.onRestart, colW);
 
-    // Row 4: Quit (full width)
-    this.makeBtn(w / 2, startY + (rowH + gap) * 4, '⌂  ' + t('pause.quit_menu'), callbacks.onQuit, colW * 2 + gap);
+    // Row 4: Return to Hub | Quit to Menu
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⌂  ' + t('pause.quit_hub'), callbacks.onReturnToHub, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 4, '✕  ' + t('pause.quit_menu'), callbacks.onQuit, colW);
   }
 
   private makeBtn(x: number, y: number, label: string, onClick: () => void, width: number = 320): void {
-    const bg = this.scene.add.rectangle(x, y, width, 44, 0x0a1018, 0.9);
+    const bg = this.scene.add.rectangle(x, y, width, 40, 0x0a1018, 0.9);
     bg.setStrokeStyle(1, 0x1a3040, 0.8);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => { this.focusIdx = this.buttons.findIndex(b => b.bg === bg); this.updateFocus(); AudioSystem.play('uiHover'); });
+    bg.on('pointerover', () => {
+      this.focusIdx = this.buttons.findIndex(b => b.bg === bg);
+      this.updateFocus();
+      AudioSystem.play('uiHover');
+    });
+    bg.on('pointerout', () => {
+      bg.setFillStyle(0x0a1018, 0.9);
+      bg.setStrokeStyle(1, 0x1a3040, 0.8);
+    });
     bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const textEl = this.scene.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '15px', color: '#5a6470' }).setOrigin(0.5);
+    const textEl = this.scene.add.text(x, y, label, {
+      fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
+    }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.buttons.push({ bg, text: textEl, onClick });
   }
@@ -116,12 +136,12 @@ export class PauseMenuUI {
       this.focusIdx = (this.focusIdx - 1 + this.buttons.length) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
-      this.navCooldown = 200;
+      this.navCooldown = 180;
     } else if (input.leftStickY > 0.3 || input.heldDown) {
       this.focusIdx = (this.focusIdx + 1) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
-      this.navCooldown = 200;
+      this.navCooldown = 180;
     }
     if (input.jumpPressed || input.firePressed) {
       AudioSystem.play('uiClick');

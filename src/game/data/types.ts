@@ -90,6 +90,7 @@ export interface SkillEffect {
 
 // ================ ENEMIES ================
 export type EnemyTypeId = 'drone' | 'spider' | 'heavy' | 'sniper' | 'flying_ai' | 'elite';
+export type EnemyState = 'patrol' | 'aggro' | 'attack' | 'stagger';
 
 export type EnemyAttackType = 'shoot' | 'lunge' | 'charge' | 'snipe';
 
@@ -202,6 +203,7 @@ export interface SectionData {
   nameKey: string;
   x: number;
   enemies: string[];
+  bossId?: string;
   platforms?: PlatformData[];
   hazards?: HazardData[];
 }
@@ -316,6 +318,7 @@ export type GameEvent =
   | 'SKILL_UNLOCKED'
   | 'WEAPON_UNLOCKED'
   | 'ITEM_COLLECTED'
+  | 'ITEM_USED'
   | 'QUEST_UPDATED'
   | 'QUEST_COMPLETE'
   | 'DIALOGUE_START'

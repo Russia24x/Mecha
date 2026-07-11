@@ -20,7 +20,7 @@ export interface DialogueLine {
 export class DialogueSystem {
   private static currentDialogue: DialogueData | null = null;
   private static currentLineIndex = 0;
-  private static isActive = false;
+  private static _isActive = false;
 
   /**
    * Start a dialogue by ID.
@@ -38,7 +38,7 @@ export class DialogueSystem {
 
     this.currentDialogue = dialogue;
     this.currentLineIndex = 0;
-    this.isActive = true;
+    this._isActive = true;
 
     // Set flag (e.g., 'met', 'quest_given')
     if (dialogue.setFlag) {
@@ -80,12 +80,12 @@ export class DialogueSystem {
     const dialogueId = this.currentDialogue.id;
     this.currentDialogue = null;
     this.currentLineIndex = 0;
-    this.isActive = false;
+    this._isActive = false;
     EventBus.emit('DIALOGUE_END', { npcId, dialogueId });
   }
 
   /** Check if dialogue is currently active. */
-  static get isActive(): boolean { return this.isActive; }
+  static get isActive(): boolean { return this._isActive; }
 
   /** Get all dialogues for an NPC (for debugging/UI). */
   static getDialoguesForNPC(npcId: string): DialogueData[] {

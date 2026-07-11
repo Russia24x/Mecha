@@ -20,7 +20,7 @@ export class EnemyEntity {
   public sprite: Phaser.Physics.Matter.Image;
   public id: string;
   public type: EnemyTypeId;
-  private data: EnemyData;
+  public data: EnemyData;
   private health: number;
   private alive = true;
   private scene: Phaser.Scene;

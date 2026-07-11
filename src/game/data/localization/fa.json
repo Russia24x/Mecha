@@ -19,6 +19,7 @@
   "pause.restart": "شروع مجدد مرحله",
   "pause.quit_map": "بازگشت به نقشه",
   "pause.quit_menu": "بازگشت به منو",
+  "pause.quit_hub": "بازگشت به هاب",
   "gameover.title": "بازی تمام شد",
   "gameover.retry": "تلاش مجدد",
   "gameover.quit": "بازگشت به منو",

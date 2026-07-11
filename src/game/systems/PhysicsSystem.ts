@@ -80,7 +80,8 @@ export class PhysicsSystem {
   }
 
   bodiesInCircle(x: number, y: number, radius: number): MatterBody[] {
-    return this.scene.matter.query.region(new Phaser.Geom.Circle(x, y, radius)) as MatterBody[];
+    // Approximate circle with bounding box (Phaser 4 Matter has no intersectCircle)
+    return this.scene.matter.intersectRect(x - radius, y - radius, radius * 2, radius * 2) as MatterBody[];
   }
 
   bodiesAtPoint(x: number, y: number): MatterBody[] {
@@ -94,7 +95,7 @@ export class PhysicsSystem {
   }
 
   setWorldBounds(w: number, h: number): void {
-    this.scene.matter.world.setBounds(0, 0, w, h, true, true, true, true);
+    this.scene.matter.world.setBounds(0, 0, w, h, 32, true, true, true, true);
   }
 
   setGravity(x: number, y: number): void {

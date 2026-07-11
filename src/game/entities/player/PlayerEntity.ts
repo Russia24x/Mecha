@@ -110,15 +110,17 @@ export class PlayerEntity {
 
     this.buildVisual();
 
-    // Init input system with callbacks
-    // Note: pause is handled by GameScene via polling pausePressed — NOT by PlayerEntity.
-    InputSystem.init({
+    // Register gameplay callbacks with InputSystem.
+    // InputSystem.init() is already called in GameScene.create() — listeners are attached.
+    // We only set callbacks here (player owns jump/fire/melee/dash/weapon-switch).
+    // pause/interact are no-ops here — GameScene polls pausePressed/interactPressed.
+    InputSystem.setCallbacks({
       jump: () => this.tryJump(),
       fire: () => this.tryFire(),
       melee: () => this.tryMelee(),
       dash: (dir) => this.tryDash(dir),
-      pause: () => {},  // No-op — GameScene polls pausePressed in its update loop
-      interact: () => {},  // No-op — GameScene polls interactPressed
+      pause: () => {},
+      interact: () => {},
       weaponNext: () => this.switchWeapon(1),
       weaponPrev: () => this.switchWeapon(-1),
     });
@@ -456,7 +458,7 @@ export class PlayerEntity {
           amount: this.stats.meleeDamage, type: 'melee', source: this.id,
           target: entity.id ?? 'unknown',
           knockback: { x: aimDir.x * 0.18, y: aimDir.y * 0.05 },
-          point: { x: go.x, y: go.y },
+          point: { x: (go as unknown as Phaser.GameObjects.Components.Transform).x, y: (go as unknown as Phaser.GameObjects.Components.Transform).y },
         });
       }
     }
@@ -519,6 +521,8 @@ export class PlayerEntity {
   }
 
   destroy(): void {
+    // Clear input callbacks so destroyed player doesn't receive input
+    InputSystem.clearCallbacks();
     this.gunArm?.destroy(); this.mechaTorso?.destroy(); this.mechaHead?.destroy();
     this.mechaLegL?.destroy(); this.mechaLegR?.destroy();
     this.core?.destroy(); this.visor?.destroy();

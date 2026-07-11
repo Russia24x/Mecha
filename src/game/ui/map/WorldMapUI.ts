@@ -23,7 +23,6 @@ export class WorldMapUI {
     this.container = scene.add.container(0, 0).setDepth(250).setScrollFactor(0).setVisible(false);
 
     const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9);
-    overlay.setInteractive();
     this.container.add(overlay);
 
     this.container.add(scene.add.text(w / 2, 40, t('mission.title'), {

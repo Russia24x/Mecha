@@ -36,15 +36,6 @@ export class PhaserGame {
         preserveDrawingBuffer: false,
         mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
       },
-      contextCreation: {
-        alpha: false,
-        depth: true,
-        stencil: true,
-        antialias: true,
-        premultipliedAlpha: true,
-        desynchronized: false,
-        failIfMajorPerformanceCaveat: false,
-      },
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -54,7 +45,6 @@ export class PhaserGame {
         matter: {
           gravity: { x: 0, y: 0.9 },
           debug: false,
-          timing: { timeScale: 1 },
         },
       },
       fps: {

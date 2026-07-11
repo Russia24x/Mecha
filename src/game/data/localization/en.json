@@ -19,6 +19,7 @@
   "pause.restart": "RESTART STAGE",
   "pause.quit_map": "QUIT TO MAP",
   "pause.quit_menu": "QUIT TO MENU",
+  "pause.quit_hub": "RETURN TO HUB",
   "gameover.title": "GAME OVER",
   "gameover.retry": "RETRY",
   "gameover.quit": "QUIT TO MENU",

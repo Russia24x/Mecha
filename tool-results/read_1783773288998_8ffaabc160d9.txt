@@ -1,0 +1,1084 @@
+     1→/**
+     2→ * MECHA: LAST PROTOCOL — GameScene v3.0
+     3→ * Wires ALL systems, entities, and UIs together.
+     4→ * State machine: menu | play | gameover | victory
+     5→ * Overlay flags: paused | settings | skills | inventory | quests | map | dialogue
+     6→ *
+     7→ * Designed for Phaser 4.2.1 — fully data-driven, modular, extensible.
+     8→ */
+     9→import Phaser from 'phaser';
+    10→import { COLORS, GAME, PLAYER } from '../../shared/Constants';
+    11→import { EventBus } from '../../systems/EventBus';
+    12→import { AudioSystem } from '../../systems/AudioSystem';
+    13→import { InputSystem } from '../../systems/InputSystem';
+    14→import { CombatSystem } from '../../systems/CombatSystem';
+    15→import { PhysicsSystem } from '../../systems/PhysicsSystem';
+    16→import { CameraSystem } from '../../systems/CameraSystem';
+    17→import { ParticleSystem } from '../../systems/ParticleSystem';
+    18→import { RenderSystem } from '../../systems/RenderSystem';
+    19→import { SaveSystem } from '../../systems/SaveSystem';
+    20→import { setLocale, t, getLocale } from '../../systems/LocalizationSystem';
+    21→import { NPCSystem } from '../../systems/NPCSystem';
+    22→import { DialogueSystem } from '../../systems/DialogueSystem';
+    23→import { LoreSystem } from '../../systems/LoreSystem';
+    24→import { QuestSystem } from '../../systems/QuestSystem';
+    25→import { InventorySystem } from '../../systems/InventorySystem';
+    26→import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
+    27→import { ExperienceSystem } from '../../systems/ExperienceSystem';
+    28→import { SkillTreeSystem } from '../../systems/SkillTreeSystem';
+    29→import { WorldSystem } from '../../world/WorldSystem';
+    30→import { WorldMapSystem } from '../../world/WorldMapSystem';
+    31→import { AreaLoader, type LoadedArea } from '../../world/AreaLoader';
+    32→import { CheckpointSystem } from '../../world/CheckpointSystem';
+    33→import { PlayerEntity } from '../../entities/player/PlayerEntity';
+    34→import { EnemyEntity, resetEnemyIds } from '../../entities/enemies/EnemyEntity';
+    35→import { BossEntity } from '../../entities/boss/BossEntity';
+    36→import { Projectile } from '../../entities/combat/Projectile';
+    37→import { HUDUI } from '../../ui/hud/HUDUI';
+    38→import { DialogueUI } from '../../ui/dialogue/DialogueUI';
+    39→import { PauseMenuUI } from '../../ui/pause/PauseMenuUI';
+    40→import { SettingsUI } from '../../ui/settings/SettingsUI';
+    41→import { SkillTreeUI } from '../../ui/skilltree/SkillTreeUI';
+    42→import { InventoryUI } from '../../ui/inventory/InventoryUI';
+    43→import { QuestUI } from '../../ui/quest/QuestUI';
+    44→import { WorldMapUI } from '../../ui/map/WorldMapUI';
+    45→import type { EnemyTypeId } from '../../data/types';
+    46→
+    47→type GameState = 'menu' | 'hub' | 'play' | 'map' | 'skills' | 'inventory' | 'quests' | 'settings' | 'gameover' | 'victory';
+    48→
+    49→export class GameScene extends Phaser.Scene {
+    50→  private state: GameState = 'menu';
+    51→  private stateContainer: Phaser.GameObjects.Container | null = null;
+    52→  private menuButtons: Phaser.GameObjects.Rectangle[] = [];
+    53→  private menuFocusIndex = 0;
+    54→  private menuNavHandler: ((e: KeyboardEvent) => void) | null = null;
+    55→
+    56→  // Systems
+    57→  private physics!: PhysicsSystem;
+    58→  private camera!: CameraSystem;
+    59→  private particles!: ParticleSystem;
+    60→  private render!: RenderSystem;
+    61→  private combat!: CombatSystem;
+    62→
+    63→  // Entities
+    64→  private player!: PlayerEntity;
+    65→  private enemies: EnemyEntity[] = [];
+    66→  private boss: BossEntity | null = null;
+    67→  private projectiles: Projectile[] = [];
+    68→
+    69→  // World
+    70→  private areaLoader!: AreaLoader;
+    71→  private loadedArea: LoadedArea | null = null;
+    72→  private currentSection = 1;
+    73→  private stageStartTime = 0;
+    74→  private bossArenaActive = false;
+    75→  private sequenceTimers: Phaser.Time.TimerEvent[] = [];
+    76→
+    77→  // UI — created on-demand in build*Overlay methods
+    78→  private hud!: HUDUI;
+    79→  private dialogueUI!: DialogueUI;
+    80→  private pauseMenuUI!: PauseMenuUI;
+    81→  private settingsUI: SettingsUI | null = null;
+    82→  private skillTreeUI: SkillTreeUI | null = null;
+    83→  private inventoryUI: InventoryUI | null = null;
+    84→  private questUI: QuestUI | null = null;
+    85→  private worldMapUI: WorldMapUI | null = null;
+    86→
+    87→  // Pause state — when paused, play is frozen but game loop runs for UI
+    88→  private paused = false;
+    89→  private lastPauseToggleAt = 0;
+    90→
+    91→  constructor() { super({ key: 'GameScene' }); }
+    92→
+    93→  create(): void {
+    94→    // Init audio
+    95→    AudioSystem.init();
+    96→    AudioSystem.resume();
+    97→
+    98→    // Note: InputSystem.init() is called by PlayerEntity with real callbacks.
+    99→    // GameScene does NOT call init() to avoid overwriting PlayerEntity's callbacks.
+   100→    // Pause/interact are handled via InputSystem.getState() polling in update().
+   101→
+   102→    // Load settings
+   103→    const settings = SaveSystem.getSettings();
+   104→    AudioSystem.setMasterVolume(settings.masterVolume);
+   105→    AudioSystem.setSfxVolume(settings.sfxVolume);
+   106→    AudioSystem.setMuted(settings.muted);
+   107→    RenderSystem.setBrightness(settings.brightness);
+   108→    setLocale(settings.locale);
+   109→
+   110→    // Init meta systems
+   111→    QuestSystem.init();
+   112→    LoreSystem.init();
+   113→    CheckpointSystem.init();
+   114→    WorldSystem.initFromSave();
+   115→
+   116→    // Init core systems
+   117→    this.physics = new PhysicsSystem(this);
+   118→    this.camera = new CameraSystem(this);
+   119→    this.particles = new ParticleSystem(this);
+   120→
+   121→    // Build UIs (hidden by default, shown when needed via overlay states)
+   122→    this.dialogueUI = new DialogueUI(this);
+   123→    this.pauseMenuUI = new PauseMenuUI(this, {
+   124→      onResume: () => this.togglePause(),
+   125→      onRestart: () => this.restartStage(),
+   126→      onSettings: () => { this.pauseMenuUI.hide(); this.setState('settings'); },
+   127→      onSkills: () => { this.pauseMenuUI.hide(); this.setState('skills'); },
+   128→      onInventory: () => { this.pauseMenuUI.hide(); this.setState('inventory'); },
+   129→      onQuests: () => { this.pauseMenuUI.hide(); this.setState('quests'); },
+   130→      onMap: () => { this.pauseMenuUI.hide(); this.setState('map'); },
+   131→      onQuit: () => this.quitToHub(),
+   132→    });
+   133→    // Overlay UIs are created on-demand in build*Overlay() methods
+   134→
+   135→    // EventBus listeners
+   136→    EventBus.on('PLAYER_DEAD', this.onPlayerDied, this);
+   137→    EventBus.on('ENEMY_DEAD', this.onEnemyKilled, this);
+   138→    EventBus.on('BOSS_DEAD', this.onBossDied, this);
+   139→    EventBus.on('CHECKPOINT', () => this.hud?.toast(t('checkpoint.saved')));
+   140→    EventBus.on('GAME_STATE', (p: unknown) => {
+   141→      const data = p as { sectionName?: string };
+   142→      if (data.sectionName) this.hud?.setSection(data.sectionName);
+   143→    });
+   144→    EventBus.on('LEVEL_UP', () => this.hud?.toast(t('levelup')));
+   145→    EventBus.on('SKILL_UNLOCKED', () => { this.player?.refreshStats(); });
+   146→    EventBus.on('ABILITY_UNLOCKED', () => { this.player?.refreshStats(); });
+   147→
+   148→    this.setState('menu');
+   149→  }
+   150→
+   151→  // ================ STATE MACHINE ================
+   152→
+   153→  private setState(next: GameState): void {
+   154→    // Don't cleanup play when switching to overlay states (pause sub-menus)
+   155→    const isOverlay = ['settings', 'skills', 'inventory', 'quests', 'map'].includes(next);
+   156→    if (!isOverlay) {
+   157→      this.cleanupState();
+   158→    } else {
+   159→      // Just cleanup previous overlay container, keep play running
+   160→      if (this.stateContainer) { this.stateContainer.destroy(true); this.stateContainer = null; }
+   161→      if (this.menuNavHandler) { window.removeEventListener('keydown', this.menuNavHandler); this.menuNavHandler = null; }
+   162→    }
+   163→    this.state = next;
+   164→    this.menuButtons = [];
+   165→    this.menuFocusIndex = 0;
+   166→    if (!isOverlay && next !== 'play') {
+   167→      this.stateContainer = this.add.container(0, 0).setDepth(50);
+   168→    } else if (isOverlay) {
+   169→      this.stateContainer = this.add.container(0, 0).setDepth(250);
+   170→    } else {
+   171→      this.stateContainer = null;
+   172→    }
+   173→    switch (next) {
+   174→      case 'menu': this.buildMenu(); break;
+   175→      case 'hub': this.buildHub(); break;
+   176→      case 'play': this.buildPlay(); break;
+   177→      case 'map': this.buildMapOverlay(); break;
+   178→      case 'skills': this.buildSkillsOverlay(); break;
+   179→      case 'inventory': this.buildInventoryOverlay(); break;
+   180→      case 'quests': this.buildQuestsOverlay(); break;
+   181→      case 'settings': this.buildSettingsOverlay(); break;
+   182→      case 'gameover': this.buildGameOver(); break;
+   183→      case 'victory': this.buildVictory(); break;
+   184→    }
+   185→  }
+   186→
+   187→  private cleanupState(): void {
+   188→    if (this.state === 'play') this.cleanupPlay();
+   189→    if (this.menuNavHandler) {
+   190→      window.removeEventListener('keydown', this.menuNavHandler);
+   191→      this.menuNavHandler = null;
+   192→    }
+   193→    if (this.stateContainer) { this.stateContainer.destroy(true); this.stateContainer = null; }
+   194→  }
+   195→
+   196→  /** Unified method to close any overlay UI and return to hub or pause. */
+   197→  private closeOverlay(): void {
+   198→    // Destroy whichever overlay is active
+   199→    if (this.settingsUI) { this.settingsUI.hide(); this.settingsUI.destroy(); this.settingsUI = null; }
+   200→    if (this.skillTreeUI) { this.skillTreeUI.hide(); this.skillTreeUI.destroy(); this.skillTreeUI = null; }
+   201→    if (this.inventoryUI) { this.inventoryUI.hide(); this.inventoryUI.destroy(); this.inventoryUI = null; }
+   202→    if (this.questUI) { this.questUI.hide(); this.questUI.destroy(); this.questUI = null; }
+   203→    if (this.worldMapUI) { this.worldMapUI.hide(); this.worldMapUI.destroy(); this.worldMapUI = null; }
+   204→    // Return to hub (if from hub) or reopen pause menu (if from play)
+   205→    if (this.paused) {
+   206→      this.setState('play');
+   207→      // Reopen pause menu after a tiny delay to avoid ESC double-trigger
+   208→      this.time.delayedCall(50, () => { this.paused = true; this.pauseMenuUI.show(); });
+   209→    } else {
+   210→      this.setState('hub');
+   211→    }
+   212→  }
+   213→
+   214→  update(_time: number, deltaMs: number): void {
+   215→    InputSystem.update();
+   216→    const input = InputSystem.getState();
+   217→
+   218→    if (this.state === 'play') {
+   219→      if (input.pausePressed) this.togglePause();
+   220→      if (input.interactPressed) this.tryInteract();
+   221→      if (!this.paused) {
+   222→        this.updatePlay(deltaMs);
+   223→      } else {
+   224→        this.pauseMenuUI.handleNavigation();
+   225→      }
+   226→    } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
+   227→      // Gamepad + keyboard navigation for menu/hub/gameover/victory
+   228→      this.handleMenuGamepadNav(input);
+   229→      // ESC in hub = back to menu
+   230→      if (this.state === 'hub' && input.pausePressed) {
+   231→        this.setState('menu');
+   232→      }
+   233→    } else {
+   234→      // Overlay states (settings, skills, inventory, quests, map)
+   235→      // B button, ESC, or Start = back
+   236→      if (input.backPressed || input.pausePressed) {
+   237→        this.closeOverlay();
+   238→      }
+   239→    }
+   240→
+   241→    // Dialogue advance via gamepad (works in any state)
+   242→    if (this.dialogueUI?.isVisible) {
+   243→      if (input.jumpPressed || input.firePressed) {
+   244→        this.dialogueUI.advance();
+   245→      }
+   246→    }
+   247→  }
+   248→
+   249→  // ================ MENU ================
+   250→
+   251→  private buildMenu(): void {
+   252→    const c = this.stateContainer!;
+   253→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   254→
+   255→    // === Background: starry night sky ===
+   256→    const bg = this.add.graphics();
+   257→    bg.setDepth(0);
+   258→    // Deep blue gradient
+   259→    bg.fillStyle(0x040814, 1);
+   260→    bg.fillRect(0, 0, w, h);
+   261→    for (let r = 500; r > 0; r -= 30) {
+   262→      bg.fillStyle(0x0a1228, 0.02);
+   263→      bg.fillCircle(w / 2, h * 0.35, r);
+   264→    }
+   265→    c.add(bg);
+   266→
+   267→    // Stars — 120 twinkling, drifting dots (more lively)
+   268→    for (let i = 0; i < 120; i++) {
+   269→      const sx = Math.random() * w;
+   270→      const sy = Math.random() * h * 0.75;
+   271→      const size = 0.5 + Math.random() * 2;
+   272→      const brightness = 0.2 + Math.random() * 0.8;
+   273→      const starColor = Math.random() < 0.15 ? 0xffe0a0 : Math.random() < 0.3 ? 0xa0c0ff : 0xc0e0ff;
+   274→      const star = this.add.circle(sx, sy, size, starColor, brightness);
+   275→      star.setDepth(1);
+   276→      c.add(star);
+   277→      // Twinkle — varying intensity + duration
+   278→      this.tweens.add({
+   279→        targets: star,
+   280→        alpha: { from: brightness * 0.1, to: brightness },
+   281→        scale: { from: size * 0.5, to: size * 1.2 },
+   282→        duration: 600 + Math.random() * 2500,
+   283→        yoyo: true, repeat: -1,
+   284→        delay: Math.random() * 3000,
+   285→        ease: 'Sine.inOut',
+   286→      });
+   287→      // Slow drift — each star moves slightly
+   288→      this.tweens.add({
+   289→        targets: star,
+   290→        x: sx + (Math.random() - 0.5) * 30,
+   291→        y: sy + (Math.random() - 0.5) * 20,
+   292→        duration: 5000 + Math.random() * 8000,
+   293→        yoyo: true, repeat: -1,
+   294→        ease: 'Sine.inOut',
+   295→      });
+   296→    }
+   297→
+   298→    // Shooting stars — occasional streaks across the sky
+   299→    const shootingStarFunc = () => {
+   300→      const ss = this.add.rectangle(0, 0, 40 + Math.random() * 30, 1.5, 0xffffff, 0.9);
+   301→      ss.setBlendMode(Phaser.BlendModes.ADD);
+   302→      ss.setDepth(1);
+   303→      ss.setOrigin(0, 0.5);
+   304→      ss.setRotation(0.3 + Math.random() * 0.2);
+   305→      c.add(ss);
+   306→      const startX = Math.random() * w * 0.7;
+   307→      const startY = Math.random() * h * 0.3;
+   308→      const endX = startX + 300 + Math.random() * 200;
+   309→      const endY = startY + 120 + Math.random() * 80;
+   310→      this.tweens.add({
+   311→        targets: ss,
+   312→        x: endX, y: endY,
+   313→        alpha: { from: 0.9, to: 0 },
+   314→        duration: 600 + Math.random() * 400,
+   315→        onComplete: () => ss.destroy(),
+   316→      });
+   317→    };
+   318→    // Schedule shooting stars at random intervals
+   319→    this.time.addEvent({
+   320→      delay: 3000,
+   321→      loop: true,
+   322→      callback: () => { if (Math.random() < 0.4) shootingStarFunc(); },
+   323→    });
+   324→
+   325→    // Brighter "beacon" stars with pulsing glow
+   326→    for (let i = 0; i < 8; i++) {
+   327→      const bx = Math.random() * w;
+   328→      const by = Math.random() * h * 0.55;
+   329→      const beaconColor = [0xffffff, 0x80a0ff, 0xffd0a0, 0xa0ffff][Math.floor(Math.random() * 4)];
+   330→      const beacon = this.add.circle(bx, by, 2 + Math.random(), beaconColor, 1);
+   331→      beacon.setDepth(1);
+   332→      beacon.setBlendMode(Phaser.BlendModes.ADD);
+   333→      c.add(beacon);
+   334→      const beaconGlow = this.add.circle(bx, by, 10 + Math.random() * 6, beaconColor, 0.12);
+   335→      beaconGlow.setDepth(1);
+   336→      beaconGlow.setBlendMode(Phaser.BlendModes.ADD);
+   337→      c.add(beaconGlow);
+   338→      // Pulse glow + scale
+   339→      this.tweens.add({
+   340→        targets: beaconGlow,
+   341→        alpha: { from: 0.05, to: 0.25 },
+   342→        scale: { from: 0.7, to: 1.3 },
+   343→        duration: 1200 + Math.random() * 2000,
+   344→        yoyo: true, repeat: -1,
+   345→        ease: 'Sine.inOut',
+   346→      });
+   347→      // Beacon twinkle
+   348→      this.tweens.add({
+   349→        targets: beacon,
+   350→        alpha: { from: 0.6, to: 1 },
+   351→        duration: 800 + Math.random() * 1200,
+   352→        yoyo: true, repeat: -1,
+   353→      });
+   354→    }
+   355→
+   356→    // === Title: MECHA (very large) ===
+   357→    const titleY = h * 0.3;
+   358→    // Glow behind title
+   359→    const glow = this.add.circle(w / 2, titleY, 250, 0x39d0d8, 0.05);
+   360→    glow.setBlendMode(Phaser.BlendModes.ADD);
+   361→    glow.setDepth(2);
+   362→    c.add(glow);
+   363→    this.tweens.add({ targets: glow, alpha: { from: 0.03, to: 0.08 }, duration: 3000, yoyo: true, repeat: -1 });
+   364→
+   365→    // MECHA — very large
+   366→    const mechaText = this.add.text(w / 2, titleY, 'MECHA', {
+   367→      fontFamily: 'monospace', fontSize: '96px', color: '#39d0d8',
+   368→      stroke: '#000', strokeThickness: 8,
+   369→    }).setOrigin(0.5).setDepth(3);
+   370→    c.add(mechaText);
+   371→
+   372→    // LAST PROTOCOL — smaller, near-white
+   373→    const protocolText = this.add.text(w / 2, titleY + 65, 'LAST PROTOCOL', {
+   374→      fontFamily: 'monospace', fontSize: '22px', color: '#e0e8f0',
+   375→      stroke: '#000', strokeThickness: 3,
+   376→      letterSpacing: 4,
+   377→    }).setOrigin(0.5).setDepth(3);
+   378→    c.add(protocolText);
+   379→    this.tweens.add({ targets: protocolText, alpha: { from: 0.6, to: 1 }, duration: 2500, yoyo: true, repeat: -1 });
+   380→
+   381→    // === Small minimal buttons ===
+   382→    const btnY = h * 0.6;
+   383→    const btnGap = 48;
+   384→
+   385→    this.makeMenuBtn(w / 2, btnY, t('menu.start'), () => { AudioSystem.play('uiClick'); this.setState('hub'); });
+   386→    this.makeMenuBtn(w / 2, btnY + btnGap, t('menu.continue'), () => {
+   387→      AudioSystem.play('uiClick');
+   388→      if (CheckpointSystem.hasCheckpoint()) {
+   389→        CheckpointSystem.init();
+   390→        WorldSystem.initFromSave();
+   391→        this.setState('hub');
+   392→      }
+   393→    }, !SaveSystem.hasCheckpoint());
+   394→    this.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.setState('settings'); });
+   395→    this.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
+   396→
+   397→    // === Footer ===
+   398→    c.add(this.add.text(w / 2, h - 25, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
+   399→      fontFamily: 'monospace', fontSize: '9px', color: '#0a1220',
+   400→    }).setOrigin(0.5).setDepth(3));
+   401→
+   402→    this.setupMenuNav();
+   403→  }
+   404→
+   405→  // ================ HUB (World Map + Menu Access) ================
+   406→
+   407→  private buildHub(): void {
+   408→    const c = this.stateContainer!;
+   409→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   410→    const isFa = getLocale() === 'fa';
+   411→    const L = (en: string, fa: string) => isFa ? fa : en;
+   412→
+   413→    // Background — warmer, slightly brighter than menu
+   414→    const bg = this.add.graphics();
+   415→    bg.fillStyle(0x0a0e1a, 1);
+   416→    bg.fillRect(0, 0, w, h);
+   417→    // Subtle warm glow at center
+   418→    for (let r = 400; r > 0; r -= 25) {
+   419→      bg.fillStyle(0x101828, 0.025);
+   420→      bg.fillCircle(w / 2, h * 0.45, r);
+   421→    }
+   422→    bg.setDepth(0);
+   423→    c.add(bg);
+   424→
+   425→    // === Top bar: Title + Player stats ===
+   426→    c.add(this.add.text(30, 20, 'MISSION SELECT', {
+   427→      fontFamily: 'monospace', fontSize: '18px', color: '#39d0d8',
+   428→    }).setDepth(1));
+   429→
+   430→    const save = SaveSystem.getPlayer();
+   431→    const xpNeeded = ExperienceSystem.xpForLevel(save.level);
+   432→    c.add(this.add.text(w - 30, 20, `LV.${save.level}  ${save.xp}/${xpNeeded} XP  |  SP: ${save.skillPoints}  |  Kills: ${save.totalKills}`, {
+   433→      fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
+   434→    }).setOrigin(1, 0).setDepth(1));
+   435→
+   436→    // Separator line
+   437→    c.add(this.add.rectangle(w / 2, 50, w - 60, 1, 0x1a2030, 0.6).setDepth(1));
+   438→
+   439→    // === Area cards (from WorldMapSystem) ===
+   440→    const tree = WorldMapSystem.getMapTree();
+   441→    const areas: { areaId: string; nameKey: string; unlocked: boolean; discovered: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; bgImage?: string }[] = [];
+   442→    for (const actData of tree) {
+   443→      for (const regionData of actData.regions) {
+   444→        for (const node of regionData.nodes) {
+   445→          areas.push({
+   446→            areaId: node.area.id,
+   447→            nameKey: node.area.nameKey,
+   448→            unlocked: node.unlocked,
+   449→            discovered: node.discovered,
+   450→            isCurrent: node.isCurrent,
+   451→            bossDefeated: node.bossDefeated,
+   452→            hasBoss: node.hasBoss,
+   453→            bgImage: node.area.bgImage,
+   454→          });
+   455→        }
+   456→      }
+   457→    }
+   458→
+   459→    // Render area cards horizontally
+   460→    const cardW = 280;
+   461→    const cardH = 200;
+   462→    const cardGap = 30;
+   463→    const totalW = areas.length * cardW + (areas.length - 1) * cardGap;
+   464→    const startX = (w - totalW) / 2 + cardW / 2;
+   465→    const cardY = h * 0.42;
+   466→
+   467→    areas.forEach((area, i) => {
+   468→      const x = startX + i * (cardW + cardGap);
+   469→      const cardBg = this.add.rectangle(x, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.9);
+   470→      cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
+   471→      cardBg.setDepth(2);
+   472→      c.add(cardBg);
+   473→
+   474→      // Preview image area (top 60% of card) — placeholder for future bg image
+   475→      const previewBg = this.add.rectangle(x, cardY - 30, cardW - 20, 100, 0x05080c, 1);
+   476→      previewBg.setStrokeStyle(1, 0x0a1018, 0.5);
+   477→      previewBg.setDepth(2);
+   478→      c.add(previewBg);
+   479→
+   480→      // Area name
+   481→      const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), {
+   482→        fontFamily: 'monospace', fontSize: '14px',
+   483→        color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
+   484→      }).setOrigin(0.5).setDepth(3);
+   485→      c.add(nameText);
+   486→
+   487→      // Status
+   488→      let status = '';
+   489→      if (area.isCurrent) status = '◆ ' + L('CURRENT', 'فعلی');
+   490→      else if (area.bossDefeated) status = '★ ' + L('CLEARED', 'تکمیل شده');
+   491→      else if (area.hasBoss && area.unlocked) status = '⚔ ' + L('BOSS', 'باس');
+   492→      c.add(this.add.text(x, cardY + 62, status, {
+   493→        fontFamily: 'monospace', fontSize: '10px', color: '#3a4350',
+   494→      }).setOrigin(0.5).setDepth(3));
+   495→
+   496→      // Enter button
+   497→      if (area.unlocked) {
+   498→        const enterBtn = this.add.text(x, cardY + 82, '▶ ' + L('ENTER', 'ورود'), {
+   499→          fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
+   500→        }).setOrigin(0.5).setDepth(3);
+   501→        enterBtn.setInteractive({ useHandCursor: true });
+   502→        enterBtn.on('pointerover', () => enterBtn.setColor('#66f0ff'));
+   503→        enterBtn.on('pointerout', () => enterBtn.setColor('#39d0d8'));
+   504→        enterBtn.on('pointerdown', () => {
+   505→          AudioSystem.play('uiClick');
+   506→          if (area.areaId !== WorldSystem.getCurrent().areaId) {
+   507→            WorldSystem.travelTo(area.areaId, 1);
+   508→          }
+   509→          this.setState('play');
+   510→        });
+   511→        c.add(enterBtn);
+   512→      }
+   513→    });
+   514→
+   515→    // === Bottom bar: Navigation icons ===
+   516→    const navY = h - 60;
+   517→    const navItems = [
+   518→      { icon: '⚔', label: L('SKILLS', 'مهارت‌ها'), state: 'skills' as GameState },
+   519→      { icon: '🎒', label: L('INVENTORY', 'کیف'), state: 'inventory' as GameState },
+   520→      { icon: '📜', label: L('QUESTS', 'ماموریت‌ها'), state: 'quests' as GameState },
+   521→      { icon: '⚙', label: t('menu.settings'), state: 'settings' as GameState },
+   522→      { icon: '←', label: t('menu.back'), state: 'menu' as GameState },
+   523→    ];
+   524→    const navGap = 130;
+   525→    const navStartX = w / 2 - (navItems.length - 1) * navGap / 2;
+   526→
+   527→    navItems.forEach((item, i) => {
+   528→      const nx = navStartX + i * navGap;
+   529→      // Icon circle
+   530→      const iconCircle = this.add.circle(nx, navY, 22, 0x0a1018, 0.9);
+   531→      iconCircle.setStrokeStyle(1, 0x1a3040, 0.6);
+   532→      iconCircle.setInteractive({ useHandCursor: true });
+   533→      iconCircle.setDepth(2);
+   534→      c.add(iconCircle);
+   535→      // Icon text
+   536→      c.add(this.add.text(nx, navY, item.icon, {
+   537→        fontFamily: 'monospace', fontSize: '16px', color: '#5a6470',
+   538→      }).setOrigin(0.5).setDepth(3));
+   539→      // Label
+   540→      c.add(this.add.text(nx, navY + 32, item.label, {
+   541→        fontFamily: 'monospace', fontSize: '9px', color: '#3a4350',
+   542→      }).setOrigin(0.5).setDepth(3));
+   543→
+   544→      // Hover + click
+   545→      iconCircle.on('pointerover', () => {
+   546→        iconCircle.setStrokeStyle(2, 0x39d0d8, 0.8);
+   547→      });
+   548→      iconCircle.on('pointerout', () => {
+   549→        iconCircle.setStrokeStyle(1, 0x1a3040, 0.6);
+   550→      });
+   551→      iconCircle.on('pointerdown', () => {
+   552→        AudioSystem.play('uiClick');
+   553→        this.setState(item.state);
+   554→      });
+   555→    });
+   556→
+   557→    this.setupMenuNav();
+   558→  }
+   559→
+   560→  private showHowToPlay(): void {
+   561→    const c = this.stateContainer!;
+   562→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   563→    // Clear current menu content
+   564→    c.removeAll(true);
+   565→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9).setDepth(250);
+   566→    c.add(overlay);
+   567→    const lines = [
+   568→      'HOW TO PLAY', '',
+   569→      'WASD / ARROWS    →   MOVE',
+   570→      'SPACE                   →   JUMP',
+   571→      'SHIFT                   →   DASH',
+   572→      'J                           →   FIRE',
+   573→      'K                           →   MELEE',
+   574→      '1-4 / Q-E              →   SWITCH WEAPONS',
+   575→      'E                           →   INTERACT',
+   576→      'ESC                       →   PAUSE',
+   577→      '', 'Press ENTER / A to go back',
+   578→    ];
+   579→    c.add(this.add.text(w / 2, h / 2, lines, {
+   580→      fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', align: 'center', lineSpacing: 6,
+   581→    }).setOrigin(0.5).setDepth(251));
+   582→    // Back on any key
+   583→    const backHandler = () => { this.setState('menu'); window.removeEventListener('keydown', backHandler); };
+   584→    setTimeout(() => window.addEventListener('keydown', backHandler), 100);
+   585→  }
+   586→
+   587→  // ================ OVERLAY STATES (from pause menu) ================
+   588→
+   589→  private buildSettingsOverlay(): void {
+   590→    this.settingsUI = new SettingsUI(this, () => this.closeOverlay());
+   591→    this.settingsUI.show();
+   592→  }
+   593→
+   594→  private buildSkillsOverlay(): void {
+   595→    this.skillTreeUI = new SkillTreeUI(this, () => this.closeOverlay());
+   596→    this.skillTreeUI.show();
+   597→  }
+   598→
+   599→  private buildInventoryOverlay(): void {
+   600→    this.inventoryUI = new InventoryUI(this, () => this.closeOverlay());
+   601→    this.inventoryUI.show();
+   602→  }
+   603→
+   604→  private buildQuestsOverlay(): void {
+   605→    this.questUI = new QuestUI(this, () => this.closeOverlay());
+   606→    this.questUI.show();
+   607→  }
+   608→
+   609→  private buildMapOverlay(): void {
+   610→    this.worldMapUI = new WorldMapUI(this,
+   611→      () => this.closeOverlay(),
+   612→      (areaId: string) => this.fastTravel(areaId),
+   613→    );
+   614→    this.worldMapUI.show();
+   615→  }
+   616→
+   617→  // ================ PLAY ================
+   618→
+   619→  private buildPlay(): void {
+   620→    const area = WorldSystem.getCurrentArea();
+   621→    if (!area) return;
+   622→    AudioSystem.resume();
+   623→    this.cameras.main.setBackgroundColor(area.bgColor);
+   624→    this.physics.setWorldBounds(area.totalWidth, GAME.HEIGHT);
+   625→    this.physics.setGravity(0, 0.9);
+   626→    this.projectiles = [];
+   627→    this.enemies = [];
+   628→    this.boss = null;
+   629→    this.bossArenaActive = false;
+   630→    this.sequenceTimers = [];
+   631→    resetEnemyIds();
+   632→    this.stageStartTime = this.time.now;
+   633→
+   634→    // Build world from data
+   635→    this.areaLoader = new AreaLoader(this, this.physics);
+   636→    this.loadedArea = this.areaLoader.load(area);
+   637→
+   638→    // Render system (darkness + lights)
+   639→    this.render = new RenderSystem(this);
+   640→
+   641→    // Combat system
+   642→    this.combat = new CombatSystem(this);
+   643→
+   644→    // Create player
+   645→    const cp = CheckpointSystem.getRespawnPosition(area.id);
+   646→    const startX = cp.x;
+   647→    const startY = cp.y;
+   648→    this.currentSection = cp.section;
+   649→    this.player = new PlayerEntity(this, this.physics, this.particles, this.combat, startX, startY, this.projectiles);
+   650→    this.camera.follow(this.player.sprite, 0.1);
+   651→    this.camera.setDeadzone(160, 100);
+   652→    this.camera.setBounds(0, 0, area.totalWidth, GAME.HEIGHT);
+   653→
+   654→    // Player light
+   655→    this.render.addLight({
+   656→      follow: () => this.player?.position ?? new Phaser.Math.Vector2(0, 0),
+   657→      radius: 140, color: COLORS.PLAYER_GLOW, intensity: 0.3, flicker: 0.05,
+   658→    });
+   659→
+   660→    // HUD
+   661→    this.hud = new HUDUI(this, this.player);
+   662→
+   663→    // Collision handler
+   664→    this.matter.world.on('collisionstart', this.onCollisionStart, this);
+   665→
+   666→    // Spawn enemies for current section
+   667→    this.spawnEnemiesForSection(this.currentSection);
+   668→
+   669→    // Emit section info
+   670→    const sec = area.sections.find(s => s.id === this.currentSection);
+   671→    if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
+   672→  }
+   673→
+   674→  private spawnEnemiesForSection(sectionId: number): void {
+   675→    const area = WorldSystem.getCurrentArea();
+   676→    if (!area) return;
+   677→    const section = area.sections.find(s => s.id === sectionId);
+   678→    if (!section) return;
+   679→    for (const type of section.enemies) {
+   680→      if (type === 'boss' || type.startsWith('boss')) continue;
+   681→      const x = section.x + 400 + Math.random() * 400;
+   682→      const et = type as EnemyTypeId;
+   683→      const y = et === 'drone' || et === 'flying_ai' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
+   684→      const e = new EnemyEntity(this, this.physics, this.particles, x, y, et, this.projectiles);
+   685→      this.enemies.push(e);
+   686→      this.render.addLight({
+   687→        follow: () => e.isAlive ? e.position : new Phaser.Math.Vector2(-9999, -9999),
+   688→        radius: 50, color: e.data.color, intensity: 0.2, flicker: 0.2,
+   689→      });
+   690→    }
+   691→  }
+   692→
+   693→  private onCollisionStart = (event: MatterJS.Events.CollisionStartEvent): void => {
+   694→    for (const pair of event.pairs) {
+   695→      const aGo = (pair.bodyA as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   696→      const bGo = (pair.bodyB as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   697→      if (!aGo || !bGo) continue;
+   698→      const aIsPlayer = aGo.getData('entityType') === 'player';
+   699→      const bIsPlayer = bGo.getData('entityType') === 'player';
+   700→      // Section trigger
+   701→      const aSection = aGo.getData('sectionId') as number | undefined;
+   702→      const bSection = bGo.getData('sectionId') as number | undefined;
+   703→      if (aIsPlayer && bSection) { this.enterSection(bSection); }
+   704→      else if (bIsPlayer && aSection) { this.enterSection(aSection); }
+   705→      // Checkpoint
+   706→      else if (aIsPlayer && bGo.getData('isCheckpoint')) { this.activateCheckpoint(); }
+   707→      else if (bIsPlayer && aGo.getData('isCheckpoint')) { this.activateCheckpoint(); }
+   708→      // Boss entry
+   709→      else if (aIsPlayer && bGo.getData('isBossEntry')) { this.enterBossArena(); }
+   710→      else if (bIsPlayer && aGo.getData('isBossEntry')) { this.enterBossArena(); }
+   711→      // NPC interaction (handled via interact key, not collision)
+   712→      // Enemy contact
+   713→      if (aIsPlayer && bGo.getData('entityType') === 'enemy') { this.handleEnemyContact(bGo); }
+   714→      else if (bIsPlayer && aGo.getData('entityType') === 'enemy') { this.handleEnemyContact(aGo); }
+   715→      // Boss contact
+   716→      if (aIsPlayer && bGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
+   717→      else if (bIsPlayer && aGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
+   718→    }
+   719→  };
+   720→
+   721→  private enterSection(id: number): void {
+   722→    if (id === this.currentSection) return;
+   723→    this.currentSection = id;
+   724→    WorldSystem.setSection(id);
+   725→    this.spawnEnemiesForSection(id);
+   726→  }
+   727→
+   728→  private activateCheckpoint(): void {
+   729→    CheckpointSystem.activate(this.currentSection, this.player.sprite.x, this.player.sprite.y);
+   730→  }
+   731→
+   732→  private enterBossArena(): void {
+   733→    if (this.bossArenaActive) return;
+   734→    this.bossArenaActive = true;
+   735→    const area = WorldSystem.getCurrentArea();
+   736→    if (!area) return;
+   737→    const bossSection = area.sections.find(s => s.bossId);
+   738→    if (!bossSection || !bossSection.bossId) return;
+   739→    const x = bossSection.x + 800;
+   740→    const y = GAME.HEIGHT - 320;
+   741→    this.boss = new BossEntity(this, this.physics, this.particles, bossSection.bossId, x, y, this.projectiles, () => this.player.position);
+   742→    this.particles.screenFlash(0xff3030, 0.35, 500);
+   743→    this.camera.shake(400, 0.012);
+   744→    this.render.addLight({
+   745→      follow: () => this.boss?.isAlive ? this.boss.position : new Phaser.Math.Vector2(-9999, -9999),
+   746→      radius: 240, color: COLORS.BOSS_GLOW, intensity: 0.45, flicker: 0.08,
+   747→    });
+   748→  }
+   749→
+   750→  private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
+   751→    const id = enemyGo.getData('id') as string | undefined;
+   752→    const dmg = id?.startsWith('drone-') ? 8 : id?.startsWith('spider-') ? 14 : id?.startsWith('heavy-') ? 22 : id?.startsWith('sniper-') ? 12 : 10;
+   753→    if (this.player.takeDamage(dmg)) {
+   754→      const enemyX = (enemyGo as unknown as { x?: number }).x;
+   755→      if (typeof enemyX === 'number' && this.player.sprite?.active) {
+   756→        const dir = this.player.sprite.x < enemyX ? -1 : 1;
+   757→        this.player.sprite.setVelocityX(dir * 4);
+   758→        this.player.sprite.setVelocityY(-4);
+   759→      }
+   760→    }
+   761→  }
+   762→
+   763→  private tryInteract(): void {
+   764→    // Check nearby NPCs
+   765→    const area = WorldSystem.getCurrentArea();
+   766→    if (!area) return;
+   767→    const npcs = NPCSystem.getNPCsInArea(area.id);
+   768→    for (const npc of npcs) {
+   769→      const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
+   770→      if (dist < 80) {
+   771→        const dialogueId = NPCSystem.interact(npc.id);
+   772→        if (dialogueId) {
+   773→          this.dialogueUI.show(dialogueId);
+   774→          return;
+   775→        }
+   776→      }
+   777→    }
+   778→  }
+   779→
+   780→  private updatePlay(deltaMs: number): void {
+   781→    if (!this.player) return;
+   782→    this.player.update(deltaMs);
+   783→    this.render.update(this.time.now);
+   784→    this.hud?.update();
+   785→    // Projectiles
+   786→    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+   787→      this.projectiles[i].update();
+   788→      if (!this.projectiles[i].isAlive) this.projectiles.splice(i, 1);
+   789→    }
+   790→    // Enemies
+   791→    const playerPos = this.player.position;
+   792→    for (let i = this.enemies.length - 1; i >= 0; i--) {
+   793→      const e = this.enemies[i];
+   794→      if (!e.isAlive || !e.sprite || !e.sprite.active) { this.enemies.splice(i, 1); continue; }
+   795→      try { e.update(deltaMs, playerPos); } catch { this.enemies.splice(i, 1); continue; }
+   796→    }
+   797→    // Boss
+   798→    if (this.boss && this.boss.isAlive && this.boss.sprite && this.boss.sprite.active) {
+   799→      try { this.boss.update(deltaMs); } catch { /* */ }
+   800→    }
+   801→    // Out of bounds
+   802→    if (this.player.sprite.y > GAME.HEIGHT + 80) {
+   803→      this.player.takeDamage(25);
+   804→      const area = WorldSystem.getCurrentArea();
+   805→      if (area) {
+   806→        const sec = area.sections.find(s => s.id === this.currentSection);
+   807→        if (sec) {
+   808→          this.player.sprite.setPosition(sec.x + 200, GAME.HEIGHT - 300);
+   809→          this.player.sprite.setVelocity(0, 0);
+   810→        }
+   811→      }
+   812→    }
+   813→    // Boss arena zoom
+   814→    if (this.bossArenaActive && this.boss && this.boss.isAlive) {
+   815→      this.camera.setZoom(0.85);
+   816→    }
+   817→  }
+   818→
+   819→  private cleanupPlay(): void {
+   820→    this.matter.world.off('collisionstart', this.onCollisionStart, this);
+   821→    this.projectiles.forEach(p => p.kill());
+   822→    this.projectiles = [];
+   823→    this.player?.destroy();
+   824→    this.enemies.forEach(e => e.destroy());
+   825→    this.enemies = [];
+   826→    this.boss?.destroy();
+   827→    this.boss = null;
+   828→    if (this.loadedArea && this.areaLoader) this.areaLoader.unload(this.loadedArea);
+   829→    this.loadedArea = null;
+   830→    this.tweens.killAll();
+   831→    this.sequenceTimers.forEach(t => t.remove());
+   832→    this.sequenceTimers = [];
+   833→    this.hud?.destroy();
+   834→    this.render?.destroy();
+   835→    this.camera.resetZoom();
+   836→    this.camera.stopFollow();
+   837→    this.camera.setBounds(0, 0, GAME.WIDTH, GAME.HEIGHT);
+   838→    this.physics.setWorldBounds(GAME.WIDTH, GAME.HEIGHT);
+   839→    // Note: InputSystem.destroy() only called in scene shutdown, not cleanupPlay.
+   840→    // PlayerEntity.destroy() handles its own input cleanup.
+   841→    this.paused = false;
+   842→  }
+   843→
+   844→  // ================ PAUSE / OVERLAYS ================
+   845→
+   846→  private togglePause(): void {
+   847→    if (this.state !== 'play') return;
+   848→    const now = this.time.now;
+   849→    if (now - this.lastPauseToggleAt < 300) return;
+   850→    this.lastPauseToggleAt = now;
+   851→
+   852→    if (this.paused) {
+   853→      this.paused = false;
+   854→      this.pauseMenuUI.hide();
+   855→      AudioSystem.play('uiClick');
+   856→    } else {
+   857→      this.paused = true;
+   858→      this.pauseMenuUI.show();
+   859→      AudioSystem.play('uiClick');
+   860→    }
+   861→  }
+   862→
+   863→  private restartStage(): void {
+   864→    this.paused = false;
+   865→    this.pauseMenuUI.hide();
+   866→    CheckpointSystem.clear();
+   867→    this.cleanupPlay();
+   868→    this.setState('play');
+   869→  }
+   870→
+   871→  private fastTravel(areaId: string): void {
+   872→    WorldSystem.travelTo(areaId, 1);
+   873→    if (this.worldMapUI) { this.worldMapUI.hide(); this.worldMapUI.destroy(); this.worldMapUI = null; }
+   874→    this.paused = false;
+   875→    this.pauseMenuUI.hide();
+   876→    this.cleanupPlay();
+   877→    this.setState('play');
+   878→  }
+   879→
+   880→  // Called from pause menu "Quit" → goes to hub
+   881→  private quitToHub(): void {
+   882→    this.paused = false;
+   883→    this.pauseMenuUI.hide();
+   884→    this.cleanupPlay();
+   885→    this.setState('hub');
+   886→  }
+   887→
+   888→  private getNextWeapon(dir: number): import('../../data/types').WeaponId {
+   889→    const save = SaveSystem.getPlayer();
+   890→    const all = save.unlockedWeapons as import('../../data/types').WeaponId[];
+   891→    const idx = all.indexOf(save.currentWeapon as import('../../data/types').WeaponId);
+   892→    return all[(idx + dir + all.length) % all.length];
+   893→  }
+   894→
+   895→  // ================ EVENT HANDLERS ================
+   896→
+   897→  private onPlayerDied = (): void => {
+   898→    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+   899→    this.particles.explosion(this.player.sprite.x, this.player.sprite.y, COLORS.PLAYER, 1.2);
+   900→    this.camera.shake(400, 0.012);
+   901→    this.camera.fadeOut(700, 0, 0, 0);
+   902→    this.scheduleDelayed(900, () => {
+   903→      this.camera.fadeIn(300, 0, 0, 0);
+   904→      this.setState('gameover');
+   905→    });
+   906→  };
+   907→
+   908→  private onEnemyKilled = (payload: unknown): void => {
+   909→    const data = payload as { id: string; x: number; y: number };
+   910→    if (data.x && data.y) this.particles.explosion(data.x, data.y, COLORS.ENEMY_DRONE, 0.6);
+   911→  };
+   912→
+   913→  private onBossDied = (payload: unknown): void => {
+   914→    const data = payload as { id: string; lore: string[] };
+   915→    // Explosion sequence
+   916→    if (this.boss) {
+   917→      this.particles.explosion(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 3.0);
+   918→    }
+   919→    this.camera.flash(800, 255, 255, 255);
+   920→    this.scheduleDelayed(2200, () => {
+   921→      AudioSystem.play('victory');
+   922→      this.setState('victory');
+   923→    });
+   924→  };
+   925→
+   926→  // ================ GAMEOVER / VICTORY ================
+   927→
+   928→  private buildGameOver(): void {
+   929→    const c = this.stateContainer!;
+   930→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   931→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.85).setDepth(200);
+   932→    c.add(overlay);
+   933→    c.add(this.add.text(w / 2, h * 0.3, t('gameover.title'), {
+   934→      fontFamily: 'monospace', fontSize: '56px', color: '#ff4040', stroke: '#000', strokeThickness: 8,
+   935→    }).setOrigin(0.5).setDepth(201));
+   936→    c.add(this.add.text(w / 2, h * 0.42, `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`, {
+   937→      fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
+   938→    }).setOrigin(0.5).setDepth(201));
+   939→    this.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
+   940→      AudioSystem.play('uiClick');
+   941→      CheckpointSystem.clear();
+   942→      this.setState('play');
+   943→    });
+   944→    this.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
+   945→      AudioSystem.play('uiClick');
+   946→      this.setState('menu');
+   947→    });
+   948→    this.setupMenuNav();
+   949→  }
+   950→
+   951→  private buildVictory(): void {
+   952→    const c = this.stateContainer!;
+   953→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   954→    c.add(this.add.text(w / 2, h * 0.35, t('victory.title'), {
+   955→      fontFamily: 'monospace', fontSize: '72px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
+   956→    }).setOrigin(0.5));
+   957→    // Show boss lore
+   958→    const lore = LoreSystem.getBossLore('guardian_ax09');
+   959→    if (lore) {
+   960→      const lines = lore.lines.map(key => t(key));
+   961→      c.add(this.add.text(w / 2, h * 0.5, lines, {
+   962→        fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0', align: 'center', lineSpacing: 6,
+   963→      }).setOrigin(0.5));
+   964→    }
+   965→    this.makeMenuBtn(w / 2, h * 0.75, t('victory.return'), () => {
+   966→      AudioSystem.play('uiClick');
+   967→      this.setState('menu');
+   968→    });
+   969→    this.setupMenuNav();
+   970→  }
+   971→
+   972→  // ================ GAMEPAD NAVIGATION ================
+   973→
+   974→  private menuNavCooldown = 0;
+   975→
+   976→  /** Gamepad navigation for menu/gameover/victory screens. */
+   977→  private handleMenuGamepadNav(input: import('../../systems/InputSystem').InputState): void {
+   978→    this.menuNavCooldown -= 16;
+   979→    if (this.menuNavCooldown > 0) return;
+   980→
+   981→    if (input.leftStickY < -0.3 || input.heldUp) {
+   982→      this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
+   983→      this.updateMenuFocus(); AudioSystem.play('uiHover');
+   984→      this.menuNavCooldown = 200;
+   985→    } else if (input.leftStickY > 0.3 || input.heldDown) {
+   986→      this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
+   987→      this.updateMenuFocus(); AudioSystem.play('uiHover');
+   988→      this.menuNavCooldown = 200;
+   989→    }
+   990→    if (input.jumpPressed || input.firePressed) {
+   991→      AudioSystem.play('uiClick');
+   992→      this.menuButtons[this.menuFocusIndex]?.emit('pointerdown');
+   993→      this.menuNavCooldown = 300;
+   994→    }
+   995→  }
+   996→
+   997→  // (Overlay navigation is handled in update() via backPressed → setState)
+   998→
+   999→  // ================ MENU HELPERS ================
+  1000→
+  1001→  private makeMenuBtn(x: number, y: number, label: string, onClick: () => void, disabled: boolean = false, width: number = 240): void {
+  1002→    const bg = this.add.rectangle(x, y, width, 38, disabled ? 0x05080c : 0x0a1018, 0.9);
+  1003→    bg.setStrokeStyle(1, disabled ? 0x05080c : 0x1a3040, 0.8);
+  1004→    if (!disabled) {
+  1005→      bg.setInteractive({ useHandCursor: true });
+  1006→      bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.indexOf(bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
+  1007→      bg.on('pointerdown', onClick);
+  1008→    }
+  1009→    const textEl = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '15px', color: disabled ? '#0a1018' : '#5a6470' }).setOrigin(0.5);
+  1010→    this.stateContainer!.add([bg, textEl]);
+  1011→    if (!disabled) this.menuButtons.push(bg);
+  1012→  }
+  1013→
+  1014→  private setupMenuNav(): void {
+  1015→    this.menuNavHandler = (e: KeyboardEvent) => {
+  1016→      if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+  1017→        this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
+  1018→        this.updateMenuFocus(); AudioSystem.play('uiHover');
+  1019→      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+  1020→        this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
+  1021→        this.updateMenuFocus(); AudioSystem.play('uiHover');
+  1022→      } else if (e.code === 'Enter' || e.code === 'Space') {
+  1023→        this.menuButtons[this.menuFocusIndex]?.emit('pointerdown');
+  1024→      }
+  1025→    };
+  1026→    window.addEventListener('keydown', this.menuNavHandler);
+  1027→    this.updateMenuFocus();
+  1028→  }
+  1029→
+  1030→  private updateMenuFocus(): void {
+  1031→    this.menuButtons.forEach((bg, i) => {
+  1032→      if (i === this.menuFocusIndex) {
+  1033→        bg.setFillStyle(0x0d1820, 1);
+  1034→        bg.setStrokeStyle(2, 0x39d0d8, 0.9);
+  1035→        // Scale up slightly for focus
+  1036→        bg.setScale(1.05);
+  1037→        // Find the text child and update color
+  1038→        const textEl = this.stateContainer?.list.find(c =>
+  1039→          c instanceof Phaser.GameObjects.Text &&
+  1040→          Math.abs((c as Phaser.GameObjects.Text).x - bg.x) < 1 &&
+  1041→          Math.abs((c as Phaser.GameObjects.Text).y - bg.y) < 1
+  1042→        ) as Phaser.GameObjects.Text | undefined;
+  1043→        textEl?.setColor('#66f0ff');
+  1044→      } else {
+  1045→        bg.setFillStyle(0x0a1018, 0.9);
+  1046→        bg.setStrokeStyle(1, 0x1a3040, 0.8);
+  1047→        bg.setScale(1);
+  1048→        const textEl = this.stateContainer?.list.find(c =>
+  1049→          c instanceof Phaser.GameObjects.Text &&
+  1050→          Math.abs((c as Phaser.GameObjects.Text).x - bg.x) < 1 &&
+  1051→          Math.abs((c as Phaser.GameObjects.Text).y - bg.y) < 1
+  1052→        ) as Phaser.GameObjects.Text | undefined;
+  1053→        textEl?.setColor('#5a6470');
+  1054→      }
+  1055→    });
+  1056→  }
+  1057→
+  1058→  // ================ HELPERS ================
+  1059→
+  1060→  private scheduleDelayed(delay: number, callback: () => void): Phaser.Time.TimerEvent {
+  1061→    const timer = this.time.delayedCall(delay, () => {
+  1062→      const idx = this.sequenceTimers.indexOf(timer);
+  1063→      if (idx >= 0) this.sequenceTimers.splice(idx, 1);
+  1064→      callback();
+  1065→    });
+  1066→    this.sequenceTimers.push(timer);
+  1067→    return timer;
+  1068→  }
+  1069→
+  1070→  shutdown(): void {
+  1071→    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+  1072→    EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
+  1073→    EventBus.off('BOSS_DEAD', this.onBossDied, this);
+  1074→    EventBus.off('CHECKPOINT');
+  1075→    EventBus.off('GAME_STATE');
+  1076→    EventBus.off('LEVEL_UP');
+  1077→    EventBus.off('SKILL_UNLOCKED');
+  1078→    EventBus.off('ABILITY_UNLOCKED');
+  1079→    InputSystem.destroy();
+  1080→  }
+  1081→}
+  1082→
+  1083→export default GameScene;
+  1084→

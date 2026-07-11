@@ -1,9 +1,28 @@
 /**
- * MECHA: LAST PROTOCOL — Input System
+ * MECHA: LAST PROTOCOL — Input System v3.1
  * Unified keyboard + gamepad input. Independent of Player.
- * Systems poll InputSystem.getState() each frame.
+ *
+ * ARCHITECTURE:
+ * - init() attaches window listeners (called ONCE in GameScene.create()).
+ * - setCallbacks() registers gameplay callbacks (called by PlayerEntity).
+ * - update() polls gamepad + resets edge flags (called every frame).
+ * - getState() returns a readonly snapshot.
+ *
+ * This fixes the root cause where InputSystem was only initialized when
+ * PlayerEntity was created, leaving menu/hub without keyboard input.
  */
 import type { Direction } from '../data/types';
+
+export interface InputCallbacks {
+  jump?: () => void;
+  fire?: () => void;
+  melee?: () => void;
+  dash?: (dir: Direction) => void;
+  pause?: () => void;
+  interact?: () => void;
+  weaponNext?: () => void;
+  weaponPrev?: () => void;
+}
 
 export interface InputState {
   // Held movement
@@ -21,7 +40,7 @@ export interface InputState {
   weaponPrevPressed: boolean;
   pausePressed: boolean;
   interactPressed: boolean;
-  backPressed: boolean;      // B button or Back — for "go back" in menus
+  backPressed: boolean;      // B button or ESC — for "go back" in menus
   // Analog
   leftStickX: number;
   leftStickY: number;
@@ -43,25 +62,49 @@ export class InputSystem {
 
   private static prevButtons: boolean[] = [];
   private static listenersAttached = false;
-  private static onKeyDown!: (e: KeyboardEvent) => void;
-  private static onKeyUp!: (e: KeyboardEvent) => void;
+  private static onKeyDown: ((e: KeyboardEvent) => void) | null = null;
+  private static onKeyUp: ((e: KeyboardEvent) => void) | null = null;
   private static kbHeldFire = false;  // keyboard-only held fire (separate from gamepad)
-  private static callbacks: { jump?: () => void; fire?: () => void; melee?: () => void; dash?: (dir: Direction) => void; pause?: () => void; interact?: () => void; weaponNext?: () => void; weaponPrev?: () => void; } = {};
+  private static callbacks: InputCallbacks = {};
 
-  static init(callbacks: { jump?: () => void; fire?: () => void; melee?: () => void; dash?: (dir: Direction) => void; pause?: () => void; interact?: () => void; weaponNext?: () => void; weaponPrev?: () => void; }): void {
-    this.callbacks = callbacks;
+  /**
+   * Attach window listeners. Called ONCE in GameScene.create().
+   * Safe to call multiple times — only attaches once.
+   */
+  static init(): void {
     if (this.listenersAttached) return;
     if (typeof window === 'undefined') return;
     this.listenersAttached = true;
 
     this.onKeyDown = (e: KeyboardEvent) => {
       switch (e.code) {
-        case 'Space': this.state.jumpPressed = true; this.callbacks.jump?.(); break;
-        case 'KeyJ': this.state.firePressed = true; this.kbHeldFire = true; this.callbacks.fire?.(); break;
-        case 'KeyK': this.state.meleePressed = true; this.callbacks.melee?.(); break;
-        case 'KeyE': this.state.interactPressed = true; this.callbacks.interact?.(); break;
-        case 'KeyQ': this.state.weaponPrevPressed = true; this.callbacks.weaponPrev?.(); break;
-        case 'Escape': this.state.pausePressed = true; this.callbacks.pause?.(); break;
+        case 'Space':
+          this.state.jumpPressed = true;
+          this.callbacks.jump?.();
+          break;
+        case 'KeyJ':
+          this.state.firePressed = true;
+          this.kbHeldFire = true;
+          this.callbacks.fire?.();
+          break;
+        case 'KeyK':
+          this.state.meleePressed = true;
+          this.callbacks.melee?.();
+          break;
+        case 'KeyE':
+          this.state.interactPressed = true;
+          this.callbacks.interact?.();
+          break;
+        case 'KeyQ':
+          this.state.weaponPrevPressed = true;
+          this.callbacks.weaponPrev?.();
+          break;
+        case 'Escape':
+          // ESC = back in overlays, pause in play. Both flags set.
+          this.state.pausePressed = true;
+          this.state.backPressed = true;
+          this.callbacks.pause?.();
+          break;
         case 'ShiftLeft': case 'ShiftRight': {
           this.state.dashPressed = true;
           const dir: Direction = this.state.heldLeft ? 'left' : this.state.heldRight ? 'right' : 'right';
@@ -90,6 +133,19 @@ export class InputSystem {
 
     window.addEventListener('gamepadconnected', () => { this.state.gamepadConnected = true; });
     window.addEventListener('gamepaddisconnected', () => { this.state.gamepadConnected = false; });
+  }
+
+  /**
+   * Set gameplay callbacks. Called by PlayerEntity when it's created.
+   * Does NOT attach listeners — use init() for that.
+   */
+  static setCallbacks(callbacks: InputCallbacks): void {
+    this.callbacks = callbacks;
+  }
+
+  /** Clear callbacks (when player is destroyed). */
+  static clearCallbacks(): void {
+    this.callbacks = {};
   }
 
   /** Poll gamepad + reset edge-triggered flags. Call every frame. */
@@ -127,12 +183,15 @@ export class InputSystem {
     // Each button has exactly one role
     // A(0)=jump/confirm, B(1)=back/cancel, X(2)=fire, Y(3)=melee
     // LB(4)=weapon prev, RB(5)=weapon next, LT(6)=dash, RT(7)=fire alt
-    // Back(8)=interact/back, Start(9)=pause, L3(10)=dash alt
+    // Back(8)=interact, Start(9)=pause, L3(10)=dash alt
     if (edge(0)) { this.state.jumpPressed = true; this.callbacks.jump?.(); }
     if (edge(2) || edge(7)) { this.state.firePressed = true; this.callbacks.fire?.(); }
     if (edge(3)) { this.state.meleePressed = true; this.callbacks.melee?.(); }
-    if (edge(1)) { this.state.backPressed = true; }  // B = back in menus (no callback — handled by polling)
-    if (edge(6) || edge(10)) { this.state.dashPressed = true; this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right'); }
+    if (edge(1)) { this.state.backPressed = true; }  // B = back in menus
+    if (edge(6) || edge(10)) {
+      this.state.dashPressed = true;
+      this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right');
+    }
     if (edge(5)) { this.state.weaponNextPressed = true; this.callbacks.weaponNext?.(); }
     if (edge(4)) { this.state.weaponPrevPressed = true; this.callbacks.weaponPrev?.(); }
     if (edge(9)) { this.state.pausePressed = true; this.callbacks.pause?.(); }
@@ -158,7 +217,10 @@ export class InputSystem {
       if (this.onKeyUp) window.removeEventListener('keyup', this.onKeyUp);
     }
     this.listenersAttached = false;
+    this.onKeyDown = null;
+    this.onKeyUp = null;
     this.kbHeldFire = false;
+    this.callbacks = {};
   }
 
   static isGamepadAvailable(): boolean {

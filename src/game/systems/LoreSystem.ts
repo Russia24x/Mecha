@@ -116,7 +116,7 @@ export class LoreSystem {
   }
 
   /** Check an unlock condition string against save data. */
-  private static checkCondition(condition: string, save: { player: { bossesKilled: number; unlockedWeapons: string[] }; discoveredAreas: string[] }): boolean {
+  private static checkCondition(condition: string, save: { player: { bossesKilled: number; unlockedWeapons: string[]; inventory: { itemId: string }[] }; discoveredAreas: string[] }): boolean {
     const [type, id] = condition.split(':');
     switch (type) {
       case 'boss_kill': return save.player.bossesKilled > 0; // simplified

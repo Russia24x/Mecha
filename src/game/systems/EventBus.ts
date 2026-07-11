@@ -20,8 +20,12 @@ class EventBusClass {
     this.emitter.once(event, fn, context);
   }
 
-  off(event: GameEvent, fn: (payload?: EventPayload) => void, context?: unknown): void {
-    this.emitter.off(event, fn, context);
+  off(event: GameEvent, fn?: (payload?: EventPayload) => void, context?: unknown): void {
+    if (fn) {
+      this.emitter.off(event, fn, context);
+    } else {
+      this.emitter.removeAllListeners(event);
+    }
   }
 
   emit(event: GameEvent, payload?: EventPayload): void {
