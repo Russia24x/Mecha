@@ -43,7 +43,7 @@ import { QuestUI } from '../../ui/quest/QuestUI';
 import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import type { EnemyTypeId } from '../../data/types';
 
-type GameState = 'menu' | 'play' | 'map' | 'skills' | 'inventory' | 'quests' | 'settings' | 'gameover' | 'victory';
+type GameState = 'menu' | 'hub' | 'play' | 'map' | 'skills' | 'inventory' | 'quests' | 'settings' | 'gameover' | 'victory';
 
 export class GameScene extends Phaser.Scene {
   private state: GameState = 'menu';
@@ -127,7 +127,7 @@ export class GameScene extends Phaser.Scene {
       onInventory: () => { this.pauseMenuUI.hide(); this.setState('inventory'); },
       onQuests: () => { this.pauseMenuUI.hide(); this.setState('quests'); },
       onMap: () => { this.pauseMenuUI.hide(); this.setState('map'); },
-      onQuit: () => this.quitToMenu(),
+      onQuit: () => this.quitToHub(),
     });
     // Overlay UIs are created on-demand in build*Overlay() methods
 
@@ -171,6 +171,7 @@ export class GameScene extends Phaser.Scene {
     }
     switch (next) {
       case 'menu': this.buildMenu(); break;
+      case 'hub': this.buildHub(); break;
       case 'play': this.buildPlay(); break;
       case 'map': this.buildMapOverlay(); break;
       case 'skills': this.buildSkillsOverlay(); break;
@@ -203,13 +204,17 @@ export class GameScene extends Phaser.Scene {
       } else {
         this.pauseMenuUI.handleNavigation();
       }
-    } else if (this.state === 'menu' || this.state === 'gameover' || this.state === 'victory') {
+    } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
       this.handleMenuGamepadNav(input);
     } else if (this.state === 'skills' || this.state === 'inventory' || this.state === 'quests' || this.state === 'map' || this.state === 'settings') {
-      // Overlay states — B or Start = back to pause menu
+      // Overlay states — B or Start = back to previous (hub if from hub, pause if from play)
       if (input.backPressed || input.pausePressed) {
-        this.setState(this.paused ? 'play' : 'menu');
-        if (this.paused) this.togglePause(); // reopen pause menu
+        if (this.paused) {
+          this.setState('play');
+          this.togglePause(); // reopen pause menu
+        } else {
+          this.setState('hub');
+        }
       }
     }
 
@@ -227,88 +232,252 @@ export class GameScene extends Phaser.Scene {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
 
-    // === Background: dark gradient + animated particles ===
+    // === Background: starry night sky ===
     const bg = this.add.graphics();
     bg.setDepth(0);
-    bg.fillStyle(0x030508, 1);
+    // Deep blue gradient
+    bg.fillStyle(0x040814, 1);
     bg.fillRect(0, 0, w, h);
-    // Subtle radial gradient (simulated with concentric rects)
-    for (let r = 600; r > 0; r -= 40) {
-      bg.fillStyle(0x050a14, 0.015);
-      bg.fillCircle(w / 2, h * 0.4, r);
+    for (let r = 500; r > 0; r -= 30) {
+      bg.fillStyle(0x0a1228, 0.02);
+      bg.fillCircle(w / 2, h * 0.35, r);
     }
     c.add(bg);
 
-    // Animated floating particles (dust motes)
-    for (let i = 0; i < 30; i++) {
-      const px = Math.random() * w;
-      const py = Math.random() * h;
+    // Stars — 80 twinkling dots
+    for (let i = 0; i < 80; i++) {
+      const sx = Math.random() * w;
+      const sy = Math.random() * h * 0.7;
       const size = 0.5 + Math.random() * 1.5;
-      const particle = this.add.circle(px, py, size, 0x2a4a60, 0.2 + Math.random() * 0.3);
-      particle.setDepth(1);
-      c.add(particle);
+      const brightness = 0.3 + Math.random() * 0.7;
+      const star = this.add.circle(sx, sy, size, 0xc0e0ff, brightness);
+      star.setDepth(1);
+      c.add(star);
+      // Twinkle effect
       this.tweens.add({
-        targets: particle,
-        y: py - 100 - Math.random() * 200,
-        x: px + (Math.random() - 0.5) * 50,
-        alpha: 0,
-        duration: 8000 + Math.random() * 6000,
-        repeat: -1,
-        delay: Math.random() * 3000,
-        onRepeat: () => {
-          particle.y = h + 10;
-          particle.x = Math.random() * w;
-          particle.alpha = 0.2 + Math.random() * 0.3;
-        },
+        targets: star,
+        alpha: { from: brightness * 0.3, to: brightness },
+        duration: 1000 + Math.random() * 3000,
+        yoyo: true, repeat: -1,
+        delay: Math.random() * 2000,
       });
     }
 
-    // === Title: MECHA (large, cyan) ===
-    const titleY = h * 0.28;
+    // A few brighter "beacon" stars with glow
+    for (let i = 0; i < 5; i++) {
+      const bx = Math.random() * w;
+      const by = Math.random() * h * 0.5;
+      const beacon = this.add.circle(bx, by, 2, 0xffffff, 1);
+      beacon.setDepth(1);
+      beacon.setBlendMode(Phaser.BlendModes.ADD);
+      c.add(beacon);
+      const beaconGlow = this.add.circle(bx, by, 8, 0x6080ff, 0.15);
+      beaconGlow.setDepth(1);
+      beaconGlow.setBlendMode(Phaser.BlendModes.ADD);
+      c.add(beaconGlow);
+      this.tweens.add({
+        targets: beaconGlow,
+        alpha: { from: 0.08, to: 0.2 },
+        duration: 1500 + Math.random() * 1500,
+        yoyo: true, repeat: -1,
+      });
+    }
+
+    // === Title: MECHA (very large) ===
+    const titleY = h * 0.3;
     // Glow behind title
-    const glow = this.add.circle(w / 2, titleY, 180, 0x39d0d8, 0.04);
+    const glow = this.add.circle(w / 2, titleY, 250, 0x39d0d8, 0.05);
     glow.setBlendMode(Phaser.BlendModes.ADD);
     glow.setDepth(2);
     c.add(glow);
-    this.tweens.add({ targets: glow, alpha: { from: 0.02, to: 0.06 }, duration: 2500, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: glow, alpha: { from: 0.03, to: 0.08 }, duration: 3000, yoyo: true, repeat: -1 });
 
-    // MECHA — large
+    // MECHA — very large
     const mechaText = this.add.text(w / 2, titleY, 'MECHA', {
-      fontFamily: 'monospace', fontSize: '72px', color: '#39d0d8',
-      stroke: '#000', strokeThickness: 6,
+      fontFamily: 'monospace', fontSize: '96px', color: '#39d0d8',
+      stroke: '#000', strokeThickness: 8,
     }).setOrigin(0.5).setDepth(3);
     c.add(mechaText);
 
     // LAST PROTOCOL — smaller, near-white
-    const protocolText = this.add.text(w / 2, titleY + 55, 'LAST PROTOCOL', {
-      fontFamily: 'monospace', fontSize: '24px', color: '#e0e8f0',
+    const protocolText = this.add.text(w / 2, titleY + 65, 'LAST PROTOCOL', {
+      fontFamily: 'monospace', fontSize: '22px', color: '#e0e8f0',
       stroke: '#000', strokeThickness: 3,
+      letterSpacing: 4,
     }).setOrigin(0.5).setDepth(3);
     c.add(protocolText);
-    this.tweens.add({ targets: protocolText, alpha: { from: 0.7, to: 1 }, duration: 2000, yoyo: true, repeat: -1 });
+    this.tweens.add({ targets: protocolText, alpha: { from: 0.6, to: 1 }, duration: 2500, yoyo: true, repeat: -1 });
 
-    // === Minimal buttons with icons ===
-    const isFa = getLocale() === 'fa';
-    const L = (en: string, fa: string) => isFa ? fa : en;
-    const btnY = h * 0.55;
-    const btnGap = 55;
+    // === Small minimal buttons ===
+    const btnY = h * 0.6;
+    const btnGap = 48;
 
-    this.makeMenuBtn(w / 2, btnY, '▶  ' + t('menu.start'), () => { AudioSystem.play('uiClick'); this.setState('play'); });
-    this.makeMenuBtn(w / 2, btnY + btnGap, '↻  ' + t('menu.continue'), () => {
+    this.makeMenuBtn(w / 2, btnY, t('menu.start'), () => { AudioSystem.play('uiClick'); this.setState('hub'); });
+    this.makeMenuBtn(w / 2, btnY + btnGap, t('menu.continue'), () => {
       AudioSystem.play('uiClick');
       if (CheckpointSystem.hasCheckpoint()) {
         CheckpointSystem.init();
         WorldSystem.initFromSave();
-        this.setState('play');
+        this.setState('hub');
       }
     }, !SaveSystem.hasCheckpoint());
-    this.makeMenuBtn(w / 2, btnY + btnGap * 2, '⚙  ' + t('menu.settings'), () => { AudioSystem.play('uiClick'); this.setState('settings'); });
-    this.makeMenuBtn(w / 2, btnY + btnGap * 3, '📖  ' + t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
+    this.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.setState('settings'); });
+    this.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
 
     // === Footer ===
-    c.add(this.add.text(w / 2, h - 30, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
-      fontFamily: 'monospace', fontSize: '9px', color: '#0a1018',
+    c.add(this.add.text(w / 2, h - 25, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
+      fontFamily: 'monospace', fontSize: '9px', color: '#0a1220',
     }).setOrigin(0.5).setDepth(3));
+
+    this.setupMenuNav();
+  }
+
+  // ================ HUB (World Map + Menu Access) ================
+
+  private buildHub(): void {
+    const c = this.stateContainer!;
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
+    const isFa = getLocale() === 'fa';
+    const L = (en: string, fa: string) => isFa ? fa : en;
+
+    // Background — slightly lighter than menu
+    const bg = this.add.graphics();
+    bg.fillStyle(0x060810, 1);
+    bg.fillRect(0, 0, w, h);
+    bg.setDepth(0);
+    c.add(bg);
+
+    // === Top bar: Title + Player stats ===
+    c.add(this.add.text(30, 20, 'MISSION SELECT', {
+      fontFamily: 'monospace', fontSize: '18px', color: '#39d0d8',
+    }).setDepth(1));
+
+    const save = SaveSystem.getPlayer();
+    const xpNeeded = ExperienceSystem.xpForLevel(save.level);
+    c.add(this.add.text(w - 30, 20, `LV.${save.level}  ${save.xp}/${xpNeeded} XP  |  SP: ${save.skillPoints}  |  Kills: ${save.totalKills}`, {
+      fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
+    }).setOrigin(1, 0).setDepth(1));
+
+    // Separator line
+    c.add(this.add.rectangle(w / 2, 50, w - 60, 1, 0x1a2030, 0.6).setDepth(1));
+
+    // === Area cards (from WorldMapSystem) ===
+    const tree = WorldMapSystem.getMapTree();
+    const areas: { areaId: string; nameKey: string; unlocked: boolean; discovered: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; bgImage?: string }[] = [];
+    for (const actData of tree) {
+      for (const regionData of actData.regions) {
+        for (const node of regionData.nodes) {
+          areas.push({
+            areaId: node.area.id,
+            nameKey: node.area.nameKey,
+            unlocked: node.unlocked,
+            discovered: node.discovered,
+            isCurrent: node.isCurrent,
+            bossDefeated: node.bossDefeated,
+            hasBoss: node.hasBoss,
+            bgImage: node.area.bgImage,
+          });
+        }
+      }
+    }
+
+    // Render area cards horizontally
+    const cardW = 280;
+    const cardH = 200;
+    const cardGap = 30;
+    const totalW = areas.length * cardW + (areas.length - 1) * cardGap;
+    const startX = (w - totalW) / 2 + cardW / 2;
+    const cardY = h * 0.42;
+
+    areas.forEach((area, i) => {
+      const x = startX + i * (cardW + cardGap);
+      const cardBg = this.add.rectangle(x, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.9);
+      cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
+      cardBg.setDepth(2);
+      c.add(cardBg);
+
+      // Preview image area (top 60% of card) — placeholder for future bg image
+      const previewBg = this.add.rectangle(x, cardY - 30, cardW - 20, 100, 0x05080c, 1);
+      previewBg.setStrokeStyle(1, 0x0a1018, 0.5);
+      previewBg.setDepth(2);
+      c.add(previewBg);
+
+      // Area name
+      const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), {
+        fontFamily: 'monospace', fontSize: '14px',
+        color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
+      }).setOrigin(0.5).setDepth(3);
+      c.add(nameText);
+
+      // Status
+      let status = '';
+      if (area.isCurrent) status = '◆ ' + L('CURRENT', 'فعلی');
+      else if (area.bossDefeated) status = '★ ' + L('CLEARED', 'تکمیل شده');
+      else if (area.hasBoss && area.unlocked) status = '⚔ ' + L('BOSS', 'باس');
+      c.add(this.add.text(x, cardY + 62, status, {
+        fontFamily: 'monospace', fontSize: '10px', color: '#3a4350',
+      }).setOrigin(0.5).setDepth(3));
+
+      // Enter button
+      if (area.unlocked) {
+        const enterBtn = this.add.text(x, cardY + 82, '▶ ' + L('ENTER', 'ورود'), {
+          fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
+        }).setOrigin(0.5).setDepth(3);
+        enterBtn.setInteractive({ useHandCursor: true });
+        enterBtn.on('pointerover', () => enterBtn.setColor('#66f0ff'));
+        enterBtn.on('pointerout', () => enterBtn.setColor('#39d0d8'));
+        enterBtn.on('pointerdown', () => {
+          AudioSystem.play('uiClick');
+          if (area.areaId !== WorldSystem.getCurrent().areaId) {
+            WorldSystem.travelTo(area.areaId, 1);
+          }
+          this.setState('play');
+        });
+        c.add(enterBtn);
+      }
+    });
+
+    // === Bottom bar: Navigation icons ===
+    const navY = h - 60;
+    const navItems = [
+      { icon: '⚔', label: L('SKILLS', 'مهارت‌ها'), state: 'skills' as GameState },
+      { icon: '🎒', label: L('INVENTORY', 'کیف'), state: 'inventory' as GameState },
+      { icon: '📜', label: L('QUESTS', 'ماموریت‌ها'), state: 'quests' as GameState },
+      { icon: '⚙', label: t('menu.settings'), state: 'settings' as GameState },
+      { icon: '←', label: t('menu.back'), state: 'menu' as GameState },
+    ];
+    const navGap = 130;
+    const navStartX = w / 2 - (navItems.length - 1) * navGap / 2;
+
+    navItems.forEach((item, i) => {
+      const nx = navStartX + i * navGap;
+      // Icon circle
+      const iconCircle = this.add.circle(nx, navY, 22, 0x0a1018, 0.9);
+      iconCircle.setStrokeStyle(1, 0x1a3040, 0.6);
+      iconCircle.setInteractive({ useHandCursor: true });
+      iconCircle.setDepth(2);
+      c.add(iconCircle);
+      // Icon text
+      c.add(this.add.text(nx, navY, item.icon, {
+        fontFamily: 'monospace', fontSize: '16px', color: '#5a6470',
+      }).setOrigin(0.5).setDepth(3));
+      // Label
+      c.add(this.add.text(nx, navY + 32, item.label, {
+        fontFamily: 'monospace', fontSize: '9px', color: '#3a4350',
+      }).setOrigin(0.5).setDepth(3));
+
+      // Hover + click
+      iconCircle.on('pointerover', () => {
+        iconCircle.setStrokeStyle(2, 0x39d0d8, 0.8);
+      });
+      iconCircle.on('pointerout', () => {
+        iconCircle.setStrokeStyle(1, 0x1a3040, 0.6);
+      });
+      iconCircle.on('pointerdown', () => {
+        AudioSystem.play('uiClick');
+        this.setState(item.state);
+      });
+    });
 
     this.setupMenuNav();
   }
@@ -343,28 +512,28 @@ export class GameScene extends Phaser.Scene {
   // ================ OVERLAY STATES (from pause menu) ================
 
   private buildSettingsOverlay(): void {
-    this.settingsUI = new SettingsUI(this, () => { this.setState('play'); if (this.paused) this.togglePause(); });
+    this.settingsUI = new SettingsUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
     this.settingsUI.show();
   }
 
   private buildSkillsOverlay(): void {
-    this.skillTreeUI = new SkillTreeUI(this, () => { this.setState('play'); if (this.paused) this.togglePause(); });
+    this.skillTreeUI = new SkillTreeUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
     this.skillTreeUI.show();
   }
 
   private buildInventoryOverlay(): void {
-    this.inventoryUI = new InventoryUI(this, () => { this.setState('play'); if (this.paused) this.togglePause(); });
+    this.inventoryUI = new InventoryUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
     this.inventoryUI.show();
   }
 
   private buildQuestsOverlay(): void {
-    this.questUI = new QuestUI(this, () => { this.setState('play'); if (this.paused) this.togglePause(); });
+    this.questUI = new QuestUI(this, () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); });
     this.questUI.show();
   }
 
   private buildMapOverlay(): void {
     this.worldMapUI = new WorldMapUI(this,
-      () => { this.setState('play'); if (this.paused) this.togglePause(); },
+      () => { this.setState(this.paused ? 'play' : 'hub'); if (this.paused) this.togglePause(); },
       (areaId: string) => this.fastTravel(areaId),
     );
     this.worldMapUI.show();
@@ -640,6 +809,21 @@ export class GameScene extends Phaser.Scene {
     this.setState('play');
   }
 
+  // Also called from pause menu "Quit to Menu" → goes to hub
+  private quitToHub(): void {
+    this.paused = false;
+    this.pauseMenuUI.hide();
+    this.cleanupPlay();
+    this.setState('hub');
+  }
+
+  private quitToMenu(): void {
+    this.paused = false;
+    this.pauseMenuUI.hide();
+    this.cleanupPlay();
+    this.setState('menu');
+  }
+
   private getNextWeapon(dir: number): import('../../data/types').WeaponId {
     const save = SaveSystem.getPlayer();
     const all = save.unlockedWeapons as import('../../data/types').WeaponId[];
@@ -753,15 +937,15 @@ export class GameScene extends Phaser.Scene {
 
   // ================ MENU HELPERS ================
 
-  private makeMenuBtn(x: number, y: number, label: string, onClick: () => void, disabled: boolean = false): void {
-    const bg = this.add.rectangle(x, y, 300, 42, disabled ? 0x05080c : 0x0a1018, 0.9);
-    bg.setStrokeStyle(1, disabled ? 0x0a1018 : 0x1a3040, 0.8);
+  private makeMenuBtn(x: number, y: number, label: string, onClick: () => void, disabled: boolean = false, width: number = 240): void {
+    const bg = this.add.rectangle(x, y, width, 38, disabled ? 0x05080c : 0x0a1018, 0.9);
+    bg.setStrokeStyle(1, disabled ? 0x05080c : 0x1a3040, 0.8);
     if (!disabled) {
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.indexOf(bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
       bg.on('pointerdown', onClick);
     }
-    const textEl = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '17px', color: disabled ? '#0a1018' : '#5a6470' }).setOrigin(0.5);
+    const textEl = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '15px', color: disabled ? '#0a1018' : '#5a6470' }).setOrigin(0.5);
     this.stateContainer!.add([bg, textEl]);
     if (!disabled) this.menuButtons.push(bg);
   }
