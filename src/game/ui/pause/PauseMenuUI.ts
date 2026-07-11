@@ -75,26 +75,35 @@ export class PauseMenuUI {
     this.container.setVisible(false);
   }
 
+  private navCooldown = 0;
+
   /** Handle gamepad/keyboard navigation. Call from scene update. */
   handleNavigation(): void {
     const input = InputSystem.getState();
+    this.navCooldown -= 16;
+    if (this.navCooldown > 0) return;
+
     if (input.leftStickY < -0.3 || input.heldUp) {
       this.focusIdx = (this.focusIdx - 1 + this.buttons.length) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
+      this.navCooldown = 200;
     } else if (input.leftStickY > 0.3 || input.heldDown) {
       this.focusIdx = (this.focusIdx + 1) % this.buttons.length;
       this.updateFocus();
       AudioSystem.play('uiHover');
+      this.navCooldown = 200;
     }
     if (input.jumpPressed || input.firePressed) {
       AudioSystem.play('uiClick');
       this.buttons[this.focusIdx]?.onClick();
+      this.navCooldown = 300;
     }
     // B button = resume (first button)
     if (input.backPressed) {
       AudioSystem.play('uiClick');
       this.buttons[0]?.onClick();  // RESUME is always first
+      this.navCooldown = 300;
     }
   }
 

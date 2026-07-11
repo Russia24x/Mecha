@@ -45,6 +45,7 @@ export class InputSystem {
   private static listenersAttached = false;
   private static onKeyDown!: (e: KeyboardEvent) => void;
   private static onKeyUp!: (e: KeyboardEvent) => void;
+  private static kbHeldFire = false;  // keyboard-only held fire (separate from gamepad)
   private static callbacks: { jump?: () => void; fire?: () => void; melee?: () => void; dash?: (dir: Direction) => void; pause?: () => void; interact?: () => void; weaponNext?: () => void; weaponPrev?: () => void; } = {};
 
   static init(callbacks: { jump?: () => void; fire?: () => void; melee?: () => void; dash?: (dir: Direction) => void; pause?: () => void; interact?: () => void; weaponNext?: () => void; weaponPrev?: () => void; }): void {
@@ -56,7 +57,7 @@ export class InputSystem {
     this.onKeyDown = (e: KeyboardEvent) => {
       switch (e.code) {
         case 'Space': this.state.jumpPressed = true; this.callbacks.jump?.(); break;
-        case 'KeyJ': this.state.firePressed = true; this.state.heldFire = true; this.callbacks.fire?.(); break;
+        case 'KeyJ': this.state.firePressed = true; this.kbHeldFire = true; this.callbacks.fire?.(); break;
         case 'KeyK': this.state.meleePressed = true; this.callbacks.melee?.(); break;
         case 'KeyE': this.state.interactPressed = true; this.callbacks.interact?.(); break;
         case 'KeyQ': this.state.weaponPrevPressed = true; this.callbacks.weaponPrev?.(); break;
@@ -80,7 +81,7 @@ export class InputSystem {
         case 'KeyD': case 'ArrowRight': this.state.heldRight = false; break;
         case 'KeyW': case 'ArrowUp': this.state.heldUp = false; break;
         case 'KeyS': case 'ArrowDown': this.state.heldDown = false; break;
-        case 'KeyJ': this.state.heldFire = false; break;
+        case 'KeyJ': this.kbHeldFire = false; break;
       }
     };
 
@@ -143,9 +144,8 @@ export class InputSystem {
     if (held(14)) this.state.leftStickX = -1;
     if (held(15)) this.state.leftStickX = 1;
 
-    // Held states — combine keyboard (set by keydown/keyup handlers) + gamepad
-    const kbFire = this.state.heldFire; // keyboard sets this via keydown-J / keyup-J
-    this.state.heldFire = kbFire || held(2) || held(7);
+    // Held fire = keyboard J held OR gamepad X/RT held (recomputed fresh each frame)
+    this.state.heldFire = this.kbHeldFire || held(2) || held(7);
 
     this.prevButtons = btns;
   }
@@ -158,6 +158,7 @@ export class InputSystem {
       if (this.onKeyUp) window.removeEventListener('keyup', this.onKeyUp);
     }
     this.listenersAttached = false;
+    this.kbHeldFire = false;
   }
 
   static isGamepadAvailable(): boolean {

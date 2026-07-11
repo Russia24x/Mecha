@@ -329,6 +329,7 @@ export class PlayerEntity {
   }
 
   private tryJump(): void {
+    if (!this.alive || !this.sprite || !this.sprite.active) return;
     this.jumpBufferUntil = this.scene.time.now + PLAYER.JUMP_BUFFER_MS;
     const now = this.scene.time.now;
     if (this.jumpsRemaining > 0 && (this.grounded || now < this.coyoteUntil || this.jumpsRemaining > 1)) {
@@ -343,6 +344,7 @@ export class PlayerEntity {
   }
 
   private tryDash(dir: Direction): void {
+    if (!this.alive || !this.sprite || !this.sprite.active) return;
     const now = this.scene.time.now;
     if (this.isDashing || now < this.dashAvailableAt) return;
     if (!this.consumeEnergy(PLAYER.DASH_COST)) return;
@@ -368,6 +370,7 @@ export class PlayerEntity {
   }
 
   private tryFire(): void {
+    if (!this.alive || !this.sprite || !this.sprite.active) return;
     const now = this.scene.time.now;
     const weapon = getWeapon(this.currentWeapon);
     const cooldown = this.currentWeapon === 'assault_rifle' ? this.stats.fireCooldownMs : weapon.fireRateMs;
@@ -429,6 +432,7 @@ export class PlayerEntity {
   }
 
   private tryMelee(): void {
+    if (!this.alive || !this.sprite || !this.sprite.active) return;
     const now = this.scene.time.now;
     if (now - this.lastMeleeAt < PLAYER.MELEE_COOLDOWN_MS) return;
     if (!this.consumeEnergy(PLAYER.MELEE_COST)) return;
