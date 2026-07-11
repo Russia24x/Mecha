@@ -40,9 +40,12 @@ export class EnemyEntity {
   private lastFireAt = 0;
   private visualGfx: Phaser.GameObjects.Graphics | null = null;
 
-  constructor(scene: Phaser.Scene, physics: PhysicsSystem, x: number, y: number, type: EnemyTypeId, projectiles: Projectile[]) {
+  private particles: import('../../systems/ParticleSystem').ParticleSystem;
+
+  constructor(scene: Phaser.Scene, physics: PhysicsSystem, particles: import('../../systems/ParticleSystem').ParticleSystem, x: number, y: number, type: EnemyTypeId, projectiles: Projectile[]) {
     this.scene = scene;
     this.physics = physics;
+    this.particles = particles;
     this.type = type;
     this.data = getEnemy(type);
     this.id = `${type}-${++enemyCounter}`;
@@ -301,7 +304,7 @@ export class EnemyEntity {
     this.lastFireAt = this.scene.time.now;
     const from = this.position;
     const dir = new Phaser.Math.Vector2(playerPos.x - from.x, playerPos.y - from.y).normalize();
-    const proj = new Projectile(this.scene, this.physics, { sparks: () => {}, dust: () => {}, explosion: () => {}, screenFlash: () => {}, afterimage: () => {} } as unknown as import('../../systems/ParticleSystem').ParticleSystem, from, dir, {
+    const proj = new Projectile(this.scene, this.physics, this.particles, from, dir, {
       speed: this.data.bulletSpeed ?? 5, damage: this.data.bulletDamage ?? 6,
       ttl: 2000, owner: 'enemy', color: 0xff4a4a, size: 5,
     });
