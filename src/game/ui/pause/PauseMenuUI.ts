@@ -87,9 +87,14 @@ export class PauseMenuUI {
       this.updateFocus();
       AudioSystem.play('uiHover');
     }
-    if (input.jumpPressed) {
+    if (input.jumpPressed || input.firePressed) {
       AudioSystem.play('uiClick');
       this.buttons[this.focusIdx]?.onClick();
+    }
+    // B button = resume (first button)
+    if (input.backPressed) {
+      AudioSystem.play('uiClick');
+      this.buttons[0]?.onClick();  // RESUME is always first
     }
   }
 

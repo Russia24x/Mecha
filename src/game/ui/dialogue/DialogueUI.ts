@@ -96,8 +96,8 @@ export class DialogueUI {
     this.hintText.setVisible(!line.isLast);
   }
 
-  /** Advance to next line or close dialogue. */
-  private advance(): void {
+  /** Advance to next line or close dialogue. Public for gamepad support. */
+  advance(): void {
     // Only respond to Enter/Space/click
     if (!DialogueSystem.isActive) return;
     const hasMore = DialogueSystem.advance();

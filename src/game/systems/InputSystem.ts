@@ -21,6 +21,7 @@ export interface InputState {
   weaponPrevPressed: boolean;
   pausePressed: boolean;
   interactPressed: boolean;
+  backPressed: boolean;      // B button or Back — for "go back" in menus
   // Analog
   leftStickX: number;
   leftStickY: number;
@@ -35,6 +36,7 @@ export class InputSystem {
     heldLeft: false, heldRight: false, heldUp: false, heldDown: false, heldFire: false,
     jumpPressed: false, firePressed: false, meleePressed: false, dashPressed: false,
     weaponNextPressed: false, weaponPrevPressed: false, pausePressed: false, interactPressed: false,
+    backPressed: false,
     leftStickX: 0, leftStickY: 0, rightStickX: 0, rightStickY: 0,
     gamepadConnected: false,
   };
@@ -100,6 +102,7 @@ export class InputSystem {
     this.state.weaponPrevPressed = false;
     this.state.pausePressed = false;
     this.state.interactPressed = false;
+    this.state.backPressed = false;
 
     // Poll gamepad
     if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
@@ -121,10 +124,14 @@ export class InputSystem {
     const held = (i: number) => btns[i];
 
     // Each button has exactly one role
+    // A(0)=jump/confirm, B(1)=back/cancel, X(2)=fire, Y(3)=melee
+    // LB(4)=weapon prev, RB(5)=weapon next, LT(6)=dash, RT(7)=fire alt
+    // Back(8)=interact/back, Start(9)=pause, L3(10)=dash alt
     if (edge(0)) { this.state.jumpPressed = true; this.callbacks.jump?.(); }
     if (edge(2) || edge(7)) { this.state.firePressed = true; this.callbacks.fire?.(); }
     if (edge(3)) { this.state.meleePressed = true; this.callbacks.melee?.(); }
-    if (edge(1)) { this.state.dashPressed = true; this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right'); }
+    if (edge(1)) { this.state.backPressed = true; }  // B = back in menus (no callback — handled by polling)
+    if (edge(6) || edge(10)) { this.state.dashPressed = true; this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right'); }
     if (edge(5)) { this.state.weaponNextPressed = true; this.callbacks.weaponNext?.(); }
     if (edge(4)) { this.state.weaponPrevPressed = true; this.callbacks.weaponPrev?.(); }
     if (edge(9)) { this.state.pausePressed = true; this.callbacks.pause?.(); }

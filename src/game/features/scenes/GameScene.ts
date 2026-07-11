@@ -194,8 +194,35 @@ export class GameScene extends Phaser.Scene {
 
       if (!this.paused && !this.inSettings && !this.inSkills && !this.inInventory && !this.inQuests && !this.inMap) {
         this.updatePlay(deltaMs);
-      } else if (this.paused && !this.inSettings && !this.inSkills && !this.inInventory && !this.inQuests && !this.inMap) {
-        this.pauseMenuUI.handleNavigation();
+      } else if (this.paused) {
+        // Gamepad navigation for pause menu + all sub-overlays
+        if (this.inSettings) {
+          // Settings uses drag-based sliders, no gamepad nav needed
+        } else if (this.inSkills) {
+          this.handleSkillTreeNav(input);
+        } else if (this.inInventory) {
+          this.handleInventoryNav(input);
+        } else if (this.inQuests) {
+          // Quest log is read-only, just allow back
+          if (input.backPressed) { this.questUI.hide(); this.inQuests = false; this.pauseMenuUI.show(); }
+          if (input.jumpPressed) { this.questUI.hide(); this.inQuests = false; this.pauseMenuUI.show(); }
+        } else if (this.inMap) {
+          // World map uses click, just allow back
+          if (input.backPressed) { this.worldMapUI.hide(); this.inMap = false; this.pauseMenuUI.show(); }
+          if (input.jumpPressed) { this.worldMapUI.hide(); this.inMap = false; this.pauseMenuUI.show(); }
+        } else {
+          this.pauseMenuUI.handleNavigation();
+        }
+      }
+    } else if (this.state === 'menu' || this.state === 'gameover' || this.state === 'victory') {
+      // Gamepad navigation for menu/gameover/victory screens
+      this.handleMenuGamepadNav(input);
+    }
+
+    // Dialogue advance via gamepad (works in any state)
+    if (this.dialogueUI?.isVisible) {
+      if (input.jumpPressed || input.firePressed) {
+        this.dialogueUI.advance();
       }
     }
   }
@@ -581,6 +608,50 @@ export class GameScene extends Phaser.Scene {
       this.setState('menu');
     });
     this.setupMenuNav();
+  }
+
+  // ================ GAMEPAD NAVIGATION ================
+
+  private menuNavCooldown = 0;
+
+  /** Gamepad navigation for menu/gameover/victory screens. */
+  private handleMenuGamepadNav(input: import('../../systems/InputSystem').InputState): void {
+    this.menuNavCooldown -= 16;
+    if (this.menuNavCooldown > 0) return;
+
+    if (input.leftStickY < -0.3 || input.heldUp) {
+      this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
+      this.updateMenuFocus(); AudioSystem.play('uiHover');
+      this.menuNavCooldown = 200;
+    } else if (input.leftStickY > 0.3 || input.heldDown) {
+      this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
+      this.updateMenuFocus(); AudioSystem.play('uiHover');
+      this.menuNavCooldown = 200;
+    }
+    if (input.jumpPressed || input.firePressed) {
+      AudioSystem.play('uiClick');
+      this.menuButtons[this.menuFocusIndex]?.emit('pointerdown');
+      this.menuNavCooldown = 300;
+    }
+  }
+
+  /** Gamepad navigation for skill tree overlay. */
+  private handleSkillTreeNav(input: import('../../systems/InputSystem').InputState): void {
+    // Skill tree uses click — gamepad: B or Start to go back
+    if (input.backPressed || input.pausePressed) {
+      this.skillTreeUI.hide(); this.inSkills = false; this.pauseMenuUI.show();
+    }
+    // A/X = close skill tree (simplification — full gamepad nav would need tab+card focus)
+    if (input.jumpPressed && input.interactPressed) {
+      this.skillTreeUI.hide(); this.inSkills = false; this.pauseMenuUI.show();
+    }
+  }
+
+  /** Gamepad navigation for inventory overlay. */
+  private handleInventoryNav(input: import('../../systems/InputSystem').InputState): void {
+    if (input.backPressed || input.pausePressed) {
+      this.inventoryUI.hide(); this.inInventory = false; this.pauseMenuUI.show();
+    }
   }
 
   // ================ MENU HELPERS ================
