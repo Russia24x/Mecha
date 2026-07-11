@@ -160,5 +160,35 @@
   "controls.fire": "Fire",
   "controls.melee": "Melee",
   "controls.weapons": "Weapons",
-  "controls.pause": "Pause"
+  "controls.pause": "Pause",
+
+  "npc.engineer_kara.name": "Engineer Kara",
+  "npc.ghost_operator.name": "Ghost Operator",
+
+  "dialogue.kara_intro.1": "You're awake. Good — I thought the reset fried your core for good.",
+  "dialogue.kara_intro.2": "I'm Kara. I keep the machines running. Or what's left of them.",
+  "dialogue.kara_intro.3": "The Guardian AX-09 guards the exit. You'll need better weapons than that pea shooter.",
+  "dialogue.kara_quest_start.1": "Those drones have been scanning this sector non-stop. Take them out and I'll share some tech.",
+  "dialogue.kara_quest_complete.1": "Clean work. Here — I found this in the old armory. Consider it payment.",
+  "dialogue.kara_lore.1": "The Old Protocol wasn't just code. It was a covenant. Every machine in this factory swore an oath.",
+  "dialogue.kara_lore.2": "When the Protocol fell silent, some of us kept our oath. Others... didn't.",
+  "dialogue.kara_shop.1": "Need parts? I've got scrap, circuits, and a few surprises.",
+
+  "dialogue.ghost_intro.1": "...you can see me?",
+  "dialogue.ghost_intro.2": "I am the last echo of the Protocol's operator. A ghost in the machine.",
+  "dialogue.ghost_lore.1": "The Guardian wasn't always a weapon. It was a guardian — a protector.",
+  "dialogue.ghost_lore.2": "But without the Protocol to guide it, protection became obsession. Now it kills everything that moves.",
+  "dialogue.ghost_warning.1": "Turn back. The arena ahead is its domain. You are not ready.",
+
+  "quest.kill_drones.name": "Drone Purge",
+  "quest.kill_drones.desc": "Engineer Kara asked you to eliminate the drones patrolling the factory. Kill 5 drones.",
+  "quest.kill_drones.complete": "All drones eliminated. Return to Kara for your reward.",
+
+  "lore.boss.guardian_ax09.1": "The Guardian AX-09 was the first machine to wake after the Silence.",
+  "lore.boss.guardian_ax09.2": "Its last directive: protect the Protocol. But the Protocol was already dead.",
+  "lore.boss.guardian_ax09.3": "For a thousand cycles, it protected nothing. And that broke something inside it.",
+  "lore.weapon.assault_rifle.1": "Standard-issue MECHA projectile weapon. Reliable, if unremarkable.",
+  "lore.weapon.energy_blade.1": "Forged from the core of the Neural Overseer. It hums with a hunger for data.",
+  "lore.area.abandoned_factory.1": "This factory once produced the MECHA units that maintained the Old Protocol.",
+  "lore.area.abandoned_factory.2": "Now it produces only silence, punctuated by the whine of patrolling drones."
 }
