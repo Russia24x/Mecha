@@ -36,7 +36,7 @@ export abstract class NavigableOverlay implements OverlayUI {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.container = scene.add.container(0, 0).setDepth(250).setScrollFactor(0).setVisible(false);
+    this.container = scene.add.container(0, 0).setDepth(300).setScrollFactor(0).setVisible(false);
   }
 
   /**

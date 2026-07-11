@@ -817,12 +817,12 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
-      this.matter.world.resume();
       AudioSystem.play('uiClick');
     } else {
       this.paused = true;
       this.pauseMenuUI.show();
-      this.matter.world.pause();
+      // Make sure input is enabled for mouse clicks
+      this.input.enabled = true;
       AudioSystem.play('uiClick');
     }
   }
