@@ -1,0 +1,125 @@
+/**
+ * MECHA: LAST PROTOCOL — Weapon Database
+ * All weapon definitions. Data-driven, no hardcoded stats in code.
+ */
+import type { WeaponData, WeaponId } from '../types';
+
+export const WEAPONS: Record<WeaponId, WeaponData> = {
+  assault_rifle: {
+    id: 'assault_rifle',
+    nameKey: 'weapon.assault_rifle.name',
+    tier: 'projectile',
+    damage: 18,
+    range: 800,
+    fireRateMs: 140,
+    energyCost: 3,
+    bulletSpeed: 13,
+    bulletsPerShot: 1,
+    color: 0xfff04a,
+    size: 6,
+    passiveBonus: { type: 'fireRate', value: 0.95 },
+  },
+  shotgun: {
+    id: 'shotgun',
+    nameKey: 'weapon.shotgun.name',
+    tier: 'projectile',
+    damage: 10,
+    range: 400,
+    fireRateMs: 480,
+    energyCost: 8,
+    bulletSpeed: 10,
+    bulletsPerShot: 5,
+    spread: 0.5,
+    color: 0xff8040,
+    size: 5,
+    unlockRequirement: 'kill_spider_5',
+  },
+  railgun: {
+    id: 'railgun',
+    nameKey: 'weapon.railgun.name',
+    tier: 'hitscan',
+    damage: 14,
+    range: 800,
+    fireRateMs: 90,
+    energyCost: 4,
+    color: 0xff40ff,
+    size: 3,
+    passiveBonus: { type: 'energyCost', value: 0.9 },
+    unlockRequirement: 'kill_drone_10',
+  },
+  plasma_cannon: {
+    id: 'plasma_cannon',
+    nameKey: 'weapon.plasma_cannon.name',
+    tier: 'projectile',
+    damage: 35,
+    range: 600,
+    fireRateMs: 360,
+    energyCost: 12,
+    bulletSpeed: 8,
+    bulletsPerShot: 1,
+    color: 0x40ffff,
+    size: 10,
+    passiveBonus: { type: 'damage', value: 1.15 },
+    unlockRequirement: 'boss_1',
+  },
+  laser: {
+    id: 'laser',
+    nameKey: 'weapon.laser.name',
+    tier: 'hitscan',
+    damage: 8,
+    range: 1000,
+    fireRateMs: 50,
+    energyCost: 2,
+    color: 0xff0000,
+    size: 2,
+    unlockRequirement: 'kill_flying_ai_5',
+  },
+  rocket: {
+    id: 'rocket',
+    nameKey: 'weapon.rocket.name',
+    tier: 'explosive',
+    damage: 60,
+    range: 500,
+    fireRateMs: 900,
+    energyCost: 18,
+    bulletSpeed: 7,
+    bulletsPerShot: 1,
+    explosionRadius: 90,
+    color: 0xff4040,
+    size: 8,
+    unlockRequirement: 'kill_heavy_3',
+  },
+  sword: {
+    id: 'sword',
+    nameKey: 'weapon.sword.name',
+    tier: 'melee',
+    damage: 35,
+    range: 60,
+    fireRateMs: 360,
+    energyCost: 6,
+    color: 0xc0c0c0,
+    size: 0,
+    passiveBonus: { type: 'damage', value: 1.1 },
+  },
+  energy_blade: {
+    id: 'energy_blade',
+    nameKey: 'weapon.energy_blade.name',
+    tier: 'melee',
+    damage: 55,
+    range: 75,
+    fireRateMs: 280,
+    energyCost: 8,
+    color: 0x40ff80,
+    size: 0,
+    passiveBonus: { type: 'damage', value: 1.25 },
+    unlockRequirement: 'boss_2',
+  },
+};
+
+export function getWeapon(id: WeaponId): WeaponData {
+  return WEAPONS[id];
+}
+
+export function getWeaponList(): WeaponData[] {
+  return Object.values(WEAPONS);
+}
