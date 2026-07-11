@@ -207,15 +207,26 @@ export class GameScene extends Phaser.Scene {
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
       this.handleMenuGamepadNav(input);
-    } else if (this.state === 'skills' || this.state === 'inventory' || this.state === 'quests' || this.state === 'map' || this.state === 'settings') {
-      // Overlay states — B or Start = back to previous (hub if from hub, pause if from play)
+    } else if (this.state === 'settings') {
+      // Settings uses drag-based sliders — B/ESC = back
+      if (input.backPressed || input.pausePressed || input.heldDown && input.heldUp) {
+        // ESC handled via pausePressed; also allow explicit back
+      }
       if (input.backPressed || input.pausePressed) {
-        if (this.paused) {
-          this.setState('play');
-          this.togglePause(); // reopen pause menu
-        } else {
-          this.setState('hub');
-        }
+        this.settingsUI?.hide();
+        this.settingsUI?.destroy();
+        this.setState(this.paused ? 'play' : 'hub');
+        if (this.paused) this.togglePause();
+      }
+    } else if (this.state === 'skills' || this.state === 'inventory' || this.state === 'quests' || this.state === 'map') {
+      // All overlay states — B/ESC/Start = back
+      if (input.backPressed || input.pausePressed) {
+        if (this.state === 'skills') { this.skillTreeUI?.hide(); this.skillTreeUI?.destroy(); }
+        if (this.state === 'inventory') { this.inventoryUI?.hide(); this.inventoryUI?.destroy(); }
+        if (this.state === 'quests') { this.questUI?.hide(); this.questUI?.destroy(); }
+        if (this.state === 'map') { this.worldMapUI?.hide(); this.worldMapUI?.destroy(); }
+        this.setState(this.paused ? 'play' : 'hub');
+        if (this.paused) this.togglePause();
       }
     }
 
@@ -391,10 +402,15 @@ export class GameScene extends Phaser.Scene {
     const isFa = getLocale() === 'fa';
     const L = (en: string, fa: string) => isFa ? fa : en;
 
-    // Background — slightly lighter than menu
+    // Background — warmer, slightly brighter than menu
     const bg = this.add.graphics();
-    bg.fillStyle(0x060810, 1);
+    bg.fillStyle(0x0a0e1a, 1);
     bg.fillRect(0, 0, w, h);
+    // Subtle warm glow at center
+    for (let r = 400; r > 0; r -= 25) {
+      bg.fillStyle(0x101828, 0.025);
+      bg.fillCircle(w / 2, h * 0.45, r);
+    }
     bg.setDepth(0);
     c.add(bg);
 
