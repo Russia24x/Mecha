@@ -85,6 +85,7 @@ export class GameScene extends Phaser.Scene {
 
   // Overlay flags
   private paused = false;
+  private lastPauseToggleAt = 0;
   private inSettings = false;
   private inSkills = false;
   private inInventory = false;
@@ -485,6 +486,11 @@ export class GameScene extends Phaser.Scene {
 
   private togglePause(): void {
     if (this.state !== 'play') return;
+    // Cooldown to prevent immediate re-pause from same button press
+    const now = this.time.now;
+    if (now - (this.lastPauseToggleAt ?? 0) < 300) return;
+    this.lastPauseToggleAt = now;
+
     if (this.paused) {
       // Close any open sub-overlay first
       if (this.inSettings) { this.settingsUI.hide(); this.inSettings = false; this.pauseMenuUI.show(); return; }

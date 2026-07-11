@@ -143,8 +143,9 @@ export class InputSystem {
     if (held(14)) this.state.leftStickX = -1;
     if (held(15)) this.state.leftStickX = 1;
 
-    // Held states
-    this.state.heldFire = this.state.heldFire || held(2) || held(7);
+    // Held states — combine keyboard (set by keydown/keyup handlers) + gamepad
+    const kbFire = this.state.heldFire; // keyboard sets this via keydown-J / keyup-J
+    this.state.heldFire = kbFire || held(2) || held(7);
 
     this.prevButtons = btns;
   }

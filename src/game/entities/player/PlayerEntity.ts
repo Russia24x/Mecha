@@ -111,18 +111,14 @@ export class PlayerEntity {
     this.buildVisual();
 
     // Init input system with callbacks
+    // Note: pause is handled by GameScene via polling pausePressed — NOT by PlayerEntity.
     InputSystem.init({
       jump: () => this.tryJump(),
       fire: () => this.tryFire(),
       melee: () => this.tryMelee(),
       dash: (dir) => this.tryDash(dir),
-      pause: () => {
-        if (scene.scene.isActive() && !scene.scene.isPaused()) {
-          AudioSystem.play('uiClick');
-          scene.scene.pause();
-          scene.scene.launch('UIScene');
-        }
-      },
+      pause: () => {},  // No-op — GameScene polls pausePressed in its update loop
+      interact: () => {},  // No-op — GameScene polls interactPressed
       weaponNext: () => this.switchWeapon(1),
       weaponPrev: () => this.switchWeapon(-1),
     });
