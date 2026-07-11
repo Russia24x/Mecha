@@ -36,7 +36,21 @@ export abstract class NavigableOverlay implements OverlayUI {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.container = scene.add.container(0, 0).setDepth(300).setScrollFactor(0).setVisible(false);
+    this.container = scene.add.container(0, 0).setDepth(300).setVisible(false);
+    this.container.scrollFactorX = 0;
+    this.container.scrollFactorY = 0;
+  }
+
+  /**
+   * Add a child to the container with scrollFactor(0).
+   * Use this instead of container.add() to ensure hit-test works when camera scrolls.
+   */
+  protected addFixed(...children: Phaser.GameObjects.GameObject[]): void {
+    children.forEach(c => {
+      const sf = c as unknown as { setScrollFactor?: (x: number, y?: number) => void };
+      sf.setScrollFactor?.(0);
+    });
+    this.container.add(children);
   }
 
   /**
@@ -49,6 +63,10 @@ export abstract class NavigableOverlay implements OverlayUI {
     onSelect: () => void,
     opts?: { focusColor?: number; normalColor?: number },
   ): void {
+    // *** ROOT FIX: each child must have scrollFactor(0) individually.
+    // Container.setScrollFactor(0,0,true) doesn't work reliably in Phaser 4.2.1.
+    bg.setScrollFactor(0);
+    text.setScrollFactor(0);
     bg.setInteractive({ useHandCursor: true });
     bg.on('pointerover', () => {
       this.navFocusIdx = this.navElements.findIndex(e => e.bg === bg);

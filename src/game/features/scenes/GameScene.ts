@@ -179,6 +179,8 @@ export class GameScene extends Phaser.Scene {
       case 'gameover': this.buildGameOver(); break;
       case 'victory': this.buildVictory(); break;
     }
+    // setScrollFactor(0,0,true) AFTER all children are added by build* methods
+    this.stateContainer.setScrollFactor(0, 0, true);
   }
 
   private cleanupState(): void {

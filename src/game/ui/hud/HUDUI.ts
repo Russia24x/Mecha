@@ -28,7 +28,7 @@ export class HUDUI {
   constructor(scene: Phaser.Scene, private player: PlayerEntity) {
     this.scene = scene;
     const w = GAME.WIDTH;
-    this.container = scene.add.container(0, 0).setDepth(200).setScrollFactor(0);
+    this.container = scene.add.container(0, 0).setDepth(200).setScrollFactor(0, 0, true);
 
     // === LEFT PANEL: Health + Energy ===
     // Accent line above bars
@@ -115,6 +115,9 @@ export class HUDUI {
     }).setOrigin(0.5, 0.5);
     this.checkpointText.setAlpha(0);
     this.container.add(this.checkpointText);
+
+    // setScrollFactor(0,0,true) AFTER all children are added
+    this.container.setScrollFactor(0, 0, true);
   }
 
   update(): void {

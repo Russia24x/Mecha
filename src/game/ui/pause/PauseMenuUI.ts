@@ -1,16 +1,14 @@
 /**
- * MECHA: LAST PROTOCOL — Pause Menu UI v3.3
+ * MECHA: LAST PROTOCOL — Pause Menu UI v3.4
  *
- * ROOT FIX for mouse not working:
- * 1. Overlay rectangle now has setInteractive() to CATCH stray clicks
- *    (prevents clicks from going through to game world).
- * 2. Buttons are added AFTER overlay → higher input priority in Phaser.
- * 3. setInteractive() called AFTER object is added to container.
- * 4. Does NOT call matter.world.pause() (was potentially interfering).
+ * ROOT FIX for mouse not working in pause menu:
+ * Phaser Container.setScrollFactor(0,0,true) is SUPPOSED to update children,
+ * but it doesn't work reliably in Phaser 4.2.1 during constructor.
+ * Instead, each child explicitly calls setScrollFactor(0) on creation.
  *
- * Grid layout: Resume, Skills, Inventory, Quests, Map,
- * Settings, Restart, Return to Hub, Quit to Menu.
- * Full gamepad + mouse support with cooldown.
+ * Without this, children have scrollFactor=1, so when the camera scrolls
+ * (following the player), the hit-test coordinates are offset and clicks
+ * never land on buttons.
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
@@ -40,75 +38,55 @@ export class PauseMenuUI {
   constructor(scene: Phaser.Scene, callbacks: PauseMenuCallbacks) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    this.container = scene.add.container(0, 0).setDepth(300).setScrollFactor(0).setVisible(false);
+    this.container = scene.add.container(0, 0).setDepth(300).setVisible(false);
+    this.container.scrollFactorX = 0;
+    this.container.scrollFactorY = 0;
 
-    // Overlay with setInteractive — catches ALL clicks on pause menu area.
-    // Buttons added AFTER this will have higher input priority.
-    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75);
-    overlay.setInteractive();
-    // Consume pointer events on overlay (prevents click-through to game world)
-    overlay.on('pointerdown', () => { /* swallow — do nothing */ });
+    // Overlay — visual only, NOT interactive (doesn't block button clicks)
+    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75).setScrollFactor(0);
     this.container.add(overlay);
 
     // Title
     const titleText = scene.add.text(w / 2, 50, t('pause.title'), {
       fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setScrollFactor(0);
     this.container.add(titleText);
 
-    // Localization helper
     const isFa = getLocale() === 'fa';
     const L = (en: string, fa: string) => isFa ? fa : en;
 
-    // Grid layout
-    const colW = 210;
-    const rowH = 44;
-    const gap = 8;
+    const colW = 210, rowH = 44, gap = 8;
     const startX = w / 2 - colW - gap / 2;
     const startY = 110;
 
-    // Row 0: Resume (full width)
     this.makeBtn(w / 2, startY, '▶  ' + t('pause.resume'), callbacks.onResume, colW * 2 + gap);
-
-    // Row 1: Skills | Inventory
     this.makeBtn(startX + colW / 2, startY + rowH + gap, '⚔  ' + L('SKILLS', 'مهارت‌ها'), callbacks.onSkills, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '🎒  ' + L('INVENTORY', 'کیف'), callbacks.onInventory, colW);
-
-    // Row 2: Quests | Map
     this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '📜  ' + L('QUESTS', 'ماموریت‌ها'), callbacks.onQuests, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '🗺  ' + L('MAP', 'نقشه'), callbacks.onMap, colW);
-
-    // Row 3: Settings | Restart
     this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙  ' + t('menu.settings'), callbacks.onSettings, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻  ' + t('pause.restart'), callbacks.onRestart, colW);
-
-    // Row 4: Return to Hub | Quit to Menu
     this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⌂  ' + t('pause.quit_hub'), callbacks.onReturnToHub, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 4, '✕  ' + t('pause.quit_menu'), callbacks.onQuit, colW);
-
-    // NOW set interactive on all buttons (after they're in the container)
-    this.buttons.forEach(b => {
-      b.bg.setInteractive({ useHandCursor: true });
-      b.bg.on('pointerover', () => {
-        this.focusIdx = this.buttons.indexOf(b);
-        this.updateFocus();
-        AudioSystem.play('uiHover');
-      });
-      b.bg.on('pointerout', () => this.updateFocus());
-      b.bg.on('pointerdown', () => {
-        AudioSystem.play('uiClick');
-        b.onClick();
-      });
-    });
   }
 
   private makeBtn(x: number, y: number, label: string, onClick: () => void, width: number = 320): void {
-    const bg = this.scene.add.rectangle(x, y, width, 40, 0x0a1018, 0.9);
+    const bg = this.scene.add.rectangle(x, y, width, 40, 0x0a1018, 0.9).setScrollFactor(0);
     bg.setStrokeStyle(1, 0x1a3040, 0.8);
-    // NOTE: setInteractive() is called AFTER all buttons are added to container
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => {
+      this.focusIdx = this.buttons.findIndex(b => b.bg === bg);
+      this.updateFocus();
+      AudioSystem.play('uiHover');
+    });
+    bg.on('pointerout', () => this.updateFocus());
+    bg.on('pointerdown', () => {
+      AudioSystem.play('uiClick');
+      onClick();
+    });
     const textEl = this.scene.add.text(x, y, label, {
       fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setScrollFactor(0);
     this.container.add([bg, textEl]);
     this.buttons.push({ bg, text: textEl, onClick });
   }
@@ -133,17 +111,12 @@ export class PauseMenuUI {
     this.container.setVisible(true);
     this.focusIdx = 0;
     this.updateFocus();
-    // Ensure input is enabled on the scene
-    if (!this.scene.input.enabled) {
-      this.scene.input.enabled = true;
-    }
   }
 
   hide(): void {
     this.container.setVisible(false);
   }
 
-  /** Handle gamepad/keyboard navigation. Call from scene update. */
   handleNavigation(): void {
     const input = InputSystem.getState();
     this.navCooldown -= 16;
@@ -167,7 +140,7 @@ export class PauseMenuUI {
     }
     if (input.backPressed) {
       AudioSystem.play('uiClick');
-      this.buttons[0]?.onClick();  // RESUME is always first
+      this.buttons[0]?.onClick();
       this.navCooldown = 250;
     }
   }

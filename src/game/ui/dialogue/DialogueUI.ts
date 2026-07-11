@@ -23,7 +23,7 @@ export class DialogueUI {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    this.container = scene.add.container(0, 0).setDepth(210).setScrollFactor(0).setVisible(false);
+    this.container = scene.add.container(0, 0).setDepth(210).setVisible(false);
 
     // Box (bottom 1/3 of screen)
     this.box = scene.add.rectangle(w / 2, h - 80, w - 80, 100, 0x0a0d14, 0.92);
@@ -58,6 +58,9 @@ export class DialogueUI {
     // Advance on click or Enter
     this.box.setInteractive({ useHandCursor: true });
     this.box.on('pointerdown', () => this.advance());
+
+    // setScrollFactor(0,0,true) AFTER all children are added
+    this.container.setScrollFactor(0, 0, true);
   }
 
   /** Show a dialogue by ID. Sets up advance handler. */
