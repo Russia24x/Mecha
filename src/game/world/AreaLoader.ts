@@ -170,74 +170,220 @@ export class AreaLoader {
     result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
   }
 
-  /** Create an interactable lore object (terminal, corpse, or echo). */
+  /** Create an interactable lore object — dramatic visual, not just a rectangle */
   private createLoreObject(lore: LoreObjectData): Phaser.GameObjects.Container {
     const container = this.scene.add.container(lore.x, lore.y);
-    let bg: Phaser.GameObjects.Shape;
-    let icon: Phaser.GameObjects.Text;
-    let label: Phaser.GameObjects.Text;
+    const parts: Phaser.GameObjects.GameObject[] = [];
 
     if (lore.type === 'terminal') {
-      // Terminal: amber rectangle with screen
-      bg = this.scene.add.rectangle(0, 0, 40, 50, 0x1a1820, 0.9);
-      bg.setStrokeStyle(2, 0xffc040, 0.7);
-      icon = this.scene.add.text(0, -8, '▣', { fontFamily: 'monospace', fontSize: '16px', color: '#ffc040' }).setOrigin(0.5);
-      label = this.scene.add.text(0, 14, 'E', { fontFamily: 'monospace', fontSize: '8px', color: '#ffc040' }).setOrigin(0.5);
-      // Pulsing glow
-      this.scene.tweens.add({ targets: bg, alpha: { from: 0.7, to: 1 }, duration: 1200, yoyo: true, repeat: -1 });
+      // TERMINAL: Full mech-sized terminal station with glowing screen
+      // Base pedestal
+      const pedestal = this.scene.add.rectangle(0, 18, 44, 16, 0x1a1e28, 0.95);
+      pedestal.setStrokeStyle(1, 0x3a3040, 0.6);
+      parts.push(pedestal);
+      // Screen housing
+      const housing = this.scene.add.rectangle(0, -5, 36, 40, 0x12141c, 0.95);
+      housing.setStrokeStyle(2, 0x4a4030, 0.7);
+      parts.push(housing);
+      // Glowing screen (amber, pulsing)
+      const screen = this.scene.add.rectangle(0, -8, 28, 24, 0xffc040, 0.15);
+      screen.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(screen);
+      this.scene.tweens.add({ targets: screen, alpha: { from: 0.08, to: 0.25 }, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      // Scan lines on screen
+      for (let i = 0; i < 4; i++) {
+        const line = this.scene.add.rectangle(0, -18 + i * 6, 24, 1, 0xffc040, 0.2);
+        parts.push(line);
+      }
+      // Ambient glow halo
+      const glow = this.scene.add.circle(0, -5, 50, 0xffc040, 0.04);
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(glow);
+      this.scene.tweens.add({ targets: glow, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.03, to: 0.08 }, duration: 2000, yoyo: true, repeat: -1 });
+      // Prompt
+      const label = this.scene.add.text(0, 32, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#ffc040', letterSpacing: 1 }).setOrigin(0.5);
+      parts.push(label);
+      this.scene.tweens.add({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+
     } else if (lore.type === 'corpse') {
-      // Corpse: dark slumped shape with flickering panel
-      bg = this.scene.add.rectangle(0, 0, 50, 30, 0x1a1018, 0.9);
-      bg.setStrokeStyle(1, 0x6a3040, 0.5);
-      icon = this.scene.add.text(0, -2, '✕', { fontFamily: 'monospace', fontSize: '14px', color: '#6a3040' }).setOrigin(0.5);
-      label = this.scene.add.text(0, 14, 'E', { fontFamily: 'monospace', fontSize: '8px', color: '#6a3040' }).setOrigin(0.5);
-      // Flickering panel light
-      this.scene.tweens.add({ targets: icon, alpha: { from: 0.3, to: 0.8 }, duration: 300, yoyo: true, repeat: -1 });
+      // CORPSE: Full fallen mech — body, limbs, flickering core
+      // Main body (slumped)
+      const body = this.scene.add.rectangle(0, 0, 56, 28, 0x1a1820, 0.95);
+      body.setStrokeStyle(1, 0x3a2830, 0.5);
+      body.setAngle(-8);
+      parts.push(body);
+      // Arm outstretched
+      const arm = this.scene.add.rectangle(-22, 8, 28, 10, 0x1a1820, 0.9);
+      arm.setStrokeStyle(1, 0x2a2030, 0.4);
+      arm.setAngle(-25);
+      parts.push(arm);
+      // Head/unit (tilted)
+      const head = this.scene.add.rectangle(20, -10, 18, 16, 0x12101a, 0.95);
+      head.setStrokeStyle(1, 0x3a2030, 0.5);
+      head.setAngle(12);
+      parts.push(head);
+      // Flickering core light (dying)
+      const core = this.scene.add.circle(0, -2, 4, 0x6a3040, 0.6);
+      core.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(core);
+      this.scene.tweens.add({ targets: core, alpha: { from: 0.1, to: 0.6 }, duration: 400 + Math.random() * 200, yoyo: true, repeat: -1 });
+      // Oil pool (dark ellipse)
+      const oil = this.scene.add.ellipse(0, 16, 60, 12, 0x050408, 0.6);
+      parts.push(oil);
+      // Prompt
+      const label = this.scene.add.text(0, 28, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#6a5060', letterSpacing: 1 }).setOrigin(0.5);
+      parts.push(label);
+      this.scene.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.8 }, duration: 1000, yoyo: true, repeat: -1 });
+
     } else {
-      // Echo: floating speaker with waves
-      bg = this.scene.add.circle(0, 0, 18, 0x101820, 0.8);
-      bg.setStrokeStyle(2, 0x40c0ff, 0.6);
-      icon = this.scene.add.text(0, 0, '))', { fontFamily: 'monospace', fontSize: '14px', color: '#40c0ff' }).setOrigin(0.5);
-      label = this.scene.add.text(0, 24, 'E', { fontFamily: 'monospace', fontSize: '8px', color: '#40c0ff' }).setOrigin(0.5);
+      // ECHO: Suspended speaker array with visible sound waves
+      // Speaker body
+      const speaker = this.scene.add.rectangle(0, 0, 30, 24, 0x101820, 0.9);
+      speaker.setStrokeStyle(2, 0x40c0ff, 0.5);
+      parts.push(speaker);
+      // Speaker cone
+      const cone = this.scene.add.circle(0, 0, 8, 0x0a1018, 0.8);
+      cone.setStrokeStyle(1, 0x40c0ff, 0.4);
+      parts.push(cone);
+      // Sound wave rings (expanding)
+      for (let i = 0; i < 3; i++) {
+        const wave = this.scene.add.circle(0, 0, 12 + i * 8, 0x40c0ff, 0);
+        wave.setStrokeStyle(1, 0x40c0ff, 0.3);
+        wave.setBlendMode(Phaser.BlendModes.ADD);
+        parts.push(wave);
+        this.scene.tweens.add({
+          targets: wave, scale: { from: 1, to: 2.5 }, alpha: { from: 0.4, to: 0 },
+          duration: 2000, delay: i * 600, repeat: -1, ease: 'Sine.out',
+        });
+      }
+      // Mounting cable (from ceiling)
+      const cable = this.scene.add.rectangle(0, -18, 2, 20, 0x2a3040, 0.6);
+      parts.push(cable);
+      // Blue ambient glow
+      const glow = this.scene.add.circle(0, 0, 40, 0x40c0ff, 0.04);
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(glow);
       // Floating animation
-      this.scene.tweens.add({ targets: container, y: lore.y - 4, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.scene.tweens.add({ targets: container, y: lore.y - 5, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      // Prompt
+      const label = this.scene.add.text(0, 24, '▼ LISTEN', { fontFamily: 'monospace', fontSize: '8px', color: '#40c0ff', letterSpacing: 1 }).setOrigin(0.5);
+      parts.push(label);
+      this.scene.tweens.add({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
     }
 
-    container.add([bg, icon, label]);
+    container.add(parts);
     container.setDepth(8);
     container.setData('isLoreObject', true);
     container.setData('loreId', lore.id);
     container.setData('loreTitle', lore.titleKey);
     container.setData('loreText', lore.textKey);
-    container.setSize(60, 60);
+    container.setSize(80, 80);
     container.setInteractive({ useHandCursor: true });
     return container;
   }
 
-  /** Create a visual landmark (large structure, non-interactive). */
+  /** Create a visual landmark — dramatic large structure */
   private createLandmark(lm: LandmarkData): Phaser.GameObjects.Container {
     const container = this.scene.add.container(lm.x, lm.y);
-    const bg = this.scene.add.rectangle(0, 0, lm.w, lm.h, lm.color, 0.6);
-    bg.setStrokeStyle(2, 0x3a4050, 0.4);
-    container.add(bg);
-    container.setDepth(3);
 
     if (lm.type === 'crashed_mech') {
-      // Crashed mech: silhouette with "dead" eye
-      const eye = this.scene.add.circle(-lm.w * 0.2, -lm.h * 0.2, 3, 0x3a1010, 0.5);
+      // CRASHED MECH: Full silhouette — body, head, broken leg, dead eye
+      // Main body (large, tilted)
+      const body = this.scene.add.rectangle(0, 0, lm.w, lm.h * 0.6, lm.color, 0.7);
+      body.setStrokeStyle(2, 0x4a4050, 0.3);
+      body.setAngle(-5);
+      container.add(body);
+      // Head (cockpit area)
+      const head = this.scene.add.rectangle(-lm.w * 0.3, -lm.h * 0.3, lm.w * 0.35, lm.h * 0.35, lm.color, 0.65);
+      head.setStrokeStyle(1, 0x3a3040, 0.3);
+      head.setAngle(-5);
+      container.add(head);
+      // Broken leg (sticking up)
+      const leg = this.scene.add.rectangle(lm.w * 0.25, lm.h * 0.15, 12, lm.h * 0.5, lm.color, 0.6);
+      leg.setAngle(35);
+      container.add(leg);
+      // Dead eye (dark red, barely visible)
+      const eye = this.scene.add.circle(-lm.w * 0.3, -lm.h * 0.3, 4, 0x3a1010, 0.4);
+      eye.setBlendMode(Phaser.BlendModes.ADD);
       container.add(eye);
-    } else if (lm.type === 'assembly_line') {
-      // Assembly line: horizontal bars suggesting conveyor
-      for (let i = 0; i < 3; i++) {
-        const bar = this.scene.add.rectangle(0, -20 + i * 15, lm.w * 0.8, 4, 0x3a3040, 0.4);
-        container.add(bar);
+      this.scene.tweens.add({ targets: eye, alpha: { from: 0.1, to: 0.3 }, duration: 3000, yoyo: true, repeat: -1 });
+      // Dust particles around
+      for (let i = 0; i < 5; i++) {
+        const dust = this.scene.add.circle(
+          (Math.random() - 0.5) * lm.w * 1.2,
+          (Math.random() - 0.5) * lm.h,
+          1 + Math.random(), 0x6a6a7a, 0.1 + Math.random() * 0.1
+        );
+        dust.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(dust);
+        this.scene.tweens.add({
+          targets: dust, y: dust.y - 20 - Math.random() * 30, alpha: 0,
+          duration: 3000 + Math.random() * 2000, repeat: -1, delay: Math.random() * 2000,
+        });
       }
+
+    } else if (lm.type === 'assembly_line') {
+      // ASSEMBLY LINE: Hall with hanging mechs on conveyor
+      // Conveyor base
+      const conveyor = this.scene.add.rectangle(0, lm.h / 2 - 10, lm.w, 8, 0x2a2530, 0.5);
+      container.add(conveyor);
+      // Hanging mech silhouettes (3 of them, half-built)
+      for (let i = 0; i < 3; i++) {
+        const x = -lm.w * 0.3 + i * lm.w * 0.3;
+        // Body
+        const mechBody = this.scene.add.rectangle(x, -10, 24, 36, lm.color, 0.5);
+        mechBody.setStrokeStyle(1, 0x3a3040, 0.3);
+        container.add(mechBody);
+        // Head
+        const mechHead = this.scene.add.rectangle(x, -32, 14, 12, lm.color, 0.5);
+        container.add(mechHead);
+        // Missing arm (only one side)
+        if (i % 2 === 0) {
+          const arm = this.scene.add.rectangle(x + 14, -8, 8, 20, lm.color, 0.4);
+          container.add(arm);
+        }
+        // Hanging cable
+        const cable = this.scene.add.rectangle(x, -60, 2, 24, 0x2a2530, 0.4);
+        container.add(cable);
+        // Faint spark (random)
+        if (Math.random() < 0.5) {
+          const spark = this.scene.add.circle(x, -20, 2, 0xffc040, 0.3);
+          spark.setBlendMode(Phaser.BlendModes.ADD);
+          container.add(spark);
+          this.scene.tweens.add({ targets: spark, alpha: { from: 0, to: 0.4 }, duration: 200, yoyo: true, repeat: -1, delay: Math.random() * 3000 });
+        }
+      }
+
     } else if (lm.type === 'tower') {
-      // Tower: vertical structure with light at top
-      const light = this.scene.add.circle(0, -lm.h / 2 + 10, 4, 0xffc040, 0.3);
+      // TOWER: Massive door frame with flickering light
+      // Left pillar
+      const leftP = this.scene.add.rectangle(-lm.w / 2 + 8, 0, 16, lm.h, lm.color, 0.7);
+      leftP.setStrokeStyle(1, 0x4a3040, 0.3);
+      container.add(leftP);
+      // Right pillar
+      const rightP = this.scene.add.rectangle(lm.w / 2 - 8, 0, 16, lm.h, lm.color, 0.7);
+      rightP.setStrokeStyle(1, 0x4a3040, 0.3);
+      container.add(rightP);
+      // Top arch
+      const arch = this.scene.add.rectangle(0, -lm.h / 2 + 10, lm.w, 20, lm.color, 0.6);
+      container.add(arch);
+      // Light at top (flickering amber)
+      const light = this.scene.add.circle(0, -lm.h / 2 + 10, 8, 0xffc040, 0.3);
+      light.setBlendMode(Phaser.BlendModes.ADD);
       container.add(light);
-      this.scene.tweens.add({ targets: light, alpha: { from: 0.1, to: 0.4 }, duration: 2000, yoyo: true, repeat: -1 });
+      this.scene.tweens.add({ targets: light, alpha: { from: 0.1, to: 0.5 }, scale: { from: 0.8, to: 1.3 }, duration: 1500, yoyo: true, repeat: -1 });
+      // Light cone (shining down)
+      const cone = this.scene.add.triangle(0, 0, -30, -lm.h / 2, 30, -lm.h / 2, 0, 0, 0xffc040, 0.02);
+      cone.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(cone);
+      // Caption text (faded, near bottom)
+      const caption = this.scene.add.text(0, lm.h / 2 - 15, 'GUARDIAN POST', {
+        fontFamily: 'monospace', fontSize: '9px', color: '#3a3020', letterSpacing: 3,
+      }).setOrigin(0.5);
+      container.add(caption);
     }
+
+    container.setDepth(3);
     return container;
   }
 
