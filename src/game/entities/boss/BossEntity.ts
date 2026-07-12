@@ -285,6 +285,17 @@ export class BossEntity {
 
   /** Get boss name (localized). */
   get name(): string { return t(this.data.nameKey); }
+
+  /** Get health percentage (0-1) for boss health bar. */
+  getHealthPct(): number {
+    return Math.max(0, this.health / this.maxHealth);
+  }
+
+  /** Static accessor for boss data (used by GameScene for health bar name). */
+  static getBossData(bossId: string): import('../../data/types').BossData | null {
+    const { getBoss } = require('../../data/bosses/bosses') as typeof import('../../data/bosses/bosses');
+    return getBoss(bossId) ?? null;
+  }
 }
 
 export default BossEntity;

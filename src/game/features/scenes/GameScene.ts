@@ -95,6 +95,9 @@ export class GameScene extends Phaser.Scene {
   private dialogueUI!: DialogueUI;
   private pauseMenuUI!: PauseMenuUI;
   private lorePanel: Phaser.GameObjects.Container | null = null;
+  private bossHealthBar: Phaser.GameObjects.Container | null = null;
+  private bossHealthFill: Phaser.GameObjects.Rectangle | null = null;
+  private bossNameText: Phaser.GameObjects.Text | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -712,12 +715,54 @@ export class GameScene extends Phaser.Scene {
   private handleHazard(hazardGo: Phaser.GameObjects.GameObject): void {
     const dmg = hazardGo.getData('hazardDamage') as number;
     if (dmg && this.player.takeDamage(dmg)) {
-      // Knock player up and back from hazard
       if (this.player.sprite?.active) {
         this.player.sprite.setVelocityY(-8);
         this.camera.shake(200, 0.008);
       }
     }
+  }
+
+  // ─── Boss Health Bar ─────────────────────────────────────────────────
+  private createBossHealthBar(bossId: string): void {
+    this.destroyBossHealthBar();
+    const w = GAME.WIDTH;
+    const barW = 600, barH = 16;
+    const x = w / 2, y = 30;
+    const container = this.add.container(0, 0).setDepth(210).setScrollFactor(0);
+    // BG
+    const bg = this.add.rectangle(x, y, barW + 4, barH + 4, 0x0a0d14, 0.9);
+    bg.setStrokeStyle(1, 0xff4060, 0.5);
+    container.add(bg);
+    // Fill
+    this.bossHealthFill = this.add.rectangle(x - barW / 2, y, barW, barH, 0xff4060, 0.9);
+    this.bossHealthFill.setOrigin(0, 0.5);
+    container.add(this.bossHealthFill);
+    // Name
+    const bossData = BossEntity.getBossData ? BossEntity.getBossData(bossId) : null;
+    const bossName = bossData ? t(bossData.nameKey) : 'BOSS';
+    this.bossNameText = this.add.text(x, y - 18, bossName, {
+      fontFamily: 'monospace', fontSize: '14px', color: '#ff6080', stroke: '#000', strokeThickness: 3, letterSpacing: 3,
+    }).setOrigin(0.5);
+    container.add(this.bossNameText);
+    // Fade in
+    container.setAlpha(0);
+    this.tweens.add({ targets: container, alpha: 1, duration: 600, delay: 400 });
+    this.bossHealthBar = container;
+  }
+
+  private updateBossHealthBar(): void {
+    if (!this.boss || !this.boss.isAlive || !this.bossHealthFill) return;
+    const pct = this.boss.getHealthPct();
+    this.bossHealthFill.setDisplaySize(600 * pct, 16);
+    // Color shift: red → amber as HP drops
+    if (pct < 0.3) this.bossHealthFill.setFillStyle(0xff2030, 0.9);
+    else if (pct < 0.6) this.bossHealthFill.setFillStyle(0xff8030, 0.9);
+  }
+
+  private destroyBossHealthBar(): void {
+    if (this.bossHealthBar) { this.bossHealthBar.destroy(); this.bossHealthBar = null; }
+    this.bossHealthFill = null;
+    this.bossNameText = null;
   }
 
   private enterSection(id: number): void {
@@ -748,6 +793,8 @@ export class GameScene extends Phaser.Scene {
     // Phaser 4 camera effects: shake + flash for boss entrance (per cameras skill)
     this.cameras.main.shake(400, 0.012);
     this.cameras.main.flash(300, 255, 30, 30);
+    // Boss health bar — top center (per Design Pillars: 'Boss: every boss teaches something')
+    this.createBossHealthBar(bossSection.bossId);
     this.render.addLight({
       follow: () => this.boss?.isAlive ? this.boss.position : new Phaser.Math.Vector2(-9999, -9999),
       radius: 240, color: COLORS.BOSS_GLOW, intensity: 0.45, flicker: 0.08,
@@ -862,6 +909,7 @@ export class GameScene extends Phaser.Scene {
     // Boss
     if (this.boss && this.boss.isAlive && this.boss.sprite && this.boss.sprite.active) {
       try { this.boss.update(deltaMs); } catch { /* */ }
+      this.updateBossHealthBar();
     }
     // Out of bounds
     if (this.player.sprite.y > GAME.HEIGHT + 80) {
@@ -888,6 +936,7 @@ export class GameScene extends Phaser.Scene {
   private cleanupPlay(): void {
     this.matter.world.off('collisionstart', this.onCollisionStart, this);
     if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
+    this.destroyBossHealthBar();
     AudioSystem.stopAmbient();
     this.projectiles.forEach(p => p.kill());
     this.projectiles = [];
@@ -994,13 +1043,17 @@ export class GameScene extends Phaser.Scene {
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
     }
-    // Phaser 4 camera: slow fade out for emotional transition (per cameras skill)
-    this.cameras.main.fadeOut(2000, 5, 7, 13);
-    // Restore factory ambient (boss ambient stops)
+    // Restore factory ambient
     AudioSystem.startAmbient('factory');
-    this.scheduleDelayed(2200, () => {
-      AudioSystem.play('victory');
-      this.setState('victory');
+    // Wait for Atlas kneeling animation (2.2s), then transition to victory
+    // Don't fadeOut — let player see the kneel. Just delay then switch.
+    this.scheduleDelayed(2500, () => {
+      // Quick fade before state change
+      this.cameras.main.fadeOut(400, 5, 7, 13);
+      this.scheduleDelayed(500, () => {
+        AudioSystem.play('victory');
+        this.setState('victory');
+      });
     });
   };
 
@@ -1032,17 +1085,33 @@ export class GameScene extends Phaser.Scene {
   private buildVictory(): void {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    c.add(this.add.text(w / 2, h * 0.35, t('victory.title'), {
-      fontFamily: 'monospace', fontSize: '72px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
-    }).setOrigin(0.5));
+    // Background — dark void with subtle starfield
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x040810, 1).setDepth(0);
+    c.add(overlay);
+    // Faint stars
+    for (let i = 0; i < 30; i++) {
+      const star = this.add.circle(Math.random() * w, Math.random() * h, Math.random() * 1.5 + 0.3, 0x39d0d8, Math.random() * 0.2 + 0.05);
+      c.add(star);
+    }
+    // Fade in camera
+    this.cameras.main.fadeIn(600, 5, 7, 13);
+    // Title
+    c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), {
+      fontFamily: 'monospace', fontSize: '56px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
+    }).setOrigin(0.5).setDepth(1));
+    // Boss lore
     const lore = LoreSystem.getBossLore('guardian_ax09');
     if (lore) {
       const lines = lore.lines.map(key => t(key));
       c.add(this.add.text(w / 2, h * 0.5, lines, {
         fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0', align: 'center', lineSpacing: 6,
-      }).setOrigin(0.5));
+      }).setOrigin(0.5).setDepth(1));
     }
-    this.makeMenuBtn(w / 2, h * 0.75, t('victory.return'), () => {
+    // Atlas quote
+    c.add(this.add.text(w / 2, h * 0.68, '"Atlas never stopped waiting."', {
+      fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', stroke: '#000', strokeThickness: 4, fontStyle: 'italic',
+    }).setOrigin(0.5).setDepth(1));
+    this.makeMenuBtn(w / 2, h * 0.82, t('victory.return'), () => {
       AudioSystem.play('uiClick');
       this.setState('menu');
     });
