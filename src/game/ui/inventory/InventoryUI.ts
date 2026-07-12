@@ -191,10 +191,21 @@ export class InventoryUI extends NavigableOverlay {
     // Grid background panel
     const gridPanelW = this.GRID_COLS * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_GAP + 20;
     const gridPanelH = 400;
-    const gridPanel = scene.add.rectangle(this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.BG_PANEL, 0.4);
-    gridPanel.setStrokeStyle(1, THEME.STROKE_DIM, 0.3);
+    const gridPanel = scene.add.rectangle(this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.BG_PANEL, 0.5);
+    gridPanel.setStrokeStyle(1, THEME.CYAN, 0.4);
     this.container.add(gridPanel);
-    this.container.add(addCornerBrackets(scene, this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.CYAN, 6, 0.4));
+    this.container.add(addCornerBrackets(scene, this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.CYAN, 8, 0.6));
+
+    // Empty grid scaffold — draw placeholder slots so the grid is visible even when empty
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < this.GRID_COLS; col++) {
+        const sx = this.GRID_X + col * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_SIZE / 2;
+        const sy = this.GRID_Y + row * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_SIZE / 2;
+        const placeholder = scene.add.rectangle(sx, sy, this.SLOT_SIZE, this.SLOT_SIZE, THEME.BG_DARK, 0.3);
+        placeholder.setStrokeStyle(1, THEME.STROKE_DIM, 0.2);
+        this.container.add(placeholder);
+      }
+    }
 
     // Detail panel (right side)
     this.buildDetailPanel(scene);

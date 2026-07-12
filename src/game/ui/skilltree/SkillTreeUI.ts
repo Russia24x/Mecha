@@ -86,10 +86,10 @@ const TIER_LABELS: Record<number, { en: string; fa: string }> = {
 };
 
 // ─── Layout ───────────────────────────────────────────────────────────────
-const LEFT_PANEL_W = 210;
-const TREE_AREA = { x: LEFT_PANEL_W + 30, y: 110, w: 720, h: 510 };
-const GRID_SIZE = 95;
-const DETAIL_PANEL = { x: GAME.WIDTH - 235, y: 320, w: 215, h: 310 };
+const LEFT_PANEL_W = 200;
+const TREE_AREA = { x: LEFT_PANEL_W + 20, y: 120, w: 620, h: 480 };
+const GRID_SIZE = 110;
+const DETAIL_PANEL = { x: GAME.WIDTH - 175, y: 340, w: 270, h: 340 };
 
 /** Safely call setColor on a Text object. */
 function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string): void {
@@ -540,9 +540,9 @@ export class SkillTreeUI extends NavigableOverlay {
 
   private getNodeRadius(skill: SkillData): number {
     const tier = skill.tier ?? 0;
-    if (tier === 2) return 36;
-    if (tier === 1) return 28;
-    return 22;
+    if (tier === 2) return 42;
+    if (tier === 1) return 34;
+    return 28;
   }
   private getNodeFill(node: SkillNode): number {
     if (node.unlocked) return TREE_COLORS[this.selectedTree];
