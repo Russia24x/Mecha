@@ -598,6 +598,8 @@ export class GameScene extends Phaser.Scene {
     AudioSystem.resume();
     AudioSystem.startAmbient('factory');
     this.cameras.main.setBackgroundColor(area.bgColor);
+    // Phaser 4 camera fade in — smooth transition into play (per cameras skill)
+    this.cameras.main.fadeIn(600, 5, 7, 13);
     this.physicsSys.setWorldBounds(area.totalWidth, GAME.HEIGHT);
     this.physicsSys.setGravity(0, 0.9);
     this.projectiles = [];
@@ -743,7 +745,9 @@ export class GameScene extends Phaser.Scene {
     AudioSystem.startAmbient('boss');
     AudioSystem.play('phaseChange');
     this.particles.screenFlash(0xff3030, 0.35, 500);
-    this.camera.shake(400, 0.012);
+    // Phaser 4 camera effects: shake + flash for boss entrance (per cameras skill)
+    this.cameras.main.shake(400, 0.012);
+    this.cameras.main.flash(300, 255, 30, 30);
     this.render.addLight({
       follow: () => this.boss?.isAlive ? this.boss.position : new Phaser.Math.Vector2(-9999, -9999),
       radius: 240, color: COLORS.BOSS_GLOW, intensity: 0.45, flicker: 0.08,
@@ -839,6 +843,10 @@ export class GameScene extends Phaser.Scene {
     this.player.update(deltaMs);
     this.render.update(this.time.now);
     this.hud?.update();
+    // Ambient dust motes — atmospheric particles around player (per particles skill)
+    if (this.time.now % 200 < 16) {
+      this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);
+    }
     // Projectiles
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       this.projectiles[i].update();
@@ -867,9 +875,13 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
-    // Boss arena zoom
+    // Boss arena zoom — smooth zoom using Phaser 4 zoomTo (per cameras skill)
     if (this.bossArenaActive && this.boss && this.boss.isAlive) {
-      this.camera.setZoom(0.85);
+      if (this.cameras.main.zoom > 0.86) {
+        this.cameras.main.zoomTo(0.85, 800, 'Sine.easeOut');
+      }
+    } else if (!this.bossArenaActive && this.cameras.main.zoom < 0.99) {
+      this.cameras.main.zoomTo(1.0, 600, 'Sine.easeOut');
     }
   }
 
@@ -913,11 +925,12 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
+      // Phaser 4 camera fade — smooth resume transition (per cameras skill)
+      this.cameras.main.fadeIn(300, 5, 7, 13);
       AudioSystem.play('uiClick');
     } else {
       this.paused = true;
       this.pauseMenuUI.show();
-      // Make sure input is enabled for mouse clicks
       this.input.enabled = true;
       AudioSystem.play('uiClick');
     }
@@ -961,10 +974,11 @@ export class GameScene extends Phaser.Scene {
   private onPlayerDied = (): void => {
     EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
     this.particles.explosion(this.player.sprite.x, this.player.sprite.y, COLORS.PLAYER, 1.2);
-    this.camera.shake(400, 0.012);
-    this.camera.fadeOut(700, 0, 0, 0);
+    // Phaser 4 camera effects: shake + fade for death (per cameras skill)
+    this.cameras.main.shake(400, 0.012);
+    this.cameras.main.fadeOut(700, 5, 7, 13);
     this.scheduleDelayed(900, () => {
-      this.camera.fadeIn(300, 0, 0, 0);
+      this.cameras.main.fadeIn(300, 5, 7, 13);
       this.setState('gameover');
     });
   };
@@ -976,10 +990,14 @@ export class GameScene extends Phaser.Scene {
 
   private onBossDied = (payload: unknown): void => {
     const data = payload as { id: string; lore: string[] };
+    // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
-      this.particles.explosion(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 3.0);
+      this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
     }
-    this.camera.flash(800, 255, 255, 255);
+    // Phaser 4 camera: slow fade out for emotional transition (per cameras skill)
+    this.cameras.main.fadeOut(2000, 5, 7, 13);
+    // Restore factory ambient (boss ambient stops)
+    AudioSystem.startAmbient('factory');
     this.scheduleDelayed(2200, () => {
       AudioSystem.play('victory');
       this.setState('victory');

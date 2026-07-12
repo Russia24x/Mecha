@@ -9,6 +9,31 @@ import { AudioSystem } from './AudioSystem';
 export class ParticleSystem {
   constructor(private scene: Phaser.Scene) {}
 
+  /** Ambient dust motes — floating particles for atmosphere (per particles skill: continuous flow) */
+  ambientDust(x: number, y: number, count = 3): void {
+    for (let i = 0; i < count; i++) {
+      const d = this.scene.add.circle(
+        x + (Math.random() - 0.5) * 200,
+        y + (Math.random() - 0.5) * 100,
+        0.5 + Math.random() * 1.5,
+        0x6a6a7a, 0.15 + Math.random() * 0.15
+      );
+      d.setDepth(6);
+      d.setBlendMode(Phaser.BlendModes.ADD);
+      // Per tweens skill: yoyo + repeat for continuous floating
+      this.scene.tweens.add({
+        targets: d,
+        y: d.y - 30 - Math.random() * 40,
+        x: d.x + (Math.random() - 0.5) * 60,
+        alpha: { from: 0.3, to: 0 },
+        duration: 3000 + Math.random() * 2000,
+        ease: 'Sine.inOut',
+        repeat: 0,
+        onComplete: () => d.destroy(),
+      });
+    }
+  }
+
   sparks(x: number, y: number, color: number, count = 6): void {
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -50,14 +75,17 @@ export class ParticleSystem {
   }
 
   dust(x: number, y: number, count = 6): void {
+    // Per Phaser 4 tweens skill: use ease for natural particle motion
     for (let i = 0; i < count; i++) {
       const a = (Math.random() - 0.5) * Math.PI;
       const speed = 30 + Math.random() * 50;
       const d = this.scene.add.circle(x, y, 3 + Math.random() * 3, 0x6a6a7a, 0.5);
       d.setDepth(8);
+      d.setBlendMode(Phaser.BlendModes.ADD);
       this.scene.tweens.add({
         targets: d, x: x + Math.cos(a) * speed, y: y - 10 - Math.random() * 15,
         alpha: 0, scale: 1.5, duration: 400 + Math.random() * 200,
+        ease: 'Sine.out',
         onComplete: () => d.destroy(),
       });
     }
