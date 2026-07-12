@@ -44,12 +44,18 @@ export class WorldMapUI extends NavigableOverlay {
   }
 
   private refresh(): void {
-    this.areaCards.forEach(c => c.destroy());
-    this.areaCards = [];
-    // Clear area nav elements (keep back button)
+    // Remove area nav elements FIRST (keep back button), then destroy.
     const backIdx = this.navElements.length - 1;
     const backEl = backIdx >= 0 ? this.navElements[backIdx] : null;
+    for (let i = 0; i < backIdx; i++) {
+      const el = this.navElements[i];
+      if (el.bg && el.bg.active) el.bg.destroy();
+      if (el.text && el.text.active) el.text.destroy();
+    }
     this.navElements = backEl ? [backEl] : [];
+    // Destroy area card containers (their bg/text already destroyed above if they were nav elements)
+    this.areaCards.forEach(c => { if (c && c.active) c.destroy(); });
+    this.areaCards = [];
 
     const tree = WorldMapSystem.getMapTree();
     const w = GAME.WIDTH;

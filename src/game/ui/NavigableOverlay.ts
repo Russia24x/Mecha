@@ -129,6 +129,8 @@ export abstract class NavigableOverlay implements OverlayUI {
 
   protected updateNavFocus(): void {
     this.navElements.forEach((el, i) => {
+      // Guard against destroyed objects (prevents "Cannot read properties of null" crash)
+      if (!el.bg || !el.bg.active || !el.text || !el.text.active) return;
       if (i === this.navFocusIdx) {
         el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
         el.bg.setScale(1.03);

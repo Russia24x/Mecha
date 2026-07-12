@@ -73,20 +73,24 @@ export class InventoryUI extends NavigableOverlay {
   }
 
   private refresh(): void {
-    // Destroy old item slots + action buttons
-    this.itemSlots.forEach(s => s.destroy());
-    this.itemSlots = [];
-    // Remove old action button nav elements (keep tabs + back)
-    this.navElements = this.navElements.filter(el => {
-      const isTab = this.tabBgs.includes(el.bg as Phaser.GameObjects.Rectangle);
-      const isBack = this.navElements.indexOf(el) === this.navElements.length - 1;
+    // Remove old action button nav elements FIRST (keep tabs + back), then destroy.
+    // Guards against double-destroy with itemSlots.
+    const tabSet = new Set(this.tabBgs);
+    this.navElements = this.navElements.filter((el, idx, arr) => {
+      const isTab = tabSet.has(el.bg as Phaser.GameObjects.Rectangle);
+      const isBack = idx === arr.length - 1;
       if (!isTab && !isBack) {
-        el.bg.destroy();
-        el.text.destroy();
+        if (el.bg && el.bg.active) el.bg.destroy();
+        if (el.text && el.text.active) el.text.destroy();
         return false;
       }
       return true;
     });
+    // Destroy old item slot containers (their children already destroyed above if they were nav elements)
+    this.itemSlots.forEach(s => {
+      if (s && s.active) s.destroy();
+    });
+    this.itemSlots = [];
     this.actionButtons = [];
 
     // Highlight selected tab

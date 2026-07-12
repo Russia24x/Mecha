@@ -38,12 +38,18 @@ export class QuestUI extends NavigableOverlay {
   }
 
   private refresh(): void {
-    this.questEntries.forEach(e => e.destroy());
-    this.questEntries = [];
-    // Clear quest nav elements (keep back button)
+    // Remove quest nav elements FIRST (keep back button), then destroy.
     const backIdx = this.navElements.length - 1;
     const backEl = backIdx >= 0 ? this.navElements[backIdx] : null;
+    for (let i = 0; i < backIdx; i++) {
+      const el = this.navElements[i];
+      if (el.bg && el.bg.active) el.bg.destroy();
+      if (el.text && el.text.active) el.text.destroy();
+    }
     this.navElements = backEl ? [backEl] : [];
+    // Destroy quest entry containers (their bg/text already destroyed above)
+    this.questEntries.forEach(e => { if (e && e.active) e.destroy(); });
+    this.questEntries = [];
 
     const activeQuests = QuestSystem.getActiveQuests();
     const completedQuests = QuestSystem.getCompletedQuests();

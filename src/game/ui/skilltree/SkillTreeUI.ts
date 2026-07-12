@@ -73,14 +73,17 @@ export class SkillTreeUI extends NavigableOverlay {
   }
 
   private refreshTree(): void {
-    // Destroy old skill nodes
-    this.skillNodes.forEach(n => { n.bg.destroy(); n.text.destroy(); });
-    this.skillNodes = [];
-    // Remove skill nav elements (keep tabs + back)
+    // Remove skill nav elements FIRST (keep tabs + back), THEN destroy them.
+    // This avoids double-destroy: skillNodes and navElements referenced the same objects.
     const numTabs = this.trees.length;
     const numKeep = numTabs + 1; // tabs + back button
     const removed = this.navElements.splice(numKeep);
-    removed.forEach(el => { el.bg.destroy(); el.text.destroy(); });
+    removed.forEach(el => {
+      if (el.bg && el.bg.active) el.bg.destroy();
+      if (el.text && el.text.active) el.text.destroy();
+    });
+    // Clear skillNodes (objects already destroyed above)
+    this.skillNodes = [];
 
     // Update stats text
     if (this.statsText) {
