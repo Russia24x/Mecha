@@ -20,6 +20,22 @@ const TREE_COLORS: Record<SkillTree, number> = {
   energy: 0x40ff80, protocol: 0xb040ff, survival: 0x40d070,
 };
 
+/**
+ * Safely call setColor on a Text object.
+ * Text.setColor() re-creates the internal canvas; if canvas is null (not yet
+ * initialized), it crashes with "Cannot read properties of null (reading 'drawImage')".
+ */
+function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string): void {
+  if (!text || !text.active) return;
+  const t = text as unknown as { canvas?: HTMLCanvasElement | null };
+  if (t.canvas === null) return;
+  try {
+    text.setColor(color);
+  } catch {
+    // Text canvas not ready — skip
+  }
+}
+
 export class SkillTreeUI extends NavigableOverlay {
   private treeButtons: Phaser.GameObjects.Rectangle[] = [];
   private treeTexts: Phaser.GameObjects.Text[] = [];
@@ -73,11 +89,11 @@ export class SkillTreeUI extends NavigableOverlay {
   }
 
   private refreshTree(): void {
-    // Remove skill nav elements FIRST (keep tabs + back), THEN destroy them.
-    // This avoids double-destroy: skillNodes and navElements referenced the same objects.
-    const numTabs = this.trees.length;
-    const numKeep = numTabs + 1; // tabs + back button
-    const removed = this.navElements.splice(numKeep);
+    // *** FIX: Use Set to identify skill node bgs, remove ONLY those from navElements.
+    // Previous splice(numKeep) was destroying the back button (it's at the end, not at numKeep).
+    const skillBgSet = new Set(this.skillNodes.map(n => n.bg));
+    const removed = this.navElements.filter(el => skillBgSet.has(el.bg as Phaser.GameObjects.Rectangle));
+    this.navElements = this.navElements.filter(el => !skillBgSet.has(el.bg as Phaser.GameObjects.Rectangle));
     removed.forEach(el => {
       if (el.bg && el.bg.active) el.bg.destroy();
       if (el.text && el.text.active) el.text.destroy();
@@ -85,23 +101,24 @@ export class SkillTreeUI extends NavigableOverlay {
     // Clear skillNodes (objects already destroyed above)
     this.skillNodes = [];
 
-    // Update stats text
+    // Update stats text — use safe setColor
     if (this.statsText) {
       const sp = ExperienceSystem.getSkillPoints();
       this.statsText.setText(`LV.${ExperienceSystem.getLevel()}  |  SP: ${sp}  |  ${SkillTreeSystem.getUnlockedCount()}/${SkillTreeSystem.getTotalCount()}`);
-      this.statsText.setColor(sp > 0 ? '#ffe060' : '#7a8090');
+      safeSetColor(this.statsText, sp > 0 ? '#ffe060' : '#7a8090');
     }
 
-    // Highlight selected tab
+    // Highlight selected tab — use safe setColor
     this.trees.forEach((tree, i) => {
+      if (!this.treeButtons[i] || !this.treeTexts[i]) return;
       if (tree === this.selectedTree) {
         this.treeButtons[i].setFillStyle(0x243040, 1);
         this.treeButtons[i].setStrokeStyle(2, TREE_COLORS[tree], 1);
-        this.treeTexts[i].setColor('#66f0ff');
+        safeSetColor(this.treeTexts[i], '#66f0ff');
       } else {
         this.treeButtons[i].setFillStyle(0x1a2030, 0.95);
         this.treeButtons[i].setStrokeStyle(1, TREE_COLORS[tree], 0.4);
-        this.treeTexts[i].setColor('#cfd6e0');
+        safeSetColor(this.treeTexts[i], '#cfd6e0');
       }
     });
 

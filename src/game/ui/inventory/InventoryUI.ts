@@ -16,6 +16,14 @@ import type { ItemType, WeaponId } from '../../data/types';
 
 type TabId = 'weapon' | 'material' | 'consumable' | 'key_item';
 
+/** Safely call setColor on a Text object (see SkillTreeUI for details). */
+function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string): void {
+  if (!text || !text.active) return;
+  const t = text as unknown as { canvas?: HTMLCanvasElement | null };
+  if (t.canvas === null) return;
+  try { text.setColor(color); } catch { /* canvas not ready */ }
+}
+
 const TAB_LABELS: Record<TabId, string> = {
   weapon: '⚔ Weapons',
   material: '🔩 Materials',
@@ -93,16 +101,17 @@ export class InventoryUI extends NavigableOverlay {
     this.itemSlots = [];
     this.actionButtons = [];
 
-    // Highlight selected tab
+    // Highlight selected tab — use safe setColor
     this.tabs.forEach((tab, i) => {
+      if (!this.tabBgs[i] || !this.tabTexts[i]) return;
       if (tab === this.selectedTab) {
         this.tabBgs[i].setFillStyle(0x243040, 1);
         this.tabBgs[i].setStrokeStyle(2, 0x66f0ff, 1);
-        this.tabTexts[i].setColor('#66f0ff');
+        safeSetColor(this.tabTexts[i], '#66f0ff');
       } else {
         this.tabBgs[i].setFillStyle(0x1a2030, 0.95);
         this.tabBgs[i].setStrokeStyle(1, 0x3a4350);
-        this.tabTexts[i].setColor('#cfd6e0');
+        safeSetColor(this.tabTexts[i], '#cfd6e0');
       }
     });
 

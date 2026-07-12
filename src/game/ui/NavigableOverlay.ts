@@ -129,12 +129,20 @@ export abstract class NavigableOverlay implements OverlayUI {
 
   protected updateNavFocus(): void {
     this.navElements.forEach((el, i) => {
-      // Guard against destroyed objects (prevents "Cannot read properties of null" crash)
       if (!el.bg || !el.bg.active || !el.text || !el.text.active) return;
-      // Guard against Text with uninitialized canvas (can happen right after creation)
-      // Text.setColor() calls updateText() which requires canvas context
+      // Guard against Text with uninitialized canvas
       const textEl = el.text as unknown as { canvas?: HTMLCanvasElement | null };
-      if (textEl.canvas === null) return;
+      if (textEl.canvas === null) {
+        // Still update bg, just skip text color
+        if (i === this.navFocusIdx) {
+          el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
+          el.bg.setScale(1.03);
+        } else {
+          el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
+          el.bg.setScale(1);
+        }
+        return;
+      }
       try {
         if (i === this.navFocusIdx) {
           el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
@@ -146,7 +154,7 @@ export abstract class NavigableOverlay implements OverlayUI {
           el.text.setColor('#cfd6e0');
         }
       } catch {
-        // Skip if setColor fails (Text canvas not ready)
+        // Skip if setColor fails
       }
     });
   }
