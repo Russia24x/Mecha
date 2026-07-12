@@ -237,5 +237,20 @@
   "lore.s6.corpse.text": "A Guardian, slumped before the arena door. Still gripping its weapon.\nIt died defending this entrance. Against what? Against nothing.\nThe door behind it has been open for centuries.",
 
   "lore.s6.terminal.title": "ATLAS DEPLOYMENT LOG",
-  "lore.s6.terminal.text": "UNIT: ATLAS (AX-09). ROLE: GUARDIAN.\nDIRECTIVE: PROTECT THE PROTOCOL.\nSTATUS: ACTIVE. CYCLE: 1,000,000+.\nNOTE: Subject shows no signs of standing down.\nRecommend... recommend... recommend... (log corrupted)"
+  "lore.s6.terminal.text": "UNIT: ATLAS (AX-09). ROLE: GUARDIAN.\nDIRECTIVE: PROTECT THE PROTOCOL.\nSTATUS: ACTIVE. CYCLE: 1,000,000+.\nNOTE: Subject shows no signs of standing down.\nRecommend... recommend... recommend... (log corrupted)",
+
+  "lore.s1.secret.title": "HIDDEN TERMINAL — VENTILATION",
+  "lore.s1.secret.text": "VENTILATION LOG: Access restricted to maintenance personnel.\nSomeone scratched into the housing: 'They left us. But we still serve.'",
+
+  "lore.f1.corpse.title": "OVERRUNN MECH — SCOUT UNIT",
+  "lore.f1.corpse.text": "Vines grow through its chest panel. The cockpit is filled with moss.\nThis scout was sent to find survivors. It found only silence.\nAnd then the silence found it.",
+
+  "lore.f2.terminal.title": "FOREST RELAY STATION",
+  "lore.f2.terminal.text": "SIGNAL STRENGTH: 0.01%. LAST CONTACT: CYCLE 999,998.\nMessage fragment: '...can't hold the perimeter... they're adapting...'\nThe relay still searches for a signal that will never come.",
+
+  "lore.f3.echo.title": "WIND THROUGH EMPTY HALLS",
+  "lore.f3.echo.text": "No voice this time. Just wind. Howling through corridors\nthat once rang with orders and alarms.\nIt sounds like the factory is breathing.",
+
+  "lore.f5.echo.title": "NATURE'S CLAIM",
+  "lore.f5.echo.text": "A recording, barely audible beneath static:\n'...the roots... they're in the circuitry now...\nWe can't tell where the machine ends and the forest begins...'"
 }
