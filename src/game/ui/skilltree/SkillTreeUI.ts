@@ -163,7 +163,14 @@ export class SkillTreeUI extends NavigableOverlay {
     });
 
     this.navFocusIdx = Math.min(this.navFocusIdx, this.navElements.length - 1);
-    this.updateNavFocus();
+    // Defer updateNavFocus to next frame — Text objects need a frame to initialize
+    // their internal canvas before setColor() can be called safely.
+    // Calling setColor() immediately after creation can crash with
+    // "Cannot read properties of null (reading 'drawImage')" because the
+    // Text's canvas texture hasn't been created yet.
+    this.scene.time.delayedCall(0, () => {
+      if (this.isVisible) this.updateNavFocus();
+    });
   }
 
   /** Left/right switches tree tabs. */

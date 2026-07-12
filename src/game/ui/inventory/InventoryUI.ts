@@ -202,9 +202,9 @@ export class InventoryUI extends NavigableOverlay {
     this.selectedTab = this.tabs[(idx - 1 + this.tabs.length) % this.tabs.length];
     this.refresh();
     AudioSystem.play('uiClick');
-    // Reset focus to first tab
     this.navFocusIdx = 0;
-    this.updateNavFocus();
+    // Defer to next frame — Text objects need a frame to init canvas
+    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
   }
 
   protected onNavRight(): void {
@@ -213,7 +213,7 @@ export class InventoryUI extends NavigableOverlay {
     this.refresh();
     AudioSystem.play('uiClick');
     this.navFocusIdx = 0;
-    this.updateNavFocus();
+    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
   }
 }
 

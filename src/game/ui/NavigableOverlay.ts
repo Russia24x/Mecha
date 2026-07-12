@@ -131,14 +131,22 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.navElements.forEach((el, i) => {
       // Guard against destroyed objects (prevents "Cannot read properties of null" crash)
       if (!el.bg || !el.bg.active || !el.text || !el.text.active) return;
-      if (i === this.navFocusIdx) {
-        el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
-        el.bg.setScale(1.03);
-        el.text.setColor('#66f0ff');
-      } else {
-        el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
-        el.bg.setScale(1);
-        el.text.setColor('#cfd6e0');
+      // Guard against Text with uninitialized canvas (can happen right after creation)
+      // Text.setColor() calls updateText() which requires canvas context
+      const textEl = el.text as unknown as { canvas?: HTMLCanvasElement | null };
+      if (textEl.canvas === null) return;
+      try {
+        if (i === this.navFocusIdx) {
+          el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
+          el.bg.setScale(1.03);
+          el.text.setColor('#66f0ff');
+        } else {
+          el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
+          el.bg.setScale(1);
+          el.text.setColor('#cfd6e0');
+        }
+      } catch {
+        // Skip if setColor fails (Text canvas not ready)
       }
     });
   }
@@ -147,7 +155,12 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.visible = true;
     this.container.setVisible(true);
     this.navFocusIdx = 0;
-    this.updateNavFocus();
+    // Defer updateNavFocus to next frame — Text objects created in subclass
+    // constructors need a frame to initialize their internal canvas before
+    // setColor() can be called safely.
+    this.scene.time.delayedCall(0, () => {
+      if (this.isVisible) this.updateNavFocus();
+    });
   }
 
   hide(): void {
