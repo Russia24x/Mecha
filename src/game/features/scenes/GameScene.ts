@@ -601,8 +601,12 @@ export class GameScene extends Phaser.Scene {
     AudioSystem.resume();
     AudioSystem.startAmbient('factory');
     this.cameras.main.setBackgroundColor(area.bgColor);
-    // Phaser 4 camera fade in — smooth transition into play (per cameras skill)
+    // Phaser 4 camera fade in
     this.cameras.main.fadeIn(600, 5, 7, 13);
+    // Phaser 4 camera filters — vignette for atmosphere (per filters-and-postfx skill)
+    try {
+      this.cameras.main.filters.external.addVignette(0.5, 0.5, 0.7, 0.5);
+    } catch { /* WebGL not available */ }
     this.physicsSys.setWorldBounds(area.totalWidth, GAME.HEIGHT);
     this.physicsSys.setGravity(0, 0.9);
     this.projectiles = [];

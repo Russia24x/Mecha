@@ -1,0 +1,626 @@
+     1→     1→/**
+     2→     2→ * MECHA: LAST PROTOCOL — Player Entity
+     3→     3→ * Data-driven: stats derived from skills, weapons from WeaponData.
+     4→     4→ * Uses InputSystem (no direct window listeners).
+     5→     5→ * Uses CombatSystem for melee, ParticleSystem for effects.
+     6→     6→ * Communicates via EventBus.
+     7→     7→ */
+     8→     8→import Phaser from 'phaser';
+     9→     9→import { COLORS, PLAYER } from '../../shared/Constants';
+    10→    10→import { EventBus } from '../../systems/EventBus';
+    11→    11→import { AudioSystem } from '../../systems/AudioSystem';
+    12→    12→import { InputSystem } from '../../systems/InputSystem';
+    13→    13→import { CombatSystem } from '../../systems/CombatSystem';
+    14→    14→import { PhysicsSystem } from '../../systems/PhysicsSystem';
+    15→    15→import { ParticleSystem } from '../../systems/ParticleSystem';
+    16→    16→import { SaveSystem } from '../../systems/SaveSystem';
+    17→    17→import { getWeapon } from '../../data/weapons/weapons';
+    18→    18→import { getSkill } from '../../data/skills/skills';
+    19→    19→import { SKILLS } from '../../data/skills/skills';
+    20→    20→import type { WeaponId, WeaponData, PlayerStats, Direction } from '../../data/types';
+    21→    21→import { Projectile } from '../combat/Projectile';
+    22→    22→
+    23→    23→export class PlayerEntity {
+    24→    24→  public sprite: Phaser.Physics.Matter.Image;
+    25→    25→  public health: { current: number; max: number };
+    26→    26→  public energy: { current: number; max: number; regenPerSec: number };
+    27→    27→  public facing: Direction = 'right';
+    28→    28→  public id = 'player';
+    29→    29→  public alive = true;
+    30→    30→
+    31→    31→  private scene: Phaser.Scene;
+    32→    32→  private physics: PhysicsSystem;
+    33→    33→  private particles: ParticleSystem;
+    34→    34→  private combat: CombatSystem;
+    35→    35→  private projectiles: Projectile[];
+    36→    36→
+    37→    37→  // Computed stats (from base + skills)
+    38→    38→  private stats: PlayerStats;
+    39→    39→  private currentWeapon: WeaponId;
+    40→    40→  private unlockedWeapons: Set<WeaponId>;
+    41→    41→  private abilities: Set<string>;
+    42→    42→
+    43→    43→  // Combat state
+    44→    44→  private lastFireAt = 0;
+    45→    45→  private lastMeleeAt = 0;
+    46→    46→  private aimAngle = 0;
+    47→    47→  private keyAimY = 0;
+    48→    48→
+    49→    49→  // Movement state
+    50→    50→  private isDashing = false;
+    51→    51→  private dashUntil = 0;
+    52→    52→  private dashAvailableAt = 0;
+    53→    53→  private dashDir: Direction = 'right';
+    54→    54→  private grounded = false;
+    55→    55→  private jumpBufferUntil = 0;
+    56→    56→  private coyoteUntil = 0;
+    57→    57→  private jumpsRemaining = 1;
+    58→    58→  private maxJumps = 1;
+    59→    59→  private lastAfterimageAt = 0;
+    60→    60→  private touchingWall: 'left' | 'right' | null = null;
+    61→    61→  private wallJumpUntil = 0;
+    62→    62→  private wallSlideActive = false;
+    63→    63→  private lastWallSlideFx = 0;
+    64→    64→
+    65→    65→  private invulnUntil = 0;
+    66→    66→  private flashTimer = 0;
+    67→    67→  private animTime = 0;
+    68→    68→  private wasGrounded = true;
+    69→    69→
+    70→    70→  // Visual parts
+    71→    71→  private mechaTorso: Phaser.GameObjects.Rectangle | null = null;
+    72→    72→  private mechaHead: Phaser.GameObjects.Rectangle | null = null;
+    73→    73→  private mechaLegL: Phaser.GameObjects.Rectangle | null = null;
+    74→    74→  private mechaLegR: Phaser.GameObjects.Rectangle | null = null;
+    75→    75→  private core: Phaser.GameObjects.Arc | null = null;
+    76→    76→  private visor: Phaser.GameObjects.Rectangle | null = null;
+    77→    77→  private gunArm: Phaser.GameObjects.Rectangle | null = null;
+    78→    78→
+    79→    79→  constructor(
+    80→    80→    scene: Phaser.Scene,
+    81→    81→    physics: PhysicsSystem,
+    82→    82→    particles: ParticleSystem,
+    83→    83→    combat: CombatSystem,
+    84→    84→    x: number, y: number,
+    85→    85→    projectiles: Projectile[]
+    86→    86→  ) {
+    87→    87→    this.scene = scene;
+    88→    88→    this.physics = physics;
+    89→    89→    this.particles = particles;
+    90→    90→    this.combat = combat;
+    91→    91→    this.projectiles = projectiles;
+    92→    92→
+    93→    93→    // Load save state
+    94→    94→    const save = SaveSystem.getPlayer();
+    95→    95→    this.stats = this.computeStats(save.unlockedSkills);
+    96→    96→    this.currentWeapon = save.currentWeapon as WeaponId;
+    97→    97→    this.unlockedWeapons = new Set(save.unlockedWeapons as WeaponId[]);
+    98→    98→    this.abilities = new Set(save.abilities);
+    99→    99→    this.maxJumps = this.abilities.has('doubleJump') ? 2 : 1;
+   100→   100→
+   101→   101→    this.health = { current: this.stats.maxHealth, max: this.stats.maxHealth };
+   102→   102→    this.energy = { current: this.stats.maxEnergy, max: this.stats.maxEnergy, regenPerSec: this.stats.energyRegen };
+   103→   103→
+   104→   104→    // Physics body — *** FIX: setDisplaySize BEFORE setRectangle.
+   105→   105→    // setDisplaySize on a MatterImage also scales the body (because MatterImage
+   106→   106→    // binds body to texture size). So we must call setDisplaySize first, then
+   107→   107→    // setRectangle to create the body at the correct size.
+   108→   108→    const bw = PLAYER.BODY_RADIUS * 2.2;
+   109→   109→    const bh = PLAYER.BODY_RADIUS * 2.6;
+   110→   110→    this.sprite = scene.matter.add.image(x, y, '__white', undefined, {
+   111→   111→      label: 'player',
+   112→   112→      friction: 0.01, frictionAir: 0.02, density: 0.004,
+   113→   113→    });
+   114→   114→    this.sprite.setDisplaySize(bw, bh);
+   115→   115→    this.sprite.setRectangle(bw, bh, {
+   116→   116→      label: 'player',
+   117→   117→      friction: 0.01, frictionAir: 0.02, density: 0.004,
+   118→   118→    });
+   119→   119→    this.sprite.setFixedRotation();
+   120→   120→    this.sprite.setAlpha(0);
+   121→   121→    this.sprite.setData('entity', this);
+   122→   122→    this.sprite.setData('entityType', 'player');
+   123→   123→
+   124→   124→    this.buildVisual();
+   125→   125→
+   126→   126→    // Register gameplay callbacks with InputSystem.
+   127→   127→    // InputSystem.init() is already called in GameScene.create() — listeners are attached.
+   128→   128→    // We only set callbacks here (player owns jump/fire/melee/dash/weapon-switch).
+   129→   129→    // pause/interact are no-ops here — GameScene polls pausePressed/interactPressed.
+   130→   130→    InputSystem.setCallbacks({
+   131→   131→      jump: () => this.tryJump(),
+   132→   132→      fire: () => this.tryFire(),
+   133→   133→      melee: () => this.tryMelee(),
+   134→   134→      dash: (dir) => this.tryDash(dir),
+   135→   135→      pause: () => {},
+   136→   136→      interact: () => {},
+   137→   137→      weaponNext: () => this.switchWeapon(1),
+   138→   138→      weaponPrev: () => this.switchWeapon(-1),
+   139→   139→    });
+   140→   140→  }
+   141→   141→
+   142→   142→  /**
+   143→   143→   * Compute effective stats from base + unlocked skills.
+   144→   144→   * This is the core of the data-driven skill system.
+   145→   145→   */
+   146→   146→  private computeStats(unlockedSkills: string[]): PlayerStats {
+   147→   147→    const base: PlayerStats = {
+   148→   148→      maxHealth: PLAYER.MAX_HEALTH,
+   149→   149→      maxEnergy: PLAYER.MAX_ENERGY,
+   150→   150→      energyRegen: PLAYER.ENERGY_REGEN,
+   151→   151→      moveSpeed: PLAYER.MOVE_SPEED,
+   152→   152→      jumpVelocity: PLAYER.JUMP_VELOCITY,
+   153→   153→      dashSpeed: PLAYER.DASH_SPEED,
+   154→   154→      dashDurationMs: PLAYER.DASH_DURATION_MS,
+   155→   155→      dashCooldownMs: PLAYER.DASH_COOLDOWN_MS,
+   156→   156→      meleeDamage: PLAYER.MELEE_DAMAGE,
+   157→   157→      meleeRange: PLAYER.MELEE_RANGE,
+   158→   158→      fireCooldownMs: PLAYER.FIRE_COOLDOWN_MS,
+   159→   159→      invulnMs: PLAYER.INVULN_MS,
+   160→   160→    };
+   161→   161→
+   162→   162→    // Apply each unlocked skill's effect
+   163→   163→    for (const skillId of unlockedSkills) {
+   164→   164→      const skill = getSkill(skillId);
+   165→   165→      if (!skill) continue;
+   166→   166→      const eff = skill.effect;
+   167→   167→      const statKey = eff.stat as keyof PlayerStats;
+   168→   168→      if (eff.multiplier && typeof base[statKey] === 'number') {
+   169→   169→        (base[statKey] as number) *= eff.multiplier;
+   170→   170→      }
+   171→   171→      if (eff.additive && typeof base[statKey] === 'number') {
+   172→   172→        (base[statKey] as number) += eff.additive;
+   173→   173→      }
+   174→   174→    }
+   175→   175→
+   176→   176→    return base;
+   177→   177→  }
+   178→   178→
+   179→   179→  /** Rebuild stats when a skill is unlocked. */
+   180→   180→  public refreshStats(): void {
+   181→   181→    const save = SaveSystem.getPlayer();
+   182→   182→    const oldMaxHp = this.stats.maxHealth;
+   183→   183→    const oldMaxEn = this.stats.maxEnergy;
+   184→   184→    this.stats = this.computeStats(save.unlockedSkills);
+   185→   185→    this.abilities = new Set(save.abilities);
+   186→   186→    this.maxJumps = this.abilities.has('doubleJump') ? 2 : 1;
+   187→   187→    // Adjust current health/energy to new max
+   188→   188→    const hpDiff = this.stats.maxHealth - oldMaxHp;
+   189→   189→    const enDiff = this.stats.maxEnergy - oldMaxEn;
+   190→   190→    this.health.max = this.stats.maxHealth;
+   191→   191→    this.energy.max = this.stats.maxEnergy;
+   192→   192→    this.energy.regenPerSec = this.stats.energyRegen;
+   193→   193→    if (hpDiff > 0) this.health.current += hpDiff;
+   194→   194→    if (enDiff > 0) this.energy.current += enDiff;
+   195→   195→    this.health.current = Math.min(this.health.current, this.health.max);
+   196→   196→    this.energy.current = Math.min(this.energy.current, this.energy.max);
+   197→   197→  }
+   198→   198→
+   199→   199→  private buildVisual(): void {
+   200→   200→    const scene = this.scene;
+   201→   201→    this.mechaTorso = scene.add.rectangle(0, 0, 36, 30, 0x1a2840, 1);
+   202→   202→    this.mechaTorso.setStrokeStyle(2, 0x39d0d8, 0.8); this.mechaTorso.setDepth(14);
+   203→   203→    this.core = scene.add.circle(0, 0, 4, 0x66f0ff, 0.9); this.core.setDepth(15);
+   204→   204→    this.mechaHead = scene.add.rectangle(0, 0, 16, 14, 0x2a3850, 1);
+   205→   205→    this.mechaHead.setStrokeStyle(1, 0x66f0ff, 0.9); this.mechaHead.setDepth(15);
+   206→   206→    this.visor = scene.add.rectangle(0, 0, 10, 3, 0x66f0ff, 0.8); this.visor.setDepth(16);
+   207→   207→    this.mechaLegL = scene.add.rectangle(0, 0, 9, 18, 0x2a3850, 1);
+   208→   208→    this.mechaLegL.setStrokeStyle(1, 0x39d0d8, 0.6); this.mechaLegL.setDepth(13);
+   209→   209→    this.mechaLegR = scene.add.rectangle(0, 0, 9, 18, 0x2a3850, 1);
+   210→   210→    this.mechaLegR.setStrokeStyle(1, 0x39d0d8, 0.6); this.mechaLegR.setDepth(13);
+   211→   211→    this.gunArm = scene.add.rectangle(0, 0, 28, 6, 0x1a2030, 1);
+   212→   212→    this.gunArm.setOrigin(0, 0.5); this.gunArm.setDepth(15);
+   213→   213→  }
+   214→   214→
+   215→   215→  // ---- Public API ----
+   216→   216→  get position(): Phaser.Math.Vector2 {
+   217→   217→    if (!this.sprite || !this.sprite.active) return new Phaser.Math.Vector2(0, 0);
+   218→   218→    return new Phaser.Math.Vector2(this.sprite.x, this.sprite.y);
+   219→   219→  }
+   220→   220→
+   221→   221→  get isInvulnerable(): boolean { return this.scene.time.now < this.invulnUntil; }
+   222→   222→
+   223→   223→  get weapon(): WeaponId { return this.currentWeapon; }
+   224→   224→  get weaponData(): WeaponData { return getWeapon(this.currentWeapon); }
+   225→   225→  get hasAbility(): (ability: string) => boolean { return (a: string) => this.abilities.has(a); }
+   226→   226→
+   227→   227→  takeDamage(amount: number): boolean {
+   228→   228→    if (!this.alive || this.isInvulnerable || amount <= 0) return false;
+   229→   229→    this.health.current = Math.max(0, this.health.current - amount);
+   230→   230→    this.invulnUntil = this.scene.time.now + this.stats.invulnMs;
+   231→   231→    this.flashTimer = this.stats.invulnMs;
+   232→   232→    AudioSystem.play('hit');
+   233→   233→    EventBus.emit('PLAYER_DAMAGED', { amount, x: this.sprite.x, y: this.sprite.y });
+   234→   234→    if (this.health.current <= 0) {
+   235→   235→      this.alive = false;
+   236→   236→      AudioSystem.play('playerDeath');
+   237→   237→      EventBus.emit('PLAYER_DEAD', { id: this.id });
+   238→   238→    }
+   239→   239→    return true;
+   240→   240→  }
+   241→   241→
+   242→   242→  heal(amount: number): void {
+   243→   243→    this.health.current = Math.min(this.health.max, this.health.current + amount);
+   244→   244→    EventBus.emit('PLAYER_DAMAGED', { amount: -amount, x: this.sprite.x, y: this.sprite.y, heal: true });
+   245→   245→  }
+   246→   246→
+   247→   247→  consumeEnergy(amount: number): boolean {
+   248→   248→    if (this.energy.current < amount) return false;
+   249→   249→    this.energy.current -= amount;
+   250→   250→    return true;
+   251→   251→  }
+   252→   252→
+   253→   253→  unlockWeapon(id: WeaponId): void {
+   254→   254→    this.unlockedWeapons.add(id);
+   255→   255→    SaveSystem.unlockWeapon(id);
+   256→   256→    EventBus.emit('WEAPON_UNLOCKED', { weaponId: id });
+   257→   257→  }
+   258→   258→
+   259→   259→  hasWeapon(id: WeaponId): boolean { return this.unlockedWeapons.has(id); }
+   260→   260→
+   261→   261→  setWeapon(id: WeaponId): void {
+   262→   262→    if (this.currentWeapon === id) return;
+   263→   263→    if (!this.unlockedWeapons.has(id)) return;
+   264→   264→    this.currentWeapon = id;
+   265→   265→    SaveSystem.setWeapon(id);
+   266→   266→    AudioSystem.play('weaponSwitch');
+   267→   267→  }
+   268→   268→
+   269→   269→  private switchWeapon(dir: 1 | -1): void {
+   270→   270→    const list = Object.keys(getWeapon(this.currentWeapon) ? [this.currentWeapon] : []) as WeaponId[];
+   271→   271→    const allWeapons = Array.from(this.unlockedWeapons);
+   272→   272→    const idx = allWeapons.indexOf(this.currentWeapon);
+   273→   273→    const next = allWeapons[(idx + dir + allWeapons.length) % allWeapons.length];
+   274→   274→    this.setWeapon(next);
+   275→   275→  }
+   276→   276→
+   277→   277→  update(deltaMs: number): void {
+   278→   278→    if (!this.alive) return;
+   279→   279→    this.updateMovement();
+   280→   280→    this.updateAnimation(deltaMs);
+   281→   281→    const gain = this.energy.regenPerSec * (deltaMs / 1000);
+   282→   282→    if (gain > 0 && this.energy.current < this.energy.max) {
+   283→   283→      this.energy.current = Math.min(this.energy.max, this.energy.current + gain);
+   284→   284→    }
+   285→   285→  }
+   286→   286→
+   287→   287→  private updateMovement(): void {
+   288→   288→    const now = this.scene.time.now;
+   289→   289→    const input = InputSystem.getState();
+   290→   290→
+   291→   291→    // Ground check
+   292→   292→    this.grounded = this.physics.isGrounded(this.sprite, PLAYER.BODY_RADIUS);
+   293→   293→    if (this.grounded) {
+   294→   294→      this.coyoteUntil = now + PLAYER.COYOTE_TIME_MS;
+   295→   295→      this.jumpsRemaining = this.maxJumps;
+   296→   296→      this.wallJumpUntil = 0;
+   297→   297→      if (now < this.jumpBufferUntil) {
+   298→   298→        this.sprite.setVelocityY(this.stats.jumpVelocity);
+   299→   299→        this.jumpBufferUntil = 0;
+   300→   300→        this.grounded = false;
+   301→   301→        this.jumpsRemaining--;
+   302→   302→        AudioSystem.play('jump');
+   303→   303→      }
+   304→   304→    }
+   305→   305→
+   306→   306→    // Wall detection (for wall jump + wall slide) — Mag-Clamp Thrusters
+   307→   307→    this.touchingWall = null;
+   308→   308→    this.wallSlideActive = false;
+   309→   309→    if (!this.grounded && this.abilities.has('wallJump')) {
+   310→   310→      const r = PLAYER.BODY_RADIUS;
+   311→   311→      const px = this.sprite.x;
+   312→   312→      const py = this.sprite.y;
+   313→   313→      // Check left wall
+   314→   314→      const leftHits = this.physics.bodiesAtPoint(px - r - 4, py);
+   315→   315→      if (leftHits.some(b => b.label.startsWith('solid'))) this.touchingWall = 'left';
+   316→   316→      // Check right wall
+   317→   317→      if (!this.touchingWall) {
+   318→   318→        const rightHits = this.physics.bodiesAtPoint(px + r + 4, py);
+   319→   319→        if (rightHits.some(b => b.label.startsWith('solid'))) this.touchingWall = 'right';
+   320→   320→      }
+   321→   321→      // Wall Slide — Mag-Clamp Thrusters: slow descent with sparks + metal sound
+   322→   322→      if (this.touchingWall) {
+   323→   323→        const pressingToward = (this.touchingWall === 'left' && input.heldLeft) || (this.touchingWall === 'right' && input.heldRight);
+   324→   324→        if (pressingToward) {
+   325→   325→          const body = this.sprite.body as MatterJS.BodyType;
+   326→   326→          if (body && body.velocity.y > 1) {
+   327→   327→            this.sprite.setVelocityY(body.velocity.y * 0.45);  // 55% reduction
+   328→   328→            this.wallSlideActive = true;
+   329→   329→            // Spark + sound effects every 80ms
+   330→   330→            if (now - this.lastWallSlideFx >= 80) {
+   331→   331→              this.lastWallSlideFx = now;
+   332→   332→              const sparkX = px + (this.touchingWall === 'left' ? -r - 2 : r + 2);
+   333→   333→              const sparkY = py + (Math.random() - 0.5) * 20;
+   334→   334→              this.particles.sparks(sparkX, sparkY, 0xffaa30, 2);
+   335→   335→              // Thruster glow
+   336→   336→              const glow = this.scene.add.circle(sparkX, sparkY + 10, 4, 0xffc040, 0.4);
+   337→   337→              glow.setBlendMode(Phaser.BlendModes.ADD).setDepth(13);
+   338→   338→              this.scene.tweens.add({
+   339→   339→                targets: glow, alpha: 0, scale: 0.3, duration: 200,
+   340→   340→                onComplete: () => glow.destroy(),
+   341→   341→              });
+   342→   342→            }
+   343→   343→          }
+   344→   344→        }
+   345→   345→      }
+   346→   346→    }
+   347→   347→
+   348→   348→    // Horizontal movement
+   349→   349→    let moveX = 0;
+   350→   350→    if (input.heldLeft) moveX -= 1;
+   351→   351→    if (input.heldRight) moveX += 1;
+   352→   352→    if (moveX === 0 && Math.abs(input.leftStickX) > 0.1) moveX = input.leftStickX;
+   353→   353→
+   354→   354→    // Wall jump lockout — brief horizontal control lock after wall jump
+   355→   355→    if (now < this.wallJumpUntil) {
+   356→   356→      moveX = 0;
+   357→   357→    }
+   358→   358→
+   359→   359→    if (this.isDashing) {
+   360→   360→      const dirSign = this.dashDir === 'right' ? 1 : -1;
+   361→   361→      this.sprite.setVelocityX(dirSign * this.stats.dashSpeed);
+   362→   362→      const body = this.sprite.body;
+   363→   363→      if (body) this.sprite.setVelocityY(body.velocity.y * 0.4);
+   364→   364→      if (now - this.lastAfterimageAt >= 35) {
+   365→   365→        const pos = this.position;
+   366→   366→        const facing = this.dashDir === 'right' ? 1 : -1;
+   367→   367→        this.particles.afterimage(pos.x, pos.y - 6, 36, 30, COLORS.PLAYER_GLOW, facing);
+   368→   368→        this.lastAfterimageAt = now;
+   369→   369→      }
+   370→   370→      if (now >= this.dashUntil) this.isDashing = false;
+   371→   371→    } else {
+   372→   372→      if (moveX !== 0) {
+   373→   373→        const targetVx = moveX * this.stats.moveSpeed;
+   374→   374→        const body = this.sprite.body;
+   375→   375→        const currentVx = body ? body.velocity.x : 0;
+   376→   376→        this.sprite.setVelocityX(Phaser.Math.Linear(currentVx, targetVx, 0.35));
+   377→   377→        this.facing = moveX > 0 ? 'right' : 'left';
+   378→   378→      } else {
+   379→   379→        const body = this.sprite.body;
+   380→   380→        this.sprite.setVelocityX((body ? body.velocity.x : 0) * 0.78);
+   381→   381→      }
+   382→   382→    }
+   383→   383→
+   384→   384→    // Keyboard aim
+   385→   385→    let aimY = 0;
+   386→   386→    if (input.heldUp) aimY -= 1;
+   387→   387→    if (input.heldDown) aimY += 1;
+   388→   388→    this.keyAimY = Phaser.Math.Clamp(aimY, -1, 1);
+   389→   389→
+   390→   390→    // Continuous fire
+   391→   391→    if (input.heldFire) this.tryFire();
+   392→   392→  }
+   393→   393→
+   394→   394→  private tryJump(): void {
+   395→   395→    if (!this.alive || !this.sprite || !this.sprite.active) return;
+   396→   396→    this.jumpBufferUntil = this.scene.time.now + PLAYER.JUMP_BUFFER_MS;
+   397→   397→    const now = this.scene.time.now;
+   398→   398→
+   399→   399→    // Wall Jump — Mag-Clamp Thruster burst: powerful push from wall
+   400→   400→    if (!this.grounded && this.touchingWall && this.abilities.has('wallJump')) {
+   401→   401→      const jumpDir = this.touchingWall === 'left' ? 1 : -1;
+   402→   402→      // Thruster burst — powerful launch
+   403→   403→      this.sprite.setVelocityY(this.stats.jumpVelocity * 0.95);
+   404→   404→      this.sprite.setVelocityX(jumpDir * this.stats.moveSpeed * 1.8);
+   405→   405→      this.wallJumpUntil = now + 200;
+   406→   406→      this.facing = jumpDir > 0 ? 'right' : 'left';
+   407→   407→      this.jumpBufferUntil = 0;
+   408→   408→      this.jumpsRemaining = this.maxJumps - 1;
+   409→   409→      AudioSystem.play('dash');  // thruster sound
+   410→   410→      // Thruster explosion VFX — burst at wall contact point
+   411→   411→      const pos = this.position;
+   412→   412→      const burstX = pos.x + (this.touchingWall === 'left' ? -PLAYER.BODY_RADIUS : PLAYER.BODY_RADIUS);
+   413→   413→      const burstY = pos.y;
+   414→   414→      // Ring explosion
+   415→   415→      const ring = this.scene.add.circle(burstX, burstY, 6, 0xffc040, 0.8);
+   416→   416→      ring.setBlendMode(Phaser.BlendModes.ADD).setDepth(14);
+   417→   417→      this.scene.tweens.add({
+   418→   418→        targets: ring, scale: { from: 1, to: 3 }, alpha: 0,
+   419→   419→        duration: 250, ease: 'Cubic.out', onComplete: () => ring.destroy(),
+   420→   420→      });
+   421→   421→      // Directional sparks
+   422→   422→      this.particles.sparks(burstX, burstY, 0xffaa30, 6);
+   423→   423→      // Afterimage for momentum feel
+   424→   424→      this.particles.afterimage(pos.x, pos.y - 6, 36, 30, 0x39d0d8, jumpDir);
+   425→   425→      return;
+   426→   426→    }
+   427→   427→
+   428→   428→    // Normal jump / double jump
+   429→   429→    if (this.jumpsRemaining > 0 && (this.grounded || now < this.coyoteUntil || this.jumpsRemaining > 1)) {
+   430→   430→      const isDouble = !this.grounded && this.jumpsRemaining === 1;
+   431→   431→      this.sprite.setVelocityY(this.stats.jumpVelocity);
+   432→   432→      this.jumpBufferUntil = 0;
+   433→   433→      this.grounded = false;
+   434→   434→      this.coyoteUntil = 0;
+   435→   435→      this.jumpsRemaining--;
+   436→   436→      AudioSystem.play(isDouble ? 'doubleJump' : 'jump');
+   437→   437→    }
+   438→   438→  }
+   439→   439→
+   440→   440→  private tryDash(dir: Direction): void {
+   441→   441→    if (!this.alive || !this.sprite || !this.sprite.active) return;
+   442→   442→    const now = this.scene.time.now;
+   443→   443→    if (this.isDashing || now < this.dashAvailableAt) return;
+   444→   444→    if (!this.consumeEnergy(PLAYER.DASH_COST)) return;
+   445→   445→    this.isDashing = true;
+   446→   446→    this.dashDir = dir;
+   447→   447→    this.dashUntil = now + this.stats.dashDurationMs;
+   448→   448→    this.dashAvailableAt = now + this.stats.dashDurationMs + this.stats.dashCooldownMs;
+   449→   449→    this.invulnUntil = Math.max(this.invulnUntil, this.dashUntil);
+   450→   450→    this.lastAfterimageAt = 0;
+   451→   451→    AudioSystem.play('dash');
+   452→   452→  }
+   453→   453→
+   454→   454→  private getAimDirection(): Phaser.Math.Vector2 {
+   455→   455→    const input = InputSystem.getState();
+   456→   456→    if (Math.abs(input.rightStickX) > 0.15 || Math.abs(input.rightStickY) > 0.15) {
+   457→   457→      const len = Math.sqrt(input.rightStickX ** 2 + input.rightStickY ** 2);
+   458→   458→      return new Phaser.Math.Vector2(input.rightStickX / len, input.rightStickY / len);
+   459→   459→    }
+   460→   460→    const dirX = this.facing === 'right' ? 1 : -1;
+   461→   461→    const dirY = this.keyAimY;
+   462→   462→    const len = Math.sqrt(dirX * dirX + dirY * dirY);
+   463→   463→    return new Phaser.Math.Vector2(dirX / len, dirY / len);
+   464→   464→  }
+   465→   465→
+   466→   466→  private tryFire(): void {
+   467→   467→    if (!this.alive || !this.sprite || !this.sprite.active) return;
+   468→   468→    const now = this.scene.time.now;
+   469→   469→    const weapon = getWeapon(this.currentWeapon);
+   470→   470→    const cooldown = this.currentWeapon === 'assault_rifle' ? this.stats.fireCooldownMs : weapon.fireRateMs;
+   471→   471→    if (now - this.lastFireAt < cooldown) return;
+   472→   472→    const energyCost = this.currentWeapon === 'assault_rifle' ? PLAYER.FIRE_COST : weapon.energyCost;
+   473→   473→    if (!this.consumeEnergy(energyCost)) return;
+   474→   474→    this.lastFireAt = now;
+   475→   475→    const from = this.position;
+   476→   476→    const aimDir = this.getAimDirection();
+   477→   477→    const muzzle = new Phaser.Math.Vector2(from.x + aimDir.x * 30, from.y - 6 + aimDir.y * 30);
+   478→   478→    AudioSystem.play('fire');
+   479→   479→
+   480→   480→    // Hitscan weapons (railgun, laser)
+   481→   481→    if (weapon.tier === 'hitscan') {
+   482→   482→      this.fireHitscan(weapon, muzzle, aimDir);
+   483→   483→      return;
+   484→   484→    }
+   485→   485→
+   486→   486→    // Projectile weapons
+   487→   487→    const bulletCount = weapon.bulletsPerShot ?? 1;
+   488→   488→    for (let i = 0; i < bulletCount; i++) {
+   489→   489→      let angleOffset = 0;
+   490→   490→      if (bulletCount > 1 && weapon.spread) {
+   491→   491→        const t = i / (bulletCount - 1) - 0.5;
+   492→   492→        angleOffset = t * weapon.spread;
+   493→   493→      }
+   494→   494→      const angle = Math.atan2(aimDir.y, aimDir.x) + angleOffset;
+   495→   495→      const dir = new Phaser.Math.Vector2(Math.cos(angle), Math.sin(angle));
+   496→   496→      const proj = new Projectile(this.scene, this.physics, this.particles, muzzle, dir, {
+   497→   497→        speed: weapon.bulletSpeed ?? PLAYER.BULLET_SPEED,
+   498→   498→        damage: this.currentWeapon === 'assault_rifle' ? PLAYER.BULLET_DAMAGE : weapon.damage,
+   499→   499→        ttl: 1500, owner: 'player', color: weapon.color, size: weapon.size,
+   500→   500→        weapon, explosive: weapon.tier === 'explosive', explosionRadius: weapon.explosionRadius,
+   501→   501→      });
+   502→   502→      this.projectiles.push(proj);
+   503→   503→    }
+   504→   504→    this.particles.sparks(muzzle.x, muzzle.y, weapon.color, (weapon.bulletsPerShot ?? 1) + 2);
+   505→   505→  }
+   506→   506→
+   507→   507→  private fireHitscan(weapon: WeaponData, muzzle: Phaser.Math.Vector2, aimDir: Phaser.Math.Vector2): void {
+   508→   508→    const angle = Math.atan2(aimDir.y, aimDir.x);
+   509→   509→    const endX = muzzle.x + Math.cos(angle) * weapon.range;
+   510→   510→    const endY = muzzle.y + Math.sin(angle) * weapon.range;
+   511→   511→    const hit = this.physics.raycastClosest(muzzle.x, muzzle.y, endX, endY, true);
+   512→   512→    const endPoint = hit ? new Phaser.Math.Vector2(hit.position.x, hit.position.y) : new Phaser.Math.Vector2(endX, endY);
+   513→   513→    // Draw tracer
+   514→   514→    const line = this.scene.add.line(0, 0, muzzle.x, muzzle.y, endPoint.x, endPoint.y, weapon.color, 0.9);
+   515→   515→    line.setOrigin(0, 0); line.setLineWidth(3); line.setDepth(30);
+   516→   516→    this.scene.tweens.add({ targets: line, alpha: 0, lineWidth: 0.5, duration: 120, onComplete: () => line.destroy() });
+   517→   517→    // Damage first hit
+   518→   518→    if (hit) {
+   519→   519→      const go = (hit as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   520→   520→      const entity = go?.getData('entity') as { takeDamage?: (n: number) => void } | undefined;
+   521→   521→      if (entity?.takeDamage) {
+   522→   522→        entity.takeDamage(weapon.damage);
+   523→   523→        this.particles.sparks(endPoint.x, endPoint.y, weapon.color, 4);
+   524→   524→      }
+   525→   525→    }
+   526→   526→  }
+   527→   527→
+   528→   528→  private tryMelee(): void {
+   529→   529→    if (!this.alive || !this.sprite || !this.sprite.active) return;
+   530→   530→    const now = this.scene.time.now;
+   531→   531→    if (now - this.lastMeleeAt < PLAYER.MELEE_COOLDOWN_MS) return;
+   532→   532→    if (!this.consumeEnergy(PLAYER.MELEE_COST)) return;
+   533→   533→    this.lastMeleeAt = now;
+   534→   534→    const aimDir = this.getAimDirection();
+   535→   535→    const origin = this.position;
+   536→   536→    const range = this.stats.meleeRange;
+   537→   537→    AudioSystem.play('melee');
+   538→   538→    this.combat.spawnSlash(origin.x + aimDir.x * 24, origin.y - 6 + aimDir.y * 24, aimDir.x > 0 ? 1 : -1);
+   539→   539→    const cx = origin.x + aimDir.x * (range / 2);
+   540→   540→    const cy = origin.y - 6 + aimDir.y * (range / 2);
+   541→   541→    const bodies = this.physics.bodiesInCircle(cx, cy, range / 2);
+   542→   542→    for (const body of bodies) {
+   543→   543→      const go = (body as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   544→   544→      if (!go) continue;
+   545→   545→      const entityType = go.getData('entityType') as string | undefined;
+   546→   546→      const entity = go.getData('entity') as { id?: string; takeDamage?: (n: number) => void } | undefined;
+   547→   547→      if (!entity || !entityType) continue;
+   548→   548→      if (entityType === 'enemy' || entityType === 'boss') {
+   549→   549→        this.combat.dealDamage({
+   550→   550→          amount: this.stats.meleeDamage, type: 'melee', source: this.id,
+   551→   551→          target: entity.id ?? 'unknown',
+   552→   552→          knockback: { x: aimDir.x * 0.18, y: aimDir.y * 0.05 },
+   553→   553→          point: { x: (go as unknown as Phaser.GameObjects.Components.Transform).x, y: (go as unknown as Phaser.GameObjects.Components.Transform).y },
+   554→   554→        });
+   555→   555→      }
+   556→   556→    }
+   557→   557→  }
+   558→   558→
+   559→   559→  private updateAnimation(deltaMs: number): void {
+   560→   560→    this.animTime += deltaMs;
+   561→   561→    const pos = this.position;
+   562→   562→    const facing = this.facing === 'right' ? 1 : -1;
+   563→   563→    const body = this.sprite.body;
+   564→   564→    const vx = body?.velocity.x ?? 0;
+   565→   565→    const vy = body?.velocity.y ?? 0;
+   566→   566→    const isMoving = Math.abs(vx) > 0.5 && this.grounded;
+   567→   567→    const isJumping = !this.grounded;
+   568→   568→
+   569→   569→    const bob = isMoving ? Math.sin(this.animTime / 80) * 2 : 0;
+   570→   570→    if (this.mechaTorso) { this.mechaTorso.setPosition(pos.x, pos.y - 6 + bob); this.mechaTorso.setScale(facing, 1); }
+   571→   571→    if (this.core) {
+   572→   572→      this.core.setPosition(pos.x, pos.y - 6 + bob);
+   573→   573→      const pulse = 0.7 + Math.sin(this.animTime / 200) * 0.2;
+   574→   574→      this.core.setAlpha(pulse); this.core.setRadius(3 + pulse * 2);
+   575→   575→    }
+   576→   576→    if (this.mechaHead) this.mechaHead.setPosition(pos.x + facing * 6, pos.y - 18 + bob);
+   577→   577→    if (this.visor) { this.visor.setPosition(pos.x + facing * 6, pos.y - 19 + bob); this.visor.setAlpha(0.5 + Math.sin(this.animTime / 150) * 0.3); }
+   578→   578→    if (this.mechaLegL && this.mechaLegR) {
+   579→   579→      if (isJumping) {
+   580→   580→        this.mechaLegL.setPosition(pos.x - 6, pos.y + 10); this.mechaLegL.setAngle(-20);
+   581→   581→        this.mechaLegR.setPosition(pos.x + 6, pos.y + 10); this.mechaLegR.setAngle(20);
+   582→   582→      } else if (isMoving) {
+   583→   583→        const phase = this.animTime / 100;
+   584→   584→        this.mechaLegL.setPosition(pos.x - 8, pos.y + 14); this.mechaLegL.setAngle(Math.sin(phase) * 12);
+   585→   585→        this.mechaLegR.setPosition(pos.x + 8, pos.y + 14); this.mechaLegR.setAngle(Math.sin(phase + Math.PI) * 12);
+   586→   586→      } else {
+   587→   587→        this.mechaLegL.setPosition(pos.x - 8, pos.y + 14); this.mechaLegL.setAngle(0);
+   588→   588→        this.mechaLegR.setPosition(pos.x + 8, pos.y + 14); this.mechaLegR.setAngle(0);
+   589→   589→      }
+   590→   590→    }
+   591→   591→    if (this.gunArm) {
+   592→   592→      this.gunArm.setPosition(pos.x, pos.y - 6 + bob);
+   593→   593→      const dir = this.getAimDirection();
+   594→   594→      const targetAngle = Math.atan2(dir.y, dir.x);
+   595→   595→      this.aimAngle = Phaser.Math.Angle.RotateTo(this.aimAngle, targetAngle, 0.3);
+   596→   596→      this.gunArm.setRotation(this.aimAngle);
+   597→   597→      this.gunArm.setStrokeStyle(1, this.weaponData.color, 0.8);
+   598→   598→    }
+   599→   599→    // Landing impact
+   600→   600→    if (this.grounded && !this.wasGrounded && vy > 3) {
+   601→   601→      this.particles.dust(pos.x, pos.y + 20);
+   602→   602→      this.scene.cameras.main.shake(60, 0.003 * Math.min(vy / 5, 1));
+   603→   603→    }
+   604→   604→    this.wasGrounded = this.grounded;
+   605→   605→    // Flash while invulnerable
+   606→   606→    if (this.flashTimer > 0) {
+   607→   607→      this.flashTimer -= deltaMs;
+   608→   608→      const on = Math.floor(this.flashTimer / 80) % 2 === 0;
+   609→   609→      this.sprite.setAlpha(on ? 0.45 : 0);
+   610→   610→    } else {
+   611→   611→      this.sprite.setAlpha(0);
+   612→   612→    }
+   613→   613→  }
+   614→   614→
+   615→   615→  destroy(): void {
+   616→   616→    // Clear input callbacks so destroyed player doesn't receive input
+   617→   617→    InputSystem.clearCallbacks();
+   618→   618→    this.gunArm?.destroy(); this.mechaTorso?.destroy(); this.mechaHead?.destroy();
+   619→   619→    this.mechaLegL?.destroy(); this.mechaLegR?.destroy();
+   620→   620→    this.core?.destroy(); this.visor?.destroy();
+   621→   621→    if (this.sprite && this.sprite.active) this.sprite.destroy();
+   622→   622→  }
+   623→   623→}
+   624→   624→
+   625→   625→export default PlayerEntity;
+   626→   626→

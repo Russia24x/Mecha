@@ -308,3 +308,243 @@ Files written:
 - /home/z/my-project/audit-systems-report.md (full audit, ~600 lines)
 
 No audited files were modified. Report is read-only reference for the next fix pass.
+
+---
+Task ID: gap-analysis-v2
+Agent: sub-agent (general-purpose)
+Task: Read all 6 design docs + audit 6 source files. Produce consolidated gap analysis. Brutally honest.
+
+# CONSOLIDATED GAP ANALYSIS — MECHA: LAST PROTOCOL v3.1
+
+## Methodology
+Cross-referenced 6 design documents against 6 actual source files. Line numbers cited are from the actual source files (not the design docs). The Creative Director Review and Game Director Review in the docs were written BEFORE the v3.1 code; some of their critiques are now resolved, others still stand.
+
+## TL;DR — The Brutal Truth
+
+The user is **right**: the game IS still "a flat line you walk through to reach the boss." v3.1 fixed roughly 40% of the Creative Director Review's contradictions (lore objects, landmarks, hazards, wall jump, boss kneel, horizon view, ambient audio, gamepad nav). The other 60% — the *core* Metroidvania loop, Soulslike tension, combat weight, music, ability gating beyond wall-jump — is still missing or broken.
+
+The biggest lie the codebase tells itself: `acts.ts` line 3 says *"Metroidvania world layout."* It isn't. It's 6 sections in a horizontal row, twice (factory + forest). One optional wall-jump shaft in section 3 does not a Metroidvania make.
+
+---
+
+## 1. Is the game a LINEAR corridor or a Metroidvania? ❌ STILL LINEAR
+
+**Design intent** (DESIGN_PILLARS.md line 28-43, GAME_DIRECTOR_REVIEW.md line 47-54):
+> *"I see a path I can't reach → I gain an ability → I return and access it."*
+
+**Reality in code:**
+- `acts.ts` line 7-143: Both areas are `totalWidth: 7680, sectionWidth: 1280` — 6 sections × 1280px in a straight horizontal line. Section N+1 is always to the right of Section N.
+- `AreaLoader.ts` line 60-66: Section triggers are placed at `sec.x + 80` — i.e. you enter a section by walking right into it. There is no branching.
+- `acts.ts` line 116-140 (forest region): Only `enemies: [...]` arrays per section. **No platforms, no loreObjects, no landmarks, no hazards.** Forest is literally "walk right, fight spiders, reach boss." This is the purest distillation of the user's complaint.
+- The **only** ability-gated content in the whole game is the wall-jump shaft in `acts.ts` section 3 (lines 49-65) leading to `lore_s3_echo` + `lore_s3_secret`. One shaft. One ability. Once.
+- `WorldSystem.ts` line 55 gates the *forest area* behind `requiredAbility: 'boss_1'`. That's story progression, not ability-gated exploration.
+- **No data structure exists** for: shortcuts (one-way doors that open from the other side), ability-gated paths (`requiresAbility: 'grapple'` on a section/door), interconnected loops, or backtracking incentives.
+- 4 of 6 abilities (`grapple`, `hover`, `emp`, `hack`) unlock in `skills.ts` lines 73-102 but have **zero implementation** in `PlayerEntity.ts` (grep returned no matches). They are paid skill points that do literally nothing.
+
+**Verdict:** ❌ NOT IMPLEMENTED. This is the #1 gap and the root cause of the "flat line" feeling.
+
+---
+
+## 2. Does exploration feel meaningful? ⚠️ PARTIAL — better than nothing, still hollow
+
+**Design intent** (DESIGN_PILLARS.md line 36-43): *"5 minutes without reward = failure. Curiosity → Reward → Secrets."*
+
+**What IS implemented:**
+- ✅ Lore objects exist as interactable world objects: `AreaLoader.ts` lines 110-116, 174-283. Three types (terminal, corpse, echo) with detailed multi-part visuals (pedestals, scan lines, oil pools, sound waves, ambient glow halos).
+- ✅ Press E near lore object → text panel appears (`GameScene.ts` lines 838-886).
+- ✅ Section 3 has a vertical wall-jump shaft with lore at the top (`acts.ts` lines 49-65) — this is the *only* true curiosity→reward loop in the game.
+- ✅ Landmarks exist: crashed_mech (section 1), assembly_line (section 4), tower (section 6) — `AreaLoader.ts` lines 286-388.
+
+**What's broken or missing:**
+- ❌ No shortcuts (Dark Souls-style "opens from other side"). No data field, no code.
+- ❌ No ability-gated areas beyond the wall-jump shaft. Grapple/hover/EMP/hack unlock nothing because the abilities don't exist in code.
+- ❌ No optional mini-bosses in side areas. The Elite in section 4 (`GameScene.ts` line 671) is mandatory — spawned in the main path.
+- ❌ No backtracking incentive. Once you walk past a section, the enemies respawn but there's no reason to return.
+- ❌ Forest area (`acts.ts` lines 116-140) has zero lore objects, zero landmarks, zero hazards, zero platforms. It's a corridor with enemy spawns.
+- ⚠️ Section 1 has 1 lore object, 0 enemies, 3 platforms. Section 5 has 0 enemies, 2 lore objects, 3 platforms. The "safe room" pacing is intentional but the overall density still feels sparse.
+
+**Verdict:** ⚠️ Better than the Creative Director Review described, but the exploration loop is broken because 4 of 6 abilities do nothing. The single wall-jump shaft is the only meaningful exploration moment.
+
+---
+
+## 3. Is combat satisfying? (Heavy, Precise, Punishing) ❌ NO
+
+**Design intent** (DESIGN_PILLARS.md lines 10-25, CREATIVE_DIRECTOR_REVIEW.md lines 49-65):
+> *"Heavy: cannot cancel mid-animation. Precise: clear telegraph. Punishing: mistake = damage = quick death, but fair."*
+
+**What IS implemented:**
+- ✅ Telegraphs per enemy type with distinct visual styles (`EnemyEntity.ts` lines 210-256): drone=red circle, sniper=pulsing dot, flying_ai=amber ring above, heavy/elite=purple ground shake.
+- ✅ Enemy FSM with telegraph→window→recovery phases (`EnemyEntity.ts` lines 192-208). Interrupting telegraph = stagger (line 115).
+- ✅ Sniper actually fires (`enemies.ts` line 71 `attackType: 'snipe'` → `EnemyEntity.ts` line 337-338). Contrary to Game Director Review's claim, snipers CAN attack now.
+- ✅ Flying AI dive-bombs (`EnemyEntity.ts` lines 328-336). Contrary to Game Director Review, flying_ai is functional.
+- ✅ Contact damage + knockback on player hit (`GameScene.ts` lines 804-815).
+- ✅ Hit-stop, particles, screen shake on hits (via `CombatSystem`, `ParticleSystem`).
+
+**What's broken or missing:**
+- ❌ **No animation commitment.** `PlayerEntity.ts` `tryFire` (line 466), `tryMelee` (line 528), `tryDash` (line 440) only check cooldowns. Movement is fully controllable during fire/melee. You can sprint, jump, dash, and shoot simultaneously with no lock. This violates "Heavy" pillar #1.
+- ❌ **No posture/poise/stagger bar.** Grep across entire `src/game` for `posture|poise|staggerBar|postureBar` = zero matches. The stagger state on enemies (`EnemyEntity.ts` line 115) only triggers from interrupting telegraph — not from accumulated posture damage.
+- ❌ **No death penalty.** `PlayerEntity.takeDamage` line 234-238 → `PLAYER_DEAD` event → `GameScene.onPlayerDied` line 1023 → `setState('gameover')`. GameOver screen has Retry (full HP, no loss) or Quit. No XP loss, no bloodstain, no retrieval. Violates "Punishing" pillar.
+- ❌ **Death is not quick.** Player has 100 HP, drone does 8 dmg, heavy does 22 (`GameScene.ts` line 806). ~5-12 hits to die. Invuln frames after each hit (`PlayerEntity.ts` line 230). Death feels like attrition, not punishment.
+- ❌ **No parry, no dodge-roll distinct from dash, no combo system, no critical hits.** Melee is single attack on cooldown (`PlayerEntity.ts` line 531).
+- ⚠️ Boss has 2 phases but same attack pool (`BossEntity.ts` line 141-142 picks random from `currentPhaseData.attacks`). Phase 2 just reduces cooldown (`BossEntity.ts` line 126). Phases don't introduce new attacks — boss is a bullet sponge with a phase-change flash.
+
+**Verdict:** ❌ Combat is responsive but weightless. You can fire+run+dash+jump simultaneously, death is a slap on the wrist, and there's no posture system to reward aggression or patience. This is the second-biggest gap.
+
+---
+
+## 4. Are the 10 Moments actually experienced by the player?
+
+| # | Moment (MOMENTS.md) | Status | Evidence |
+|---|---|---|---|
+| 1 | Awakening in darkness (min 0) | ✅ IMPLEMENTED | `acts.ts` S1 `enemies:[]`, `bgColor:0x05070d`; `GameScene.ts` line 602 `startAmbient('factory')`, line 605 `fadeIn(600,...)`. |
+| 2 | First steps in dust (min 2) | ⚠️ PARTIAL | `GameScene.ts` line 894-896 spawns `ambientDust` around player every 200ms — but design wants dust *on movement* (kick up dust per step). No per-step dust. No "PRODUCTION LINE 7 — DUTY CYCLE 999,999" sign. |
+| 3 | First mech corpse (min 5) | ✅ IMPLEMENTED | `acts.ts` line 34 `lore_s1_corpse` with `type:'corpse'`. `AreaLoader.ts` line 208-236 builds full corpse visual with slumped body, outstretched arm, flickering core, oil pool. |
+| 4 | First combat — Scavenger drone (min 7) | ⚠️ PARTIAL | Drone exists (`acts.ts` S2) and attacks. But design specifies **Scavenger behavior**: drone picks up scrap, then turns hostile when it sees player. `EnemyEntity.ts` `onPatrol` (line 263-275) — drone just hovers. No scavenging animation, no piece-pickup, no behavior change. Combat works, but the *moral* moment ("he was just collecting pieces") is missing. |
+| 5 | Engineer Kara's terminal (min 15) | ✅ IMPLEMENTED | `acts.ts` line 47 `lore_s2_terminal`. Localization key `lore.s2.terminal.text` should contain the Kara/Atlas line. (Text content not verified — depends on localization JSON.) |
+| 6 | Emergency lights reveal assembly hall (min 20) | ⚠️ PARTIAL | `acts.ts` line 81-83 has `assembly_line` landmark in S4. `AreaLoader.ts` lines 325-355 builds 3 hanging mechs on conveyor with sparks. But design specifies **sequential light-up** ("چراغ‌های اضطراری یکی‌یکی روشن می‌شوند") — no sequential lighting tween. Hall is just always-visible. |
+| 7 | Guardian at open door (min 35) | ❌ NOT IMPLEMENTED | `acts.ts` S5 (lines 87-96) has `enemies: []` and a tower landmark, but **no Guardian**. Design wants a Guardian NPC standing at an open door protecting nothing. The tower landmark (`AreaLoader.ts` lines 357-384) is just a door frame with a flickering light — no actual Guardian entity, no "what is he protecting?" moment. |
+| 8 | Sound from past — Echo (min 40) | ✅ IMPLEMENTED | `acts.ts` line 93 `lore_s5_echo`. `AreaLoader.ts` lines 238-272 builds speaker with sound wave rings. Text content (the "T-minus... T-minus..." loop) depends on localization key. |
+| 9 | Atlas kneels (min 50) | ✅ IMPLEMENTED | `BossEntity.ts` `die()` lines 218-272. Slow 2-second kneel: `scaleY: 1→0.6`, `alpha: 0.8→0.3`. Sparks (not explosion) in `GameScene.ts` line 1052. `BOSS_DEAD` event delayed 1.5s for kneeling. Victory screen quotes "Atlas never stopped waiting." (`GameScene.ts` line 1142). |
+| 10 | Horizon from tower (min 55) | ✅ IMPLEMENTED | `GameScene.ts` `onBossDied` lines 1058-1088: camera pans up 200px over 2s, silhouette rectangle fades in (alpha 0→0.6), caption "The Drowned Wastes await..." fades in, then 3.5s later fade to victory. |
+
+**Score: 5/10 fully implemented, 3/10 partial, 2/10 missing.** The boss-adjacent moments (9, 10) are the strongest. The early-game moments (2, 4, 6) are present-but-thin. Moment 7 is just absent.
+
+---
+
+## 5. Does pacing match the Player Experience Bible? ⚠️ PARTIAL
+
+**Bible says** (PLAYER_EXPERIENCE_BIBLE.md line 154-160):
+> *"Every 30 seconds: discovery, combat, reward, or question. If 30 seconds pass with none, design failed."*
+
+**Reality check by section:**
+| Section | Time | Bible moment | Reality |
+|---|---|---|---|
+| S1 | ~1 min | Awakening, first steps | ✅ Dark, dust, corpse, landmark. No combat. OK. |
+| S2 | ~2 min | First combat + first terminal | ✅ Drone + terminal. Pacing holds. |
+| S3 | ~3 min | Verticality + secret | ⚠️ Wall-jump shaft + 2 lore. But: only 1 drone. If player hasn't unlocked wallJump yet (it unlocks in S4), the shaft is just a wall they hit. **Pacing trap**: player reaches S3, can't progress upward, walks right. |
+| S4 | ~3 min | Assembly hall + Elite mini-boss | ✅ 2 enemies + Elite + 2 lore + landmark. Densest section. |
+| S5 | ~2 min | Safe room + Echo | ⚠️ 0 enemies, 2 lore. Intentional breather. But "Guardian at open door" moment is missing. |
+| S6 | ~3-5 min | Boss fight | ✅ Boss entry with shake+flash+zoom. Atlas kneels. Horizon view. |
+| Forest S1-6 | ~10 min | (Bible doesn't cover Act II explicitly) | ❌ **Pure corridor.** No lore, no landmarks, no hazards, no platforms. Just enemies + boss. This is where the "flat line to boss" complaint is most accurate. |
+
+**Verdict:** ⚠️ Factory pacing roughly matches the Bible for the first hour. Forest pacing is non-existent — it's a combat corridor with no environmental storytelling. The "30-second rule" holds in Factory, fails in Forest.
+
+---
+
+## 6. Are gamepad controls working everywhere? ✅ YES (with one caveat)
+
+**Evidence:**
+- `GameScene.ts` line 115: `InputSystem.init()` called in `create()` — listeners attach from menu onward. (This was the v3.1 root fix per worklog `overlay-fix-v3.1`.)
+- `GameScene.ts` line 1157-1177: `handleMenuGamepadNav` handles left stick + D-pad + A-button across menu/hub/gameover/victory.
+- `GameScene.ts` line 270-278: `OverlayManager.handleInput` handles B/ESC back navigation in overlays.
+- `GameScene.ts` lines 1181-1231: All menu/hub buttons (`makeMenuBtn`, `makeHubCardBtn`, `makeHubNavBtn`) register as Focusable + clickable.
+- `GameScene.ts` line 295-302: ESC in hub → menu. ESC in play → pause.
+- `PlayerEntity.ts` line 456-463: Right-stick aim supported.
+- `PlayerEntity.ts` line 352: Left stick horizontal movement supported.
+
+**Caveat:**
+- `GameScene.ts` line 592-593: `showHowToPlay()` uses `setTimeout(() => window.addEventListener('keydown', backHandler), 100)` — this is keyboard-only. **Gamepad users cannot dismiss the How To Play screen.** Minor but real bug.
+
+**Verdict:** ✅ Essentially working. One minor screen (How To Play) is keyboard-only.
+
+---
+
+## 7. Is the world dense enough per the Design Pillars? ❌ NO
+
+**Design Pillars + Game Director Review** specify per section (GAME_DIRECTOR_REVIEW.md line 281-287):
+> *"5-10 platforms with verticality, 3-6 enemies with varied placement, 1-2 hidden items/lore, 1 optional path (ability-gated), environmental hazards, visual landmarks."*
+
+**Actual density (counting from `acts.ts`):**
+
+| Section | Platforms | Enemies | Lore | Hazards | Landmarks | Optional Paths |
+|---|---|---|---|---|---|---|
+| Factory S1 | 3 | 0 | 1 | 0 | 1 | 0 |
+| Factory S2 | 4 | 1 | 1 | 0 | 0 | 0 |
+| Factory S3 | 6 | 1 | 2 | 1 (spike) | 0 | 1 (wall-jump shaft) |
+| Factory S4 | 5 | 2 (+Elite) | 2 | 0 | 1 | 0 |
+| Factory S5 | 3 | 0 | 2 | 0 | 0 | 0 |
+| Factory S6 | 4 | 0 (boss) | 2 | 0 | 1 | 0 |
+| Forest S1 | 0 | 1 | 0 | 0 | 0 | 0 |
+| Forest S2 | 0 | 3 | 0 | 0 | 0 | 0 |
+| Forest S3 | 0 | 1 | 0 | 0 | 0 | 0 |
+| Forest S4 | 0 | 4 | 0 | 0 | 0 | 0 |
+| Forest S5 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Forest S6 | 0 | 0 (boss) | 0 | 0 | 0 | 0 |
+
+**Factory hits the target only in S3 and S4.** Forest hits it in **zero** sections.
+
+**Verdict:** ❌ Factory is borderline-acceptable (50% of sections meet density targets). Forest is a content desert. The user's "flat line" feeling is structurally correct for Forest.
+
+---
+
+## Per-Pillar Scorecard
+
+| Pillar (DESIGN_PILLARS.md) | Status | Notes |
+|---|---|---|
+| **Combat: Heavy·Precise·Punishing** | ❌ NOT IMPLEMENTED | No animation commitment. No posture. No death penalty. Telegraphs work. |
+| **Exploration: Curiosity·Reward·Secrets** | ⚠️ PARTIAL | Lore objects + 1 wall-jump shaft. No shortcuts, no ability-gating beyond wall jump, no backtracking. |
+| **Lore: Environmental·Minimal·Interpretation** | ✅ IMPLEMENTED | Lore objects (terminal/corpse/echo) with rich visuals + interactable text panels. Factory has 10 lore objects across 6 sections. |
+| **Boss: Every boss teaches something** | ⚠️ PARTIAL | Atlas kneels = emotional beat ✅. But 2-phase boss uses same attack pool (bullet sponge). No philosophical mechanic differentiation. |
+| **NPC: Every NPC loses something** | ⚠️ UNVERIFIED | NPCSystem referenced (`GameScene.ts` line 826-836) but no NPC data audited. Game Director Review says 2 NPCs / 9 dialogues / 1 quest — likely still thin. |
+| **Weapons: Every weapon tells a story** | ❌ NOT IMPLEMENTED | Grep across `data/weapons/` for `descriptionKey\|previousOwner\|lore` = zero matches. Weapons are still just stats. |
+| **Music: Silence is part of the soundtrack** | ⚠️ PARTIAL | `AudioSystem.startAmbient('factory'\|'boss')` exists (`GameScene.ts` lines 602, 790). SFX exist. **No music tracks.** `Effects.ts` line 205 has stub `playMusic(_name)` that does nothing — and that file is dead code per Game Director Review line 339-342. |
+| **World: The world is the main character** | ⚠️ PARTIAL | Landmarks + lore objects give Factory a sense of place. Forest has nothing. No dynamic world change (rust spreading, water rising, etc.). |
+
+---
+
+## Per-Moment Scorecard (MOMENTS.md)
+
+| # | Moment | Status |
+|---|---|---|
+| 1 | Awakening in darkness | ✅ IMPLEMENTED |
+| 2 | First steps in dust | ⚠️ PARTIAL (no per-step dust, no duty-cycle sign) |
+| 3 | First mech corpse | ✅ IMPLEMENTED |
+| 4 | First combat (Scavenger drone) | ⚠️ PARTIAL (drone fights but doesn't scavenge) |
+| 5 | Engineer Kara's terminal | ✅ IMPLEMENTED |
+| 6 | Emergency lights + assembly hall | ⚠️ PARTIAL (hall exists, no sequential lights) |
+| 7 | Guardian at open door | ❌ NOT IMPLEMENTED (no Guardian entity in S5) |
+| 8 | Sound from past (Echo) | ✅ IMPLEMENTED |
+| 9 | Atlas kneels | ✅ IMPLEMENTED |
+| 10 | Horizon from tower | ✅ IMPLEMENTED |
+
+**6/10 ✅, 3/10 ⚠️, 1/10 ❌**
+
+---
+
+## Top 5 Actions (in priority order)
+
+1. **Implement the 4 missing abilities** (`grapple`, `hover`, `emp`, `hack`) in `PlayerEntity.ts`. They're paid skill points that do nothing today. This is the #1 trust-killer and the #1 blocker for Metroidvania exploration.
+
+2. **Add ability-gated content to `acts.ts`**: at minimum, 1 grapple gap, 1 hover platform, 1 EMP-locked door, 1 hack-convertible enemy **per act**. Without this, abilities are decorative.
+
+3. **Add shortcuts to `AreaData`**: a `shortcuts: [{ fromSection, toSection, opensFromSide }]` field, plus a one-way door entity in `AreaLoader.ts`. This is the Dark Souls-style backtracking loop the design demands.
+
+4. **Fill Forest (`acts.ts` lines 116-140) with content**: every section needs platforms, loreObjects, landmarks, hazards. Forest is currently a corridor — this is the most visible "flat line" the user complained about.
+
+5. **Add animation commitment + death penalty to combat**: lock player movement during melee/fire for 150-300ms; lose 50% unbanked XP on death (Soulslike). Without these, combat violates the "Heavy·Punishing" pillars and death has no stakes.
+
+## Secondary Actions
+
+6. Implement Moment 7: place a non-hostile Guardian entity at an open door in S5.
+7. Add Scavenger behavior to drone patrol (pick up scrap → turn hostile on sight).
+8. Add sequential light-up tween to assembly_line landmark.
+9. Add per-step dust particles (subscribe to player movement events).
+10. Add `descriptionKey` + `previousOwner` to weapon data; surface in InventoryUI.
+11. Add at least one music track for boss entry, lore discovery, and act end (the 3 moments DESIGN_PILLARS.md line 155 specifies).
+12. Add posture bar to enemies (fill on hit → stagger → crit window).
+13. Fix `showHowToPlay()` to accept gamepad input (`GameScene.ts` line 592-593).
+
+## Files Touched
+None — this is an audit only. No code changes made.
+
+## Files Read
+- 6 design docs (CREATIVE_DIRECTOR_REVIEW, DESIGN_PILLARS, GAME_DESIGN_DOCUMENT, GAME_DIRECTOR_REVIEW, MOMENTS, PLAYER_EXPERIENCE_BIBLE)
+- 6 source files (GameScene.ts 1297 lines, acts.ts 168, PlayerEntity.ts 625, EnemyEntity.ts 391, BossEntity.ts 301, AreaLoader.ts 411)
+- Cross-referenced: skills.ts, enemies.ts, AudioSystem.ts, WorldSystem.ts, SkillTreeSystem.ts, SaveSystem.ts, Effects.ts (dead code)
+
+## Final Verdict
+
+The user's complaint — "a flat line you walk through to reach the boss" — is **structurally accurate for the Forest area** and **partially accurate for the Factory** (which has 1 vertical shaft in S3 but is otherwise linear). v3.1 made real progress on environmental storytelling (lore objects, landmarks, boss kneel, horizon view) and overlay/gamepad plumbing, but did not touch the core Metroidvania loop, combat weight, or music. The 4 broken abilities are the single most damaging gap: players spend skill points on `grapple`/`hover`/`emp`/`hack` and get nothing. Until those work and gate content, no amount of new lore or landmarks will make the world feel non-linear.
+
+**Overall alignment with design vision: 4.5 / 10** (up from the Game Director Review's 3.8, but still failing on the two most important pillars: Metroidvania exploration and Soulslike combat tension.)
+

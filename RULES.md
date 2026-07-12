@@ -104,7 +104,7 @@ gameplay logic, or progression systems.
 | 19 | loading-assets | **Reject** | فعلاً procedural textures. بعد از asset pipeline اضافه شود |
 | 20 | tilemaps | **Reject** | Area loader سفارشی داریم. Tilemap برای آینده |
 | 21 | render-textures | **Reject** | نیاز به asset pipeline. فعلاً procedural کافی است |
-| 22 | filters-and-postfx | **Reject** | WebGL filters برای آینده. فعلاً additive blend کافی است |
+| 22 | filters-and-postfx | **Adopt** | Camera filters (vignette, bloom) + GO filters (glow on boss/player) |
 | 23 | curves-and-paths | **Adapt** | برای projectile trajectories و grapple path |
 | 24 | geometry-and-math | **Adopt** | Vector2, Distance, Math.Linear مستقیم استفاده می‌شود |
 | 25 | data-manager | **Reject** | SaveSystem سفارشی داریم |
