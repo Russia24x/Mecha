@@ -79,6 +79,12 @@ export interface SkillData {
   cost: number;
   requires?: string;
   effect: SkillEffect;
+  /** Visual tier: 0=minor, 1=notable, 2=keystone (bigger node, stronger effect) */
+  tier?: 0 | 1 | 2;
+  /** Optional explicit grid position override (x, y in grid units) */
+  pos?: { x: number; y: number };
+  /** Skill category for icon selection */
+  category?: 'damage' | 'speed' | 'defense' | 'ability' | 'unlock' | 'utility';
 }
 
 export interface SkillEffect {

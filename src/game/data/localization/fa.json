@@ -81,6 +81,12 @@
   "skill.combat.damage2.desc": "۲۰٪+ آسیب گلوله (مجموع ۴۰٪+)",
   "skill.combat.fireRate1.name": "شلیک سریع",
   "skill.combat.fireRate1.desc": "۲۵٪- زمان شارژ مجدد",
+  "skill.combat.arsenal.name": "تسل بر تسلیحات",
+  "skill.combat.arsenal.desc": "۳۵٪+ آسیب نزدیک. برتری یک جنگجوی باتجربه.",
+  "skill.combat.rapid.name": "نظم ماشه",
+  "skill.combat.rapid.desc": "۴۰٪- زمان شارژ. دقت به جای وحشت.",
+  "skill.combat.overload.name": "پروتکل اضافه‌بار",
+  "skill.combat.overload.desc": "کلیدی: ۵۰٪+ آسیب نزدیک. مکا داغ می‌سوزد.",
 
   "skill.weapon.shotgun.name": "باز کردن شاتگان",
   "skill.weapon.shotgun.desc": "سلاح شاتگان را باز می‌کند",
@@ -88,6 +94,8 @@
   "skill.weapon.railgun.desc": "سلاح ریل‌گان را باز می‌کند",
   "skill.weapon.rocket.name": "باز کردن راکت‌لانچر",
   "skill.weapon.rocket.desc": "سلاح راکت‌لانچر را باز می‌کند",
+  "skill.weapon.dualwield.name": "پروتکل دو دستی",
+  "skill.weapon.dualwield.desc": "کلیدی: ۳۰٪- زمان شارژ. دو لوله، بدون رحم.",
 
   "skill.movement.speed1.name": "سروو یک",
   "skill.movement.speed1.desc": "۱۲٪+ سرعت حرکت",
@@ -110,11 +118,15 @@
   "skill.energy.regen1.desc": "۸۰٪+ بازسازی انرژی",
   "skill.energy.hover.name": "تراستر معلق",
   "skill.energy.hover.desc": "قابلیت معلق ماندن",
+  "skill.energy.overcharge.name": "پروتکل اضافه‌شارژ",
+  "skill.energy.overcharge.desc": "کلیدی: ۸۰+ انرژی ماکزیمم. هسته از طراحی‌اش فراتر می‌رود.",
 
   "skill.protocol.emp.name": "پالس الکترومغناطیسی",
   "skill.protocol.emp.desc": "قابلیت EMP",
   "skill.protocol.hack1.name": "هک پروتکل",
   "skill.protocol.hack1.desc": "هک موقت هوش مصنوعی دشمن",
+  "skill.protocol.override.name": "پروتکل نادیده‌گیری",
+  "skill.protocol.override.desc": "کلیدی: ۵۰٪+ آسیب‌ناپذیری. کنترل خود را تسخیر کن.",
 
   "skill.survival.health1.name": "صفحه زره یک",
   "skill.survival.health1.desc": "۳۰+ جان ماکزیمم",
@@ -122,6 +134,10 @@
   "skill.survival.health2.desc": "۳۰+ جان ماکزیمم (مجموع ۶۰+)",
   "skill.survival.invuln1.name": "ماتریس سپر",
   "skill.survival.invuln1.desc": "۳۰٪+ مدت زمان آسیب‌ناپذیری",
+  "skill.survival.armor.name": "شاسی تقویت‌شده",
+  "skill.survival.armor.desc": "۶۰+ جان ماکزیمم. حجیم، اما مقاوم.",
+  "skill.survival.laststand.name": "پروتکل ایستادگی",
+  "skill.survival.laststand.desc": "کلیدی: ۸۰٪+ آسیب‌ناپذیری. از افتادن سر باز بزن.",
 
   "item.scrap_metal.name": "قطعه فلزی",
   "item.scrap_metal.desc": "ماده ساخت رایج",

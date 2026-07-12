@@ -81,6 +81,12 @@
   "skill.combat.damage2.desc": "+20% bullet damage (total +40%)",
   "skill.combat.fireRate1.name": "Rapid Fire",
   "skill.combat.fireRate1.desc": "-25% fire cooldown",
+  "skill.combat.arsenal.name": "Arsenal Mastery",
+  "skill.combat.arsenal.desc": "+35% melee damage. A seasoned warrior's edge.",
+  "skill.combat.rapid.name": "Trigger Discipline",
+  "skill.combat.rapid.desc": "-40% fire cooldown. Precision over panic.",
+  "skill.combat.overload.name": "OVERLOAD PROTOCOL",
+  "skill.combat.overload.desc": "Keystone: +50% melee damage. The MECHA burns hot.",
 
   "skill.weapon.shotgun.name": "Unlock Shotgun",
   "skill.weapon.shotgun.desc": "Unlocks the Shotgun weapon",
@@ -88,6 +94,8 @@
   "skill.weapon.railgun.desc": "Unlocks the Railgun weapon",
   "skill.weapon.rocket.name": "Unlock Rocket Launcher",
   "skill.weapon.rocket.desc": "Unlocks the Rocket Launcher weapon",
+  "skill.weapon.dualwield.name": "DUAL WIELD PROTOCOL",
+  "skill.weapon.dualwield.desc": "Keystone: -30% fire cooldown. Two barrels, no mercy.",
 
   "skill.movement.speed1.name": "Servos I",
   "skill.movement.speed1.desc": "+12% move speed",
@@ -110,11 +118,15 @@
   "skill.energy.regen1.desc": "+80% energy regen",
   "skill.energy.hover.name": "Hover Thrusters",
   "skill.energy.hover.desc": "Unlock hover ability",
+  "skill.energy.overcharge.name": "OVERCHARGE PROTOCOL",
+  "skill.energy.overcharge.desc": "Keystone: +80 max energy. The core exceeds its design.",
 
   "skill.protocol.emp.name": "EMP Burst",
   "skill.protocol.emp.desc": "Unlock EMP ability",
   "skill.protocol.hack1.name": "Protocol Hack",
   "skill.protocol.hack1.desc": "Hack enemy AI temporarily",
+  "skill.protocol.override.name": "OVERRIDE PROTOCOL",
+  "skill.protocol.override.desc": "Keystone: +50% invulnerability. Seize control of the self.",
 
   "skill.survival.health1.name": "Armor Plating I",
   "skill.survival.health1.desc": "+30 max HP",
@@ -122,6 +134,10 @@
   "skill.survival.health2.desc": "+30 max HP (total +60)",
   "skill.survival.invuln1.name": "Shield Matrix",
   "skill.survival.invuln1.desc": "+30% invulnerability duration",
+  "skill.survival.armor.name": "Reinforced Chassis",
+  "skill.survival.armor.desc": "+60 max HP. Bulky, but it holds.",
+  "skill.survival.laststand.name": "LAST STAND PROTOCOL",
+  "skill.survival.laststand.desc": "Keystone: +80% invulnerability. Refuse to fall.",
 
   "item.scrap_metal.name": "Scrap Metal",
   "item.scrap_metal.desc": "Common crafting material",
