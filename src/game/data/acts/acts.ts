@@ -63,7 +63,8 @@ export const ACTS: ActData[] = [
               ]},
               // Section 4: COMBAT ROOM B — pillars + elevated center
               // Moment 6: Emergency lights reveal assembly hall
-              { id: 4, nameKey: 'section.4.name', x: 3840, enemies: ['spider', 'spider', 'heavy'], platforms: [
+              // Mini Boss: elite enemy as section guardian
+              { id: 4, nameKey: 'section.4.name', x: 3840, enemies: ['spider', 'heavy'], platforms: [
                 { x: 4240, y: 460, w: 40, h: 220 },
                 { x: 4680, y: 460, w: 40, h: 220 },
                 { x: 4440, y: 400, w: 100, h: 20 },

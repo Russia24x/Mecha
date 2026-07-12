@@ -88,6 +88,7 @@ export class GameScene extends Phaser.Scene {
   private stageStartTime = 0;
   private bossArenaActive = false;
   private sequenceTimers: Phaser.Time.TimerEvent[] = [];
+  private miniBossSpawned = false;
 
   // UI
   private hud: HUDUI | null = null;
@@ -595,6 +596,7 @@ export class GameScene extends Phaser.Scene {
     const area = WorldSystem.getCurrentArea();
     if (!area) return;
     AudioSystem.resume();
+    AudioSystem.startAmbient('factory');
     this.cameras.main.setBackgroundColor(area.bgColor);
     this.physicsSys.setWorldBounds(area.totalWidth, GAME.HEIGHT);
     this.physicsSys.setGravity(0, 0.9);
@@ -602,6 +604,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies = [];
     this.boss = null;
     this.bossArenaActive = false;
+    this.miniBossSpawned = false;
     this.sequenceTimers = [];
     resetEnemyIds();
     this.stageStartTime = this.time.now;
@@ -659,6 +662,19 @@ export class GameScene extends Phaser.Scene {
       const y = et === 'drone' || et === 'flying_ai' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
       const e = new EnemyEntity(this, this.physicsSys, this.particles, x, y, et, this.projectiles);
       this.enemies.push(e);
+      // Mini Boss: spawn an elite in Section 4 as a tougher challenge
+      if (sectionId === 4 && !this.miniBossSpawned) {
+        this.miniBossSpawned = true;
+        const mbX = section.x + 600;
+        const mbY = GAME.HEIGHT - 200;
+        const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
+        this.enemies.push(miniBoss);
+        this.render.addLight({
+          follow: () => miniBoss.isAlive ? miniBoss.position : new Phaser.Math.Vector2(-9999, -9999),
+          radius: 80, color: 0xff20a0, intensity: 0.3, flicker: 0.15,
+        });
+        this.hud?.toast('⚠ ELITE DETECTED');
+      }
       this.render.addLight({
         follow: () => e.isAlive ? e.position : new Phaser.Math.Vector2(-9999, -9999),
         radius: 50, color: e.data.color, intensity: 0.2, flicker: 0.2,
@@ -723,6 +739,9 @@ export class GameScene extends Phaser.Scene {
     const x = bossSection.x + 800;
     const y = GAME.HEIGHT - 320;
     this.boss = new BossEntity(this, this.physicsSys, this.particles, bossSection.bossId, x, y, this.projectiles, () => this.player.position);
+    // Switch to boss ambient (tense, dissonant)
+    AudioSystem.startAmbient('boss');
+    AudioSystem.play('phaseChange');
     this.particles.screenFlash(0xff3030, 0.35, 500);
     this.camera.shake(400, 0.012);
     this.render.addLight({
@@ -857,6 +876,7 @@ export class GameScene extends Phaser.Scene {
   private cleanupPlay(): void {
     this.matter.world.off('collisionstart', this.onCollisionStart, this);
     if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
+    AudioSystem.stopAmbient();
     this.projectiles.forEach(p => p.kill());
     this.projectiles = [];
     this.player?.destroy();
