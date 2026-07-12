@@ -1150,17 +1150,21 @@ export class GameScene extends Phaser.Scene {
 
   private updateMenuFocus(): void {
     this.menuButtons.forEach((btn, i) => {
-      if (i === this.menuFocusIndex) {
-        btn.bg.setFillStyle(0x0d1820, 1);
-        btn.bg.setStrokeStyle(2, 0x39d0d8, 0.9);
-        btn.bg.setScale(1.05);
-        btn.text.setColor('#66f0ff');
-      } else {
-        btn.bg.setFillStyle(0x0a1018, 0.9);
-        btn.bg.setStrokeStyle(1, 0x1a3040, 0.8);
-        btn.bg.setScale(1);
-        btn.text.setColor('#5a6470');
-      }
+      // Guard against destroyed objects (prevents drawImage null crash)
+      if (!btn.bg || !btn.bg.active || !btn.text || !btn.text.active) return;
+      try {
+        if (i === this.menuFocusIndex) {
+          btn.bg.setFillStyle(0x0d1820, 1);
+          btn.bg.setStrokeStyle(2, 0x39d0d8, 0.9);
+          btn.bg.setScale(1.05);
+          btn.text.setColor('#66f0ff');
+        } else {
+          btn.bg.setFillStyle(0x0a1018, 0.9);
+          btn.bg.setStrokeStyle(1, 0x1a3040, 0.8);
+          btn.bg.setScale(1);
+          btn.text.setColor('#5a6470');
+        }
+      } catch { /* text canvas not ready — skip */ }
     });
   }
 
