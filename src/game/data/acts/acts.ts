@@ -26,71 +26,85 @@ export const ACTS: ActData[] = [
               // Section 1: AWAKENING — dark, quiet. Learn to walk + jump.
               // Moment 1: Biding in darkness. Moment 2: First steps in dust.
               { id: 1, nameKey: 'section.1.name', x: 0, enemies: [], platforms: [
-                // Simple stepping platforms — learn jumping
                 { x: 500, y: 540, w: 180, h: 20 },
                 { x: 800, y: 440, w: 160, h: 20 },
                 { x: 1050, y: 540, w: 140, h: 20 },
+              ], loreObjects: [
+                // Moment 3: First mech corpse — "AWAITING ORDER"
+                { id: 'lore_s1_corpse', type: 'corpse', x: 350, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
+              ], landmarks: [
+                // Landmark 1: Crashed production mech at entrance
+                { id: 'lm_s1_mech', type: 'crashed_mech', x: 150, y: 580, w: 120, h: 100, color: 0x2a3040 },
               ]},
               // Section 2: FIRST COMBAT — Moment 4: First drone encounter
-              // Easy combat + checkpoint. Learn to shoot + dodge.
               { id: 2, nameKey: 'section.2.name', x: 1280, enemies: ['drone'], platforms: [
-                // Cover platforms for combat
                 { x: 1480, y: 520, w: 100, h: 20 },
                 { x: 1700, y: 420, w: 140, h: 20 },
                 { x: 2000, y: 520, w: 100, h: 20 },
                 { x: 2300, y: 460, w: 120, h: 20 },
+              ], loreObjects: [
+                // Moment 5: Engineer's terminal — Kara built Atlas
+                { id: 'lore_s2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
               ]},
               // Section 3: VERTICAL AREA + WALL JUMP TUTORIAL
-              // Tall walls force wall jump. Hidden path at top.
               { id: 3, nameKey: 'section.3.name', x: 2560, enemies: ['drone'], platforms: [
-                // Entry platform
                 { x: 2660, y: 580, w: 200, h: 20 },
-                // Vertical shaft — two facing walls for wall jump
-                { x: 2800, y: 400, w: 40, h: 360 },   // left wall (tall)
-                { x: 3100, y: 400, w: 40, h: 360 },   // right wall (tall) — gap between = 260px
-                // Ledge at top of shaft (wall jump reward)
+                { x: 2800, y: 400, w: 40, h: 360 },
+                { x: 3100, y: 400, w: 40, h: 360 },
                 { x: 2950, y: 240, w: 100, h: 20 },
-                // Hidden path above (requires double jump from ledge)
                 { x: 2750, y: 140, w: 80, h: 20 },
-                // Spikes at bottom of shaft (hazard — don't fall)
-                // Path continues right after shaft
                 { x: 3300, y: 520, w: 140, h: 20 },
                 { x: 3540, y: 440, w: 140, h: 20 },
               ], hazards: [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
+              ], loreObjects: [
+                // Hidden lore at top of shaft — reward for wall jump
+                { id: 'lore_s3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
               ]},
               // Section 4: COMBAT ROOM B — pillars + elevated center
               // Moment 6: Emergency lights reveal assembly hall
               { id: 4, nameKey: 'section.4.name', x: 3840, enemies: ['spider', 'spider', 'heavy'], platforms: [
-                // Tall pillars (also serve as wall jump surfaces)
                 { x: 4240, y: 460, w: 40, h: 220 },
                 { x: 4680, y: 460, w: 40, h: 220 },
-                // Center platform
                 { x: 4440, y: 400, w: 100, h: 20 },
-                // Side ledges
                 { x: 4040, y: 480, w: 80, h: 20 },
                 { x: 4900, y: 480, w: 80, h: 20 },
-                // Upper hidden ledge (wall jump from pillar)
                 { x: 4360, y: 260, w: 60, h: 20 },
+              ], loreObjects: [
+                // Terminal in the assembly hall — production logs
+                { id: 'lore_s4_terminal', type: 'terminal', x: 4100, y: 580, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
+                // Corpse on upper hidden ledge — reward for wall jump
+                { id: 'lore_s4_corpse', type: 'corpse', x: 4380, y: 240, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
+              ], landmarks: [
+                // Landmark 2: Assembly line with half-built mechs
+                { id: 'lm_s4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 200, h: 80, color: 0x2a3040 },
               ]},
               // Section 5: CHECKPOINT — safe room
               // Moment 7: Guardian guarding an open door to nothing
               { id: 5, nameKey: 'section.5.name', x: 5120, enemies: [], platforms: [
-                // Safe platform
                 { x: 5360, y: 560, w: 140, h: 20 },
-                // Elevated platform (vantage point)
                 { x: 5700, y: 420, w: 120, h: 20 },
-                // Decorative pillar
                 { x: 6000, y: 500, w: 40, h: 180 },
+              ], loreObjects: [
+                // Echo — PA system still looping after 1000 years
+                { id: 'lore_s5_echo', type: 'echo', x: 5600, y: 580, titleKey: 'lore.s5.echo.title', textKey: 'lore.s5.echo.text' },
+                // Terminal — last orders
+                { id: 'lore_s5_terminal', type: 'terminal', x: 6100, y: 580, titleKey: 'lore.s5.terminal.title', textKey: 'lore.s5.terminal.text' },
               ]},
               // Section 6: BOSS ARENA — Moment 9: Atlas kneels
               { id: 6, nameKey: 'section.6.name', x: 6400, enemies: [], bossId: 'guardian_ax09', platforms: [
-                // Arena walls (prevent retreat + serve as wall jump surfaces)
                 { x: 6480, y: 440, w: 40, h: 240 },
                 { x: 7600, y: 440, w: 40, h: 240 },
-                // Small cover platforms
                 { x: 6800, y: 520, w: 80, h: 20 },
                 { x: 7280, y: 520, w: 80, h: 20 },
+              ], loreObjects: [
+                // Corpse near boss arena — last defender
+                { id: 'lore_s6_corpse', type: 'corpse', x: 6550, y: 580, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
+                // Terminal — Atlas deployment log
+                { id: 'lore_s6_terminal', type: 'terminal', x: 7450, y: 580, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
+              ], landmarks: [
+                // Landmark 3: Boss arena door frame (massive)
+                { id: 'lm_s6_door', type: 'tower', x: 6440, y: 300, w: 60, h: 400, color: 0x3a3040 },
               ]},
             ],
           },

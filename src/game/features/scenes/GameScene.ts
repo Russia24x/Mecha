@@ -93,6 +93,7 @@ export class GameScene extends Phaser.Scene {
   private hud: HUDUI | null = null;
   private dialogueUI!: DialogueUI;
   private pauseMenuUI!: PauseMenuUI;
+  private lorePanel: Phaser.GameObjects.Container | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -279,7 +280,10 @@ export class GameScene extends Phaser.Scene {
       }
       if (!this.paused) {
         if (input.interactPressed) this.tryInteract();
-        this.updatePlay(deltaMs);
+        // Freeze game while lore panel is open
+        if (!this.lorePanel) {
+          this.updatePlay(deltaMs);
+        }
       } else {
         // Paused — handle pause menu navigation
         this.pauseMenuUI.handleNavigation();
@@ -741,6 +745,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tryInteract(): void {
+    // Close lore panel if open
+    if (this.lorePanel) {
+      this.lorePanel.destroy();
+      this.lorePanel = null;
+      return;
+    }
     const area = WorldSystem.getCurrentArea();
     if (!area) return;
     const npcs = NPCSystem.getNPCsInArea(area.id);
@@ -754,6 +764,55 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
+    // Check nearby Lore Objects
+    if (this.loadedArea) {
+      for (const loreObj of this.loadedArea.loreObjects) {
+        if (!loreObj || !loreObj.active) continue;
+        const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, loreObj.x, loreObj.y);
+        if (dist < 70) {
+          this.showLorePanel(loreObj.getData('loreTitle') as string, loreObj.getData('loreText') as string);
+          return;
+        }
+      }
+    }
+  }
+
+  private showLorePanel(titleKey: string, textKey: string): void {
+    if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
+    const panel = this.add.container(0, 0).setDepth(280).setScrollFactor(0);
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.85);
+    overlay.setInteractive();
+    panel.add(overlay);
+    const px = w / 2, py = h / 2;
+    const pw = 600, ph = 300;
+    const bg = this.add.rectangle(px, py, pw, ph, 0x0a0d14, 0.95);
+    bg.setStrokeStyle(2, 0xffc040, 0.6);
+    panel.add(bg);
+    // Corner accents
+    const cs = 12;
+    panel.add(this.add.polygon(px - pw / 2, py - ph / 2, [0, 0, cs, 0, 0, cs], 0xffc040, 0.6));
+    panel.add(this.add.polygon(px + pw / 2, py - ph / 2, [0, 0, -cs, 0, 0, cs], 0xffc040, 0.6));
+    panel.add(this.add.polygon(px - pw / 2, py + ph / 2, [0, 0, cs, 0, 0, -cs], 0xffc040, 0.6));
+    panel.add(this.add.polygon(px + pw / 2, py + ph / 2, [0, 0, -cs, 0, 0, -cs], 0xffc040, 0.6));
+    panel.add(this.add.text(px, py - ph / 2 + 30, t(titleKey), {
+      fontFamily: 'monospace', fontSize: '16px', color: '#ffc040', stroke: '#000', strokeThickness: 4, letterSpacing: 2,
+    }).setOrigin(0.5));
+    panel.add(this.add.rectangle(px, py - ph / 2 + 55, pw - 40, 1, 0x3a3040, 0.7));
+    panel.add(this.add.text(px, py + 10, t(textKey), {
+      fontFamily: 'monospace', fontSize: '13px', color: '#cfd6e0', lineSpacing: 6,
+      wordWrap: { width: pw - 60 }, align: 'center',
+    }).setOrigin(0.5));
+    panel.add(this.add.text(px, py + ph / 2 - 25, '▲ PRESS E OR CLICK TO CLOSE', {
+      fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 2,
+    }).setOrigin(0.5));
+    const closePanel = () => {
+      if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
+    };
+    overlay.on('pointerdown', closePanel);
+    this.time.delayedCall(10000, closePanel);
+    this.lorePanel = panel;
+    AudioSystem.play('uiClick');
   }
 
   private updatePlay(deltaMs: number): void {
@@ -797,6 +856,7 @@ export class GameScene extends Phaser.Scene {
 
   private cleanupPlay(): void {
     this.matter.world.off('collisionstart', this.onCollisionStart, this);
+    if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
     this.projectiles.forEach(p => p.kill());
     this.projectiles = [];
     this.player?.destroy();

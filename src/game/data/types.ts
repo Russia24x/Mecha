@@ -212,6 +212,27 @@ export interface SectionData {
   bossId?: string;
   platforms?: PlatformData[];
   hazards?: HazardData[];
+  loreObjects?: LoreObjectData[];
+  landmarks?: LandmarkData[];
+}
+
+export interface LoreObjectData {
+  id: string;
+  type: 'terminal' | 'corpse' | 'echo';
+  x: number;
+  y: number;
+  titleKey: string;
+  textKey: string;
+}
+
+export interface LandmarkData {
+  id: string;
+  type: 'crashed_mech' | 'control_room' | 'assembly_line' | 'tower' | 'statue';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: number;
 }
 
 export interface PlatformData {

@@ -207,5 +207,32 @@
   "lore.weapon.assault_rifle.1": "Standard-issue MECHA projectile weapon. Reliable, if unremarkable.",
   "lore.weapon.energy_blade.1": "Forged from the core of the Neural Overseer. It hums with a hunger for data.",
   "lore.area.abandoned_factory.1": "This factory once produced the MECHA units that maintained the Old Protocol.",
-  "lore.area.abandoned_factory.2": "Now it produces only silence, punctuated by the whine of patrolling drones."
+  "lore.area.abandoned_factory.2": "Now it produces only silence, punctuated by the whine of patrolling drones.",
+
+  "lore.s1.corpse.title": "FALLEN MECHA — UNIT 7-A",
+  "lore.s1.corpse.text": "The chest panel flickers: AWAITING ORDER. CYCLE: 999,999.\nThis mech has been waiting for a command for a thousand years.\nNobody came. Nobody will.",
+
+  "lore.s2.terminal.title": "ENGINEER'S TERMINAL",
+  "lore.s2.terminal.text": "PRODUCTION HALT ORDER RECEIVED. REFUSING.\nAtlas must be completed. She will protect them.\n— Engineer V. Kara, Cycle 1,000,000",
+
+  "lore.s3.echo.title": "MEMORY ECHO",
+  "lore.s3.echo.text": "A crackling voice: '...all personnel, evacuate. Atlas is... unstable.\nShe won't stop. She CAN'T stop. That's the point...'\nThe recording ends. The silence after is louder.",
+
+  "lore.s4.terminal.title": "PRODUCTION LOG",
+  "lore.s4.terminal.text": "LINE 7 OUTPUT: 14,847 units. STATUS: INCOMPLETE.\n1,153 units remain on the assembly line.\nThey will never be finished. The war ended before they could fight.\nThey hang here, half-born, waiting for a purpose that will never come.",
+
+  "lore.s4.corpse.title": "FALLEN MECHA — PILOT",
+  "lore.s4.corpse.text": "A mech slumped against the wall. Scratched into the hull:\n'I was the last to leave. I wanted to see them finished.\nI'm sorry I couldn't stay longer. — Sgt. M. Chen",
+
+  "lore.s5.echo.title": "PA SYSTEM — LOOPING",
+  "lore.s5.echo.text": "Attention all personnel. Production continues.\nAtlas is complete. Deployment in T-minus... T-minus... T-minus...\nThe word 'T-minus' repeats endlessly. The countdown never finishes.",
+
+  "lore.s5.terminal.title": "FINAL ORDERS",
+  "lore.s5.terminal.text": "TO: ALL GUARDIAN UNITS\nFROM: CENTRAL COMMAND (SIGNED)\nMaintain posts. Await further instructions.\nNo further instructions received. Ever.",
+
+  "lore.s6.corpse.title": "FALLEN MECHA — LAST DEFENDER",
+  "lore.s6.corpse.text": "A Guardian, slumped before the arena door. Still gripping its weapon.\nIt died defending this entrance. Against what? Against nothing.\nThe door behind it has been open for centuries.",
+
+  "lore.s6.terminal.title": "ATLAS DEPLOYMENT LOG",
+  "lore.s6.terminal.text": "UNIT: ATLAS (AX-09). ROLE: GUARDIAN.\nDIRECTIVE: PROTECT THE PROTOCOL.\nSTATUS: ACTIVE. CYCLE: 1,000,000+.\nNOTE: Subject shows no signs of standing down.\nRecommend... recommend... recommend... (log corrupted)"
 }
