@@ -351,4 +351,5 @@ export type GameEvent =
   | 'DIALOGUE_START'
   | 'DIALOGUE_END'
   | 'AREA_ENTER'
-  | 'ABILITY_UNLOCKED';
+  | 'ABILITY_UNLOCKED'
+  | 'INPUT_SCHEME_CHANGED';

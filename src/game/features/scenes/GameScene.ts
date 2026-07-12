@@ -55,6 +55,7 @@ import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
 import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
 import { GamepadManager } from '../../shared/GamepadManager';
+import { InputSchemeManager } from '../../systems/InputSchemeManager';
 import type { EnemyTypeId } from '../../data/types';
 
 type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
@@ -277,6 +278,7 @@ export class GameScene extends Phaser.Scene {
 
   update(_time: number, deltaMs: number): void {
     InputSystem.update();
+    InputSchemeManager.update();  // dynamic scheme detection (KB / Xbox / PS)
     const input = InputSystem.getState();
 
     // *** Overlay input has highest priority — B/ESC closes, gamepad navigates ***
@@ -485,15 +487,18 @@ export class GameScene extends Phaser.Scene {
     c.add(bg);
 
     // === Top bar: Title + Player stats ===
-    c.add(this.add.text(30, 20, isFa ? 'انتخاب ماموریت' : 'MISSION SELECT', {
+    c.add(this.add.text(30, 20, isFa ? 'انتخاب ماموریت' : 'MISSION SELECT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '18px', color: '#39d0d8',
-    }).setDepth(1));
+    })).setDepth(1));
 
     const save = SaveSystem.getPlayer();
     const xpNeeded = ExperienceSystem.xpForLevel(save.level);
-    c.add(this.add.text(w - 30, 20, `LV.${save.level}  ${save.xp}/${xpNeeded} XP  |  SP: ${save.skillPoints}  |  Kills: ${save.totalKills}`, {
+    const statsLine = isFa
+      ? `سطح ${save.level}  |  ${save.xp}/${xpNeeded} XP  |  مهارت: ${save.skillPoints}  |  کشتار: ${save.totalKills}`
+      : `LV.${save.level}  ${save.xp}/${xpNeeded} XP  |  SP: ${save.skillPoints}  |  Kills: ${save.totalKills}`;
+    c.add(this.add.text(w - 30, 20, statsLine, fixTextStyle({
       fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
-    }).setOrigin(1, 0).setDepth(1));
+    })).setOrigin(1, 0).setDepth(1));
 
     c.add(this.add.rectangle(w / 2, 50, w - 60, 1, 0x1a2030, 0.6).setDepth(1));
 
@@ -535,19 +540,19 @@ export class GameScene extends Phaser.Scene {
       previewBg.setDepth(2);
       c.add(previewBg);
 
-      const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), {
+      const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px',
         color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
-      }).setOrigin(0.5).setDepth(3);
+      })).setOrigin(0.5).setDepth(3);
       c.add(nameText);
 
       let status = '';
       if (area.isCurrent) status = '◆ ' + L('CURRENT', 'فعلی');
       else if (area.bossDefeated) status = '★ ' + L('CLEARED', 'تکمیل شده');
       else if (area.hasBoss && area.unlocked) status = '⚔ ' + L('BOSS', 'باس');
-      c.add(this.add.text(x, cardY + 62, status, {
+      c.add(this.add.text(x, cardY + 62, status, fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px', color: '#3a4350',
-      }).setOrigin(0.5).setDepth(3));
+      })).setOrigin(0.5).setDepth(3));
 
       // Enter button — registered as focusable for gamepad nav
       if (area.unlocked) {
@@ -588,46 +593,34 @@ export class GameScene extends Phaser.Scene {
     const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.92).setDepth(250);
     c.add(overlay);
 
-    // Gamepad-aware: pick the right key bindings to display
-    const gp = GamepadManager.isAvailable();
-    const header = gp
-      ? 'HOW TO PLAY  ·  GAMEPAD'
-      : 'HOW TO PLAY  ·  KEYBOARD';
-    const lines = gp
-      ? [
-          header, '',
-          'LEFT STICK        →   MOVE',
-          'A                         →   JUMP',
-          'B                         →   DASH',
-          'X                         →   FIRE',
-          'Y                         →   MELEE',
-          'LB / RB              →   SWITCH WEAPONS',
-          'A (near NPC)     →   INTERACT',
-          'START                  →   PAUSE',
-          'BACK                    →   BACK',
-          '', 'Press ENTER / A to go back',
-        ]
-      : [
-          header, '',
-          'WASD / ARROWS    →   MOVE',
-          'SPACE                   →   JUMP',
-          'SHIFT                   →   DASH',
-          'J                           →   FIRE',
-          'K                           →   MELEE',
-          '1-4 / Q-E              →   SWITCH WEAPONS',
-          'E                           →   INTERACT',
-          'ESC                       →   PAUSE',
-          '', 'Press ENTER / A to go back',
-        ];
+    // Dynamic: pull labels from InputSchemeManager (auto-adapts to KB / Xbox / PS)
+    const scheme = InputSchemeManager.getActiveScheme();
+    const schemeName = scheme === 'keyboard' ? 'KEYBOARD'
+      : scheme === 'playstation' ? 'PLAYSTATION'
+      : scheme === 'xbox' ? 'XBOX'
+      : 'GAMEPAD';
+    const L = (a: 'move'|'jump'|'dash'|'fire'|'melee'|'interact'|'pause'|'back'|'weaponNext'|'weaponPrev') => InputSchemeManager.getLabel(a);
 
-    c.add(this.add.text(w / 2, h / 2 - 24, lines, {
+    const lines = [
+      `HOW TO PLAY  ·  ${schemeName}`, '',
+      `${L('move').padEnd(16)} →   MOVE`,
+      `${L('jump').padEnd(16)} →   JUMP`,
+      `${L('dash').padEnd(16)} →   DASH`,
+      `${L('fire').padEnd(16)} →   FIRE`,
+      `${L('melee').padEnd(16)} →   MELEE`,
+      `${L('weaponPrev')} / ${L('weaponNext').padEnd(10)} →   SWITCH WEAPONS`,
+      `${L('interact').padEnd(16)} →   INTERACT`,
+      `${L('pause').padEnd(16)} →   PAUSE`,
+      '', `Press ${L('jump')} to go back`,
+    ];
+
+    c.add(this.add.text(w / 2, h / 2 - 24, lines, fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', align: 'center', lineSpacing: 6,
-    }).setOrigin(0.5).setDepth(251));
-    c.add(this.add.text(w / 2, h * 0.18, 'Press any key to switch input mode — icon updates live', {
+    })).setOrigin(0.5).setDepth(251));
+    c.add(this.add.text(w / 2, h * 0.18, 'Switch input device — button labels update automatically', {
       fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 1,
     }).setOrigin(0.5).setDepth(251));
 
-    // Allow live re-render when gamepad connects/disconnects while the screen is open.
     const backHandler = () => { this.setState('menu'); window.removeEventListener('keydown', backHandler); };
     setTimeout(() => window.addEventListener('keydown', backHandler), 100);
   }
@@ -725,10 +718,10 @@ export class GameScene extends Phaser.Scene {
       this.npcVisuals.set(npc.id, visual);
 
       // Name label above NPC (faded amber, only visible when near)
-      const label = this.add.text(npc.x, npc.y - 40, t(`npc.${npc.id}.name`), {
+      const label = this.add.text(npc.x, npc.y - 40, t(`npc.${npc.id}.name`), fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: '#ffc040',
         stroke: '#000', strokeThickness: 3, letterSpacing: 2,
-      }).setOrigin(0.5).setAlpha(0).setDepth(15);
+      })).setOrigin(0.5).setAlpha(0).setDepth(15);
       this.npcLabels.set(npc.id, label);
       this.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1 });
       // Note: NPC circle light removed per user feedback — NPCs are now visible
@@ -775,10 +768,10 @@ export class GameScene extends Phaser.Scene {
       }
       this.npcInteractionPrompt.setPosition(nearestX, nearestY);
       this.npcInteractionPrompt.setVisible(true);
-      // Update label text based on kind
+      // Update label text based on kind + active input scheme
       const txt = this.npcInteractionPrompt.getAt(1) as Phaser.GameObjects.Text;
       if (txt && txt.active) {
-        const key = GamepadManager.isAvailable() ? 'A' : 'E';
+        const key = InputSchemeManager.getLabel('interact');
         const action = nearestKind === 'npc'
           ? (getLocale() === 'fa' ? 'صحبت' : 'TALK')
           : (getLocale() === 'fa' ? 'بررسی' : 'EXAMINE');
@@ -789,16 +782,16 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Create a floating "Press E / A" prompt (gamepad-aware, Persian-aware). */
+  /** Create a floating interaction prompt (dynamic scheme, Persian-aware). */
   private createInteractionPrompt(): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0).setDepth(16);
     const bg = this.add.rectangle(0, 0, 90, 22, 0x0a0d14, 0.92);
     bg.setStrokeStyle(1, 0xffc040, 0.8);
     c.add(bg);
-    const key = GamepadManager.isAvailable() ? 'A' : 'E';
+    const key = InputSchemeManager.getLabel('interact');
     const action = getLocale() === 'fa' ? 'صحبت' : 'TALK';
     const txt = this.add.text(0, 0, `[${key}] ${action}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '11px', color: '#ffc040', stroke: '#000', strokeThickness: 2, letterSpacing: 1,
+      fontFamily: 'monospace', fontSize: '11px', color: '#ffc040', stroke: '#000', strokeThickness: 2,
     })).setOrigin(0.5);
     c.add(txt);
     this.tweens.add({ targets: c, y: '-=4', duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
@@ -897,9 +890,9 @@ export class GameScene extends Phaser.Scene {
     // Name
     const bossData = BossEntity.getBossData ? BossEntity.getBossData(bossId) : null;
     const bossName = bossData ? t(bossData.nameKey) : 'BOSS';
-    this.bossNameText = this.add.text(x, y - 18, bossName, {
+    this.bossNameText = this.add.text(x, y - 18, bossName, fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: '#ff6080', stroke: '#000', strokeThickness: 3, letterSpacing: 3,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     container.add(this.bossNameText);
     // Fade in
     container.setAlpha(0);
@@ -1384,9 +1377,9 @@ export class GameScene extends Phaser.Scene {
       bg.on('pointerout', () => this.updateMenuFocus());
       bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
     }
-    const textEl = this.add.text(x, y, label, {
+    const textEl = this.add.text(x, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '15px', color: disabled ? '#0a1018' : '#5a6470',
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.stateContainer!.add([bg, textEl]);
     if (!disabled) {
       this.menuButtons.push({ bg, text: textEl, onSelect: onClick });
@@ -1401,9 +1394,9 @@ export class GameScene extends Phaser.Scene {
     bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
     bg.on('pointerout', () => this.updateMenuFocus());
     bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const textEl = this.add.text(x, y, label, {
+    const textEl = this.add.text(x, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.stateContainer!.add([bg, textEl]);
     this.menuButtons.push({ bg, text: textEl, onSelect: onClick });
   }

@@ -79,6 +79,7 @@ export class PlayerEntity {
   private groundedLastFrame = true;
   private jumpAnticipationUntil = 0;
   private lastThrusterEmit = 0;
+  private lastTier = -1;  // visual upgrade tier (changes with level)
 
   constructor(
     scene: Phaser.Scene,
@@ -470,7 +471,16 @@ export class PlayerEntity {
     this.lastFireAt = now;
     const from = this.position;
     const aimDir = this.getAimDirection();
-    const muzzle = new Phaser.Math.Vector2(from.x + aimDir.x * 30, from.y - 6 + aimDir.y * 30);
+    // Muzzle position: follow the gun barrel direction.
+    // Gun origin is at player center + y offset (-10 for shoulder height).
+    // Barrel is ~28px long, so muzzle is 34px from center in aim direction.
+    // Using aimDir * distance ensures bullets always spawn at the gun muzzle
+    // regardless of container flip (facing) or rotation.
+    const muzzleDist = 34;
+    const muzzle = new Phaser.Math.Vector2(
+      from.x + aimDir.x * muzzleDist,
+      from.y - 10 + aimDir.y * muzzleDist
+    );
     AudioSystem.play('fire');
 
     // Hitscan weapons (railgun, laser)
@@ -619,6 +629,17 @@ export class PlayerEntity {
     const dashBoost = isDashing ? 0.4 : 0;
     const pulseBrightness = 0.4 + Math.sin(this.animTime / 200) * 0.15 + dashBoost;
     this.visual.setCorePulse(Math.min(1, pulseBrightness * (0.5 + energyPct * 0.5)));
+
+    // ── Visual tier upgrade — mech evolves as player levels up ──
+    // Tier 0 (Lv1-4): base, Tier 1 (Lv5-9): brighter core, Tier 2 (Lv10-14): shoulder cannons, Tier 3 (Lv15+): crest + big thrusters
+    if (this.visual.setTier) {
+      const level = SaveSystem.getPlayer().level;
+      const tier = level >= 15 ? 3 : level >= 10 ? 2 : level >= 5 ? 1 : 0;
+      if (tier !== this.lastTier) {
+        this.visual.setTier(tier);
+        this.lastTier = tier;
+      }
+    }
 
     // ── Thruster VFX ──
     // Intensity 0..1 based on: jumping (full), dashing (full), falling fast (medium), grounded (0)

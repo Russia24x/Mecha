@@ -14,7 +14,7 @@
  */
 import Phaser from 'phaser';
 import { COLORS, GAME } from '../../shared/Constants';
-import { t } from '../../systems/LocalizationSystem';
+import { t, fixTextStyle } from '../../systems/LocalizationSystem';
 import { ExperienceSystem } from '../../systems/ExperienceSystem';
 import { getWeapon } from '../../data/weapons/weapons';
 import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
@@ -49,35 +49,35 @@ export class HUDUI {
     this.container.add(addCornerBrackets(scene, 20 + 180, 20 + 32, 360, 64, THEME.CYAN, 6, 0.5));
 
     // HULL label (was HP — Mecha terminology)
-    this.container.add(scene.add.text(30, 26, 'HULL', {
+    this.container.add(scene.add.text(30, 26, 'HULL', fixTextStyle({
       fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 2,
-    }));
+    })));
     // Hull bar
     const hBg = scene.add.rectangle(30, 42, 280, 10, THEME.BG_DARK, 1);
     hBg.setOrigin(0, 0.5).setStrokeStyle(1, THEME.STROKE_DIM, 1);
     this.healthBarFg = scene.add.rectangle(31, 42, 278, 8, COLORS.HEALTH).setOrigin(0, 0.5);
-    this.healthText = scene.add.text(320, 42, '150', {
+    this.healthText = scene.add.text(320, 42, '150', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_GREEN, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add([hBg, this.healthBarFg, this.healthText]);
 
     // CORE label (was EN)
-    this.container.add(scene.add.text(30, 54, 'CORE', {
+    this.container.add(scene.add.text(30, 54, 'CORE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 2,
-    }));
+    })));
     // Core bar
     const eBg = scene.add.rectangle(30, 68, 280, 8, THEME.BG_DARK, 1);
     eBg.setOrigin(0, 0.5).setStrokeStyle(1, THEME.STROKE_DIM, 1);
     this.energyBarFg = scene.add.rectangle(31, 68, 278, 6, COLORS.ENERGY).setOrigin(0, 0.5);
-    this.energyText = scene.add.text(320, 68, '100', {
+    this.energyText = scene.add.text(320, 68, '100', fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: '#4090ff', stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add([eBg, this.energyBarFg, this.energyText]);
 
     // === CENTER: Sector name ===
-    this.sectionText = scene.add.text(w / 2, 30, t('section.1.name'), {
+    this.sectionText = scene.add.text(w / 2, 30, t('section.1.name'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_MED, letterSpacing: 3,
-    }).setOrigin(0.5, 0);
+    })).setOrigin(0.5, 0);
     this.container.add(this.sectionText);
     // Sector underline with circuit dots
     this.container.add(scene.add.rectangle(w / 2 - 80, 48, 160, 1, THEME.STROKE_MED, 0.6).setOrigin(0, 0.5));
@@ -98,15 +98,15 @@ export class HUDUI {
     this.container.add(this.weaponIcon);
 
     // Weapon name
-    this.weaponText = scene.add.text(w - 355, 42, 'ASSAULT RIFLE +1', {
+    this.weaponText = scene.add.text(w - 355, 42, 'ASSAULT RIFLE +1', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add(this.weaponText);
 
     // Level + XP
-    this.levelText = scene.add.text(w - 370, 62, 'LV.1  0/100  ◆0', {
+    this.levelText = scene.add.text(w - 370, 62, 'LV.1  0/100  ◆0', fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_GREEN, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add(this.levelText);
 
     // XP bar
@@ -122,9 +122,9 @@ export class HUDUI {
     this.container.add(this.lowHpVignette);
 
     // === Checkpoint toast ===
-    this.checkpointText = scene.add.text(w / 2, h - 60, '', {
+    this.checkpointText = scene.add.text(w / 2, h - 60, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3, letterSpacing: 2,
-    }).setOrigin(0.5, 0.5);
+    })).setOrigin(0.5, 0.5);
     this.checkpointText.setAlpha(0);
     this.container.add(this.checkpointText);
 

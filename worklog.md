@@ -609,3 +609,34 @@ Stage Summary:
 - TypeScript: clean. Next.js build: success.
 - Visual feel: brighter world, no floating lamp circles, restored old player walk + gun rotation, Persian text now renders with proper letter joining, dialogue/lore readable over any backdrop, factory platforms look like industrial machinery (not flat rectangles), victory returns to hub, all interactables show floating prompts.
 - Ready for Phase 3: combat depth (animation commitment, stagger, death penalty).
+
+---
+Task ID: visual-fixes-round-3
+Agent: main
+Task: Fix bullet spawn from gun muzzle, dynamic input scheme (PS/Xbox/KB auto-detect), Persian text fix across ALL UIs, player visual tier evolution, factory environmental hazards (sparks/fire/steam).
+
+Work Log:
+- Fixed bullet spawn position in PlayerEntity.tryFire: now uses `aimDir * 34` from player center (with y offset -10 for shoulder height). This ensures bullets always spawn at the gun muzzle regardless of container flip or rotation. Previously the muzzle was computed as `from.x + aimDir.x * 30, from.y - 6 + aimDir.y * 30` which didn't account for the gun arm's rotation.
+- Fixed gun arm rotation when facing left: MechaSpriteFactory.setGunAngle now compensates for container flip by applying `Math.PI - angle` when facing == -1. Without this, the gun visually pointed in the wrong direction when the player faced left (container scale -1 mirrors the rotation).
+- Added player visual tier evolution: MechVisualHandle now has optional `setTier(tier)`. PlayerEntity.updateAnimation computes tier from level (0=Lv1-4, 1=Lv5-9, 2=Lv10-14, 3=Lv15+) and calls setTier on change. Tier 1: brighter core. Tier 2: dual shoulder cannons. Tier 3: head crest antenna + larger thrusters. Player mech now visibly evolves as the player levels up.
+- Created InputSchemeManager (src/game/systems/InputSchemeManager.ts): dynamic input scheme detection. Polls navigator.getGamepads() every 200ms, inspects gamepad.id for Sony/DualShock/PS4/PS5 → PlayStation, Xbox/XInput/Microsoft → Xbox, else generic gamepad (Xbox layout fallback), no gamepad → keyboard. Exposes getActiveScheme(), getLabel(action), isGamepad(), isKeyboard(). Emits 'INPUT_SCHEME_CHANGED' on EventBus when scheme changes. PlayStation labels: CROSS/CIRCLE/SQUARE/TRIANGLE/R1/L1/OPTIONS. Xbox labels: A/B/X/Y/RB/LB/START. Keyboard labels: WASD/SPACE/SHIFT/J/K/E/ESC.
+- Rewrote ControlHintsUI v2.0: now event-driven via EventBus 'INPUT_SCHEME_CHANGED'. All 7 hint slots pull labels from InputSchemeManager.getLabel(action). When player switches from KB to gamepad (or Xbox to PS), ALL hint icons update automatically with a brief alpha flash. No per-frame polling needed.
+- Added InputSchemeManager.update() to GameScene.update() loop (200ms internal throttle).
+- Updated showHowToPlay: pulls all button labels from InputSchemeManager dynamically. Header shows active scheme name (KEYBOARD / XBOX / PLAYSTATION / GAMEPAD). Lines auto-adapt: MOVE/JUMP/DASH/FIRE/MELEE/WEAPONS/INTERACT/PAUSE all show correct label for active device.
+- Updated interaction prompt (createInteractionPrompt + updateNpcInteractionPrompt): uses InputSchemeManager.getLabel('interact') instead of hardcoded GamepadManager.isAvailable() ? 'A' : 'E'. Now shows CROSS on PS, A on Xbox, E on keyboard.
+- Applied fixTextStyle (Persian-aware font + letterSpacing 0) to ALL remaining UI text:
+  * HUD: HULL/CORE labels, health/energy text, section name, weapon text, level text, checkpoint toast
+  * Hub: MISSION SELECT title, stats line (translated to Persian), area card names, status text
+  * Menu: makeMenuBtn, makeHubCardBtn button labels
+  * NPC labels
+  * Boss name text
+  * Victory/Gameover screens
+- Added INPUT_SCHEME_CHANGED to GameEvent type union in types.ts.
+- Factory environmental hazards in AreaLoader: 25% chance of electrical sparks (broken wire with arcing blue-white lightning bolts + scattered spark particles, recurring every 1.5-4s), 15% chance of fire hazard (oil stain + 3 flickering flame triangles + glow halo + rising smoke particles), 20% chance of steam vent (hissing pipe with recurring steam puffs). All hazards have their timers stored on the visual object and cleaned up in unload() to prevent leaks.
+- Updated AreaLoader.unload() to clean up __sparkTimer, __smokeTimer, __steamTimer before destroying visuals.
+
+Stage Summary:
+- Files created: InputSchemeManager.ts (175 lines)
+- Files modified: MechaSpriteFactory.ts (setGunAngle flip compensation + setTier), PlayerEntity.ts (muzzle fix + tier calls), GameScene.ts (InputSchemeManager.update + fixTextStyle everywhere + showHowToPlay dynamic), ControlHintsUI.ts (v2.0 event-driven), HUDUI.ts (fixTextStyle on all text), AreaLoader.ts (3 hazard methods + unload cleanup), types.ts (INPUT_SCHEME_CHANGED event), LocalizationSystem.ts (already had helpers from round 2)
+- TypeScript: clean. Next.js build: success.
+- Bullets now come from the gun muzzle. Gun rotates correctly in all directions regardless of facing. Player mech evolves visually with level (shoulder cannons at Lv10, crest at Lv15). Input scheme auto-detects PS4/PS5/Xbox/keyboard and all button labels update in real time. Persian text renders with proper letter joining across ALL UIs. Factory platforms now have electrical sparks, fire hazards, and steam vents for atmosphere.

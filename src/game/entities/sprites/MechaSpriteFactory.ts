@@ -40,8 +40,10 @@ export interface MechVisualHandle {
   destroy: () => void;
   /** Optional: animate walking phase (player only). phase in radians (cumulative). */
   setWalkPhase?: (phase: number, isMoving: boolean, isJumping: boolean) => void;
-  /** Optional: rotate gun arm to follow aim direction (player only). Angle in radians. */
+  /** Optional: rotate gun arm to follow aim direction (player only). Angle in radians (world-space). */
   setGunAngle?: (angle: number) => void;
+  /** Optional: upgrade visual tier (player only). 0=base, 1+, 2+, 3+ */
+  setTier?: (tier: number) => void;
 }
 
 export class MechaSpriteFactory {
@@ -152,9 +154,17 @@ export class MechaSpriteFactory {
     scene.tweens.add({ targets: coreGlow, alpha: { from: 0.1, to: 0.25 }, scale: { from: 0.9, to: 1.1 }, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     scene.tweens.add({ targets: visor, alpha: { from: 0.6, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
 
+    // ── Tier-upgrade tracking (player visual evolves as skills unlock) ──
+    let currentFacing: 1 | -1 = 1;
+    let shoulderCannons: Phaser.GameObjects.Graphics | null = null;
+    let crestAntenna: Phaser.GameObjects.Graphics | null = null;
+
     return {
       container,
-      setFacing: (facing: 1 | -1) => { container.setScale(facing, 1); },
+      setFacing: (facing: 1 | -1) => {
+        currentFacing = facing;
+        container.setScale(facing, 1);
+      },
       setCorePulse: (brightness: number) => {
         core.setAlpha(0.6 + brightness * 0.4);
         coreGlow.setAlpha(0.1 + brightness * 0.2);
@@ -169,22 +179,63 @@ export class MechaSpriteFactory {
       // ── Restore old walking animation: leg swing via sine phase ──
       setWalkPhase: (phase: number, isMoving: boolean, isJumping: boolean) => {
         if (isJumping) {
-          // Tuck legs when airborne (old behavior)
           legL.setRotation(-20 * Math.PI / 180);
           legR.setRotation(20 * Math.PI / 180);
         } else if (isMoving) {
-          // Swing legs in opposite phase (old behavior)
           legL.setRotation(Math.sin(phase) * 12 * Math.PI / 180);
           legR.setRotation(Math.sin(phase + Math.PI) * 12 * Math.PI / 180);
         } else {
-          // Standing — legs neutral
           legL.setRotation(0);
           legR.setRotation(0);
         }
       },
-      // ── Restore old gun barrel rotation toward aim direction ──
+      // ── Gun barrel rotation toward aim direction (all-direction aim) ──
+      // Compensates for container flip: when facing left, mirror the angle
+      // so the gun visually points in the correct world-space direction.
       setGunAngle: (angle: number) => {
-        gunArm.setRotation(angle);
+        const effectiveAngle = currentFacing === -1 ? Math.PI - angle : angle;
+        gunArm.setRotation(effectiveAngle);
+      },
+      // ── Visual tier upgrades: more armor + thrusters as player levels up ──
+      setTier: (tier: number) => {
+        // Tier 0: base (no extras)
+        // Tier 1: shoulder pauldron upgrade + brighter core
+        // Tier 2: dual shoulder cannons + larger thrusters
+        // Tier 3: full heavy armor + crest antenna
+        if (tier >= 1) {
+          // Brighten core
+          core.setRadius(5);
+          coreGlow.setRadius(16);
+        }
+        if (tier >= 2) {
+          // Add shoulder cannons (if not already added)
+          if (!shoulderCannons) {
+            shoulderCannons = scene.add.graphics();
+            shoulderCannons.setDepth(6);
+            shoulderCannons.fillStyle(0x1a2030, 1);
+            shoulderCannons.fillRoundedRect(-22, -20, 6, 10, 1);  // left cannon
+            shoulderCannons.fillRoundedRect(16, -20, 6, 10, 1);   // right cannon
+            shoulderCannons.fillStyle(0x39d0d8, 0.5);
+            shoulderCannons.fillRect(-21, -19, 4, 1);
+            shoulderCannons.fillRect(17, -19, 4, 1);
+            container.add(shoulderCannons);
+          }
+        }
+        if (tier >= 3) {
+          // Head crest antenna (extra)
+          if (!crestAntenna) {
+            crestAntenna = scene.add.graphics();
+            crestAntenna.setDepth(9);
+            crestAntenna.lineStyle(1, 0xffc040, 0.8);
+            crestAntenna.beginPath();
+            crestAntenna.moveTo(0, -34); crestAntenna.lineTo(0, -40); crestAntenna.strokePath();
+            crestAntenna.fillStyle(0xffc040, 1); crestAntenna.fillCircle(0, -40, 1.5);
+            container.add(crestAntenna);
+          }
+          // Enlarge thrusters
+          thrusterL.setRadius(8);
+          thrusterR.setRadius(8);
+        }
       },
       destroy: () => {
         parts.forEach(p => { if (p && p.active) p.destroy(); });

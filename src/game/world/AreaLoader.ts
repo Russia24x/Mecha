@@ -158,6 +158,23 @@ export class AreaLoader {
     if (isWall && h > 150) {
       this.addWallDecorations(result, x, y, w, h);
     }
+
+    // ── Random environmental hazards (electrical sparks, fire, steam) ──
+    // These give the factory a lived-in, dangerous feel — not just empty platforms.
+    if (isFloor && w >= 100) {
+      // 25% chance of an electrical short (broken wire sparking)
+      if (Math.random() < 0.25) {
+        this.addElectricalSparks(result, x + (Math.random() - 0.5) * w * 0.6, y + h / 2 + 6);
+      }
+      // 15% chance of a small fire (oil leak ignited)
+      if (Math.random() < 0.15) {
+        this.addFireHazard(result, x + (Math.random() - 0.5) * w * 0.5, y + h / 2 - 2);
+      }
+      // 20% chance of a steam vent (hissing pipe)
+      if (Math.random() < 0.20) {
+        this.addSteamVent(result, x + (Math.random() - 0.5) * w * 0.6, y - h / 2 - 4);
+      }
+    }
   }
 
   /** Wide floor platform — the main walking surface. Looks like industrial metal grating. */
@@ -401,6 +418,180 @@ export class AreaLoader {
     result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
   }
 
+  /** Electrical short — broken wire with arcing blue-white sparks. */
+  private addElectricalSparks(result: LoadedArea, x: number, y: number): void {
+    // Broken wire stub
+    const wire = this.scene.add.graphics();
+    wire.setDepth(6);
+    wire.lineStyle(2, 0x2a2820, 0.8);
+    wire.beginPath();
+    wire.moveTo(x, y - 8);
+    wire.lineTo(x + 2, y);
+    wire.strokePath();
+    // Exposed copper end
+    wire.fillStyle(0xcc8030, 0.9);
+    wire.fillCircle(x + 2, y, 2);
+    result.visualRects.push(wire as unknown as Phaser.GameObjects.Rectangle);
+
+    // Arcing spark burst (recurring — every 2-4 seconds)
+    const sparkBurst = () => {
+      if (!wire.active) return;
+      // Main flash
+      const flash = this.scene.add.circle(x + 2, y, 4 + Math.random() * 3, 0xc0e0ff, 0.9);
+      flash.setBlendMode(Phaser.BlendModes.ADD);
+      flash.setDepth(7);
+      this.scene.tweens.add({
+        targets: flash, alpha: 0, scale: 2, duration: 100,
+        onComplete: () => flash.destroy(),
+      });
+      // Lightning bolt zig-zag (2-3 segments)
+      const bolt = this.scene.add.graphics();
+      bolt.setDepth(7);
+      bolt.lineStyle(1.5, 0xc0e0ff, 0.9);
+      bolt.beginPath();
+      bolt.moveTo(x + 2, y);
+      let bx = x + 2, by = y;
+      const segments = 2 + Math.floor(Math.random() * 2);
+      for (let s = 0; s < segments; s++) {
+        bx += (Math.random() - 0.5) * 12;
+        by += (Math.random() - 0.5) * 8;
+        bolt.lineTo(bx, by);
+      }
+      bolt.strokePath();
+      bolt.setBlendMode(Phaser.BlendModes.ADD);
+      this.scene.tweens.add({
+        targets: bolt, alpha: 0, duration: 80,
+        onComplete: () => bolt.destroy(),
+      });
+      // Scattered spark particles
+      for (let i = 0; i < 4; i++) {
+        const px = x + 2 + (Math.random() - 0.5) * 8;
+        const py = y + (Math.random() - 0.5) * 6;
+        const p = this.scene.add.circle(px, py, 1, 0xc0e0ff, 1);
+        p.setBlendMode(Phaser.BlendModes.ADD).setDepth(7);
+        this.scene.tweens.add({
+          targets: p,
+          x: px + (Math.random() - 0.5) * 20,
+          y: py + 4 + Math.random() * 8,
+          alpha: 0, duration: 300,
+          onComplete: () => p.destroy(),
+        });
+      }
+    };
+
+    // Schedule recurring sparks
+    const sparkTimer = this.scene.time.addEvent({
+      delay: 1500 + Math.random() * 2500,
+      loop: true,
+      callback: sparkBurst,
+    });
+    // Store the timer on the wire so it gets cleaned up when wire is destroyed
+    (wire as unknown as { __sparkTimer?: Phaser.Time.TimerEvent }).__sparkTimer = sparkTimer;
+    // Initial spark
+    this.scene.time.delayedCall(500 + Math.random() * 1000, sparkBurst);
+  }
+
+  /** Small fire hazard — oil leak that ignited. Flickering orange flames + smoke. */
+  private addFireHazard(result: LoadedArea, x: number, y: number): void {
+    // Oil stain on the ground
+    const oil = this.scene.add.ellipse(x, y + 2, 24, 6, 0x1a0a05, 0.8);
+    oil.setDepth(5);
+    result.visualRects.push(oil as unknown as Phaser.GameObjects.Rectangle);
+
+    // Flame cluster (3 overlapping flickering triangles)
+    const flames: Phaser.GameObjects.Triangle[] = [];
+    for (let i = 0; i < 3; i++) {
+      const fx = x + (i - 1) * 4;
+      const fy = y - 2;
+      const flameColor = i === 1 ? 0xff8030 : 0xffa040;  // center is hotter
+      const flame = this.scene.add.triangle(fx, fy, -3, 4, 3, 4, 0, -8 - Math.random() * 4, flameColor, 0.85);
+      flame.setBlendMode(Phaser.BlendModes.ADD);
+      flame.setDepth(6);
+      flames.push(flame);
+      result.visualRects.push(flame as unknown as Phaser.GameObjects.Rectangle);
+
+      // Flicker: scale + alpha oscillation
+      this.scene.tweens.add({
+        targets: flame,
+        scaleX: { from: 0.7, to: 1.2 },
+        scaleY: { from: 0.8, to: 1.3 },
+        alpha: { from: 0.5, to: 0.9 },
+        duration: 80 + Math.random() * 80,
+        yoyo: true, repeat: -1,
+        ease: 'Sine.inOut',
+      });
+    }
+
+    // Glow halo
+    const glow = this.scene.add.circle(x, y - 4, 20, 0xff6020, 0.15);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    glow.setDepth(5);
+    result.visualRects.push(glow as unknown as Phaser.GameObjects.Rectangle);
+    this.scene.tweens.add({
+      targets: glow, alpha: { from: 0.1, to: 0.2 }, scale: { from: 0.9, to: 1.1 },
+      duration: 200, yoyo: true, repeat: -1,
+    });
+
+    // Rising smoke particles (occasional)
+    const smokeTimer = this.scene.time.addEvent({
+      delay: 400 + Math.random() * 300,
+      loop: true,
+      callback: () => {
+        if (!oil.active) { smokeTimer.remove(); return; }
+        const smoke = this.scene.add.circle(x + (Math.random() - 0.5) * 10, y - 8, 3 + Math.random() * 2, 0x3a3a3a, 0.3);
+        smoke.setDepth(7);
+        this.scene.tweens.add({
+          targets: smoke,
+          y: y - 40 - Math.random() * 20,
+          x: x + (Math.random() - 0.5) * 20,
+          alpha: 0, scale: 2.5,
+          duration: 2000 + Math.random() * 1000,
+          onComplete: () => smoke.destroy(),
+        });
+      },
+    });
+    (oil as unknown as { __smokeTimer?: Phaser.Time.TimerEvent }).__smokeTimer = smokeTimer;
+  }
+
+  /** Steam vent — hissing pipe releasing white steam upward. */
+  private addSteamVent(result: LoadedArea, x: number, y: number): void {
+    // Pipe stub (horizontal, with crack)
+    const pipe = this.scene.add.graphics();
+    pipe.setDepth(5);
+    pipe.fillStyle(0x2a2820, 0.9);
+    pipe.fillRect(x - 12, y, 24, 6);
+    pipe.fillStyle(0x3a3830, 0.7);
+    pipe.fillRect(x - 12, y, 24, 1);
+    pipe.fillStyle(0x1a1814, 1);
+    pipe.fillRect(x - 2, y + 4, 4, 2);  // crack
+    result.visualRects.push(pipe as unknown as Phaser.GameObjects.Rectangle);
+
+    // Steam emission (recurring puffs)
+    const steamTimer = this.scene.time.addEvent({
+      delay: 200 + Math.random() * 200,
+      loop: true,
+      callback: () => {
+        if (!pipe.active) { steamTimer.remove(); return; }
+        const steam = this.scene.add.circle(
+          x + (Math.random() - 0.5) * 4,
+          y + 2,
+          2 + Math.random() * 2,
+          0xa0a0b0, 0.4,
+        );
+        steam.setDepth(6);
+        this.scene.tweens.add({
+          targets: steam,
+          y: y - 30 - Math.random() * 20,
+          x: x + (Math.random() - 0.5) * 30,
+          alpha: 0, scale: 3,
+          duration: 1200 + Math.random() * 800,
+          onComplete: () => steam.destroy(),
+        });
+      },
+    });
+    (pipe as unknown as { __steamTimer?: Phaser.Time.TimerEvent }).__steamTimer = steamTimer;
+  }
+
   /** Create an interactable lore object — dramatic visual, not just a rectangle */
   private createLoreObject(lore: LoreObjectData): Phaser.GameObjects.Container {
     const container = this.scene.add.container(lore.x, lore.y);
@@ -620,12 +811,20 @@ export class AreaLoader {
 
   /** Destroy all loaded area objects. */
   unload(loaded: LoadedArea): void {
+    // Clean up hazard timers (electrical sparks, fire smoke, steam) before destroying visuals
+    loaded.visualRects.forEach(v => {
+      if (!v) return;
+      const obj = v as unknown as { __sparkTimer?: Phaser.Time.TimerEvent; __smokeTimer?: Phaser.Time.TimerEvent; __steamTimer?: Phaser.Time.TimerEvent };
+      obj.__sparkTimer?.remove();
+      obj.__smokeTimer?.remove();
+      obj.__steamTimer?.remove();
+      if (v.active) v.destroy();
+    });
     loaded.solids.forEach(s => { if (s && s.active) s.destroy(); });
     loaded.sectionTriggers.forEach(t => { if (t && t.active) t.destroy(); });
     loaded.checkpointTriggers.forEach(t => { if (t && t.active) t.destroy(); });
     loaded.hazardTriggers.forEach(t => { if (t && t.active) t.destroy(); });
     loaded.bossEntryTrigger?.destroy();
-    loaded.visualRects.forEach(v => { if (v && v.active) v.destroy(); });
     loaded.loreObjects.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.landmarks.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.solids = [];

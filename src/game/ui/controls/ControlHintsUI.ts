@@ -1,48 +1,52 @@
 /**
- * MECHA: LAST PROTOCOL — ControlHintsUI v1.0
+ * MECHA: LAST PROTOCOL — ControlHintsUI v2.0
  *
- * Gamepad-aware control hint bar that auto-detects input mode and swaps
- * between keyboard (WASD/SPACE/J/K) and gamepad (A/B/X/Y/LB/RB) iconography.
+ * Dynamic control hint bar that auto-adapts to keyboard / Xbox / PlayStation.
+ * Pulls button labels from InputSchemeManager — when the player switches
+ * input devices, ALL hint icons update in real time without page reload.
  *
  * Behavior:
- *   - Polls GamepadManager.connected every frame
- *   - When gamepad connects/disconnects, smoothly swaps hint icons
- *   - Shows compact bottom-bar with: MOVE / JUMP / DASH / FIRE / MELEE / INTERACT
- *   - Auto-hides during dialogue / overlay / pause (visibility flag)
+ *   - Listens to 'INPUT_SCHEME_CHANGED' event from EventBus
+ *   - Shows compact bottom-bar with: MOVE / JUMP / DASH / FIRE / MELEE / INTERACT / PAUSE
+ *   - Each slot shows the correct button label for the active scheme:
+ *     Keyboard: WASD / SPACE / SHIFT / J / K / E / ESC
+ *     Xbox:     L-STICK / A / B / X / Y / A / START
+ *     PS:       L-STICK / CROSS / CIRCLE / SQUARE / TRIANGLE / CROSS / OPTIONS
+ *   - Auto-hides during dialogue / overlay / pause
+ *   - Brief alpha flash on scheme change to draw attention
  *
- * Visual style (per Theme.ts):
- *   - Dark translucent bar at bottom-center
- *   - Amber/cyan accent chips for each control
- *   - Monospace labels with letter-spacing
- *
- * Per Phaser 4 skill (input-keyboard-mouse-touch, game-object-components):
- *   - Render once, update only on input mode change (not every frame)
- *   - Use Container + ScrollFactor(0) for screen-fixed overlay
- *   - Listens to GamepadManager + InputSystem events
+ * Per Phaser 4 skill (input-keyboard-mouse-touch, events-system):
+ *   - EventBus subscription for scheme changes
+ *   - Render once, re-render labels only on scheme change
+ *   - Container + ScrollFactor(0) for screen-fixed overlay
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { THEME } from '../Theme';
-import { GamepadManager } from '../../shared/GamepadManager';
+import { InputSchemeManager, type GameAction } from '../../systems/InputSchemeManager';
+import { EventBus } from '../../systems/EventBus';
+import { fixTextStyle } from '../../systems/LocalizationSystem';
 
 interface HintSlot {
   keyIcon: Phaser.GameObjects.Text;
   label: Phaser.GameObjects.Text;
   bg: Phaser.GameObjects.Rectangle;
+  action: GameAction;
 }
 
 export class ControlHintsUI {
   private scene: Phaser.Scene;
   private container: Phaser.GameObjects.Container;
   private slots: HintSlot[] = [];
-  private lastGamepadConnected = false;
-  private visible = true;
+  private schemeChangeHandler: ((payload: unknown) => void) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.container = scene.add.container(0, 0).setDepth(180).setScrollFactor(0, 0, true);
     this.build();
-    this.lastGamepadConnected = GamepadManager.isAvailable();
+    // Listen for scheme changes → re-render labels
+    this.schemeChangeHandler = () => this.refreshIcons();
+    EventBus.on('INPUT_SCHEME_CHANGED', this.schemeChangeHandler);
   }
 
   private build(): void {
@@ -58,15 +62,15 @@ export class ControlHintsUI {
     const sep = this.scene.add.rectangle(w / 2, barY - 18, w - 100, 1, THEME.CYAN, 0.2);
     this.container.add(sep);
 
-    // Hint slots
-    const hints = [
-      { id: 'move',    kbKey: 'WASD',  gpKey: 'L-STICK', label: 'MOVE' },
-      { id: 'jump',    kbKey: 'SPACE', gpKey: 'A',       label: 'JUMP' },
-      { id: 'dash',    kbKey: 'SHIFT', gpKey: 'B',       label: 'DASH' },
-      { id: 'fire',    kbKey: 'J',     gpKey: 'X',       label: 'FIRE' },
-      { id: 'melee',   kbKey: 'K',     gpKey: 'Y',       label: 'MELEE' },
-      { id: 'interact',kbKey: 'E',     gpKey: 'A',       label: 'INTERACT' },
-      { id: 'pause',   kbKey: 'ESC',   gpKey: 'START',   label: 'PAUSE' },
+    // Hint slots — each tied to a GameAction
+    const hints: { action: GameAction; label: string }[] = [
+      { action: 'move',         label: 'MOVE' },
+      { action: 'jump',         label: 'JUMP' },
+      { action: 'dash',         label: 'DASH' },
+      { action: 'fire',         label: 'FIRE' },
+      { action: 'melee',        label: 'MELEE' },
+      { action: 'interact',     label: 'INTERACT' },
+      { action: 'pause',        label: 'PAUSE' },
     ];
 
     const slotW = 130;
@@ -77,65 +81,68 @@ export class ControlHintsUI {
       const x = startX + i * slotW;
 
       // Key chip (background pill)
-      const bg = this.scene.add.rectangle(x - 30, barY, 44, 20, 0x0d1218, 0.95);
+      const bg = this.scene.add.rectangle(x - 30, barY, 50, 20, 0x0d1218, 0.95);
       bg.setStrokeStyle(1, THEME.AMBER, 0.6);
       this.container.add(bg);
 
-      // Key text (will be swapped between KB / GP)
-      const keyIcon = this.scene.add.text(x - 30, barY, hint.kbKey, {
+      // Key text (will be swapped between KB / Xbox / PS labels)
+      const keyIcon = this.scene.add.text(x - 30, barY, '', fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_AMBER,
-        stroke: '#000', strokeThickness: 2, letterSpacing: 1,
-      }).setOrigin(0.5);
+        stroke: '#000', strokeThickness: 2,
+      })).setOrigin(0.5);
       this.container.add(keyIcon);
 
       // Label
-      const label = this.scene.add.text(x + 18, barY, hint.label, {
-        fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_MED, letterSpacing: 1,
-      }).setOrigin(0, 0.5);
+      const label = this.scene.add.text(x + 18, barY, hint.label, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_MED,
+      })).setOrigin(0, 0.5);
       this.container.add(label);
 
-      this.slots.push({ keyIcon, label, bg });
+      this.slots.push({ keyIcon, label, bg, action: hint.action });
     });
+
+    // Initial render
+    this.refreshIcons();
   }
 
-  /** Per-frame update — detect gamepad connect/disconnect and swap icons. */
-  update(): void {
-    const gpConnected = GamepadManager.isAvailable();
-    if (gpConnected !== this.lastGamepadConnected) {
-      this.lastGamepadConnected = gpConnected;
-      this.refreshIcons();
-      // Brief flash to draw attention to the swap
-      this.container.setAlpha(0.3);
-      this.scene.tweens.add({
-        targets: this.container, alpha: 1, duration: 250, ease: 'Sine.out',
-      });
-    }
-  }
-
-  /** Re-render all key icons based on current input mode. */
+  /** Re-render all key icons based on current input scheme. */
   private refreshIcons(): void {
-    const hints = this.lastGamepadConnected
-      ? ['L-STICK', 'A', 'B', 'X', 'Y', 'A', 'START']
-      : ['WASD', 'SPACE', 'SHIFT', 'J', 'K', 'E', 'ESC'];
-    const accentColor = this.lastGamepadConnected ? THEME.CYAN : THEME.AMBER;
-    this.slots.forEach((slot, i) => {
-      if (slot.keyIcon && slot.keyIcon.active) {
-        slot.keyIcon.setText(hints[i]);
-        slot.keyIcon.setColor(this.lastGamepadConnected ? THEME.TEXT_ACCENT : THEME.TEXT_AMBER);
-      }
+    const isGamepad = InputSchemeManager.isGamepad();
+    const accentColor = isGamepad ? THEME.CYAN : THEME.AMBER;
+    const textColor = isGamepad ? THEME.TEXT_ACCENT : THEME.TEXT_AMBER;
+
+    this.slots.forEach((slot) => {
+      if (!slot.keyIcon || !slot.keyIcon.active) return;
+      const label = InputSchemeManager.getLabel(slot.action);
+      slot.keyIcon.setText(label);
+      slot.keyIcon.setColor(textColor);
       if (slot.bg && slot.bg.active) {
         slot.bg.setStrokeStyle(1, accentColor, 0.6);
       }
     });
+
+    // Brief flash to draw attention to the swap
+    this.container.setAlpha(0.3);
+    this.scene.tweens.add({
+      targets: this.container, alpha: 1, duration: 250, ease: 'Sine.out',
+    });
+  }
+
+  /** Per-frame update stub. ControlHintsUI v2.0 is event-driven (no per-frame work needed). */
+  update(): void {
+    // No-op — labels update on 'INPUT_SCHEME_CHANGED' event, not per-frame.
   }
 
   /** Show/hide the hint bar (e.g., during dialogue, overlay, pause). */
   setVisible(v: boolean): void {
-    this.visible = v;
     this.container.setVisible(v);
   }
 
   destroy(): void {
+    if (this.schemeChangeHandler) {
+      EventBus.off('INPUT_SCHEME_CHANGED', this.schemeChangeHandler);
+      this.schemeChangeHandler = null;
+    }
     this.container.destroy();
     this.slots = [];
   }
