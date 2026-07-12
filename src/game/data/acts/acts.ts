@@ -60,6 +60,8 @@ export const ACTS: ActData[] = [
               ], loreObjects: [
                 // Hidden lore at top of shaft — reward for wall jump
                 { id: 'lore_s3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
+                // Secret reward: hidden terminal with upgrade material info
+                { id: 'lore_s3_secret', type: 'terminal', x: 2760, y: 100, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
               ]},
               // Section 4: COMBAT ROOM B — pillars + elevated center
               // Moment 6: Emergency lights reveal assembly hall

@@ -1035,6 +1035,14 @@ export class GameScene extends Phaser.Scene {
   private onEnemyKilled = (payload: unknown): void => {
     const data = payload as { id: string; x: number; y: number };
     if (data.x && data.y) this.particles.explosion(data.x, data.y, COLORS.ENEMY_DRONE, 0.6);
+    // Mini Boss (Elite) defeat → unlock Mag-Clamp Thrusters (wall slide + wall jump)
+    if (data.id && data.id.startsWith('elite-') && !this.player.hasAbility('wallJump')) {
+      SaveSystem.unlockAbility('wallJump');
+      this.player.refreshStats();
+      this.hud?.toast('◆ MAG-CLAMP THRUSTERS ONLINE');
+      AudioSystem.play('skillUnlock');
+      this.particles.screenFlash(0x39d0d8, 0.3, 400);
+    }
   };
 
   private onBossDied = (payload: unknown): void => {
@@ -1043,16 +1051,39 @@ export class GameScene extends Phaser.Scene {
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
     }
+    // Hide boss health bar
+    this.destroyBossHealthBar();
     // Restore factory ambient
     AudioSystem.startAmbient('factory');
-    // Wait for Atlas kneeling animation (2.2s), then transition to victory
-    // Don't fadeOut — let player see the kneel. Just delay then switch.
+    // Moment 10: Horizon view — camera pans up to show silhouette in fog
     this.scheduleDelayed(2500, () => {
-      // Quick fade before state change
-      this.cameras.main.fadeOut(400, 5, 7, 13);
-      this.scheduleDelayed(500, () => {
-        AudioSystem.play('victory');
-        this.setState('victory');
+      // Pan camera upward to reveal horizon
+      const targetY = this.cameras.main.scrollY - 200;
+      this.cameras.main.pan(this.cameras.main.scrollX + GAME.WIDTH / 2, targetY, 2000, 'Sine.easeInOut');
+      // Draw Leviathan silhouette in the distance (foreshadowing Act II)
+      const silX = this.cameras.main.scrollX + GAME.WIDTH / 2;
+      const silY = targetY + 50;
+      const silhouette = this.add.rectangle(silX, silY, 200, 300, 0x0a0e1a, 0.6);
+      silhouette.setDepth(2);
+      silhouette.setBlendMode(Phaser.BlendModes.MULTIPLY);
+      // Slow fade in silhouette
+      silhouette.setAlpha(0);
+      this.tweens.add({ targets: silhouette, alpha: 0.6, duration: 2000, delay: 500 });
+      // Caption
+      const caption = this.add.text(GAME.WIDTH / 2, GAME.HEIGHT * 0.7,
+        'The Drowned Wastes await...', {
+        fontFamily: 'monospace', fontSize: '14px', color: '#3a4350', stroke: '#000', strokeThickness: 3,
+        letterSpacing: 4,
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(250).setAlpha(0);
+      this.tweens.add({ targets: caption, alpha: 1, duration: 1500, delay: 1000 });
+
+      // Transition to victory after horizon view
+      this.scheduleDelayed(3500, () => {
+        this.cameras.main.fadeOut(600, 5, 7, 13);
+        this.scheduleDelayed(700, () => {
+          AudioSystem.play('victory');
+          this.setState('victory');
+        });
       });
     });
   };

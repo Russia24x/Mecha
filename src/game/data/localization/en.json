@@ -218,6 +218,9 @@
   "lore.s3.echo.title": "MEMORY ECHO",
   "lore.s3.echo.text": "A crackling voice: '...all personnel, evacuate. Atlas is... unstable.\nShe won't stop. She CAN'T stop. That's the point...'\nThe recording ends. The silence after is louder.",
 
+  "lore.s3.secret.title": "HIDDEN TERMINAL — MAINTENANCE",
+  "lore.s3.secret.text": "MAINTENANCE LOG: Mag-Clamp Thruster module found in ventilation shaft.\nStatus: FUNCTIONAL. Installation requires combat-grade frame.\nNote: 'Who hid this here? And why?'",
+
   "lore.s4.terminal.title": "PRODUCTION LOG",
   "lore.s4.terminal.text": "LINE 7 OUTPUT: 14,847 units. STATUS: INCOMPLETE.\n1,153 units remain on the assembly line.\nThey will never be finished. The war ended before they could fight.\nThey hang here, half-born, waiting for a purpose that will never come.",
 
