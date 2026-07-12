@@ -59,6 +59,8 @@ export class PlayerEntity {
   private lastAfterimageAt = 0;
   private touchingWall: 'left' | 'right' | null = null;
   private wallJumpUntil = 0;
+  private wallSlideActive = false;
+  private lastWallSlideFx = 0;
 
   private invulnUntil = 0;
   private flashTimer = 0;
@@ -301,8 +303,9 @@ export class PlayerEntity {
       }
     }
 
-    // Wall detection (for wall jump + wall slide)
+    // Wall detection (for wall jump + wall slide) — Mag-Clamp Thrusters
     this.touchingWall = null;
+    this.wallSlideActive = false;
     if (!this.grounded && this.abilities.has('wallJump')) {
       const r = PLAYER.BODY_RADIUS;
       const px = this.sprite.x;
@@ -315,13 +318,28 @@ export class PlayerEntity {
         const rightHits = this.physics.bodiesAtPoint(px + r + 4, py);
         if (rightHits.some(b => b.label.startsWith('solid'))) this.touchingWall = 'right';
       }
-      // Wall slide — slow fall when touching wall and pressing toward it
+      // Wall Slide — Mag-Clamp Thrusters: slow descent with sparks + metal sound
       if (this.touchingWall) {
         const pressingToward = (this.touchingWall === 'left' && input.heldLeft) || (this.touchingWall === 'right' && input.heldRight);
         if (pressingToward) {
           const body = this.sprite.body as MatterJS.BodyType;
           if (body && body.velocity.y > 1) {
-            this.sprite.setVelocityY(body.velocity.y * 0.35);
+            this.sprite.setVelocityY(body.velocity.y * 0.45);  // 55% reduction
+            this.wallSlideActive = true;
+            // Spark + sound effects every 80ms
+            if (now - this.lastWallSlideFx >= 80) {
+              this.lastWallSlideFx = now;
+              const sparkX = px + (this.touchingWall === 'left' ? -r - 2 : r + 2);
+              const sparkY = py + (Math.random() - 0.5) * 20;
+              this.particles.sparks(sparkX, sparkY, 0xffaa30, 2);
+              // Thruster glow
+              const glow = this.scene.add.circle(sparkX, sparkY + 10, 4, 0xffc040, 0.4);
+              glow.setBlendMode(Phaser.BlendModes.ADD).setDepth(13);
+              this.scene.tweens.add({
+                targets: glow, alpha: 0, scale: 0.3, duration: 200,
+                onComplete: () => glow.destroy(),
+              });
+            }
           }
         }
       }
@@ -378,19 +396,32 @@ export class PlayerEntity {
     this.jumpBufferUntil = this.scene.time.now + PLAYER.JUMP_BUFFER_MS;
     const now = this.scene.time.now;
 
-    // Wall Jump — if touching wall, not grounded, and ability unlocked
+    // Wall Jump — Mag-Clamp Thruster burst: powerful push from wall
     if (!this.grounded && this.touchingWall && this.abilities.has('wallJump')) {
       const jumpDir = this.touchingWall === 'left' ? 1 : -1;
-      this.sprite.setVelocityY(this.stats.jumpVelocity * 0.9);
-      this.sprite.setVelocityX(jumpDir * this.stats.moveSpeed * 1.5);
+      // Thruster burst — powerful launch
+      this.sprite.setVelocityY(this.stats.jumpVelocity * 0.95);
+      this.sprite.setVelocityX(jumpDir * this.stats.moveSpeed * 1.8);
       this.wallJumpUntil = now + 200;
       this.facing = jumpDir > 0 ? 'right' : 'left';
       this.jumpBufferUntil = 0;
       this.jumpsRemaining = this.maxJumps - 1;
-      AudioSystem.play('jump');
-      // Particle burst on wall jump
+      AudioSystem.play('dash');  // thruster sound
+      // Thruster explosion VFX — burst at wall contact point
       const pos = this.position;
-      this.particles.explosion(pos.x, pos.y, 0x39d0d8, 0.4);
+      const burstX = pos.x + (this.touchingWall === 'left' ? -PLAYER.BODY_RADIUS : PLAYER.BODY_RADIUS);
+      const burstY = pos.y;
+      // Ring explosion
+      const ring = this.scene.add.circle(burstX, burstY, 6, 0xffc040, 0.8);
+      ring.setBlendMode(Phaser.BlendModes.ADD).setDepth(14);
+      this.scene.tweens.add({
+        targets: ring, scale: { from: 1, to: 3 }, alpha: 0,
+        duration: 250, ease: 'Cubic.out', onComplete: () => ring.destroy(),
+      });
+      // Directional sparks
+      this.particles.sparks(burstX, burstY, 0xffaa30, 6);
+      // Afterimage for momentum feel
+      this.particles.afterimage(pos.x, pos.y - 6, 36, 30, 0x39d0d8, jumpDir);
       return;
     }
 
