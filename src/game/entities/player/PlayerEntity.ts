@@ -46,6 +46,13 @@ export class PlayerEntity {
   private lastMeleeAt = 0;
   private aimAngle = 0;
   private keyAimY = 0;
+  // ── Phase 3: Animation commitment ──
+  // When attacking, player movement is locked for a brief window.
+  // This makes combat feel Heavy·Precise·Punishing (per Design Pillars).
+  private meleeCommitUntil = 0;   // can't move until this time (after melee)
+  private fireCommitUntil = 0;    // can't move until this time (after fire)
+  private static readonly MELEE_COMMIT_MS = 200;   // 200ms lock after melee
+  private static readonly FIRE_COMMIT_MS = 80;     // 80ms lock after fire (per shot)
 
   // Movement state
   private isDashing = false;
@@ -362,6 +369,12 @@ export class PlayerEntity {
         this.lastAfterimageAt = now;
       }
       if (now >= this.dashUntil) this.isDashing = false;
+    } else if (now < this.meleeCommitUntil || now < this.fireCommitUntil) {
+      // ── Phase 3: Animation commitment — movement locked during attack ──
+      // Player can't run while attacking. Decelerate rapidly but allow falling.
+      // This makes attacks feel committed and heavy (per Design Pillars: Heavy·Precise·Punishing).
+      const body = this.sprite.body;
+      this.sprite.setVelocityX((body ? body.velocity.x : 0) * 0.5);
     } else {
       if (moveX !== 0) {
         const targetVx = moveX * this.stats.moveSpeed;
@@ -469,6 +482,8 @@ export class PlayerEntity {
     const energyCost = this.currentWeapon === 'assault_rifle' ? PLAYER.FIRE_COST : weapon.energyCost;
     if (!this.consumeEnergy(energyCost)) return;
     this.lastFireAt = now;
+    // ── Phase 3: Animation commitment — lock movement for 80ms after firing ──
+    this.fireCommitUntil = now + PlayerEntity.FIRE_COMMIT_MS;
     const from = this.position;
     const aimDir = this.getAimDirection();
     // Muzzle position: follow the gun barrel direction.
@@ -537,6 +552,9 @@ export class PlayerEntity {
     if (now - this.lastMeleeAt < PLAYER.MELEE_COOLDOWN_MS) return;
     if (!this.consumeEnergy(PLAYER.MELEE_COST)) return;
     this.lastMeleeAt = now;
+    // ── Phase 3: Animation commitment — lock movement for 200ms after melee ──
+    // This is the key "Heavy" feel: you can't run while swinging. Commit to the attack.
+    this.meleeCommitUntil = now + PlayerEntity.MELEE_COMMIT_MS;
     const aimDir = this.getAimDirection();
     const origin = this.position;
     const range = this.stats.meleeRange;

@@ -134,6 +134,21 @@ export class SaveSystem {
     return { leveledUp, newLevel: data.player.level };
   }
 
+  /**
+   * Phase 3: Death penalty — lose 50% of unbanked XP on death.
+   * Per Design Pillars: "Combat: Heavy·Precise·Punishing" — death has stakes.
+   * Only unbanked XP (toward next level) is lost, not levels themselves.
+   * Skill points already earned are kept (banked).
+   * Returns the amount of XP lost for display purposes.
+   */
+  static applyDeathPenalty(): number {
+    const data = this.load();
+    const lostXp = Math.floor(data.player.xp * 0.5);
+    data.player.xp -= lostXp;
+    this.persist();
+    return lostXp;
+  }
+
   static xpForLevel(level: number): number {
     return Math.round(100 * Math.pow(level, 1.5));
   }

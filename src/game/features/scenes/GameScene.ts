@@ -112,6 +112,8 @@ export class GameScene extends Phaser.Scene {
   private npcVisuals: Map<string, MechVisualHandle> = new Map();
   private npcLabels: Map<string, Phaser.GameObjects.Text> = new Map();
   private npcInteractionPrompt: Phaser.GameObjects.Container | null = null;
+  // Phase 3: Death penalty tracking
+  private lastLostXp = 0;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -1200,8 +1202,11 @@ export class GameScene extends Phaser.Scene {
   // ================ EVENT HANDLERS ================
 
   private onPlayerDied = (): void => {
-    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+    // NOTE: Do NOT unregister — listener must survive for retry (pre-existing bug fix).
     this.particles.explosion(this.player.sprite.x, this.player.sprite.y, COLORS.PLAYER, 1.2);
+    // ── Phase 3: Death penalty — lose 50% unbanked XP ──
+    // Per Design Pillars: death must have stakes (Souls-like).
+    this.lastLostXp = SaveSystem.applyDeathPenalty();
     // Phaser 4 camera effects: shake + fade for death (per cameras skill)
     this.cameras.main.shake(400, 0.012);
     this.cameras.main.fadeOut(700, 5, 7, 13);
@@ -1283,6 +1288,15 @@ export class GameScene extends Phaser.Scene {
     c.add(this.add.text(w / 2, h * 0.42, statsLine, fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
     })).setOrigin(0.5).setDepth(201));
+    // ── Phase 3: Death penalty display — show lost XP ──
+    if (this.lastLostXp > 0) {
+      const lostLine = getLocale() === 'fa'
+        ? `جریمه مرگ: -${this.lastLostXp} XP`
+        : `DEATH PENALTY: -${this.lastLostXp} XP`;
+      c.add(this.add.text(w / 2, h * 0.48, lostLine, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '12px', color: '#ff4040', stroke: '#000', strokeThickness: 3,
+      })).setOrigin(0.5).setDepth(201));
+    }
     // Retry button — restarts the stage
     this.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
       AudioSystem.play('uiClick');

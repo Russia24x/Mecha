@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { InputSystem } from '../../systems/InputSystem';
 import { THEME, addCornerBrackets, addScanlines } from '../Theme';
@@ -52,14 +52,14 @@ export class PauseMenuUI {
     titleBg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 60, 500, 50, THEME.CYAN, 8, 0.6));
-    this.container.add(scene.add.text(w / 2, 60, isFa ? '▮ سیستم متوقف ▮' : '▮ SYSTEM SUSPEND ▮', {
+    this.container.add(scene.add.text(w / 2, 60, isFa ? '▮ سیستم متوقف ▮' : '▮ SYSTEM SUSPEND ▮', fixTextStyle({
       fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Subtitle
-    this.container.add(scene.add.text(w / 2, 95, isFa ? 'پروتکل‌ها متوقف شدند' : 'PROTOCOLS SUSPENDED', {
+    this.container.add(scene.add.text(w / 2, 95, isFa ? 'پروتکل‌ها متوقف شدند' : 'PROTOCOLS SUSPENDED', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 4,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Localization
     const L = (en: string, fa: string) => isFa ? fa : en;
@@ -106,13 +106,13 @@ export class PauseMenuUI {
     const bg = this.scene.add.rectangle(x, y, width, 42, THEME.BG_PANEL, 0.92).setScrollFactor(0);
     bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.7);
     // Icon (circuit node style)
-    const iconEl = this.scene.add.text(x - width / 2 + 20, y, icon, {
+    const iconEl = this.scene.add.text(x - width / 2 + 20, y, icon, fixTextStyle({
       fontFamily: 'monospace', fontSize: '16px', color: THEME.TEXT_MED,
-    }).setOrigin(0.5).setScrollFactor(0);
-    // Label
-    const textEl = this.scene.add.text(x + 15, y, label, {
+    })).setOrigin(0.5).setScrollFactor(0);
+    // Label — Persian-aware (fixTextStyle forces letterSpacing 0 for fa)
+    const textEl = this.scene.add.text(x + 15, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_MED, letterSpacing: 1,
-    }).setOrigin(0.5).setScrollFactor(0);
+    })).setOrigin(0.5).setScrollFactor(0);
     this.container.add([bg, iconEl, textEl]);
     this.buttons.push({ bg, text: textEl, icon: iconEl, onClick });
   }

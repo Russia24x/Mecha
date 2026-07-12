@@ -3,14 +3,15 @@
  * HTML5 Gamepad API integration. Polls all connected gamepads every frame.
  *
  * Layout (Xbox 360 / PS4 / Generic):
- *   A/Cross (0) → jump
- *   X/Square (2) → fire
- *   Y/Triangle (3) → melee
- *   B/Circle (1) → dash
- *   LB (4) → weapon prev
- *   RB (5) → weapon next
- *   Start (9) → pause
- *   Back (8) → menu back
+ *   A/Cross (0)     → jump
+ *   B/Circle (1)    → interact / back (in menus)
+ *   X/Square (2)    → fire
+ *   Y/Triangle (3)  → melee
+ *   LB/L1 (4)       → weapon prev
+ *   RB/R1 (5)       → weapon next
+ *   LT/L2 (6)       → dash
+ *   RT/R2 (7)       → fire (alt)
+ *   Start/Options (9) → pause
  */
 
 export interface GamepadState {
@@ -27,6 +28,7 @@ export interface GamepadState {
   weaponPrevPressed: boolean;
   pausePressed: boolean;
   backPressed: boolean;
+  interactPressed: boolean;
   jumpHeld: boolean;
   fireHeld: boolean;
 }
@@ -39,6 +41,7 @@ export class GamepadManager {
     jumpPressed: false, firePressed: false, meleePressed: false,
     dashPressed: false, weaponNextPressed: false, weaponPrevPressed: false,
     pausePressed: false, backPressed: false,
+    interactPressed: false,
     jumpHeld: false, fireHeld: false,
   };
 
@@ -74,6 +77,7 @@ export class GamepadManager {
     this.state.weaponPrevPressed = false;
     this.state.pausePressed = false;
     this.state.backPressed = false;
+    this.state.interactPressed = false;
     this.state.jumpHeld = false;
     this.state.fireHeld = false;
   }
@@ -87,6 +91,7 @@ export class GamepadManager {
     this.state.weaponPrevPressed = false;
     this.state.pausePressed = false;
     this.state.backPressed = false;
+    this.state.interactPressed = false;
 
     if (!this.enabled) return;
     if (typeof navigator === 'undefined' || !navigator.getGamepads) return;
@@ -108,15 +113,18 @@ export class GamepadManager {
     const edge = (i: number) => btns[i] && !this.prevButtons[i];
     const held = (i: number) => btns[i];
 
-    // Each button has exactly one role to avoid conflicts.
+    // Button mapping (matches InputSystem):
+    // 0=A/Cross=jump, 1=B/Circle=interact+back, 2=X/Square=fire, 3=Y/Triangle=melee,
+    // 4=LB/L1=weaponPrev, 5=RB/R1=weaponNext, 6=LT/L2=dash, 7=RT/R2=fireAlt, 9=Start=pause
     this.state.jumpPressed = edge(0);
     this.state.firePressed = edge(2) || edge(7);
     this.state.meleePressed = edge(3);
-    this.state.dashPressed = edge(1);
+    this.state.dashPressed = edge(6);
     this.state.weaponNextPressed = edge(5);
     this.state.weaponPrevPressed = edge(4);
     this.state.pausePressed = edge(9);
-    this.state.backPressed = edge(8);
+    this.state.backPressed = edge(1);  // B/Circle = back in menus
+    this.state.interactPressed = edge(1);  // B/Circle = interact in gameplay
 
     // D-pad overrides left stick for menu navigation.
     if (held(12)) this.state.leftStickY = -1;

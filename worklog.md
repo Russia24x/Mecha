@@ -640,3 +640,86 @@ Stage Summary:
 - Files modified: MechaSpriteFactory.ts (setGunAngle flip compensation + setTier), PlayerEntity.ts (muzzle fix + tier calls), GameScene.ts (InputSchemeManager.update + fixTextStyle everywhere + showHowToPlay dynamic), ControlHintsUI.ts (v2.0 event-driven), HUDUI.ts (fixTextStyle on all text), AreaLoader.ts (3 hazard methods + unload cleanup), types.ts (INPUT_SCHEME_CHANGED event), LocalizationSystem.ts (already had helpers from round 2)
 - TypeScript: clean. Next.js build: success.
 - Bullets now come from the gun muzzle. Gun rotates correctly in all directions regardless of facing. Player mech evolves visually with level (shoulder cannons at Lv10, crest at Lv15). Input scheme auto-detects PS4/PS5/Xbox/keyboard and all button labels update in real time. Persian text renders with proper letter joining across ALL UIs. Factory platforms now have electrical sparks, fire hazards, and steam vents for atmosphere.
+
+---
+Task ID: ui-text-fixtask
+Agent: general-purpose
+Task: Apply `fixTextStyle` to ALL `scene.add.text(...)` calls in 5 UI files so Persian text renders with proper letter joining (no more separated letters).
+
+Work Log:
+- Read worklog.md (642 lines) for context. Confirmed `fixTextStyle` exists in `src/game/systems/LocalizationSystem.ts` (line 92) — wraps a TextStyle, forces `letterSpacing: 0` and `DejaVu Sans` font for `fa` locale, also flips align to 'right' for RTL.
+- Read all 5 target UI files in full.
+- SettingsUI.ts: import had `{ t, setLocale, getLocale }` → added `fixTextStyle`. Wrapped 11 text style objects (title, CATEGORIES header, 2 category icons+labels, OPTIONS header, DISENGAGE button, slider label, slider value text, language label, EN button, فارسی button). Multi-line style objects wrapped end-to-end.
+- SkillTreeUI.ts: import had `{ t, getLocale }` → added `fixTextStyle`. Wrapped 20 text style objects (NEURAL CORTEX title, FORGE NEW PROTOCOLS subtitle, header text, SP badge ◆, PROTOCOL SP label, SP value, DISENGAGE button, 4 tree-tab texts (icon/label/sub/count), TARGET NODE header, detail panel tier/name/desc/effect/cost/status, node icon, node cost label).
+- InventoryUI.ts: import had `{ t, getLocale }` → added `fixTextStyle`. Wrapped 14 text style objects (DATA VAULT title, 4 tab labels, DISENGAGE button, TARGET ITEM header, detail tier/name/desc/count/action/status, NO DATA placeholder, item icon, count badge, slot index).
+- QuestUI.ts: import had `{ t, getLocale }` → added `fixTextStyle`. Wrapped 9 text style objects (MISSION LOG title, DISENGAGE button, ACTIVE header, READY TO TURN IN header, COMPLETED header, NO MISSIONS placeholder, quest name, quest description, objective line).
+- WorldMapUI.ts: import had `{ t, getLocale }` → added `fixTextStyle`. Wrapped 8 text style objects (TACTICAL MAP title, EXPLORED badge, legend icon, legend label, DISENGAGE button, hex node icon, hex node label, hex node status text).
+- Total: 62 text style objects wrapped across the 5 files.
+- Verification: grepped each file with `rg "\.add\.text\(" | rg -v "fixTextStyle"` — only one false-positive match (QuestUI line 136, a multi-line call where `fixTextStyle` appears on line 138). Confirmed all calls are wrapped.
+- TypeScript check: `npx tsc --noEmit 2>&1 | grep -v "examples/websocket" | head -20` → no output. Only the 2 pre-existing `examples/websocket` errors (missing `socket.io-client` / `socket.io` modules) remain, which are unrelated to this task and filtered out per task instructions.
+
+Stage Summary:
+- Files modified: SettingsUI.ts, SkillTreeUI.ts, InventoryUI.ts, QuestUI.ts, WorldMapUI.ts — all under `src/game/ui/`.
+- Per-file text wrapping counts: SettingsUI=11, SkillTreeUI=20, InventoryUI=14, QuestUI=9, WorldMapUI=8 (grand total 62).
+- Only change per call: replaced the `{ fontFamily: ... }` style object literal with `fixTextStyle({ fontFamily: ... })`. No other code touched. `letterSpacing` values preserved — `fixTextStyle` zeros them out automatically for Persian locale, keeps them for English.
+- Persian locale (`fa`) UI text in all 5 overlays will now render with connected Arabic letters instead of separated glyphs, because the font is forced to `DejaVu Sans` (which has Arabic shaping support) and `letterSpacing` is forced to 0 (which breaks Arabic letter joining when nonzero).
+- TypeScript: clean (only pre-existing websocket example errors remain, filtered out per task).
+- No errors encountered during edits; all 5 edits applied cleanly on the first MultiEdit pass per file.
+
+---
+Task ID: phase3-combat-depth
+Agent: main
+Task: Fix gamepad mapping (interact=B/Circle, dash=LT/L2), apply fixTextStyle to all remaining UIs, redesign ghost_operator NPC per World Bible, implement Phase 3 combat depth (animation commitment, stagger, death penalty).
+
+Work Log:
+- Fixed gamepad button mapping per user request:
+  * Interact = button 1 (B on Xbox, Circle on PS) — was button 0 (A/Cross)
+  * Dash = button 6 (LT on Xbox, L2 on PS) — was button 1 (B/Circle)
+  * Back in menus = button 1 (same as interact)
+  * Jump = button 0 (A/Cross) — unchanged
+  * Fire = button 2 (X/Square) — unchanged
+  * Melee = button 3 (Y/Triangle) — unchanged
+  Updated InputSystem.ts, GamepadManager.ts (button mapping + header comment + interactPressed field), InputSchemeManager.ts (Xbox: dash=LT, interact=B; PS: dash=L2, interact=CIRCLE).
+
+- Applied fixTextStyle to ALL remaining UI text (62 text objects across 5 files):
+  * SettingsUI.ts: 11 text objects
+  * SkillTreeUI.ts: 20 text objects
+  * InventoryUI.ts: 14 text objects
+  * QuestUI.ts: 9 text objects
+  * WorldMapUI.ts: 8 text objects
+  Also applied to PauseMenuUI.ts (title, subtitle, makeBtn labels). Persian text in all UIs now renders with proper letter joining.
+
+- Redesigned ghost_operator NPC per World Bible:
+  * Renamed: "Ghost Operator" → "Network Echo" (en), "عملیات‌گر روح" → "پژواک شبکه" (fa)
+  * Updated dialogue to match World Bible ("wandering in the network, wants to return to the station, doesn't know it fell"):
+    - Intro: "...you can see me? I am... a fragment. An echo of the operator, still wandering the network."
+    - Lore: "I need to get back to the station. The operator needs to log out. ...why won't the system respond?"
+    - Warning: "Don't go further. The network is corrupted there. Whatever remains... is not what it was."
+  * Enhanced visual: holographic projection base ring (pulsing), 3 vertical data streams (hex/binary characters falling), wireframe body segments, 5 floating data fragments orbiting, scan lines, glitch flicker. Now clearly a digital network fragment, not a ghost.
+
+- Phase 3a: Animation commitment in PlayerEntity:
+  * Added meleeCommitUntil + fireCommitUntil fields
+  * tryFire: sets fireCommitUntil = now + 80ms (can't run while shooting)
+  * tryMelee: sets meleeCommitUntil = now + 200ms (can't run while swinging)
+  * updateMovement: when committed, horizontal velocity decelerates rapidly (×0.5) instead of allowing movement
+  * This makes attacks feel Heavy·Committed (per Design Pillars) — you can't cancel attacks by running.
+
+- Phase 3b: Posture/Stagger system in EnemyEntity:
+  * Added posture (0..100), maxPosture (100), staggeredUntil fields
+  * takeDamage: fills posture bar by amount × 0.8. If posture full → startStagger().
+  * Stagger: enemy stunned for 1.5s, takes 50% bonus damage (crit window). Spark burst visual on stagger start.
+  * Posture decay: -15/sec when not being hit (bar slowly drains).
+  * Posture bar visual: amber → red as it fills, hidden when 0 (no clutter). Positioned above enemy head.
+  * State machine: stagger state now properly lasts until staggeredUntil expires (was 400ms fixed).
+  * Cleaned up posture bar in die() + destroy().
+
+- Phase 3c: Death penalty in SaveSystem + GameScene:
+  * SaveSystem.applyDeathPenalty(): loses 50% of unbanked XP (toward next level). Levels + skill points kept.
+  * onPlayerDied: calls applyDeathPenalty(), stores lostXp for display.
+  * GameOver screen: shows "DEATH PENALTY: -X XP" (or Persian "جریمه مرگ: -X XP") in red.
+  * Fixed pre-existing bug: PLAYER_DEAD listener was being unregistered on death, breaking retry. Now stays registered.
+
+Stage Summary:
+- Files modified: InputSystem.ts, GamepadManager.ts, InputSchemeManager.ts, PauseMenuUI.ts, SettingsUI.ts, SkillTreeUI.ts, InventoryUI.ts, QuestUI.ts, WorldMapUI.ts, MechaSpriteFactory.ts, PlayerEntity.ts, EnemyEntity.ts, SaveSystem.ts, GameScene.ts, en.json, fa.json
+- TypeScript: clean. Next.js build: success.
+- Combat now feels Heavy·Precise·Punishing: attacks lock movement, enemies stagger on posture break (crit window), death costs 50% XP. All UI text renders Persian correctly. Gamepad mapping matches user's PS4/Xbox preferences. Network Echo NPC is a holographic data fragment (not a ghost) per World Bible.

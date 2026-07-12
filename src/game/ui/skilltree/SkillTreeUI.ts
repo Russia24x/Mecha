@@ -14,7 +14,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { SkillTreeSystem, type SkillNode } from '../../systems/SkillTreeSystem';
 import { ExperienceSystem } from '../../systems/ExperienceSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
@@ -116,17 +116,17 @@ export class SkillTreeUI extends NavigableOverlay {
     }
 
     // Title
-    this.container.add(scene.add.text(w / 2, 28, isFa ? 'قشر عصبی' : 'NEURAL CORTEX', {
+    this.container.add(scene.add.text(w / 2, 28, isFa ? 'قشر عصبی' : 'NEURAL CORTEX', fixTextStyle({
       fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
-    this.container.add(scene.add.text(w / 2, 52, isFa ? 'پروتکل‌ها را بکوب' : 'FORGE NEW PROTOCOLS', {
+    })).setOrigin(0.5));
+    this.container.add(scene.add.text(w / 2, 52, isFa ? 'پروتکل‌ها را بکوب' : 'FORGE NEW PROTOCOLS', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 4,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Header
-    this.headerText = scene.add.text(TREE_AREA.x + TREE_AREA.w / 2, 82, '', {
+    this.headerText = scene.add.text(TREE_AREA.x + TREE_AREA.w / 2, 82, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3, letterSpacing: 1,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add(this.headerText);
 
     // SP badge
@@ -135,15 +135,15 @@ export class SkillTreeUI extends NavigableOverlay {
     spBg.setStrokeStyle(1, THEME.AMBER, 0.5);
     this.container.add(spBg);
     this.container.add(addCornerBrackets(scene, spX, spY, 140, 42, THEME.AMBER, 6, 0.5));
-    this.container.add(scene.add.text(spX - 48, spY, '◆', {
+    this.container.add(scene.add.text(spX - 48, spY, '◆', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER,
-    }).setOrigin(0.5));
-    this.container.add(scene.add.text(spX - 28, spY - 9, 'PROTOCOL SP', {
+    })).setOrigin(0.5));
+    this.container.add(scene.add.text(spX - 28, spY - 9, 'PROTOCOL SP', fixTextStyle({
       fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM, letterSpacing: 1,
-    }).setOrigin(0, 0.5));
-    this.spValueText = scene.add.text(spX - 28, spY + 7, '0', {
+    })).setOrigin(0, 0.5));
+    this.spValueText = scene.add.text(spX - 28, spY + 7, '0', fixTextStyle({
       fontFamily: 'monospace', fontSize: '15px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add(this.spValueText);
 
     // Left panel: tree tabs
@@ -156,9 +156,9 @@ export class SkillTreeUI extends NavigableOverlay {
     const bg = scene.add.rectangle(w / 2, h - 28, 200, 36, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(addCornerBrackets(scene, w / 2, h - 28, 200, 36, THEME.CYAN, 6, 0.5));
-    const backText = scene.add.text(w / 2, h - 28, isFa ? '▲ خروج' : '▲ DISENGAGE', {
+    const backText = scene.add.text(w / 2, h - 28, isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([bg, backText]);
     this.registerNav(bg, backText, () => { AudioSystem.play('uiClick'); onBack(); });
 
@@ -178,20 +178,20 @@ export class SkillTreeUI extends NavigableOverlay {
       const bg = scene.add.rectangle(x, y, tabW, tabH, THEME.BG_PANEL, 0.92);
       bg.setStrokeStyle(1, color, 0.25);
       const bar = scene.add.rectangle(x - tabW / 2 + 3, y, 3, tabH - 10, color, 0.4);
-      const icon = scene.add.text(x - tabW / 2 + 22, y, TREE_ICONS[tree], {
+      const icon = scene.add.text(x - tabW / 2 + 22, y, TREE_ICONS[tree], fixTextStyle({
         fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_MED,
-      }).setOrigin(0.5);
-      const label = scene.add.text(x + 15, y - 10, isFa ? TREE_NAMES[tree].fa : TREE_NAMES[tree].en, {
+      })).setOrigin(0.5);
+      const label = scene.add.text(x + 15, y - 10, isFa ? TREE_NAMES[tree].fa : TREE_NAMES[tree].en, fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_MED, letterSpacing: 1,
-      }).setOrigin(0.5);
-      const sub = scene.add.text(x + 15, y + 8, isFa ? TREE_SUBTITLES[tree].fa : TREE_SUBTITLES[tree].en, {
+      })).setOrigin(0.5);
+      const sub = scene.add.text(x + 15, y + 8, isFa ? TREE_SUBTITLES[tree].fa : TREE_SUBTITLES[tree].en, fixTextStyle({
         fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM,
-      }).setOrigin(0.5);
+      })).setOrigin(0.5);
       const count = SkillTreeSystem.getTree(tree).filter(n => n.unlocked).length;
       const total = SkillTreeSystem.getTree(tree).length;
-      const countText = scene.add.text(x + 15, y + 18, `${count}/${total}`, {
+      const countText = scene.add.text(x + 15, y + 18, `${count}/${total}`, fixTextStyle({
         fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
-      }).setOrigin(0.5);
+      })).setOrigin(0.5);
       this.container.add([bg, bar, icon, label, sub, countText]);
       this.treeTabs.push({ bg, icon, label, sub, bar });
       this.registerNav(bg, label, () => { this.selectedTree = tree; this.refreshTree(); AudioSystem.play('uiClick'); });
@@ -207,31 +207,31 @@ export class SkillTreeUI extends NavigableOverlay {
     this.container.add(addCornerBrackets(scene, x, y, w, h, THEME.AMBER, 6, 0.5));
     const titleBar = scene.add.rectangle(x, y - h / 2 + 14, w - 8, 24, THEME.BG_PANEL_HI, 0.9);
     this.container.add(titleBar);
-    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'گره هدف' : 'TARGET NODE', {
+    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'گره هدف' : 'TARGET NODE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_AMBER, letterSpacing: 2,
-    }).setOrigin(0.5));
-    const tier = scene.add.text(x, y - h / 2 + 45, '', {
+    })).setOrigin(0.5));
+    const tier = scene.add.text(x, y - h / 2 + 45, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_MED, letterSpacing: 2,
-    }).setOrigin(0.5);
-    const name = scene.add.text(x, y - h / 2 + 75, '', {
+    })).setOrigin(0.5);
+    const name = scene.add.text(x, y - h / 2 + 75, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3,
       wordWrap: { width: w - 20 }, align: 'center',
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add(scene.add.rectangle(x, y - 25, w - 30, 1, THEME.STROKE_MED, 0.7));
-    const desc = scene.add.text(x, y + 5, '', {
+    const desc = scene.add.text(x, y + 5, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED,
       wordWrap: { width: w - 20 }, align: 'center', lineSpacing: 3,
-    }).setOrigin(0.5);
-    const effect = scene.add.text(x, y + 55, '', {
+    })).setOrigin(0.5);
+    const effect = scene.add.text(x, y + 55, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_ACCENT,
       wordWrap: { width: w - 20 }, align: 'center',
-    }).setOrigin(0.5);
-    const cost = scene.add.text(x, y + 95, '', {
+    })).setOrigin(0.5);
+    const cost = scene.add.text(x, y + 95, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0.5);
-    const status = scene.add.text(x, y + 125, '', {
+    })).setOrigin(0.5);
+    const status = scene.add.text(x, y + 125, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([tier, name, desc, effect, cost, status]);
     this.detail = { name, tier, desc, effect, cost, status };
   }
@@ -390,18 +390,18 @@ export class SkillTreeUI extends NavigableOverlay {
       // Icon
       const iconChar = this.getSkillIcon(skill);
       const iconSize = tier === 2 ? 20 : tier === 1 ? 17 : 15;
-      const icon = this.scene.add.text(pos.x, pos.y, iconChar, {
+      const icon = this.scene.add.text(pos.x, pos.y, iconChar, fixTextStyle({
         fontFamily: 'monospace', fontSize: `${iconSize}px`,
         color: this.getNodeIconColor(node),
-      }).setOrigin(0.5).setDepth(4);
+      })).setOrigin(0.5).setDepth(4);
       allTexts.push(icon);
 
       // Cost label
-      const costLabel = this.scene.add.text(pos.x, pos.y + size + 16, `${skill.cost} SP`, {
+      const costLabel = this.scene.add.text(pos.x, pos.y + size + 16, `${skill.cost} SP`, fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px',
         color: node.unlocked ? THEME.TEXT_GREEN : node.canUnlock ? THEME.TEXT_AMBER : THEME.TEXT_DIM,
         stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0.5).setDepth(3);
+      })).setOrigin(0.5).setDepth(3);
       allTexts.push(costLabel);
 
       this.container.add([...allShapes, ...allTexts]);

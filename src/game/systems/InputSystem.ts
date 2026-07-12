@@ -262,15 +262,16 @@ export class InputSystem {
         if (edge(0)) { gpJump = true; this.callbacks.jump?.(); }
         if (edge(2) || edge(7)) { gpFire = true; this.callbacks.fire?.(); }
         if (edge(3)) { gpMelee = true; this.callbacks.melee?.(); }
-        if (edge(1)) { gpBack = true; }
-        if (edge(6) || edge(10)) {
+        // Interact = B/Circle (button 1) — also serves as Back in menus
+        if (edge(1)) { gpInteract = true; gpBack = true; this.callbacks.interact?.(); }
+        // Dash = LT/L2 (button 6) — trigger, not face button
+        if (edge(6)) {
           gpDash = true;
           this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right');
         }
         if (edge(5)) { gpWeaponNext = true; this.callbacks.weaponNext?.(); }
         if (edge(4)) { gpWeaponPrev = true; this.callbacks.weaponPrev?.(); }
         if (edge(9)) { gpPause = true; this.callbacks.pause?.(); }
-        if (edge(8)) { gpInteract = true; this.callbacks.interact?.(); }
 
         // D-pad overrides
         if (held(12)) this.state.leftStickY = -1;

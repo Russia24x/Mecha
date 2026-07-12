@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, setLocale, getLocale } from '../../systems/LocalizationSystem';
+import { t, setLocale, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { RenderSystem } from '../../systems/RenderSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
@@ -51,9 +51,9 @@ export class SettingsUI extends NavigableOverlay {
     titleBg.setStrokeStyle(1, THEME.AMBER, 0.5);
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 45, 400, 44, THEME.AMBER, 8, 0.6));
-    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ پیکربندی سیستم ▮' : '▮ SYSTEM CONFIG ▮', {
+    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ پیکربندی سیستم ▮' : '▮ SYSTEM CONFIG ▮', fixTextStyle({
       fontFamily: 'monospace', fontSize: '20px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Left panel: category list
     const leftX = 140, leftY = 280, leftW = 220, leftH = 360;
@@ -61,9 +61,9 @@ export class SettingsUI extends NavigableOverlay {
     leftBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
     this.container.add(leftBg);
     this.container.add(addCornerBrackets(scene, leftX, leftY, leftW, leftH, THEME.CYAN, 8, 0.5));
-    this.container.add(scene.add.text(leftX, leftY - leftH / 2 + 18, isFa ? 'بخش‌ها' : 'CATEGORIES', {
+    this.container.add(scene.add.text(leftX, leftY - leftH / 2 + 18, isFa ? 'بخش‌ها' : 'CATEGORIES', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER, letterSpacing: 2,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Categories
     CATEGORIES.forEach((cat) => {
@@ -72,12 +72,12 @@ export class SettingsUI extends NavigableOverlay {
       const bg = scene.add.rectangle(leftX, cy, leftW - 20, 60, THEME.BG_PANEL, 0.9);
       bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
       this.container.add(scene.add.rectangle(leftX - leftW / 2 + 12, cy, 3, 48, THEME.AMBER, 0.3));
-      const icon = scene.add.text(leftX - 60, cy, cat.icon, {
+      const icon = scene.add.text(leftX - 60, cy, cat.icon, fixTextStyle({
         fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_MED,
-      }).setOrigin(0.5);
-      const label = scene.add.text(leftX + 20, cy, isFa ? cat.fa : cat.en, {
+      })).setOrigin(0.5);
+      const label = scene.add.text(leftX + 20, cy, isFa ? cat.fa : cat.en, fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_MED, letterSpacing: 1,
-      }).setOrigin(0.5);
+      })).setOrigin(0.5);
       this.container.add([bg, icon, label]);
       this.categoryBgs.push(bg);
       this.categoryTexts.push(label);
@@ -95,17 +95,17 @@ export class SettingsUI extends NavigableOverlay {
     rightBg.setStrokeStyle(1, THEME.CYAN, 0.4);
     this.container.add(rightBg);
     this.container.add(addCornerBrackets(scene, rightX, rightY, rightW, rightH, THEME.CYAN, 8, 0.5));
-    this.container.add(scene.add.text(rightX, rightY - rightH / 2 + 18, isFa ? 'گزینه‌ها' : 'OPTIONS', {
+    this.container.add(scene.add.text(rightX, rightY - rightH / 2 + 18, isFa ? 'گزینه‌ها' : 'OPTIONS', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER, letterSpacing: 2,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(addCornerBrackets(scene, w / 2, h - 30, 220, 40, THEME.CYAN, 6, 0.5));
-    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', {
+    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
@@ -155,9 +155,9 @@ export class SettingsUI extends NavigableOverlay {
 
   private makeSlider(x: number, y: number, label: string, value: number, onChange: (v: number) => void): void {
     const objects: Phaser.GameObjects.GameObject[] = [];
-    const labelEl = this.scene.add.text(x - 240, y, label, {
+    const labelEl = this.scene.add.text(x - 240, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     objects.push(labelEl);
     const track = this.scene.add.rectangle(x, y, 300, 8, THEME.BG_DARK, 1).setStrokeStyle(1, THEME.STROKE_DIM, 1);
     track.setOrigin(0.5);
@@ -166,9 +166,9 @@ export class SettingsUI extends NavigableOverlay {
     objects.push(fill);
     const handle = this.scene.add.circle(x - 150 + 300 * value, y, 10, THEME.AMBER).setStrokeStyle(2, 0xffffff, 0.4);
     objects.push(handle);
-    const valueText = this.scene.add.text(x + 170, y, `${Math.round(value * 100)}%`, {
+    const valueText = this.scene.add.text(x + 170, y, `${Math.round(value * 100)}%`, fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     objects.push(valueText);
 
     // Slider hit area
@@ -211,24 +211,24 @@ export class SettingsUI extends NavigableOverlay {
     const currentLang = getLocale();
     const objects: Phaser.GameObjects.GameObject[] = [];
 
-    const labelEl = this.scene.add.text(x - 240, y, isFa ? 'زبان' : 'Language', {
+    const labelEl = this.scene.add.text(x - 240, y, isFa ? 'زبان' : 'Language', fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     objects.push(labelEl);
 
     const enBg = this.scene.add.rectangle(x - 60, y, 120, 36, currentLang === 'en' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
       .setStrokeStyle(1, currentLang === 'en' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'en' ? 0.9 : 0.5);
     objects.push(enBg);
-    const enText = this.scene.add.text(x - 60, y, 'EN', {
+    const enText = this.scene.add.text(x - 60, y, 'EN', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'en' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     objects.push(enText);
     const faBg = this.scene.add.rectangle(x + 80, y, 120, 36, currentLang === 'fa' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
       .setStrokeStyle(1, currentLang === 'fa' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'fa' ? 0.9 : 0.5);
     objects.push(faBg);
-    const faText = this.scene.add.text(x + 80, y, 'فارسی', {
+    const faText = this.scene.add.text(x + 80, y, 'فارسی', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'fa' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     objects.push(faText);
 
     this.container.add(objects);

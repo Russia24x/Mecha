@@ -24,7 +24,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { WorldMapSystem, type MapNode } from '../../world/WorldMapSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
@@ -64,18 +64,18 @@ export class WorldMapUI extends NavigableOverlay {
     titleBg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 45, 400, 44, THEME.CYAN, 8, 0.6));
-    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ نقشه تاکتیکی ▮' : '▮ TACTICAL MAP ▮', {
+    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ نقشه تاکتیکی ▮' : '▮ TACTICAL MAP ▮', fixTextStyle({
       fontFamily: 'monospace', fontSize: '20px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Explored percentage badge
     const fogPct = WorldMapSystem.getFogOfWarPercent();
     const fogBg = scene.add.rectangle(w - 130, 80, 180, 30, THEME.BG_PANEL, 0.9);
     fogBg.setStrokeStyle(1, THEME.AMBER, 0.4);
     this.container.add(fogBg);
-    this.container.add(scene.add.text(w - 130, 80, isFa ? `کاوش: ${fogPct}٪` : `EXPLORED: ${fogPct}%`, {
+    this.container.add(scene.add.text(w - 130, 80, isFa ? `کاوش: ${fogPct}٪` : `EXPLORED: ${fogPct}%`, fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER, letterSpacing: 1,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Map panel background
     const mapX = 60, mapY = 110, mapW = w - 120, mapH = 460;
@@ -100,21 +100,21 @@ export class WorldMapUI extends NavigableOverlay {
     const legendStartX = w / 2 - (legendItems.length - 1) * 80;
     legendItems.forEach((item, i) => {
       const lx = legendStartX + i * 160;
-      this.container.add(scene.add.text(lx - 30, legendY, item.icon, {
+      this.container.add(scene.add.text(lx - 30, legendY, item.icon, fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: item.color,
-      }).setOrigin(0.5));
-      this.container.add(scene.add.text(lx, legendY, item.label, {
+      })).setOrigin(0.5));
+      this.container.add(scene.add.text(lx, legendY, item.label, fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED, letterSpacing: 1,
-      }).setOrigin(0, 0.5));
+      })).setOrigin(0, 0.5));
     });
 
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(addCornerBrackets(scene, w / 2, h - 30, 220, 40, THEME.CYAN, 6, 0.5));
-    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', {
+    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
@@ -250,26 +250,26 @@ export class WorldMapUI extends NavigableOverlay {
       this.container.add(hex);
 
       // Icon
-      const icon = this.scene.add.text(pos.x, pos.y - 2, iconChar, {
+      const icon = this.scene.add.text(pos.x, pos.y - 2, iconChar, fixTextStyle({
         fontFamily: 'monospace', fontSize: '22px', color: iconColor,
-      }).setOrigin(0.5).setDepth(3);
+      })).setOrigin(0.5).setDepth(3);
       this.container.add(icon);
 
       // Label (area name)
       const nameText = node.unlocked ? t(node.area.nameKey) : (node.discovered ? '???' : '???');
-      const label = this.scene.add.text(pos.x, pos.y + hexRadius + 14, nameText, {
+      const label = this.scene.add.text(pos.x, pos.y + hexRadius + 14, nameText, fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px',
         color: node.isCurrent ? THEME.TEXT_ACCENT : node.unlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM,
         stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0.5).setDepth(3);
+      })).setOrigin(0.5).setDepth(3);
       this.container.add(label);
 
       // Status text
-      const statusTxt = this.scene.add.text(pos.x, pos.y + hexRadius + 30, statusText, {
+      const statusTxt = this.scene.add.text(pos.x, pos.y + hexRadius + 30, statusText, fixTextStyle({
         fontFamily: 'monospace', fontSize: '8px',
         color: node.isCurrent ? THEME.TEXT_ACCENT : node.bossDefeated ? THEME.TEXT_AMBER : node.unlocked ? THEME.TEXT_MED : THEME.TEXT_DIM,
         letterSpacing: 1,
-      }).setOrigin(0.5).setDepth(3);
+      })).setOrigin(0.5).setDepth(3);
       this.container.add(statusTxt);
 
       const areaNode: AreaNode = {

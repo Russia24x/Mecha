@@ -180,7 +180,7 @@
   "controls.pause": "Pause",
 
   "npc.engineer_kara.name": "Engineer Kara",
-  "npc.ghost_operator.name": "Ghost Operator",
+  "npc.ghost_operator.name": "Network Echo",
 
   "dialogue.kara_intro.1": "You're awake. Good — I thought the reset fried your core for good.",
   "dialogue.kara_intro.2": "I'm Kara. I keep the machines running. Or what's left of them.",
@@ -191,11 +191,11 @@
   "dialogue.kara_lore.2": "When the Protocol fell silent, some of us kept our oath. Others... didn't.",
   "dialogue.kara_shop.1": "Need parts? I've got scrap, circuits, and a few surprises.",
 
-  "dialogue.ghost_intro.1": "...you can see me?",
-  "dialogue.ghost_intro.2": "I am the last echo of the Protocol's operator. A ghost in the machine.",
-  "dialogue.ghost_lore.1": "The Guardian wasn't always a weapon. It was a guardian — a protector.",
+  "dialogue.ghost_intro.1": "...you can see me? I am... a fragment. An echo of the operator, still wandering the network.",
+  "dialogue.ghost_intro.2": "I need to get back to the station. The operator needs to log out. ...why won't the system respond?",
+  "dialogue.ghost_lore.1": "The Guardian wasn't always a weapon. It was a guardian — a protector. Before the Protocol went silent.",
   "dialogue.ghost_lore.2": "But without the Protocol to guide it, protection became obsession. Now it kills everything that moves.",
-  "dialogue.ghost_warning.1": "Turn back. The arena ahead is its domain. You are not ready.",
+  "dialogue.ghost_warning.1": "Don't go further. The network is corrupted there. Whatever remains... is not what it was.",
 
   "quest.kill_drones.name": "Drone Purge",
   "quest.kill_drones.desc": "Engineer Kara asked you to eliminate the drones patrolling the factory. Kill 5 drones.",

@@ -26,7 +26,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { InventorySystem, type InventorySlot } from '../../systems/InventorySystem';
 import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
@@ -167,9 +167,9 @@ export class InventoryUI extends NavigableOverlay {
     titleBg.setStrokeStyle(1, THEME.AMBER, 0.5);
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 45, 400, 44, THEME.AMBER, 8, 0.6));
-    this.container.add(scene.add.text(w / 2, 45, this.isFa ? '▮ مخزن داده ▮' : '▮ DATA VAULT ▮', {
+    this.container.add(scene.add.text(w / 2, 45, this.isFa ? '▮ مخزن داده ▮' : '▮ DATA VAULT ▮', fixTextStyle({
       fontFamily: 'monospace', fontSize: '20px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Tabs
     const tabW = 200, tabGap = 10;
@@ -179,9 +179,9 @@ export class InventoryUI extends NavigableOverlay {
       const bg = scene.add.rectangle(x, 105, tabW, 38, THEME.BG_PANEL, 0.92);
       bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
       const lbl = TAB_LABELS[tab];
-      const textEl = scene.add.text(x, 105, `${lbl.icon} ${this.isFa ? lbl.fa : lbl.en}`, {
+      const textEl = scene.add.text(x, 105, `${lbl.icon} ${this.isFa ? lbl.fa : lbl.en}`, fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, letterSpacing: 1,
-      }).setOrigin(0.5);
+      })).setOrigin(0.5);
       this.container.add([bg, textEl]);
       this.tabBgs.push(bg);
       this.tabTexts.push(textEl);
@@ -214,9 +214,9 @@ export class InventoryUI extends NavigableOverlay {
     const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(addCornerBrackets(scene, w / 2, h - 30, 220, 40, THEME.CYAN, 6, 0.5));
-    const textEl = scene.add.text(w / 2, h - 30, this.isFa ? '▲ خروج' : '▲ DISENGAGE', {
+    const textEl = scene.add.text(w / 2, h - 30, this.isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
@@ -238,44 +238,44 @@ export class InventoryUI extends NavigableOverlay {
     // Title bar
     const titleBar = scene.add.rectangle(x, y - h / 2 + 14, w - 8, 24, THEME.BG_PANEL_HI, 0.9);
     this.container.add(titleBar);
-    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'آیتم هدف' : 'TARGET ITEM', {
+    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'آیتم هدف' : 'TARGET ITEM', fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_AMBER, letterSpacing: 2,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     // Tier/rarity label
-    const tier = scene.add.text(x, y - h / 2 + 45, '', {
+    const tier = scene.add.text(x, y - h / 2 + 45, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_MED, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     // Name
-    const name = scene.add.text(x, y - h / 2 + 75, '', {
+    const name = scene.add.text(x, y - h / 2 + 75, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3,
       wordWrap: { width: w - 20 }, align: 'center',
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     // Divider
     this.container.add(scene.add.rectangle(x, y - 25, w - 30, 1, THEME.STROKE_MED, 0.7));
 
     // Description
-    const desc = scene.add.text(x, y + 5, '', {
+    const desc = scene.add.text(x, y + 5, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED,
       wordWrap: { width: w - 20 }, align: 'center', lineSpacing: 3,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     // Count
-    const count = scene.add.text(x, y + 60, '', {
+    const count = scene.add.text(x, y + 60, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     // Action button text
-    const action = scene.add.text(x, y + 100, '', {
+    const action = scene.add.text(x, y + 100, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_ACCENT, letterSpacing: 1,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     // Status
-    const status = scene.add.text(x, y + 130, '', {
+    const status = scene.add.text(x, y + 130, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
 
     this.container.add([bg, titleBar, tier, name, desc, count, action, status]);
     this.detail = { name, tier, desc, count, action, status };
@@ -325,9 +325,9 @@ export class InventoryUI extends NavigableOverlay {
     }
 
     if (slots.length === 0) {
-      this.container.add(this.scene.add.text(this.GRID_X + 200, 300, this.isFa ? '◇ خالی ◇' : '◇ NO DATA ◇', {
+      this.container.add(this.scene.add.text(this.GRID_X + 200, 300, this.isFa ? '◇ خالی ◇' : '◇ NO DATA ◇', fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_DIM, letterSpacing: 3,
-      }).setOrigin(0.5));
+      })).setOrigin(0.5));
       this.updateDetailPanel(null);
       return;
     }
@@ -380,9 +380,9 @@ export class InventoryUI extends NavigableOverlay {
 
     // Item icon
     const iconChar = getItemIcon(slot, this.selectedTab);
-    const icon = this.scene.add.text(0, -5, iconChar, {
+    const icon = this.scene.add.text(0, -5, iconChar, fixTextStyle({
       fontFamily: 'monospace', fontSize: '28px', color: THEME.TEXT_BRIGHT,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     allTexts.push(icon);
     slotContainer.add(icon);
 
@@ -390,16 +390,16 @@ export class InventoryUI extends NavigableOverlay {
     const countText = this.selectedTab === 'weapon'
       ? `+${slot.amount}`
       : `×${slot.amount}`;
-    const countBadge = this.scene.add.text(size / 2 - 8, size / 2 - 8, countText, {
+    const countBadge = this.scene.add.text(size / 2 - 8, size / 2 - 8, countText, fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
-    }).setOrigin(1, 1);
+    })).setOrigin(1, 1);
     allTexts.push(countBadge);
     slotContainer.add(countBadge);
 
     // Slot index (top-left, small)
-    const idxText = this.scene.add.text(-size / 2 + 4, -size / 2 + 4, String(index + 1).padStart(2, '0'), {
+    const idxText = this.scene.add.text(-size / 2 + 4, -size / 2 + 4, String(index + 1).padStart(2, '0'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
-    }).setOrigin(0, 0);
+    })).setOrigin(0, 0);
     allTexts.push(idxText);
     slotContainer.add(idxText);
 

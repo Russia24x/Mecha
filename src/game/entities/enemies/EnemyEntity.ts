@@ -43,6 +43,17 @@ export class EnemyEntity {
   private visual: MechVisualHandle | null = null;
   private facing: 1 | -1 = 1;
   private animTime = 0;
+  // ── Phase 3: Posture / Stagger system (Souls-like) ──
+  // Enemies have a posture bar that fills when hit. When full, they stagger
+  // (stunned for 1.5s, take 50% more damage = crit window).
+  // Per Design Pillars: "Combat: Heavy·Precise·Punishing"
+  private posture = 0;            // 0..maxPosture
+  private maxPosture = 100;       // fills to this = stagger
+  private staggeredUntil = 0;     // timestamp when stagger ends
+  private postureBar: Phaser.GameObjects.Rectangle | null = null;
+  private postureBarBg: Phaser.GameObjects.Rectangle | null = null;
+  private static readonly STAGGER_DURATION_MS = 1500;
+  private static readonly POSTURE_DECAY_PER_SEC = 15;  // posture decays when not hit
 
   private particles: import('../../systems/ParticleSystem').ParticleSystem;
 
@@ -96,11 +107,77 @@ export class EnemyEntity {
 
   takeDamage(amount: number): boolean {
     if (!this.alive || amount <= 0) return false;
-    this.health -= amount;
+    // ── Phase 3: Crit window during stagger — 50% bonus damage ──
+    let effectiveDamage = amount;
+    const isStaggered = this.scene.time.now < this.staggeredUntil;
+    if (isStaggered) {
+      effectiveDamage = amount * 1.5;
+    }
+    this.health -= effectiveDamage;
     this.flashUntil = this.scene.time.now + 80;
-    if (this.state === 'attack' && this.attackPhase === 'telegraph') this.changeState('stagger');
+
+    // ── Phase 3: Fill posture bar on hit ──
+    // Posture fills based on damage dealt. Melee fills faster (heavier hits).
+    this.posture = Math.min(this.maxPosture, this.posture + amount * 0.8);
+    this.updatePostureBar();
+
+    // If posture full → stagger (stun + crit window)
+    if (this.posture >= this.maxPosture && !isStaggered) {
+      this.startStagger();
+    } else if (this.state === 'attack' && this.attackPhase === 'telegraph') {
+      // Light hit during telegraph = interrupt (existing behavior)
+      this.changeState('stagger');
+    }
+
     if (this.health <= 0) { this.die(); return true; }
     return true;
+  }
+
+  /** Phase 3: Start stagger — enemy is stunned, takes 50% more damage. */
+  private startStagger(): void {
+    this.staggeredUntil = this.scene.time.now + EnemyEntity.STAGGER_DURATION_MS;
+    this.changeState('stagger');
+    // Visual: screen flash + spark burst to telegraph the crit window
+    this.particles.sparks(this.sprite.x, this.sprite.y, 0xffcc00, 8);
+    // Reset posture so bar must fill again
+    this.posture = 0;
+    this.updatePostureBar();
+  }
+
+  /** Phase 3: Create/Update the posture bar above the enemy. */
+  private updatePostureBar(): void {
+    if (!this.sprite || !this.sprite.active) return;
+    const x = this.sprite.x;
+    const y = this.sprite.y - this.data.size.h / 2 - 12;
+    const barW = 40;
+    const pct = this.posture / this.maxPosture;
+
+    // Create bar if it doesn't exist
+    if (!this.postureBarBg) {
+      this.postureBarBg = this.scene.add.rectangle(x, y, barW + 2, 5, 0x05080c, 0.8);
+      this.postureBarBg.setStrokeStyle(1, 0x2a3040, 0.6);
+      this.postureBarBg.setDepth(13);
+    }
+    if (!this.postureBar) {
+      this.postureBar = this.scene.add.rectangle(x - barW / 2, y, barW, 3, 0xffcc00, 0.9);
+      this.postureBar.setOrigin(0, 0.5);
+      this.postureBar.setDepth(14);
+    }
+
+    // Update position + width
+    this.postureBarBg.setPosition(x, y);
+    this.postureBar.setPosition(x - barW / 2, y);
+    this.postureBar.setDisplaySize(barW * pct, 3);
+
+    // Color: amber → red as posture fills
+    if (pct > 0.7) this.postureBar.setFillStyle(0xff4040, 0.9);
+    else if (pct > 0.4) this.postureBar.setFillStyle(0xff8030, 0.9);
+    else this.postureBar.setFillStyle(0xffcc00, 0.7);
+
+    // Hide bar when posture is 0 (no visual clutter)
+    const showBar = pct > 0.01;
+    this.postureBarBg.setVisible(showBar);
+    this.postureBar.setVisible(showBar);
   }
 
   private die(): void {
@@ -127,6 +204,8 @@ export class EnemyEntity {
     }
     EventBus.emit('ENEMY_DEAD', { id: this.id, score: this.data.score, x: posX, y: posY });
     if (this.telegraphGfx) { this.telegraphGfx.destroy(); this.telegraphGfx = null; }
+    this.postureBar?.destroy(); this.postureBar = null;
+    this.postureBarBg?.destroy(); this.postureBarBg = null;
     this.visual?.destroy();
     this.visual = null;
     this.visualGfx?.destroy();
@@ -136,6 +215,8 @@ export class EnemyEntity {
 
   destroy(): void {
     if (this.telegraphGfx) { this.telegraphGfx.destroy(); this.telegraphGfx = null; }
+    this.postureBar?.destroy(); this.postureBar = null;
+    this.postureBarBg?.destroy(); this.postureBarBg = null;
     this.visual?.destroy();
     this.visual = null;
     this.visualGfx?.destroy();
@@ -160,20 +241,34 @@ export class EnemyEntity {
   update(deltaMs: number, playerPos: Phaser.Math.Vector2): void {
     if (!this.alive || !this.sprite || !this.sprite.active) return;
     this.stateTime += deltaMs;
+
+    // ── Phase 3: Posture decay (posture slowly drains when not being hit) ──
+    if (this.posture > 0 && this.scene.time.now > this.flashUntil) {
+      this.posture = Math.max(0, this.posture - EnemyEntity.POSTURE_DECAY_PER_SEC * (deltaMs / 1000));
+      this.updatePostureBar();
+    }
+
+    // ── Phase 3: Stagger state — can't act, takes crit damage ──
+    const isStaggered = this.scene.time.now < this.staggeredUntil;
+    if (isStaggered && this.state !== 'stagger') {
+      this.changeState('stagger');
+    }
+
     switch (this.state) {
       case 'patrol':
         this.onPatrol();
-        if (this.inRange(playerPos) && this.hasLineOfSight(playerPos)) this.changeState('aggro');
+        if (!isStaggered && this.inRange(playerPos) && this.hasLineOfSight(playerPos)) this.changeState('aggro');
         break;
       case 'aggro':
         this.onAggro(playerPos);
-        if (!this.inRange(playerPos) || !this.hasLineOfSight(playerPos)) this.changeState('patrol');
+        if (!isStaggered && (!this.inRange(playerPos) || !this.hasLineOfSight(playerPos))) this.changeState('patrol');
         break;
       case 'attack':
-        this.runAttackFSM(playerPos);
+        if (!isStaggered) this.runAttackFSM(playerPos);
         break;
       case 'stagger':
-        if (this.stateTime > 400) this.changeState('aggro');
+        // Phase 3: stagger lasts until staggeredUntil expires, then return to aggro
+        if (!isStaggered) this.changeState('aggro');
         break;
     }
     this.updateFlash();

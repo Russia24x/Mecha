@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { QuestSystem } from '../../systems/QuestSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
@@ -31,9 +31,9 @@ export class QuestUI extends NavigableOverlay {
     titleBg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 45, 400, 44, THEME.CYAN, 8, 0.6));
-    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ گزارش ماموریت ▮' : '▮ MISSION LOG ▮', {
+    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ گزارش ماموریت ▮' : '▮ MISSION LOG ▮', fixTextStyle({
       fontFamily: 'monospace', fontSize: '20px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
 
     this.refresh();
 
@@ -41,9 +41,9 @@ export class QuestUI extends NavigableOverlay {
     const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
     this.container.add(addCornerBrackets(scene, w / 2, h - 30, 220, 40, THEME.CYAN, 6, 0.5));
-    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', {
+    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    }).setOrigin(0.5);
+    })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
@@ -71,9 +71,9 @@ export class QuestUI extends NavigableOverlay {
     let y = 90;
 
     if (activeQuests.length > 0) {
-      this.container.add(this.scene.add.text(80, y, isFa ? '▶ فعال' : '▶ ACTIVE', {
+      this.container.add(this.scene.add.text(80, y, isFa ? '▶ فعال' : '▶ ACTIVE', fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_AMBER, letterSpacing: 2,
-      }));
+      })));
       y += 28;
       for (const quest of activeQuests) {
         y = this.renderQuest(quest, y, THEME.TEXT_BRIGHT, THEME.AMBER);
@@ -82,9 +82,9 @@ export class QuestUI extends NavigableOverlay {
     }
 
     if (completedQuests.length > 0) {
-      this.container.add(this.scene.add.text(80, y, isFa ? '✓ آماده تحویل' : '✓ READY TO TURN IN', {
+      this.container.add(this.scene.add.text(80, y, isFa ? '✓ آماده تحویل' : '✓ READY TO TURN IN', fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_GREEN, letterSpacing: 2,
-      }));
+      })));
       y += 28;
       for (const quest of completedQuests) {
         y = this.renderQuest(quest, y, '#9be0b0', THEME.ACTIVE);
@@ -93,9 +93,9 @@ export class QuestUI extends NavigableOverlay {
     }
 
     if (turnedInQuests.length > 0) {
-      this.container.add(this.scene.add.text(80, y, isFa ? '★ تکمیل شده' : '★ COMPLETED', {
+      this.container.add(this.scene.add.text(80, y, isFa ? '★ تکمیل شده' : '★ COMPLETED', fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_DIM, letterSpacing: 2,
-      }));
+      })));
       y += 28;
       for (const quest of turnedInQuests) {
         y = this.renderQuest(quest, y, THEME.TEXT_DIM, THEME.OFFLINE);
@@ -103,9 +103,9 @@ export class QuestUI extends NavigableOverlay {
     }
 
     if (activeQuests.length === 0 && completedQuests.length === 0 && turnedInQuests.length === 0) {
-      this.container.add(this.scene.add.text(w / 2, 300, isFa ? '◇ بدون ماموریت ◇' : '◇ NO MISSIONS ◇', {
+      this.container.add(this.scene.add.text(w / 2, 300, isFa ? '◇ بدون ماموریت ◇' : '◇ NO MISSIONS ◇', fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_DIM, letterSpacing: 3,
-      }).setOrigin(0.5));
+      })).setOrigin(0.5));
     }
   }
 
@@ -120,14 +120,14 @@ export class QuestUI extends NavigableOverlay {
     // Left accent bar
     entry.add(this.scene.add.rectangle(2, cardH / 2, 3, cardH - 8, accentColor, 0.5));
 
-    const nameText = this.scene.add.text(20, 10, t(quest.nameKey), {
+    const nameText = this.scene.add.text(20, 10, t(quest.nameKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color, stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0, 0);
+    })).setOrigin(0, 0);
     entry.add(nameText);
 
-    entry.add(this.scene.add.text(20, 28, t(quest.descriptionKey), {
+    entry.add(this.scene.add.text(20, 28, t(quest.descriptionKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED,
-    }).setOrigin(0, 0));
+    })).setOrigin(0, 0));
 
     const progress = QuestSystem.getProgress(quest.id);
     quest.objectives.forEach((obj, i) => {
@@ -135,7 +135,7 @@ export class QuestUI extends NavigableOverlay {
       const done = prog >= obj.amount;
       entry.add(this.scene.add.text(20, 48 + i * 16,
         `${done ? '✓' : '○'} ${obj.type} ${obj.target}: ${prog}/${obj.amount}`,
-        { fontFamily: 'monospace', fontSize: '10px', color: done ? THEME.TEXT_GREEN : THEME.TEXT_MED }
+        fixTextStyle({ fontFamily: 'monospace', fontSize: '10px', color: done ? THEME.TEXT_GREEN : THEME.TEXT_MED })
       ).setOrigin(0, 0));
     });
 

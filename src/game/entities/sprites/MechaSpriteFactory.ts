@@ -691,38 +691,99 @@ export class MechaSpriteFactory {
   }
 
   /**
-   * Build an NPC — Ghost Operator (holographic, faded, glitching).
+   * Build an NPC — Network Echo (holographic data fragment, corrupted AI memory).
+   * Per World Bible: "wandering in the network, wants to return to the station,
+   * doesn't know the station has fallen." Visual: translucent holographic mech
+   * with floating data fragments, binary particles, and data-stream effects.
    */
   static buildNPC_GhostOperator(scene: Phaser.Scene): MechVisualHandle {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const baseGlow = scene.add.ellipse(0, 26, 50, 10, 0x66f0ff, 0.15);
-    baseGlow.setBlendMode(Phaser.BlendModes.ADD); baseGlow.setDepth(-1); parts.push(baseGlow);
+    // ── Holographic projection base ring (data emitter) ──
+    const baseRing = scene.add.ellipse(0, 24, 44, 10, 0x66f0ff, 0.2);
+    baseRing.setBlendMode(Phaser.BlendModes.ADD); baseRing.setDepth(-1); parts.push(baseRing);
+    scene.tweens.add({ targets: baseRing, alpha: { from: 0.1, to: 0.3 }, scale: { from: 0.9, to: 1.1 }, duration: 1200, yoyo: true, repeat: -1 });
 
+    // ── Data stream (vertical code lines falling from above) ──
+    const dataStreams: Phaser.GameObjects.Text[] = [];
+    const hexChars = ['0', '1', '2', '3', 'A', 'B', 'C', 'D', 'E', 'F', '/', 'x', '<', '>'];
+    for (let i = 0; i < 3; i++) {
+      const stream = scene.add.text(-20 + i * 20, -50 + Math.random() * 30, '', {
+        fontFamily: 'monospace', fontSize: '7px', color: '#66f0ff',
+      }).setAlpha(0.4).setDepth(4);
+      stream.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(stream);
+      dataStreams.push(stream);
+      // Recurring data refresh
+      scene.time.addEvent({
+        delay: 200 + Math.random() * 200, loop: true,
+        callback: () => {
+          if (!stream.active) return;
+          let s = '';
+          for (let c = 0; c < 4; c++) s += hexChars[Math.floor(Math.random() * hexChars.length)];
+          stream.setText(s);
+        },
+      });
+      // Fall animation
+      scene.tweens.add({
+        targets: stream, y: 30, alpha: 0, duration: 1500 + i * 300,
+        repeat: -1, delay: i * 400,
+        onComplete: (_t, targets) => { (targets[0] as Phaser.GameObjects.Text).setY(-50).setAlpha(0.4); },
+      });
+    }
+
+    // ── Body (translucent holographic frame) ──
     const body = scene.add.graphics();
-    body.setDepth(5); body.setAlpha(0.55);
-    body.fillStyle(0x1a3040, 1); body.fillRoundedRect(-14, -16, 28, 28, 4);
-    body.lineStyle(1, 0x66f0ff, 0.7); body.strokeRoundedRect(-14, -16, 28, 28, 4);
+    body.setDepth(5); body.setAlpha(0.5);
+    body.fillStyle(0x0a2030, 1); body.fillRoundedRect(-14, -16, 28, 28, 4);
+    body.lineStyle(1, 0x66f0ff, 0.6); body.strokeRoundedRect(-14, -16, 28, 28, 4);
+    // Wireframe segments (digital skeleton look)
+    body.lineStyle(0.5, 0x66f0ff, 0.4);
+    body.beginPath(); body.moveTo(-14, -4); body.lineTo(14, -4); body.strokePath();
+    body.beginPath(); body.moveTo(-14, 6); body.lineTo(14, 6); body.strokePath();
+    body.beginPath(); body.moveTo(0, -16); body.lineTo(0, 12); body.strokePath();
     parts.push(body);
 
+    // ── Head (holographic) ──
     const head = scene.add.graphics();
-    head.setDepth(8); head.setAlpha(0.6);
-    head.fillStyle(0x2a4050, 1); head.fillRoundedRect(-7, -26, 14, 12, 2);
-    head.lineStyle(1, 0x66f0ff, 0.7); head.strokeRoundedRect(-7, -26, 14, 12, 2);
+    head.setDepth(8); head.setAlpha(0.55);
+    head.fillStyle(0x1a3040, 1); head.fillRoundedRect(-7, -26, 14, 12, 2);
+    head.lineStyle(1, 0x66f0ff, 0.6); head.strokeRoundedRect(-7, -26, 14, 12, 2);
     parts.push(head);
 
+    // ── Visor (cyan scanning bar) ──
     const visor = scene.add.rectangle(0, -22, 10, 2, 0x66f0ff, 0.95);
     visor.setBlendMode(Phaser.BlendModes.ADD); visor.setDepth(9); parts.push(visor);
 
+    // ── Holographic scan lines (horizontal, drifting) ──
     for (let i = 0; i < 4; i++) {
       const scan = scene.add.rectangle(0, -20 + i * 10, 32, 0.5, 0x66f0ff, 0.3);
       scan.setBlendMode(Phaser.BlendModes.ADD); scan.setDepth(10); parts.push(scan);
     }
 
-    scene.tweens.add({ targets: container, alpha: { from: 0.85, to: 1 }, duration: 200, yoyo: true, repeat: -1 });
+    // ── Floating data fragments (small squares orbiting) ──
+    const fragments: Phaser.GameObjects.Rectangle[] = [];
+    for (let i = 0; i < 5; i++) {
+      const frag = scene.add.rectangle(0, 0, 2, 2, 0x66f0ff, 0.7);
+      frag.setBlendMode(Phaser.BlendModes.ADD); frag.setDepth(7); parts.push(frag);
+      fragments.push(frag);
+      const angle = (i / 5) * Math.PI * 2;
+      const radius = 28;
+      scene.tweens.add({
+        targets: frag,
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius - 4,
+        duration: 2000 + i * 200,
+        yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      });
+    }
+
+    // ── Glitch flicker (whole container) ──
+    scene.tweens.add({ targets: container, alpha: { from: 0.8, to: 1 }, duration: 200, yoyo: true, repeat: -1 });
     scene.tweens.add({ targets: visor, alpha: { from: 0.4, to: 1 }, duration: 600, yoyo: true, repeat: -1 });
 
+    // ── Periodic horizontal jitter (glitch displacement) ──
     scene.time.addEvent({
       delay: 2000, loop: true,
       callback: () => {
