@@ -1,8 +1,28 @@
 /**
- * MECHA: LAST PROTOCOL — Inventory UI v4.0
+ * MECHA: LAST PROTOCOL — Inventory UI v5.0
  *
- * REDESIGNED: "DATA VAULT" — Mecha's storage manifest.
- * Inspired by Armored Core 6 (assembly/loadout UI) + Blasphemous (dark panels).
+ * REDESIGNED: Grid-based inventory with detail panel.
+ * Inspired by:
+ *   - Armored Core 6: assembly grid, tactical stats panel
+ *   - Blasphemous: dark intricate slots, relic display
+ *   - Elden Ring: inventory grid with item details
+ *
+ * Layout:
+ *   ┌──────────────────────────────────────────────────────┐
+ *   │  ▮ DATA VAULT ▮                       ◆ PROTOCOL SP  │
+ *   │  [ARSENAL] [COMPONENTS] [CONSUMABLES] [KEY DATA]     │
+ *   │  ┌────────────────────────────┐  ┌────────────────┐ │
+ *   │  │ ┌──┐ ┌──┐ ┌──┐ ┌──┐       │  │ TARGET ITEM   │ │
+ *   │  │ │  │ │  │ │  │ │  │       │  │ [TIER]        │ │
+ *   │  │ └──┘ └──┘ └──┘ └──┘       │  │ Name          │ │
+ *   │  │ ┌──┐ ┌──┐ ┌──┐ ┌──┐       │  │ ──────────    │ │
+ *   │  │ │  │ │  │ │  │ │  │       │  │ Description   │ │
+ *   │  │ └──┘ └──┘ └──┘ └──┘       │  │               │ │
+ *   │  │                            │  │ Count: ×5     │ │
+ *   │  └────────────────────────────┘  │ [USE/UPGRADE] │ │
+ *   │                                  └────────────────┘ │
+ *   │              [DISENGAGE]                            │
+ *   └──────────────────────────────────────────────────────┘
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
@@ -33,15 +53,104 @@ const TAB_LABELS: Record<TabId, { en: string; fa: string; icon: string }> = {
   key_item: { en: 'KEY DATA', fa: 'داده کلیدی', icon: '🔑' },
 };
 
+// Rarity colors (for item backgrounds)
+const RARITY_COLORS: Record<string, number> = {
+  common: 0x2a3340,
+  uncommon: 0x206040,
+  rare: 0x204080,
+  epic: 0x402080,
+  legendary: 0x806020,
+};
+
+// Item icons by type/id
+function getItemIcon(slot: InventorySlot, tab: TabId): string {
+  if (tab === 'weapon') {
+    const weapon = getWeapon(slot.item.id as WeaponId);
+    if (weapon) {
+      const id = slot.item.id;
+      if (id === 'assault_rifle') return '═';
+      if (id === 'shotgun') return '▣';
+      if (id === 'railgun') return '━';
+      if (id === 'plasma_cannon') return '◉';
+      if (id === 'laser') return '─';
+      if (id === 'rocket') return '◈';
+      if (id === 'sword') return '⚔';
+      if (id === 'energy_blade') return '⚡';
+    }
+    return '🔫';
+  }
+  if (tab === 'material') {
+    const id = slot.item.id;
+    if (id === 'scrap_metal') return '▣';
+    if (id === 'circuit_board') return '⌬';
+    if (id === 'armor_plate') return '🛡';
+    if (id === 'precision_lens') return '◎';
+    if (id === 'ai_chip') return '◈';
+    if (id === 'elite_core') return '◆';
+    if (id === 'guardian_core') return '★';
+    if (id === 'overseer_eye') return '◉';
+    return '🔩';
+  }
+  if (tab === 'consumable') {
+    const id = slot.item.id;
+    if (id === 'health_pack') return '♥';
+    if (id === 'energy_cell') return '⚡';
+    return '💊';
+  }
+  if (tab === 'key_item') return '🔑';
+  return '◆';
+}
+
+function getItemRarity(slot: InventorySlot, tab: TabId): string {
+  if (tab === 'weapon') return 'rare';
+  if (tab === 'material') {
+    const id = slot.item.id;
+    if (id === 'guardian_core' || id === 'overseer_eye') return 'legendary';
+    if (id === 'elite_core' || id === 'ai_chip') return 'epic';
+    if (id === 'precision_lens' || id === 'armor_plate') return 'rare';
+    return 'common';
+  }
+  if (tab === 'consumable') return 'uncommon';
+  if (tab === 'key_item') return 'epic';
+  return 'common';
+}
+
+interface ItemSlotVisual {
+  container: Phaser.GameObjects.Container;
+  bg: Phaser.GameObjects.Rectangle;
+  icon: Phaser.GameObjects.Text;
+  countBadge: Phaser.GameObjects.Text;
+  rarityRing: Phaser.GameObjects.Polygon;
+  slot: InventorySlot;
+  allTexts: Phaser.GameObjects.Text[];
+  allShapes: Phaser.GameObjects.Shape[];
+}
+
 export class InventoryUI extends NavigableOverlay {
   private selectedTab: TabId = 'material';
-  private itemSlots: Phaser.GameObjects.Container[] = [];
+  private itemSlots: ItemSlotVisual[] = [];
   private tabBgs: Phaser.GameObjects.Rectangle[] = [];
   private tabTexts: Phaser.GameObjects.Text[] = [];
   private tabs: TabId[] = ['material', 'consumable', 'weapon', 'key_item'];
-  private currentSlots: InventorySlot[] = [];
-  private actionButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; action: () => void }[] = [];
   private isFa: boolean = false;
+  private focusedSlotIdx: number = -1;
+
+  // Detail panel
+  private detail: {
+    name: Phaser.GameObjects.Text;
+    tier: Phaser.GameObjects.Text;
+    desc: Phaser.GameObjects.Text;
+    count: Phaser.GameObjects.Text;
+    action: Phaser.GameObjects.Text;
+    status: Phaser.GameObjects.Text;
+  } | null = null;
+
+  // Grid layout
+  private readonly GRID_COLS = 5;
+  private readonly SLOT_SIZE = 80;
+  private readonly SLOT_GAP = 12;
+  private readonly GRID_X = 30;
+  private readonly GRID_Y = 170;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     super(scene);
@@ -53,7 +162,7 @@ export class InventoryUI extends NavigableOverlay {
     this.container.add(overlay);
     this.container.add(addScanlines(scene, w, h, 0.02));
 
-    // Title with corner brackets
+    // Title
     const titleBg = scene.add.rectangle(w / 2, 45, 400, 44, THEME.BG_PANEL, 0.9);
     titleBg.setStrokeStyle(1, THEME.AMBER, 0.5);
     this.container.add(titleBg);
@@ -79,6 +188,17 @@ export class InventoryUI extends NavigableOverlay {
       this.registerNav(bg, textEl, () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
     });
 
+    // Grid background panel
+    const gridPanelW = this.GRID_COLS * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_GAP + 20;
+    const gridPanelH = 400;
+    const gridPanel = scene.add.rectangle(this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.BG_PANEL, 0.4);
+    gridPanel.setStrokeStyle(1, THEME.STROKE_DIM, 0.3);
+    this.container.add(gridPanel);
+    this.container.add(addCornerBrackets(scene, this.GRID_X + gridPanelW / 2 - 10, this.GRID_Y + gridPanelH / 2 - 20, gridPanelW, gridPanelH, THEME.CYAN, 6, 0.4));
+
+    // Detail panel (right side)
+    this.buildDetailPanel(scene);
+
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
     bg.setStrokeStyle(1, THEME.CYAN, 0.5);
@@ -90,33 +210,78 @@ export class InventoryUI extends NavigableOverlay {
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
     this.refresh();
-
-    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, etc.)
     this.container.setScrollFactor(0, 0, true);
   }
 
+  // ─── Build detail panel (right side) ───────────────────────────────────
+  private buildDetailPanel(scene: Phaser.Scene): void {
+    const x = GAME.WIDTH - 175;
+    const y = 320;
+    const w = 220, h = 320;
+    const isFa = this.isFa;
+
+    const bg = scene.add.rectangle(x, y, w, h, THEME.BG_PANEL, 0.92);
+    bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+    this.container.add(addCornerBrackets(scene, x, y, w, h, THEME.AMBER, 6, 0.5));
+
+    // Title bar
+    const titleBar = scene.add.rectangle(x, y - h / 2 + 14, w - 8, 24, THEME.BG_PANEL_HI, 0.9);
+    this.container.add(titleBar);
+    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'آیتم هدف' : 'TARGET ITEM', {
+      fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_AMBER, letterSpacing: 2,
+    }).setOrigin(0.5));
+
+    // Tier/rarity label
+    const tier = scene.add.text(x, y - h / 2 + 45, '', {
+      fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_MED, letterSpacing: 2,
+    }).setOrigin(0.5);
+
+    // Name
+    const name = scene.add.text(x, y - h / 2 + 75, '', {
+      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3,
+      wordWrap: { width: w - 20 }, align: 'center',
+    }).setOrigin(0.5);
+
+    // Divider
+    this.container.add(scene.add.rectangle(x, y - 25, w - 30, 1, THEME.STROKE_MED, 0.7));
+
+    // Description
+    const desc = scene.add.text(x, y + 5, '', {
+      fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED,
+      wordWrap: { width: w - 20 }, align: 'center', lineSpacing: 3,
+    }).setOrigin(0.5);
+
+    // Count
+    const count = scene.add.text(x, y + 60, '', {
+      fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    // Action button text
+    const action = scene.add.text(x, y + 100, '', {
+      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_ACCENT, letterSpacing: 1,
+    }).setOrigin(0.5);
+
+    // Status
+    const status = scene.add.text(x, y + 130, '', {
+      fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
+    }).setOrigin(0.5);
+
+    this.container.add([bg, titleBar, tier, name, desc, count, action, status]);
+    this.detail = { name, tier, desc, count, action, status };
+  }
+
+  // ─── Refresh grid ──────────────────────────────────────────────────────
   private refresh(): void {
-    // Remove old action button nav elements FIRST (keep tabs + back), then destroy.
-    // Guards against double-destroy with itemSlots.
-    const tabSet = new Set(this.tabBgs);
-    this.navElements = this.navElements.filter((el, idx, arr) => {
-      const isTab = tabSet.has(el.bg as Phaser.GameObjects.Rectangle);
-      const isBack = idx === arr.length - 1;
-      if (!isTab && !isBack) {
-        if (el.bg && el.bg.active) el.bg.destroy();
-        if (el.text && el.text.active) el.text.destroy();
-        return false;
-      }
-      return true;
-    });
-    // Destroy old item slot containers (their children already destroyed above if they were nav elements)
+    // Cleanup old slots
+    const oldBgSet = new Set(this.itemSlots.map(s => s.bg));
+    this.navElements = this.navElements.filter(el => !oldBgSet.has(el.bg as unknown as Phaser.GameObjects.Rectangle));
     this.itemSlots.forEach(s => {
-      if (s && s.active) s.destroy();
+      s.allShapes.forEach(sh => { if (sh && sh.active) sh.destroy(); });
+      s.allTexts.forEach(t => { if (t && t.active) t.destroy(); });
     });
     this.itemSlots = [];
-    this.actionButtons = [];
 
-    // Highlight selected tab — Neural Cortex style
+    // Highlight selected tab
     this.tabs.forEach((tab, i) => {
       if (!this.tabBgs[i] || !this.tabTexts[i]) return;
       if (tab === this.selectedTab) {
@@ -130,7 +295,7 @@ export class InventoryUI extends NavigableOverlay {
       }
     });
 
-    // Get items for selected tab
+    // Get items
     let slots: InventorySlot[] = [];
     if (this.selectedTab === 'weapon') {
       const save = SaveSystem.getPlayer();
@@ -147,99 +312,182 @@ export class InventoryUI extends NavigableOverlay {
     } else {
       slots = InventorySystem.getByType(this.selectedTab as ItemType);
     }
-    this.currentSlots = slots;
 
     if (slots.length === 0) {
-      this.container.add(this.scene.add.text(GAME.WIDTH / 2, 300, this.isFa ? '◇ خالی ◇' : '◇ NO DATA ◇', {
+      this.container.add(this.scene.add.text(this.GRID_X + 200, 300, this.isFa ? '◇ خالی ◇' : '◇ NO DATA ◇', {
         fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_DIM, letterSpacing: 3,
       }).setOrigin(0.5));
+      this.updateDetailPanel(null);
       return;
     }
 
-    // Render item cards — Mecha data cards
-    const w = GAME.WIDTH;
-    const startY = 160;
-    const cardH = 60;
-    const gap = 6;
+    // Render grid
     slots.forEach((slot, i) => {
-      const y = startY + i * (cardH + gap);
-      const slotContainer = this.scene.add.container(w / 2, y);
-      const cardBg = this.scene.add.rectangle(0, 0, w - 120, cardH, THEME.BG_PANEL, 0.92);
-      cardBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
-      slotContainer.add(cardBg);
-      // Left accent bar (circuit edge)
-      slotContainer.add(this.scene.add.rectangle(-(w - 120) / 2 + 2, 0, 3, cardH - 8, THEME.AMBER, 0.4));
+      const col = i % this.GRID_COLS;
+      const row = Math.floor(i / this.GRID_COLS);
+      const x = this.GRID_X + col * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_SIZE / 2;
+      const y = this.GRID_Y + row * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_SIZE / 2;
 
-      const name = this.selectedTab === 'weapon'
-        ? `${t(slot.item.nameKey)} +${slot.amount}`
-        : `${t(slot.item.nameKey)} ×${slot.amount}`;
-      const nameText = this.scene.add.text(-w / 2 + 80, -16, name, {
-        fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0, 0);
-      slotContainer.add(nameText);
+      this.createItemSlot(slot, x, y, i);
+    });
 
-      if (slot.item.descriptionKey) {
-        slotContainer.add(this.scene.add.text(-w / 2 + 80, 2, t(slot.item.descriptionKey), {
-          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED,
-        }).setOrigin(0, 0));
-      }
+    // Auto-focus first slot
+    if (this.itemSlots.length > 0) {
+      this.focusedSlotIdx = 0;
+      this.updateDetailPanel(this.itemSlots[0].slot);
+    }
 
-      this.container.add(slotContainer);
-      this.itemSlots.push(slotContainer);
+    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+  }
 
-      // Action button (upgrade/use) — Mecha style
-      if (this.selectedTab === 'weapon') {
-        const weaponId = slot.item.id as WeaponId;
-        const info = WeaponUpgradeSystem.getUpgradeInfo(weaponId);
-        if (info.canUpgrade) {
-          const btnBg = this.scene.add.rectangle(w / 2 - 100, y, 130, 28, 0x0d1a14, 0.95);
-          btnBg.setStrokeStyle(1, THEME.ACTIVE, 0.7);
-          const btnText = this.scene.add.text(w / 2 - 100, y, `▲ UPGRADE ${info.scrapNeeded}S`, {
-            fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_GREEN, letterSpacing: 1,
-          }).setOrigin(0.5);
-          this.container.add([btnBg, btnText]);
-          const action = () => { if (WeaponUpgradeSystem.upgrade(weaponId)) { this.refresh(); } };
-          this.actionButtons.push({ bg: btnBg, text: btnText, action });
-          this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); action(); });
-        }
-      } else if (this.selectedTab === 'consumable') {
-        const btnBg = this.scene.add.rectangle(w / 2 - 80, y, 80, 28, THEME.BG_PANEL, 0.95);
-        btnBg.setStrokeStyle(1, THEME.CYAN, 0.6);
-        const btnText = this.scene.add.text(w / 2 - 80, y, '▶ USE', {
-          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT, letterSpacing: 1,
-        }).setOrigin(0.5);
-        this.container.add([btnBg, btnText]);
-        const action = () => { InventorySystem.useConsumable(slot.item.id); this.refresh(); };
-        this.actionButtons.push({ bg: btnBg, text: btnText, action });
-        this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); action(); });
-      }
+  // ─── Create an item slot in the grid ───────────────────────────────────
+  private createItemSlot(slot: InventorySlot, x: number, y: number, index: number): void {
+    const rarity = getItemRarity(slot, this.selectedTab);
+    const rarityColor = RARITY_COLORS[rarity] ?? RARITY_COLORS.common;
+    const size = this.SLOT_SIZE;
+    const allShapes: Phaser.GameObjects.Shape[] = [];
+    const allTexts: Phaser.GameObjects.Text[] = [];
 
-      // Card itself is also focusable (for weapons without upgrade button, materials, key items)
-      if (this.selectedTab === 'material' || this.selectedTab === 'key_item' ||
-          (this.selectedTab === 'weapon' && !WeaponUpgradeSystem.getUpgradeInfo(slot.item.id as WeaponId).canUpgrade)) {
-        this.registerNav(cardBg, nameText, () => { /* view only — no action */ });
-      }
+    const slotContainer = this.scene.add.container(x, y);
+
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, size, size, rarityColor, 0.85);
+    bg.setStrokeStyle(2, THEME.STROKE_DIM, 0.6);
+    allShapes.push(bg);
+    slotContainer.add(bg);
+
+    // Corner accents (Blasphemous style)
+    const cs = 6;
+    const corners = [
+      this.scene.add.polygon(-size / 2, -size / 2, [0, 0, cs, 0, 0, cs], THEME.AMBER, 0.4),
+      this.scene.add.polygon(size / 2, -size / 2, [0, 0, -cs, 0, 0, cs], THEME.AMBER, 0.4),
+      this.scene.add.polygon(-size / 2, size / 2, [0, 0, cs, 0, 0, -cs], THEME.AMBER, 0.4),
+      this.scene.add.polygon(size / 2, size / 2, [0, 0, -cs, 0, 0, -cs], THEME.AMBER, 0.4),
+    ];
+    corners.forEach(c => allShapes.push(c));
+    slotContainer.add(corners);
+
+    // Item icon
+    const iconChar = getItemIcon(slot, this.selectedTab);
+    const icon = this.scene.add.text(0, -5, iconChar, {
+      fontFamily: 'monospace', fontSize: '28px', color: THEME.TEXT_BRIGHT,
+    }).setOrigin(0.5);
+    allTexts.push(icon);
+    slotContainer.add(icon);
+
+    // Count badge (bottom-right)
+    const countText = this.selectedTab === 'weapon'
+      ? `+${slot.amount}`
+      : `×${slot.amount}`;
+    const countBadge = this.scene.add.text(size / 2 - 8, size / 2 - 8, countText, {
+      fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
+    }).setOrigin(1, 1);
+    allTexts.push(countBadge);
+    slotContainer.add(countBadge);
+
+    // Slot index (top-left, small)
+    const idxText = this.scene.add.text(-size / 2 + 4, -size / 2 + 4, String(index + 1).padStart(2, '0'), {
+      fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
+    }).setOrigin(0, 0);
+    allTexts.push(idxText);
+    slotContainer.add(idxText);
+
+    this.container.add(slotContainer);
+
+    const visual: ItemSlotVisual = {
+      container: slotContainer, bg, icon, countBadge,
+      rarityRing: corners[0], // reference for nav
+      slot, allTexts, allShapes,
+    };
+    this.itemSlots.push(visual);
+
+    // Interactive
+    bg.setInteractive({ useHandCursor: true });
+    bg.on('pointerover', () => {
+      this.navFocusIdx = this.navElements.findIndex(e => e.bg === bg);
+      if (this.navFocusIdx < 0) this.navFocusIdx = 0;
+      this.focusedSlotIdx = index;
+      this.updateNavFocus();
+      this.updateDetailPanel(slot);
+      AudioSystem.play('uiHover');
+    });
+    bg.on('pointerout', () => this.updateNavFocus());
+    bg.on('pointerdown', () => { this.activateSlot(slot); });
+
+    // Insert before back button
+    const backIdx = this.navElements.length - 1;
+    this.navElements.splice(backIdx, 0, {
+      bg: bg as unknown as Phaser.GameObjects.Shape,
+      text: icon,
+      onSelect: () => this.activateSlot(slot),
+      focusColor: THEME.AMBER,
+      normalColor: THEME.STROKE_DIM,
     });
   }
 
-  /** Left/right switches tabs. */
-  protected onNavLeft(): void {
-    const idx = this.tabs.indexOf(this.selectedTab);
-    this.selectedTab = this.tabs[(idx - 1 + this.tabs.length) % this.tabs.length];
-    this.refresh();
-    AudioSystem.play('uiClick');
-    this.navFocusIdx = 0;
-    // Defer to next frame — Text objects need a frame to init canvas
-    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+  // ─── Activate slot (use/upgrade) ───────────────────────────────────────
+  private activateSlot(slot: InventorySlot): void {
+    if (this.selectedTab === 'weapon') {
+      const weaponId = slot.item.id as WeaponId;
+      const info = WeaponUpgradeSystem.getUpgradeInfo(weaponId);
+      if (info.canUpgrade) {
+        AudioSystem.play('uiClick');
+        WeaponUpgradeSystem.upgrade(weaponId);
+        this.refresh();
+      }
+    } else if (this.selectedTab === 'consumable') {
+      AudioSystem.play('uiClick');
+      InventorySystem.useConsumable(slot.item.id);
+      this.refresh();
+    }
   }
 
-  protected onNavRight(): void {
-    const idx = this.tabs.indexOf(this.selectedTab);
-    this.selectedTab = this.tabs[(idx + 1) % this.tabs.length];
-    this.refresh();
-    AudioSystem.play('uiClick');
-    this.navFocusIdx = 0;
-    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+  // ─── Update detail panel ───────────────────────────────────────────────
+  private updateDetailPanel(slot: InventorySlot | null): void {
+    if (!this.detail) return;
+    const isFa = this.isFa;
+    if (!slot) {
+      this.detail.name.setText('');
+      this.detail.tier.setText('');
+      this.detail.desc.setText(isFa ? '◇ آیتمی انتخاب نشده ◇' : '◇ NO ITEM SELECTED ◇');
+      this.detail.count.setText('');
+      this.detail.action.setText('');
+      this.detail.status.setText('');
+      return;
+    }
+    const rarity = getItemRarity(slot, this.selectedTab);
+    const rarityLabel = isFa ? {
+      common: 'معمولی', uncommon: 'غیرعادی', rare: 'کمیاب', epic: 'حماسی', legendary: 'افسانه‌ای',
+    }[rarity] : rarity.toUpperCase();
+    safeSetColor(this.detail.name, THEME.TEXT_BRIGHT);
+    this.detail.name.setText(t(slot.item.nameKey));
+    this.detail.tier.setText(`[ ${rarityLabel} ]`);
+    safeSetColor(this.detail.tier, rarity === 'legendary' ? THEME.TEXT_AMBER : rarity === 'epic' ? '#c060ff' : rarity === 'rare' ? '#40c0ff' : THEME.TEXT_MED);
+    this.detail.desc.setText(slot.item.descriptionKey ? t(slot.item.descriptionKey) : '');
+    const countLabel = this.selectedTab === 'weapon' ? `+${slot.amount}` : `×${slot.amount}`;
+    this.detail.count.setText(isFa ? `تعداد: ${countLabel}` : `COUNT: ${countLabel}`);
+
+    // Action
+    let actionText = '';
+    if (this.selectedTab === 'weapon') {
+      const weaponId = slot.item.id as WeaponId;
+      const info = WeaponUpgradeSystem.getUpgradeInfo(weaponId);
+      if (info.canUpgrade) {
+        actionText = isFa ? `▲ ارتقا (${info.scrapNeeded}S)` : `▲ UPGRADE (${info.scrapNeeded}S)`;
+      } else if (info.currentLevel < info.maxLevel) {
+        actionText = isFa ? `◆ نیاز: ${info.scrapNeeded}S` : `◆ NEEDS: ${info.scrapNeeded}S`;
+      } else {
+        actionText = isFa ? '★ حداکثر' : '★ MAX LEVEL';
+      }
+    } else if (this.selectedTab === 'consumable') {
+      actionText = isFa ? '▶ استفاده' : '▶ USE';
+    }
+    this.detail.action.setText(actionText);
+    safeSetColor(this.detail.action, this.selectedTab === 'weapon' ? THEME.TEXT_GREEN : THEME.TEXT_ACCENT);
+
+    // Status
+    this.detail.status.setText(isFa ? '✓ ذخیره شد' : '✓ STORED');
+    safeSetColor(this.detail.status, THEME.TEXT_GREEN);
   }
 }
 
