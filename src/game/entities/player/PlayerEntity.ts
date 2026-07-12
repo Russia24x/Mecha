@@ -57,6 +57,8 @@ export class PlayerEntity {
   private jumpsRemaining = 1;
   private maxJumps = 1;
   private lastAfterimageAt = 0;
+  private touchingWall: 'left' | 'right' | null = null;
+  private wallJumpUntil = 0;
 
   private invulnUntil = 0;
   private flashTimer = 0;
@@ -289,6 +291,7 @@ export class PlayerEntity {
     if (this.grounded) {
       this.coyoteUntil = now + PLAYER.COYOTE_TIME_MS;
       this.jumpsRemaining = this.maxJumps;
+      this.wallJumpUntil = 0;
       if (now < this.jumpBufferUntil) {
         this.sprite.setVelocityY(this.stats.jumpVelocity);
         this.jumpBufferUntil = 0;
@@ -298,11 +301,42 @@ export class PlayerEntity {
       }
     }
 
+    // Wall detection (for wall jump + wall slide)
+    this.touchingWall = null;
+    if (!this.grounded && this.abilities.has('wallJump')) {
+      const r = PLAYER.BODY_RADIUS;
+      const px = this.sprite.x;
+      const py = this.sprite.y;
+      // Check left wall
+      const leftHits = this.physics.bodiesAtPoint(px - r - 4, py);
+      if (leftHits.some(b => b.label.startsWith('solid'))) this.touchingWall = 'left';
+      // Check right wall
+      if (!this.touchingWall) {
+        const rightHits = this.physics.bodiesAtPoint(px + r + 4, py);
+        if (rightHits.some(b => b.label.startsWith('solid'))) this.touchingWall = 'right';
+      }
+      // Wall slide — slow fall when touching wall and pressing toward it
+      if (this.touchingWall) {
+        const pressingToward = (this.touchingWall === 'left' && input.heldLeft) || (this.touchingWall === 'right' && input.heldRight);
+        if (pressingToward) {
+          const body = this.sprite.body as MatterJS.BodyType;
+          if (body && body.velocity.y > 1) {
+            this.sprite.setVelocityY(body.velocity.y * 0.35);
+          }
+        }
+      }
+    }
+
     // Horizontal movement
     let moveX = 0;
     if (input.heldLeft) moveX -= 1;
     if (input.heldRight) moveX += 1;
     if (moveX === 0 && Math.abs(input.leftStickX) > 0.1) moveX = input.leftStickX;
+
+    // Wall jump lockout — brief horizontal control lock after wall jump
+    if (now < this.wallJumpUntil) {
+      moveX = 0;
+    }
 
     if (this.isDashing) {
       const dirSign = this.dashDir === 'right' ? 1 : -1;
@@ -343,6 +377,24 @@ export class PlayerEntity {
     if (!this.alive || !this.sprite || !this.sprite.active) return;
     this.jumpBufferUntil = this.scene.time.now + PLAYER.JUMP_BUFFER_MS;
     const now = this.scene.time.now;
+
+    // Wall Jump — if touching wall, not grounded, and ability unlocked
+    if (!this.grounded && this.touchingWall && this.abilities.has('wallJump')) {
+      const jumpDir = this.touchingWall === 'left' ? 1 : -1;
+      this.sprite.setVelocityY(this.stats.jumpVelocity * 0.9);
+      this.sprite.setVelocityX(jumpDir * this.stats.moveSpeed * 1.5);
+      this.wallJumpUntil = now + 200;
+      this.facing = jumpDir > 0 ? 'right' : 'left';
+      this.jumpBufferUntil = 0;
+      this.jumpsRemaining = this.maxJumps - 1;
+      AudioSystem.play('jump');
+      // Particle burst on wall jump
+      const pos = this.position;
+      this.particles.explosion(pos.x, pos.y, 0x39d0d8, 0.4);
+      return;
+    }
+
+    // Normal jump / double jump
     if (this.jumpsRemaining > 0 && (this.grounded || now < this.coyoteUntil || this.jumpsRemaining > 1)) {
       const isDouble = !this.grounded && this.jumpsRemaining === 1;
       this.sprite.setVelocityY(this.stats.jumpVelocity);
