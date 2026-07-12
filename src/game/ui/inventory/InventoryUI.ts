@@ -47,10 +47,10 @@ function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string):
 }
 
 const TAB_LABELS: Record<TabId, { en: string; fa: string; icon: string }> = {
-  weapon: { en: 'ARSENAL', fa: 'تسلیحات', icon: '🔫' },
-  material: { en: 'COMPONENTS', fa: 'قطعات', icon: '🔩' },
-  consumable: { en: 'CONSUMABLES', fa: 'مصرفی', icon: '💊' },
-  key_item: { en: 'KEY DATA', fa: 'داده کلیدی', icon: '🔑' },
+  weapon: { en: 'ARSENAL', fa: 'تسلیحات', icon: '▣' },
+  material: { en: 'COMPONENTS', fa: 'قطعات', icon: '◆' },
+  consumable: { en: 'CONSUMABLES', fa: 'مصرفی', icon: '◉' },
+  key_item: { en: 'KEY DATA', fa: 'داده کلیدی', icon: '◈' },
 };
 
 // Rarity colors (for item backgrounds)
@@ -62,7 +62,7 @@ const RARITY_COLORS: Record<string, number> = {
   legendary: 0x806020,
 };
 
-// Item icons by type/id
+// Item icons by type/id (ASCII characters only — monospace safe)
 function getItemIcon(slot: InventorySlot, tab: TabId): string {
   if (tab === 'weapon') {
     const weapon = getWeapon(slot.item.id as WeaponId);
@@ -74,30 +74,30 @@ function getItemIcon(slot: InventorySlot, tab: TabId): string {
       if (id === 'plasma_cannon') return '◉';
       if (id === 'laser') return '─';
       if (id === 'rocket') return '◈';
-      if (id === 'sword') return '⚔';
+      if (id === 'sword') return '†';
       if (id === 'energy_blade') return '⚡';
     }
-    return '🔫';
+    return '▣';
   }
   if (tab === 'material') {
     const id = slot.item.id;
     if (id === 'scrap_metal') return '▣';
     if (id === 'circuit_board') return '⌬';
-    if (id === 'armor_plate') return '🛡';
+    if (id === 'armor_plate') return '▦';
     if (id === 'precision_lens') return '◎';
     if (id === 'ai_chip') return '◈';
     if (id === 'elite_core') return '◆';
     if (id === 'guardian_core') return '★';
     if (id === 'overseer_eye') return '◉';
-    return '🔩';
+    return '◆';
   }
   if (tab === 'consumable') {
     const id = slot.item.id;
     if (id === 'health_pack') return '♥';
     if (id === 'energy_cell') return '⚡';
-    return '💊';
+    return '◉';
   }
-  if (tab === 'key_item') return '🔑';
+  if (tab === 'key_item') return '◈';
   return '◆';
 }
 
