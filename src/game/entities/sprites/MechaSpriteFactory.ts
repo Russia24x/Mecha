@@ -38,6 +38,10 @@ export interface MechVisualHandle {
   setThrusterIntensity: (intensity: number) => void;
   /** Destroy all parts. */
   destroy: () => void;
+  /** Optional: animate walking phase (player only). phase in radians (cumulative). */
+  setWalkPhase?: (phase: number, isMoving: boolean, isJumping: boolean) => void;
+  /** Optional: rotate gun arm to follow aim direction (player only). Angle in radians. */
+  setGunAngle?: (angle: number) => void;
 }
 
 export class MechaSpriteFactory {
@@ -161,6 +165,26 @@ export class MechaSpriteFactory {
         const s = 0.5 + intensity * 1.5;
         thrusterL.setScale(s, s);
         thrusterR.setScale(s, s);
+      },
+      // ── Restore old walking animation: leg swing via sine phase ──
+      setWalkPhase: (phase: number, isMoving: boolean, isJumping: boolean) => {
+        if (isJumping) {
+          // Tuck legs when airborne (old behavior)
+          legL.setRotation(-20 * Math.PI / 180);
+          legR.setRotation(20 * Math.PI / 180);
+        } else if (isMoving) {
+          // Swing legs in opposite phase (old behavior)
+          legL.setRotation(Math.sin(phase) * 12 * Math.PI / 180);
+          legR.setRotation(Math.sin(phase + Math.PI) * 12 * Math.PI / 180);
+        } else {
+          // Standing — legs neutral
+          legL.setRotation(0);
+          legR.setRotation(0);
+        }
+      },
+      // ── Restore old gun barrel rotation toward aim direction ──
+      setGunAngle: (angle: number) => {
+        gunArm.setRotation(angle);
       },
       destroy: () => {
         parts.forEach(p => { if (p && p.active) p.destroy(); });

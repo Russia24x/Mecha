@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { DialogueSystem, type DialogueLine } from '../../systems/DialogueSystem';
-import { t, getLocale } from '../../systems/LocalizationSystem';
+import { t, getLocale, fixTextStyle, isRTL } from '../../systems/LocalizationSystem';
 import { NPCSystem } from '../../systems/NPCSystem';
 import { EventBus } from '../../systems/EventBus';
 
@@ -23,30 +23,31 @@ export class DialogueUI {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    this.container = scene.add.container(0, 0).setDepth(210).setVisible(false);
+    // Depth raised to 290 — above ALL atmosphere/filter layers (max 95) + HUD (200) + lore panel (280)
+    this.container = scene.add.container(0, 0).setDepth(290).setVisible(false);
 
-    // Box (bottom 1/3 of screen)
-    this.box = scene.add.rectangle(w / 2, h - 80, w - 80, 100, 0x0a0d14, 0.92);
-    this.box.setStrokeStyle(2, 0x39d0d8, 0.6);
+    // Box (bottom 1/3 of screen) — semi-opaque so it stays readable over any backdrop
+    this.box = scene.add.rectangle(w / 2, h - 80, w - 80, 100, 0x0a0d14, 0.95);
+    this.box.setStrokeStyle(2, 0x39d0d8, 0.7);
     this.container.add(this.box);
 
-    // Speaker name
-    this.nameText = scene.add.text(60, h - 120, '', {
+    // Speaker name — Persian-aware font
+    this.nameText = scene.add.text(60, h - 120, '', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: '#39d0d8',
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add(this.nameText);
 
-    // Dialogue line
-    this.lineText = scene.add.text(60, h - 80, '', {
-      fontFamily: 'monospace', fontSize: '13px', color: '#cfd6e0',
+    // Dialogue line — Persian-aware font (forces letterSpacing 0 + DejaVu Sans for fa)
+    this.lineText = scene.add.text(60, h - 80, '', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0',
       wordWrap: { width: w - 160 }, maxLines: 3,
-    }).setOrigin(0, 0.5);
+    })).setOrigin(0, 0.5);
     this.container.add(this.lineText);
 
     // Hint (press Enter / click)
-    this.hintText = scene.add.text(w - 60, h - 30, '▼', {
+    this.hintText = scene.add.text(w - 60, h - 30, '▼', fixTextStyle({
       fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
-    }).setOrigin(1, 0.5);
+    })).setOrigin(1, 0.5);
     this.container.add(this.hintText);
 
     // Pulsing hint animation

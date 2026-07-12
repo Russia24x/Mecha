@@ -24,7 +24,7 @@ import { CameraSystem } from '../../systems/CameraSystem';
 import { ParticleSystem } from '../../systems/ParticleSystem';
 import { RenderSystem } from '../../systems/RenderSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
-import { setLocale, t, getLocale } from '../../systems/LocalizationSystem';
+import { setLocale, t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { NPCSystem } from '../../systems/NPCSystem';
 import { DialogueSystem } from '../../systems/DialogueSystem';
 import { LoreSystem } from '../../systems/LoreSystem';
@@ -56,7 +56,6 @@ import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
 import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
 import { GamepadManager } from '../../shared/GamepadManager';
 import type { EnemyTypeId } from '../../data/types';
-import type { NPCData } from '../../data/types';
 
 type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
 
@@ -643,10 +642,8 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(area.bgColor);
     // Phaser 4 camera fade in
     this.cameras.main.fadeIn(600, 5, 7, 13);
-    // Phaser 4 camera filters — vignette for atmosphere (per filters-and-postfx skill)
-    try {
-      this.cameras.main.filters.external.addVignette(0.5, 0.5, 0.7, 0.5);
-    } catch { /* WebGL not available */ }
+    // Note: vignette removed per user feedback — was over-darkening the world.
+    // Atmosphere is now provided by ParallaxBackground + AtmosphereSystem only.
     this.physicsSys.setWorldBounds(area.totalWidth, GAME.HEIGHT);
     this.physicsSys.setGravity(0, 0.9);
     this.projectiles = [];
@@ -688,11 +685,9 @@ export class GameScene extends Phaser.Scene {
     this.camera.setDeadzone(160, 100);
     this.camera.setBounds(0, 0, area.totalWidth, GAME.HEIGHT);
 
-    // Player light
-    this.render.addLight({
-      follow: () => this.player?.position ?? new Phaser.Math.Vector2(0, 0),
-      radius: 140, color: COLORS.PLAYER_GLOW, intensity: 0.3, flicker: 0.05,
-    });
+    // Note: circle light around player removed per user feedback — was making
+    // the player look like a walking lamp. Player visibility is now provided
+    // by the mech's own core reactor + visor glow.
 
     // HUD (only in play — NOT in hub)
     this.hud = new HUDUI(this, this.player);
@@ -736,63 +731,75 @@ export class GameScene extends Phaser.Scene {
       }).setOrigin(0.5).setAlpha(0).setDepth(15);
       this.npcLabels.set(npc.id, label);
       this.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1 });
-
-      // NPC light (warm amber for friendly)
-      this.render.addLight({
-        follow: () => {
-          const v = this.npcVisuals.get(npc.id);
-          return v && v.container.active ? new Phaser.Math.Vector2(v.container.x, v.container.y) : new Phaser.Math.Vector2(-9999, -9999);
-        },
-        radius: 80, color: 0xffc040, intensity: 0.25, flicker: 0.08,
-      });
+      // Note: NPC circle light removed per user feedback — NPCs are now visible
+      // via their own mech glow (Kara's hover thruster + Ghost Operator's hologram).
     }
   }
 
-  /** Show a floating "Press E to interact" prompt above the nearest NPC. */
+  /** Show a floating "Press E to interact" prompt above the nearest NPC OR lore object. */
   private updateNpcInteractionPrompt(): void {
     if (!this.player || !this.player.sprite || !this.player.sprite.active) return;
     const area = WorldSystem.getCurrentArea();
     if (!area) return;
-    const npcs = NPCSystem.getNPCsInArea(area.id);
-    let nearestNpc: NPCData | null = null;
+
+    // Find nearest interactable — NPCs first, then lore objects
+    let nearestX = 0, nearestY = 0, nearestKind: 'npc' | 'lore' | null = null;
     let nearestDist = 80;  // interaction radius
+
+    // NPCs
+    const npcs = NPCSystem.getNPCsInArea(area.id);
     for (const npc of npcs) {
       const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
-      if (dist < nearestDist) { nearestDist = dist; nearestNpc = npc; }
-    }
-
-    // Highlight nearest NPC label
-    for (const [id, label] of this.npcLabels) {
-      if (nearestNpc && id === nearestNpc.id) {
-        label.setAlpha(1);
-        label.setScale(1.1);
-      } else {
-        // Restore faded pulse
+      if (dist < nearestDist) {
+        nearestDist = dist; nearestX = npc.x; nearestY = npc.y - 60; nearestKind = 'npc';
       }
     }
 
-    if (nearestNpc) {
-      // Show interaction prompt
+    // Lore objects (terminals / corpses / echoes)
+    if (this.loadedArea) {
+      for (const loreObj of this.loadedArea.loreObjects) {
+        if (!loreObj || !loreObj.active) continue;
+        const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, loreObj.x, loreObj.y);
+        if (dist < 70) {
+          if (dist < nearestDist) {
+            nearestDist = dist; nearestX = loreObj.x; nearestY = loreObj.y - 50; nearestKind = 'lore';
+          }
+        }
+      }
+    }
+
+    if (nearestKind) {
+      // Show / move interaction prompt
       if (!this.npcInteractionPrompt) {
         this.npcInteractionPrompt = this.createInteractionPrompt();
       }
-      this.npcInteractionPrompt.setPosition(nearestNpc.x, nearestNpc.y - 60);
+      this.npcInteractionPrompt.setPosition(nearestX, nearestY);
       this.npcInteractionPrompt.setVisible(true);
+      // Update label text based on kind
+      const txt = this.npcInteractionPrompt.getAt(1) as Phaser.GameObjects.Text;
+      if (txt && txt.active) {
+        const key = GamepadManager.isAvailable() ? 'A' : 'E';
+        const action = nearestKind === 'npc'
+          ? (getLocale() === 'fa' ? 'صحبت' : 'TALK')
+          : (getLocale() === 'fa' ? 'بررسی' : 'EXAMINE');
+        txt.setText(`[${key}] ${action}`);
+      }
     } else if (this.npcInteractionPrompt) {
       this.npcInteractionPrompt.setVisible(false);
     }
   }
 
-  /** Create a floating "Press E / A" prompt (gamepad-aware). */
+  /** Create a floating "Press E / A" prompt (gamepad-aware, Persian-aware). */
   private createInteractionPrompt(): Phaser.GameObjects.Container {
     const c = this.add.container(0, 0).setDepth(16);
-    const bg = this.add.rectangle(0, 0, 70, 22, 0x0a0d14, 0.9);
-    bg.setStrokeStyle(1, 0xffc040, 0.7);
+    const bg = this.add.rectangle(0, 0, 90, 22, 0x0a0d14, 0.92);
+    bg.setStrokeStyle(1, 0xffc040, 0.8);
     c.add(bg);
     const key = GamepadManager.isAvailable() ? 'A' : 'E';
-    const txt = this.add.text(0, 0, `[${key}] TALK`, {
-      fontFamily: 'monospace', fontSize: '10px', color: '#ffc040', stroke: '#000', strokeThickness: 2, letterSpacing: 1,
-    }).setOrigin(0.5);
+    const action = getLocale() === 'fa' ? 'صحبت' : 'TALK';
+    const txt = this.add.text(0, 0, `[${key}] ${action}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '11px', color: '#ffc040', stroke: '#000', strokeThickness: 2, letterSpacing: 1,
+    })).setOrigin(0.5);
     c.add(txt);
     this.tweens.add({ targets: c, y: '-=4', duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     return c;
@@ -828,16 +835,12 @@ export class GameScene extends Phaser.Scene {
         const mbY = GAME.HEIGHT - 200;
         const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
         this.enemies.push(miniBoss);
-        this.render.addLight({
-          follow: () => miniBoss.isAlive ? miniBoss.position : new Phaser.Math.Vector2(-9999, -9999),
-          radius: 80, color: 0xff20a0, intensity: 0.3, flicker: 0.15,
-        });
+        // Note: circle light around elite removed per user feedback.
         this.hud?.toast('⚠ ELITE DETECTED');
       }
-      this.render.addLight({
-        follow: () => e.isAlive ? e.position : new Phaser.Math.Vector2(-9999, -9999),
-        radius: 50, color: e.data.color, intensity: 0.2, flicker: 0.2,
-      });
+      // Note: circle light around enemies removed per user feedback — was making
+      // every enemy look like a glowing orb. Enemies are visible via their own
+      // visor/eye glow from MechaSpriteFactory.
     }
   }
 
@@ -949,10 +952,8 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(300, 255, 30, 30);
     // Boss health bar — top center (per Design Pillars: 'Boss: every boss teaches something')
     this.createBossHealthBar(bossSection.bossId);
-    this.render.addLight({
-      follow: () => this.boss?.isAlive ? this.boss.position : new Phaser.Math.Vector2(-9999, -9999),
-      radius: 240, color: COLORS.BOSS_GLOW, intensity: 0.45, flicker: 0.08,
-    });
+    // Note: boss circle light removed per user feedback — boss has its own glow via
+    // BossEntity's sprite (red eyes, weapon glow). Camera shake + flash already telegraph arrival.
   }
 
   private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
@@ -1004,32 +1005,37 @@ export class GameScene extends Phaser.Scene {
   private showLorePanel(titleKey: string, textKey: string): void {
     if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    const panel = this.add.container(0, 0).setDepth(280).setScrollFactor(0);
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.85);
+    // Depth 285 — above atmosphere (95) + HUD (200), below dialogue (290)
+    const panel = this.add.container(0, 0).setDepth(285).setScrollFactor(0);
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.9);
     overlay.setInteractive();
     panel.add(overlay);
     const px = w / 2, py = h / 2;
     const pw = 600, ph = 300;
-    const bg = this.add.rectangle(px, py, pw, ph, 0x0a0d14, 0.95);
-    bg.setStrokeStyle(2, 0xffc040, 0.6);
+    const bg = this.add.rectangle(px, py, pw, ph, 0x0a0d14, 0.97);
+    bg.setStrokeStyle(2, 0xffc040, 0.7);
     panel.add(bg);
     // Corner accents
     const cs = 12;
-    panel.add(this.add.polygon(px - pw / 2, py - ph / 2, [0, 0, cs, 0, 0, cs], 0xffc040, 0.6));
-    panel.add(this.add.polygon(px + pw / 2, py - ph / 2, [0, 0, -cs, 0, 0, cs], 0xffc040, 0.6));
-    panel.add(this.add.polygon(px - pw / 2, py + ph / 2, [0, 0, cs, 0, 0, -cs], 0xffc040, 0.6));
-    panel.add(this.add.polygon(px + pw / 2, py + ph / 2, [0, 0, -cs, 0, 0, -cs], 0xffc040, 0.6));
-    panel.add(this.add.text(px, py - ph / 2 + 30, t(titleKey), {
+    panel.add(this.add.polygon(px - pw / 2, py - ph / 2, [0, 0, cs, 0, 0, cs], 0xffc040, 0.7));
+    panel.add(this.add.polygon(px + pw / 2, py - ph / 2, [0, 0, -cs, 0, 0, cs], 0xffc040, 0.7));
+    panel.add(this.add.polygon(px - pw / 2, py + ph / 2, [0, 0, cs, 0, 0, -cs], 0xffc040, 0.7));
+    panel.add(this.add.polygon(px + pw / 2, py + ph / 2, [0, 0, -cs, 0, 0, -cs], 0xffc040, 0.7));
+    // Title — Persian-aware (fixTextStyle forces letterSpacing 0 + DejaVu Sans for fa)
+    panel.add(this.add.text(px, py - ph / 2 + 30, t(titleKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '16px', color: '#ffc040', stroke: '#000', strokeThickness: 4, letterSpacing: 2,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
     panel.add(this.add.rectangle(px, py - ph / 2 + 55, pw - 40, 1, 0x3a3040, 0.7));
-    panel.add(this.add.text(px, py + 10, t(textKey), {
-      fontFamily: 'monospace', fontSize: '13px', color: '#cfd6e0', lineSpacing: 6,
+    // Body text — Persian-aware
+    panel.add(this.add.text(px, py + 10, t(textKey), fixTextStyle({
+      fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', lineSpacing: 6,
       wordWrap: { width: pw - 60 }, align: 'center',
-    }).setOrigin(0.5));
-    panel.add(this.add.text(px, py + ph / 2 - 25, '▲ PRESS E OR CLICK TO CLOSE', {
+    })).setOrigin(0.5));
+    // Close hint — Persian-aware
+    const closeHint = getLocale() === 'fa' ? '▲ برای بستن E یا کلیک کنید' : '▲ PRESS E OR CLICK TO CLOSE';
+    panel.add(this.add.text(px, py + ph / 2 - 25, closeHint, fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 2,
-    }).setOrigin(0.5));
+    })).setOrigin(0.5));
     const closePanel = () => {
       if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
     };
@@ -1273,19 +1279,24 @@ export class GameScene extends Phaser.Scene {
   private buildGameOver(): void {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.85).setDepth(200);
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.88).setDepth(200);
     c.add(overlay);
-    c.add(this.add.text(w / 2, h * 0.3, t('gameover.title'), {
+    c.add(this.add.text(w / 2, h * 0.3, t('gameover.title'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '56px', color: '#ff4040', stroke: '#000', strokeThickness: 8,
-    }).setOrigin(0.5).setDepth(201));
-    c.add(this.add.text(w / 2, h * 0.42, `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`, {
+    })).setOrigin(0.5).setDepth(201));
+    const statsLine = getLocale() === 'fa'
+      ? `سطح ${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} کشته`
+      : `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`;
+    c.add(this.add.text(w / 2, h * 0.42, statsLine, fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
-    }).setOrigin(0.5).setDepth(201));
+    })).setOrigin(0.5).setDepth(201));
+    // Retry button — restarts the stage
     this.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
       AudioSystem.play('uiClick');
       CheckpointSystem.clear();
       this.setState('play');
     });
+    // Quit button — back to main menu (user: "if defeated → game over with retry/restart")
     this.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
       AudioSystem.play('uiClick');
       this.setState('menu');
@@ -1306,25 +1317,30 @@ export class GameScene extends Phaser.Scene {
     }
     // Fade in camera
     this.cameras.main.fadeIn(600, 5, 7, 13);
-    // Title
-    c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), {
+    // Title — Persian-aware
+    c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '56px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
-    }).setOrigin(0.5).setDepth(1));
-    // Boss lore
+    })).setOrigin(0.5).setDepth(1));
+    // Boss lore — Persian-aware
     const lore = LoreSystem.getBossLore('guardian_ax09');
     if (lore) {
       const lines = lore.lines.map(key => t(key));
-      c.add(this.add.text(w / 2, h * 0.5, lines, {
+      c.add(this.add.text(w / 2, h * 0.5, lines, fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0', align: 'center', lineSpacing: 6,
-      }).setOrigin(0.5).setDepth(1));
+      })).setOrigin(0.5).setDepth(1));
     }
-    // Atlas quote
-    c.add(this.add.text(w / 2, h * 0.68, '"Atlas never stopped waiting."', {
+    // Atlas quote — Persian-aware
+    const atlasQuote = getLocale() === 'fa'
+      ? '"اطلس هرگز منتظر ماند."'
+      : '"Atlas never stopped waiting."';
+    c.add(this.add.text(w / 2, h * 0.68, atlasQuote, fixTextStyle({
       fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', stroke: '#000', strokeThickness: 4, fontStyle: 'italic',
-    }).setOrigin(0.5).setDepth(1));
-    this.makeMenuBtn(w / 2, h * 0.82, t('victory.return'), () => {
+    })).setOrigin(0.5).setDepth(1));
+    // ── Return to HUB (not menu) — per user: after victory, go to hub to prepare for next stage ──
+    const returnLabel = getLocale() === 'fa' ? 'بازگشت به هاب' : t('victory.return');
+    this.makeMenuBtn(w / 2, h * 0.82, returnLabel, () => {
       AudioSystem.play('uiClick');
-      this.setState('menu');
+      this.setState('hub');
     });
     this.setupMenuNav();
   }

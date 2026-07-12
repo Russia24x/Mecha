@@ -125,48 +125,279 @@ export class AreaLoader {
 
   private addSolid(result: LoadedArea, x: number, y: number, w: number, h: number): void {
     const s = this.physics.addStaticRect(x, y, w, h);
-    // Visual: metal plating with top highlight + bottom shadow + rivets
     const g = this.scene.add.graphics();
     g.setDepth(5);
-    // Main body
-    g.fillStyle(COLORS.METAL_DARK, 1);
-    g.fillRect(-w / 2, -h / 2, w, h);
-    // Top highlight (lighter strip)
-    g.fillStyle(0x3a4050, 0.8);
-    g.fillRect(-w / 2, -h / 2, w, 3);
-    // Bottom shadow
-    g.fillStyle(0x1a1e28, 0.8);
-    g.fillRect(-w / 2, h / 2 - 3, w, 3);
-    // Outer border
-    g.lineStyle(1, 0x2a3040, 0.6);
-    g.strokeRect(-w / 2, -h / 2, w, h);
-    // Rivets at corners (if platform is large enough)
-    if (w >= 60 && h >= 20) {
-      g.fillStyle(0x5a6070, 0.6);
-      const rivetOffset = 8;
-      const positions = [
-        { x: -w / 2 + rivetOffset, y: -h / 2 + rivetOffset },
-        { x: w / 2 - rivetOffset, y: -h / 2 + rivetOffset },
-        { x: -w / 2 + rivetOffset, y: h / 2 - rivetOffset },
-        { x: w / 2 - rivetOffset, y: h / 2 - rivetOffset },
-      ];
-      for (const pos of positions) {
-        g.fillCircle(pos.x, pos.y, 2);
-        g.fillStyle(0x2a3040, 0.8);
-        g.fillCircle(pos.x, pos.y, 1);
-        g.fillStyle(0x5a6070, 0.6);
-      }
+
+    // ── Categorize the solid by shape ──
+    const isWall = h > 80 && w < 100;       // tall narrow = wall
+    const isFloor = h <= 30 && w >= 100;    // wide thin = floor / platform
+    const isLedge = h <= 30 && w < 100;     // small thin = ledge
+    const isPillar = h > 80 && w >= 100;    // tall wide = pillar/block
+
+    if (isWall) {
+      this.drawWall(g, w, h);
+    } else if (isFloor) {
+      this.drawFloor(g, w, h);
+    } else if (isLedge) {
+      this.drawLedge(g, w, h);
+    } else if (isPillar) {
+      this.drawPillar(g, w, h);
+    } else {
+      this.drawGeneric(g, w, h);
     }
-    // Warning stripes on tall walls (h > 100)
-    if (h > 100) {
-      g.fillStyle(0xffcc00, 0.3);
-      for (let sy = -h / 2 + 20; sy < h / 2 - 20; sy += 16) {
-        g.fillRect(-w / 2 + 2, sy, 4, 8);
-        g.fillRect(w / 2 - 6, sy, 4, 8);
-      }
-    }
+
     g.setPosition(x, y);
     result.solids.push(s);
+    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+
+    // ── Add depth decorations: hanging cables / pipes / machine parts ──
+    // (drawn as separate graphics so they don't move with the body)
+    if (isFloor && w >= 120) {
+      this.addFloorDecorations(result, x, y, w, h);
+    }
+    if (isWall && h > 150) {
+      this.addWallDecorations(result, x, y, w, h);
+    }
+  }
+
+  /** Wide floor platform — the main walking surface. Looks like industrial metal grating. */
+  private drawFloor(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    // Body — dark metal
+    g.fillStyle(COLORS.METAL_DARK, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    // Top walking surface — lighter metal strip with anti-slip texture
+    g.fillStyle(0x3a4050, 1);
+    g.fillRect(-w / 2, -h / 2, w, 4);
+    // Anti-slip grating pattern (small diagonal lines on top)
+    g.fillStyle(0x4a5060, 0.4);
+    for (let gx = -w / 2 + 4; gx < w / 2 - 4; gx += 8) {
+      g.fillRect(gx, -h / 2 + 1, 4, 1);
+    }
+    // Bottom shadow
+    g.fillStyle(0x1a1e28, 0.9);
+    g.fillRect(-w / 2, h / 2 - 4, w, 4);
+    // Side panels (every 80px) — gives "modular" factory feel
+    g.lineStyle(1, 0x2a3040, 0.7);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+    for (let px = -w / 2 + 80; px < w / 2 - 20; px += 80) {
+      g.lineStyle(1, 0x1a1e28, 0.8);
+      g.beginPath();
+      g.moveTo(px, -h / 2 + 4);
+      g.lineTo(px, h / 2 - 4);
+      g.strokePath();
+    }
+    // Rivets along the top edge
+    g.fillStyle(0x6a7080, 0.7);
+    for (let rx = -w / 2 + 10; rx < w / 2 - 5; rx += 24) {
+      g.fillCircle(rx, -h / 2 + 7, 1.5);
+      g.fillStyle(0x2a3040, 0.8);
+      g.fillCircle(rx, -h / 2 + 7, 0.8);
+      g.fillStyle(0x6a7080, 0.7);
+    }
+    // Rust stains (random, subtle)
+    g.fillStyle(0x6a3a1a, 0.25);
+    const rustCount = Math.floor(w / 100);
+    for (let i = 0; i < rustCount; i++) {
+      const rx = -w / 2 + 20 + Math.random() * (w - 40);
+      g.fillEllipse(rx, h / 2 - 6, 14 + Math.random() * 12, 4);
+    }
+    // Edge warning stripes (yellow/black) — only on the very ends
+    g.fillStyle(0xffcc00, 0.5);
+    g.fillRect(-w / 2, -h / 2, 8, 4);
+    g.fillRect(w / 2 - 8, -h / 2, 8, 4);
+    g.fillStyle(0x1a1e28, 0.6);
+    g.fillRect(-w / 2 + 4, -h / 2, 4, 4);
+    g.fillRect(w / 2 - 8, -h / 2, 4, 4);
+  }
+
+  /** Small ledge — narrow platform, simpler detail. */
+  private drawLedge(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    g.fillStyle(COLORS.METAL_DARK, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    g.fillStyle(0x3a4050, 1);
+    g.fillRect(-w / 2, -h / 2, w, 3);
+    g.fillStyle(0x1a1e28, 0.9);
+    g.fillRect(-w / 2, h / 2 - 2, w, 2);
+    g.lineStyle(1, 0x2a3040, 0.7);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+    // Single rivet at each end
+    g.fillStyle(0x6a7080, 0.7);
+    g.fillCircle(-w / 2 + 5, 0, 1.2);
+    g.fillCircle(w / 2 - 5, 0, 1.2);
+  }
+
+  /** Tall narrow wall — industrial barrier with warning stripes. */
+  private drawWall(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    // Body
+    g.fillStyle(0x1a1e28, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    // Vertical highlight on left edge
+    g.fillStyle(0x3a4050, 0.8);
+    g.fillRect(-w / 2, -h / 2, 3, h);
+    // Vertical shadow on right edge
+    g.fillStyle(0x0a0e14, 0.9);
+    g.fillRect(w / 2 - 3, -h / 2, 3, h);
+    // Border
+    g.lineStyle(1, 0x2a3040, 0.6);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+    // Industrial hazard stripes (yellow/black) at top and bottom 20px
+    const stripeZone = 20;
+    for (let sy = -h / 2; sy < -h / 2 + stripeZone; sy += 8) {
+      g.fillStyle(0xffcc00, 0.5);
+      g.fillRect(-w / 2, sy, w, 4);
+      g.fillStyle(0x1a1e28, 0.7);
+      g.fillRect(-w / 2, sy + 4, w, 4);
+    }
+    for (let sy = h / 2 - stripeZone; sy < h / 2; sy += 8) {
+      g.fillStyle(0xffcc00, 0.5);
+      g.fillRect(-w / 2, sy, w, 4);
+      g.fillStyle(0x1a1e28, 0.7);
+      g.fillRect(-w / 2, sy + 4, w, 4);
+    }
+    // Center section — panel lines
+    g.lineStyle(1, 0x2a3040, 0.5);
+    for (let sy = -h / 2 + stripeZone + 20; sy < h / 2 - stripeZone - 20; sy += 40) {
+      g.beginPath();
+      g.moveTo(-w / 2 + 2, sy);
+      g.lineTo(w / 2 - 2, sy);
+      g.strokePath();
+    }
+    // Center rivet column
+    g.fillStyle(0x6a7080, 0.7);
+    for (let sy = -h / 2 + 30; sy < h / 2 - 30; sy += 40) {
+      g.fillCircle(0, sy, 1.5);
+      g.fillStyle(0x2a3040, 0.8);
+      g.fillCircle(0, sy, 0.8);
+      g.fillStyle(0x6a7080, 0.7);
+    }
+  }
+
+  /** Large pillar/block — chunky industrial machinery housing. */
+  private drawPillar(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    // Main body
+    g.fillStyle(0x1a1e28, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    // Top edge highlight
+    g.fillStyle(0x3a4050, 1);
+    g.fillRect(-w / 2, -h / 2, w, 4);
+    // Bottom shadow
+    g.fillStyle(0x0a0e14, 1);
+    g.fillRect(-w / 2, h / 2 - 4, w, 4);
+    // Border
+    g.lineStyle(2, 0x2a3040, 0.8);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+    // Faux control panel (rectangle with rivets) — center
+    g.fillStyle(0x0a0e14, 0.8);
+    g.fillRect(-w / 2 + 8, -10, w - 16, 20);
+    g.lineStyle(1, 0x2a3040, 0.6);
+    g.strokeRect(-w / 2 + 8, -10, w - 16, 20);
+    // Indicator lights on panel
+    g.fillStyle(0xff4030, 0.8);
+    g.fillCircle(-w / 2 + 14, -4, 1.5);
+    g.fillStyle(0xffcc00, 0.8);
+    g.fillCircle(-w / 2 + 14, 4, 1.5);
+    // Rivets at all corners
+    g.fillStyle(0x6a7080, 0.7);
+    const ro = 6;
+    const corners = [
+      { x: -w / 2 + ro, y: -h / 2 + ro },
+      { x: w / 2 - ro, y: -h / 2 + ro },
+      { x: -w / 2 + ro, y: h / 2 - ro },
+      { x: w / 2 - ro, y: h / 2 - ro },
+    ];
+    for (const pos of corners) {
+      g.fillCircle(pos.x, pos.y, 2);
+      g.fillStyle(0x2a3040, 0.8);
+      g.fillCircle(pos.x, pos.y, 1);
+      g.fillStyle(0x6a7080, 0.7);
+    }
+    // Rust streaks from rivets
+    g.fillStyle(0x6a3a1a, 0.2);
+    for (const pos of corners) {
+      g.fillRect(pos.x - 1, pos.y, 2, 20);
+    }
+  }
+
+  /** Generic fallback (uncategorized shape). */
+  private drawGeneric(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+    g.fillStyle(COLORS.METAL_DARK, 1);
+    g.fillRect(-w / 2, -h / 2, w, h);
+    g.fillStyle(0x3a4050, 0.8);
+    g.fillRect(-w / 2, -h / 2, w, 3);
+    g.fillStyle(0x1a1e28, 0.8);
+    g.fillRect(-w / 2, h / 2 - 3, w, 3);
+    g.lineStyle(1, 0x2a3040, 0.6);
+    g.strokeRect(-w / 2, -h / 2, w, h);
+  }
+
+  /** Add decorations BELOW a floor platform: hanging cables, pipes, dripping. */
+  private addFloorDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(4);  // just below the platform itself (depth 5)
+    // Hanging cables from the bottom of the platform
+    const cableCount = Math.max(1, Math.floor(w / 80));
+    for (let i = 0; i < cableCount; i++) {
+      const cx = -w / 2 + (i + 0.5) * (w / cableCount);
+      const cableLen = 20 + Math.random() * 40;
+      g.lineStyle(1.5, 0x2a2820, 0.6);
+      g.beginPath();
+      g.moveTo(cx, h / 2);
+      let cy = h / 2;
+      for (let s = 0; s < 4; s++) {
+        cy += cableLen / 4;
+        g.lineTo(cx + Math.sin(s) * 3, cy);
+      }
+      g.strokePath();
+      // End fitting (small plug)
+      g.fillStyle(0x3a3830, 0.7);
+      g.fillCircle(cx + Math.sin(3) * 3, cy, 2);
+    }
+    // A broken pipe stub on one side
+    if (w >= 160) {
+      const pipeX = -w / 2 + 20;
+      g.fillStyle(0x2a2820, 0.7);
+      g.fillRect(pipeX, h / 2 + 4, 8, 14);
+      g.fillStyle(0x1a1814, 0.9);
+      g.fillRect(pipeX + 2, h / 2 + 16, 4, 4);
+    }
+    g.setPosition(x, y);
+    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+
+    // Random sparkles near the platform (rare, gives "live wire" feel)
+    if (Math.random() < 0.3) {
+      const sparkX = x + (Math.random() - 0.5) * w * 0.6;
+      const sparkY = y + h / 2 + 8;
+      const spark = this.scene.add.circle(sparkX, sparkY, 1.5, 0xffc040, 0);
+      spark.setBlendMode(Phaser.BlendModes.ADD);
+      spark.setDepth(6);
+      this.scene.tweens.add({
+        targets: spark, alpha: { from: 0, to: 0.8 }, duration: 80, yoyo: true, repeat: -1,
+        delay: Math.random() * 4000, repeatDelay: 3000 + Math.random() * 4000,
+      });
+      result.visualRects.push(spark as unknown as Phaser.GameObjects.Rectangle);
+    }
+  }
+
+  /** Add decorations ON a wall: mounted junction boxes, warning signs. */
+  private addWallDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(6);  // slightly above wall
+    // Junction box (small rectangle) mounted on wall
+    const boxY = y - h / 4;
+    g.fillStyle(0x2a2820, 0.9);
+    g.fillRect(x - 8, boxY - 8, 16, 16);
+    g.lineStyle(1, 0x3a3830, 0.7);
+    g.strokeRect(x - 8, boxY - 8, 16, 16);
+    // Indicator light on box (pulsing amber)
+    g.fillStyle(0xffc040, 0.9);
+    g.fillCircle(x, boxY, 1.5);
+    // Warning sign (triangle with !) — lower on wall
+    const signY = y + h / 4;
+    g.fillStyle(0xffcc00, 0.7);
+    g.fillTriangle(x - 6, signY + 5, x + 6, signY + 5, x, signY - 5);
+    g.fillStyle(0x1a1e28, 1);
+    g.fillRect(x - 0.5, signY - 2, 1, 4);
+    g.fillCircle(x, signY + 3, 0.8);
     result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
   }
 

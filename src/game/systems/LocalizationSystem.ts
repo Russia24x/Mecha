@@ -43,4 +43,63 @@ export function tArray(key: string): string[] {
   return [val];
 }
 
+/**
+ * Persian text rendering helpers.
+ *
+ * PROBLEM: Phaser's canvas-based Text renders Arabic/Persian script with each
+ * letter as a separate glyph when `letterSpacing > 0` is applied OR when the
+ * font family falls back to a non-Arabic font. This breaks Arabic shaping
+ * (letter joining) — Persian text appears as "س ل ا م" instead of "سلام".
+ *
+ * SOLUTION:
+ *   1. When locale is `fa`, force letterSpacing: 0 (no per-letter spacing).
+ *   2. Use a font family that has Arabic glyphs (DejaVu Sans / FreeSerif).
+ *   3. Drop the 'monospace' family for Persian (monospace lacks Arabic shaping).
+ */
+
+/** Returns true if the current locale is a right-to-left script (Persian/Arabic). */
+export function isRTL(): boolean {
+  return currentLocale === 'fa';
+}
+
+/**
+ * Returns a corrected font family string for the current locale.
+ * - English: keeps the original monospace aesthetic.
+ * - Persian: uses DejaVu Sans (which has Arabic shaping + canvas bidi support).
+ */
+export function localizedFont(preferredEn: string = 'monospace'): string {
+  if (currentLocale === 'fa') {
+    // DejaVu Sans has full Arabic shaping support and ships with the runtime.
+    return 'DejaVu Sans, Tahoma, sans-serif';
+  }
+  return preferredEn;
+}
+
+/**
+ * Returns letterSpacing appropriate for the current locale.
+ * - English: returns the requested spacing (default 0).
+ * - Persian: always returns 0 (spacing breaks Arabic letter joining).
+ */
+export function localizedLetterSpacing(requested: number = 0): number {
+  if (currentLocale === 'fa') return 0;
+  return requested;
+}
+
+/**
+ * Returns a Text style object with Persian-aware overrides applied.
+ * Pass the base style; this returns a new object with font + letterSpacing fixed.
+ */
+export function fixTextStyle(style: Phaser.Types.GameObjects.Text.TextStyle): Phaser.Types.GameObjects.Text.TextStyle {
+  const base = style as Record<string, unknown>;
+  const fontFamily = (base.fontFamily as string) || 'monospace';
+  const letterSpacing = (base.letterSpacing as number) || 0;
+  return {
+    ...style,
+    fontFamily: localizedFont(fontFamily),
+    letterSpacing: localizedLetterSpacing(letterSpacing),
+    // RTL align for Persian
+    align: currentLocale === 'fa' ? 'right' : (base.align as string) || 'left',
+  } as Phaser.Types.GameObjects.Text.TextStyle;
+}
+
 export { TRANSLATIONS };

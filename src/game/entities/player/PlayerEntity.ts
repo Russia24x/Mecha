@@ -593,10 +593,26 @@ export class PlayerEntity {
     this.tilt = Phaser.Math.Linear(this.tilt, targetTilt, 0.12);
 
     // ── Apply transform to visual container ──
-    this.visual.container.setPosition(pos.x, pos.y - 4);
+    // Restore old body bob: subtle vertical sine when moving (old "mazze" feel)
+    const bob = isMoving ? Math.sin(this.animTime / 80) * 2 : 0;
+    this.visual.container.setPosition(pos.x, pos.y - 4 + bob);
     this.visual.container.setRotation(this.tilt);
     this.visual.container.setScale(facing * this.squashX, this.squashY);
     this.visual.setFacing(facing as 1 | -1);
+
+    // ── Restore old leg swing animation (combined with new factory visual) ──
+    if (this.visual.setWalkPhase) {
+      this.visual.setWalkPhase(this.animTime / 100, isMoving, isJumping);
+    }
+
+    // ── Restore old gun barrel rotation toward aim direction (all-direction aim) ──
+    if (this.visual.setGunAngle) {
+      const aimDir = this.getAimDirection();
+      const targetAngle = Math.atan2(aimDir.y, aimDir.x);
+      // Smoothly rotate toward target (old interpolation)
+      this.aimAngle = Phaser.Math.Angle.RotateTo(this.aimAngle, targetAngle, 0.3);
+      this.visual.setGunAngle(this.aimAngle);
+    }
 
     // ── Core pulse — brighten on dash, dim on low energy ──
     const energyPct = this.energy.current / this.energy.max;

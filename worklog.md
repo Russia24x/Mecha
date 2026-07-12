@@ -578,3 +578,34 @@ Stage Summary:
 - Atmosphere: 4 horizontal fog bands drifting at different parallax speeds, 3-5 volumetric god ray triangles with sway + flicker (amber for factory, cyan-green for forest), 40-60 particle pool with recycling (embers for factory, spores for forest), depth haze multiply overlay.
 - Gamepad-aware: control hints bar at bottom-center auto-swaps keys on gamepad connect/disconnect, showHowToPlay screen shows different bindings per input mode, NPC interaction prompt shows [A] when gamepad / [E] when keyboard.
 - Effect separation: all gameplay-only effects (parallax, atmosphere, NPC visuals, control hints, HUD, vignette) are now created in buildPlay and destroyed in cleanupPlay. Vignette leak fixed via camera filters reset on cleanup.
+
+---
+Task ID: visual-fixes-round-2
+Agent: main
+Task: Apply user feedback on visual polish, effect separation, Persian text, level design, victory flow, interaction prompts. Then prepare for Phase 3 (combat depth).
+
+Work Log:
+- Reduced darkness filter: RenderSystem.MAX_DARKNESS 0.2→0.08, brightness 0.7→0.85. World is now visibly brighter, less "tunnel vision".
+- Removed vignette camera filter from buildPlay (was over-darkening edges).
+- Removed ALL circle lights around player, enemies, boss, NPCs (4 render.addLight calls). Player/enemies/boss are now lit by their own mech glow (core reactor, visor, eyes) instead of a giant floating lamp circle.
+- Restored old player walking animation + gun rotation by extending MechVisualHandle with optional setWalkPhase and setGunAngle. Factory now exposes legL/legR for sine-phase swing + gunArm container for aim rotation. PlayerEntity.updateAnimation now calls both — legs swing when moving, tuck when jumping; gun barrel smoothly rotates toward aim direction (all-direction aim restored).
+- Added body bob (subtle vertical sine when moving) for the "mazze" feel user preferred.
+- Persian text rendering fix: added 4 helpers to LocalizationSystem — isRTL(), localizedFont() (returns DejaVu Sans for fa), localizedLetterSpacing() (forces 0 for fa to preserve Arabic letter joining), fixTextStyle() (returns style object with font + spacing fixed). Applied fixTextStyle to DialogueUI (speaker, line, hint), showLorePanel (title, body, close hint), buildVictory (title, lore, quote, button), buildGameOver (title, stats), interaction prompt.
+- Raised DialogueUI depth 210→290 (above all atmosphere/filter layers max 95 + HUD 200 + lore panel 285).
+- Raised showLorePanel depth 280→285 + increased overlay alpha 0.85→0.9 for readability.
+- Victory flow: buildVictory's return button now goes to 'hub' (not 'menu') per user request — after victory, player returns to hub to prepare for next stage. Atlas quote translated to Persian. All victory text uses fixTextStyle.
+- Generalized interaction prompt: updateNpcInteractionPrompt now checks BOTH NPCs AND lore objects (terminals/corpses/echoes) within 70-80px. Prompt text dynamically updates to "[E] TALK" or "[E] EXAMINE" (Persian: "[E] صحبت" / "[E] بررسی") based on nearest kind. Gamepad-aware (shows [A] when gamepad connected).
+- Enriched factory platform level design in AreaLoader.addSolid: now categorizes solids into 4 types and draws each with industrial detail:
+  * drawFloor: anti-slip grating pattern, modular panel lines every 80px, rivets along top edge every 24px, rust stains, yellow/black edge warning stripes.
+  * drawLedge: simpler detail with end rivets.
+  * drawWall: yellow/black hazard stripes at top+bottom 20px, vertical panel lines every 40px, center rivet column.
+  * drawPillar: chunky machinery housing with faux control panel, indicator lights (red+amber), rivets at all corners, rust streaks.
+  * addFloorDecorations: hanging cables below floor platforms (random sway), broken pipe stubs, random amber sparkles.
+  * addWallDecorations: mounted junction box with pulsing amber light, warning triangle sign.
+- Verified UI depth layering: atmosphere max 95, HUD 200, boss bar 210, lore panel 285, dialogue 290, pause/overlays 300. All gameplay effects stay below UI — no more washed-out menus/HUD.
+
+Stage Summary:
+- Files modified: RenderSystem.ts (darkness values), GameScene.ts (8 changes), PlayerEntity.ts (animation calls), MechaSpriteFactory.ts (handle extension), LocalizationSystem.ts (4 new helpers), DialogueUI.ts (depth + Persian), AreaLoader.ts (5 new draw methods + decorations).
+- TypeScript: clean. Next.js build: success.
+- Visual feel: brighter world, no floating lamp circles, restored old player walk + gun rotation, Persian text now renders with proper letter joining, dialogue/lore readable over any backdrop, factory platforms look like industrial machinery (not flat rectangles), victory returns to hub, all interactables show floating prompts.
+- Ready for Phase 3: combat depth (animation commitment, stagger, death penalty).

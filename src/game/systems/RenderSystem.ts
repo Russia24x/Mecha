@@ -19,8 +19,8 @@ export class RenderSystem {
   private darkness: Phaser.GameObjects.Rectangle;
   private lights: Light[] = [];
 
-  private static brightness = 0.7;
-  private static readonly MAX_DARKNESS = 0.2;
+  private static brightness = 0.85;  // was 0.7 — too dark per user feedback
+  private static readonly MAX_DARKNESS = 0.08;  // was 0.2 — was over-darkening the world
   private static _instances: RenderSystem[] = [];
 
   constructor(scene: Phaser.Scene) {
