@@ -681,8 +681,22 @@ export class GameScene extends Phaser.Scene {
       else if (bIsPlayer && aGo.getData('entityType') === 'enemy') { this.handleEnemyContact(aGo); }
       if (aIsPlayer && bGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
       else if (bIsPlayer && aGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
+      // Hazard collision (spikes, lava, etc.)
+      if (aIsPlayer && bGo.getData('hazardDamage')) { this.handleHazard(bGo); }
+      else if (bIsPlayer && aGo.getData('hazardDamage')) { this.handleHazard(aGo); }
     }
   };
+
+  private handleHazard(hazardGo: Phaser.GameObjects.GameObject): void {
+    const dmg = hazardGo.getData('hazardDamage') as number;
+    if (dmg && this.player.takeDamage(dmg)) {
+      // Knock player up and back from hazard
+      if (this.player.sprite?.active) {
+        this.player.sprite.setVelocityY(-8);
+        this.camera.shake(200, 0.008);
+      }
+    }
+  }
 
   private enterSection(id: number): void {
     if (id === this.currentSection) return;
