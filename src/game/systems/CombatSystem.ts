@@ -6,9 +6,6 @@
 import Phaser from 'phaser';
 import { AudioSystem } from './AudioSystem';
 
-// Matter.js is exposed via Phaser.Physics.Matter.Matter (not a global in Phaser 4.2.1)
-const MatterBody = Phaser.Physics.Matter.Matter.Body;
-
 export interface DamageEvent {
   amount: number;
   type: 'bullet' | 'melee' | 'explosion' | 'contact';
@@ -43,9 +40,13 @@ export class CombatSystem {
     if (damaged) {
       if (event.point) this.spawnHitFx(event.point.x, event.point.y);
       if (event.knockback && !target.isStatic) {
-        MatterBody.applyForce(target, target.position, {
-          x: event.knockback.x, y: event.knockback.y,
-        });
+        // *** FIX: use Phaser's matter.add.applyForce which wraps Matter.Body.applyForce
+        // This avoids the typing issue with Phaser.Physics.Matter.Matter namespace.
+        // Force values are tiny (0.01-0.1) per audit §1.3; multiply by 50 for visible knockback.
+        this.scene.matter.applyForce(
+          go as Phaser.Types.Physics.Matter.MatterBody,
+          { x: event.knockback.x * 50, y: event.knockback.y * 50 }
+        );
       }
       this.triggerHitStop(event.amount);
       this.scene.cameras.main.shake(80, 0.003 + Math.min(event.amount * 0.0008, 0.01));

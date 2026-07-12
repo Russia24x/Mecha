@@ -18,7 +18,7 @@ export class DialogueUI {
   private nameText: Phaser.GameObjects.Text;
   private lineText: Phaser.GameObjects.Text;
   private hintText: Phaser.GameObjects.Text;
-  private advanceHandler: (() => void) | null = null;
+  private advanceHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;

@@ -41,6 +41,9 @@ export class WorldMapUI extends NavigableOverlay {
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
 
     this.refresh();
+
+    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, fog text, area cards, etc.)
+    this.container.setScrollFactor(0, 0, true);
   }
 
   private refresh(): void {

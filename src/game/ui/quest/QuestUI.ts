@@ -35,6 +35,9 @@ export class QuestUI extends NavigableOverlay {
     }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
+
+    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, quest cards, etc.)
+    this.container.setScrollFactor(0, 0, true);
   }
 
   private refresh(): void {

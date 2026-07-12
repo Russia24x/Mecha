@@ -25,34 +25,30 @@ export class PhysicsSystem {
   constructor(private scene: Phaser.Scene) {}
 
   addStaticRect(x: number, y: number, w: number, h: number, label = 'solid'): Phaser.Physics.Matter.Image {
-    // *** CRITICAL FIX: setDisplaySize does NOT resize the Matter body.
-    // __white texture is 4×4 — without setRectangle, body stays 4×4.
-    // Per Phaser 4 audit §1.2: setRectangle resets all props, so pass full config.
+    // *** FIX: setDisplaySize BEFORE setRectangle (MatterImage scales body with display size)
     const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
-      shape: { type: 'rectangle', width: w, height: h },
       label, isStatic: true,
-    } as BodyConfig & { shape: { type: string; width: number; height: number } });
+    } as BodyConfig);
     obj.setDisplaySize(w, h);
+    obj.setRectangle(w, h, { label, isStatic: true } as BodyConfig);
     obj.setVisible(false);
     return obj;
   }
 
   addSensor(x: number, y: number, w: number, h: number, label: string): Phaser.Physics.Matter.Image {
     const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
-      shape: { type: 'rectangle', width: w, height: h },
       label, isStatic: true, isSensor: true,
-    } as BodyConfig & { shape: { type: string; width: number; height: number } });
+    } as BodyConfig);
     obj.setDisplaySize(w, h);
+    obj.setRectangle(w, h, { label, isStatic: true, isSensor: true } as BodyConfig);
     obj.setVisible(false);
     return obj;
   }
 
   addDynamicBody(x: number, y: number, w: number, h: number, config: BodyConfig): Phaser.Physics.Matter.Image {
-    const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
-      shape: { type: 'rectangle', width: w, height: h },
-      ...config,
-    } as BodyConfig & { shape: { type: string; width: number; height: number } });
+    const obj = this.scene.matter.add.image(x, y, '__white', undefined, config);
     obj.setDisplaySize(w, h);
+    obj.setRectangle(w, h, config);
     obj.setVisible(false);
     return obj;
   }

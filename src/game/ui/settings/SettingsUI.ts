@@ -66,6 +66,10 @@ export class SettingsUI extends NavigableOverlay {
     }).setOrigin(0.5);
     this.container.add([this.backBtn, this.backText]);
     this.registerNav(this.backBtn, this.backText, () => { AudioSystem.play('uiClick'); onBack(); });
+
+    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, labels, sliders, etc.)
+    // Container.setScrollFactor(0,0,true) only works if called AFTER all children are added.
+    this.container.setScrollFactor(0, 0, true);
   }
 
   private makeSlider(x: number, y: number, label: string, value: number, onChange: (v: number) => void): void {
@@ -138,8 +142,10 @@ export class SettingsUI extends NavigableOverlay {
     if (slider) {
       slider.value = Math.max(0, slider.value - 0.05);
       slider.onChange(slider.value);
-      slider.handle.x = (slider.bg.x - 120) + 240 * slider.value;
-      slider.fill.width = 240 * slider.value;
+      // *** FIX: handle.x should be bg.x + 240*value (track starts at bg.x, not bg.x-120)
+      slider.handle.x = slider.bg.x + 240 * slider.value;
+      // *** FIX: use setDisplaySize (direct .width doesn't resize Shape geometry in Phaser 4)
+      slider.fill.setDisplaySize(240 * slider.value, 8);
       AudioSystem.play('uiHover');
     }
   }
@@ -150,8 +156,8 @@ export class SettingsUI extends NavigableOverlay {
     if (slider) {
       slider.value = Math.min(1, slider.value + 0.05);
       slider.onChange(slider.value);
-      slider.handle.x = (slider.bg.x - 120) + 240 * slider.value;
-      slider.fill.width = 240 * slider.value;
+      slider.handle.x = slider.bg.x + 240 * slider.value;
+      slider.fill.setDisplaySize(240 * slider.value, 8);
       AudioSystem.play('uiHover');
     }
   }

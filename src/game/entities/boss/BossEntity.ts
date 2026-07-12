@@ -51,13 +51,15 @@ export class BossEntity {
     this.health = this.maxHealth;
     this.currentPhaseData = this.data.phases[0];
 
-    // *** FIX: use shape config so body matches visual size (was 4×4 from __white)
+    // *** FIX: setDisplaySize BEFORE setRectangle (MatterImage scales body with display size)
     // Also fix B4: use this.id instead of hardcoded 'boss'
     this.sprite = scene.matter.add.image(x, y, '__white', undefined, {
-      shape: { type: 'rectangle', width: 120, height: 110 },
       label: this.id, frictionAir: 0.05, density: 0.005,
-    } as unknown as Phaser.Types.Physics.Matter.MatterBodyConfig);
+    });
     this.sprite.setDisplaySize(120, 110);
+    this.sprite.setRectangle(120, 110, {
+      label: this.id, frictionAir: 0.05, density: 0.005,
+    });
     this.sprite.setAlpha(0);
     this.sprite.setFixedRotation();
     this.sprite.setIgnoreGravity(true);

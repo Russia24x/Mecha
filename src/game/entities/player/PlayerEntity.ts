@@ -97,16 +97,21 @@ export class PlayerEntity {
     this.health = { current: this.stats.maxHealth, max: this.stats.maxHealth };
     this.energy = { current: this.stats.maxEnergy, max: this.stats.maxEnergy, regenPerSec: this.stats.energyRegen };
 
-    // Physics body — *** FIX: use shape config so body matches visual size.
-    // setDisplaySize alone leaves the body at 4×4 (the __white texture size).
+    // Physics body — *** FIX: setDisplaySize BEFORE setRectangle.
+    // setDisplaySize on a MatterImage also scales the body (because MatterImage
+    // binds body to texture size). So we must call setDisplaySize first, then
+    // setRectangle to create the body at the correct size.
     const bw = PLAYER.BODY_RADIUS * 2.2;
     const bh = PLAYER.BODY_RADIUS * 2.6;
     this.sprite = scene.matter.add.image(x, y, '__white', undefined, {
-      shape: { type: 'rectangle', width: bw, height: bh },
       label: 'player',
       friction: 0.01, frictionAir: 0.02, density: 0.004,
-    } as unknown as Phaser.Types.Physics.Matter.MatterBodyConfig);
+    });
     this.sprite.setDisplaySize(bw, bh);
+    this.sprite.setRectangle(bw, bh, {
+      label: 'player',
+      friction: 0.01, frictionAir: 0.02, density: 0.004,
+    });
     this.sprite.setFixedRotation();
     this.sprite.setAlpha(0);
     this.sprite.setData('entity', this);
