@@ -208,14 +208,51 @@ export class EnemyEntity {
   }
 
   private spawnTelegraph(): void {
-    this.telegraphGfx = this.scene.add.circle(this.sprite.x, this.sprite.y, 30, 0xff3030, 0);
-    this.telegraphGfx.setStrokeStyle(2, 0xff3030, 0.7);
-    this.telegraphGfx.setDepth(12);
-    this.scene.tweens.add({
-      targets: this.telegraphGfx,
-      scale: { from: 0.5, to: 1.5 }, alpha: { from: 0.7, to: 0.2 },
-      duration: this.data.timings.telegraphMs, ease: 'Quad.easeOut',
-    });
+    // Different telegraph styles per enemy type — teaches player to read danger
+    if (this.type === 'sniper') {
+      // SNIPER: laser sight line toward player — "learn to read the environment"
+      // Red beam from sniper toward player direction
+      const targetAngle = this.scene.time.now; // will be updated in onAttackTelegraph
+      this.telegraphGfx = this.scene.add.circle(this.sprite.x, this.sprite.y, 8, 0xff0000, 0.3);
+      this.telegraphGfx.setStrokeStyle(2, 0xff0000, 0.8);
+      this.telegraphGfx.setDepth(12);
+      // Pulsing red dot on sniper
+      this.scene.tweens.add({
+        targets: this.telegraphGfx,
+        scale: { from: 0.8, to: 1.5 }, alpha: { from: 0.3, to: 0.8 },
+        duration: 200, yoyo: true, repeat: -1,
+      });
+    } else if (this.type === 'flying_ai') {
+      // FLYING AI: warning indicator above — "learn to look up"
+      this.telegraphGfx = this.scene.add.circle(this.sprite.x, this.sprite.y, 20, 0xffaa00, 0);
+      this.telegraphGfx.setStrokeStyle(3, 0xffaa00, 0.9);
+      this.telegraphGfx.setDepth(12);
+      this.scene.tweens.add({
+        targets: this.telegraphGfx,
+        scale: { from: 0.3, to: 1.2 }, alpha: { from: 0.8, to: 0.2 },
+        duration: this.data.timings.telegraphMs, ease: 'Quad.easeOut',
+      });
+    } else if (this.type === 'heavy' || this.type === 'elite') {
+      // HEAVY/ELITE: ground shake warning — "learn to not be greedy"
+      this.telegraphGfx = this.scene.add.circle(this.sprite.x, this.sprite.y, 40, 0xff00ff, 0);
+      this.telegraphGfx.setStrokeStyle(3, 0xff00ff, 0.9);
+      this.telegraphGfx.setDepth(12);
+      this.scene.tweens.add({
+        targets: this.telegraphGfx,
+        scale: { from: 0.5, to: 1.3 }, alpha: { from: 0.6, to: 0.1 },
+        duration: this.data.timings.telegraphMs, ease: 'Quad.easeOut',
+      });
+    } else {
+      // DRONE/DEFAULT: standard charge circle
+      this.telegraphGfx = this.scene.add.circle(this.sprite.x, this.sprite.y, 30, 0xff3030, 0);
+      this.telegraphGfx.setStrokeStyle(2, 0xff3030, 0.7);
+      this.telegraphGfx.setDepth(12);
+      this.scene.tweens.add({
+        targets: this.telegraphGfx,
+        scale: { from: 0.5, to: 1.5 }, alpha: { from: 0.7, to: 0.2 },
+        duration: this.data.timings.telegraphMs, ease: 'Quad.easeOut',
+      });
+    }
   }
 
   private inRange(playerPos: Phaser.Math.Vector2): boolean {
@@ -241,7 +278,16 @@ export class EnemyEntity {
     const dx = playerPos.x - this.sprite.x;
     const absDx = Math.abs(dx);
     const dir = dx > 0 ? 1 : -1;
-    if (this.data.flying) {
+    if (this.type === 'flying_ai') {
+      // FLYING AI: hovers ABOVE player, then dive-bombs — "learn to look up"
+      const targetY = playerPos.y - 120; // stay 120px above player
+      const yDiff = targetY - this.sprite.y;
+      this.sprite.setVelocityY(yDiff * 0.05);
+      if (absDx > this.data.attackRange + 40) this.sprite.setVelocityX(dir * this.data.speed);
+      else if (absDx < this.data.attackRange - 60) this.sprite.setVelocityX(-dir * this.data.speed * 0.5);
+      else this.changeState('attack');
+    } else if (this.data.flying) {
+      // DRONE: standard hover + strafe
       const hover = this.hoverBase + Math.sin(this.scene.time.now / 360) * 12;
       this.sprite.setVelocityY((hover - this.sprite.y) * 0.06);
       if (absDx > this.data.attackRange + 40) this.sprite.setVelocityX(dir * this.data.speed);
@@ -279,7 +325,16 @@ export class EnemyEntity {
   }
 
   private onAttackWindow(playerPos: Phaser.Math.Vector2): void {
-    if (this.data.attackType === 'shoot' || this.data.attackType === 'snipe') {
+    if (this.type === 'flying_ai') {
+      // FLYING AI: dive-bomb attack — swoops down at player, "learn to look up"
+      const dx = playerPos.x - this.sprite.x;
+      const dy = playerPos.y - this.sprite.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0) {
+        this.sprite.setVelocityX((dx / dist) * (this.data.speed * 3));
+        this.sprite.setVelocityY((dy / dist) * (this.data.speed * 3));
+      }
+    } else if (this.data.attackType === 'shoot' || this.data.attackType === 'snipe') {
       this.fire(playerPos);
     } else if (this.data.attackType === 'lunge') {
       this.sprite.setVelocityX(this.lungeDir * (this.data.lungeSpeed ?? 7));
