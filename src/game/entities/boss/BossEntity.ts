@@ -144,7 +144,7 @@ export class BossEntity {
         case 'shoot': this.fire(pp); break;
         case 'lunge': this.lunge(pp); break;
         case 'teleport': this.teleport(pp); break;
-        case 'beam': this.fire(pp); this.fire(pp); break;
+        case 'beam': this.fireBeam(pp); break;
       }
     }
 
@@ -175,6 +175,30 @@ export class BossEntity {
     }
   }
 
+  /** Beam attack — fires a wide spread of 5 projectiles in a fan. */
+  private fireBeam(playerPos: Phaser.Math.Vector2): void {
+    // Reset cooldown so beam fires all projectiles
+    this.lastFireAt = 0;
+    const from = this.position;
+    const baseAngle = Math.atan2(playerPos.y - from.y, playerPos.x - from.x);
+    // 5 projectiles in a wider fan (0.4 rad spread)
+    for (let i = -2; i <= 2; i++) {
+      const angle = baseAngle + i * 0.2;
+      const dir = new Phaser.Math.Vector2(Math.cos(angle), Math.sin(angle));
+      const proj = new Projectile(this.scene, this.physics, this.particles, from, dir, {
+        speed: 7, damage: 12, ttl: 2500, owner: 'enemy', color: 0xff60ff, size: 9,
+      });
+      this.projectiles.push(proj);
+    }
+    // Beam telegraph flash
+    if (this.bossGfx) {
+      this.bossGfx.setAlpha(0.3);
+      this.scene.tweens.add({
+        targets: this.bossGfx, alpha: 1, duration: 200,
+      });
+    }
+  }
+
   private lunge(playerPos: Phaser.Math.Vector2): void {
     const dx = playerPos.x - this.sprite.x;
     const dir = dx > 0 ? 1 : -1;
@@ -194,8 +218,29 @@ export class BossEntity {
   private die(): void {
     if (!this.isAlive) return;
     this.isAlive = false;
+    // Moment 9: Atlas kneels — slow, quiet death. Not an explosion.
+    this.sprite.setVelocity(0, 0);
+    this.lungeVel.set(0, 0);
+    // Slow kneel — graphics squish down and fade
+    if (this.bossGfx) {
+      this.bossGfx.setAlpha(0.8);
+      this.scene.tweens.add({
+        targets: this.bossGfx,
+        alpha: { from: 0.8, to: 0.3 },
+        scaleY: { from: 1, to: 0.6 },
+        duration: 2000, ease: 'Sine.out',
+      });
+    }
+    if (this.bossCore) {
+      this.scene.tweens.add({
+        targets: this.bossCore,
+        alpha: { from: 1, to: 0.05 },
+        duration: 2000, ease: 'Sine.out',
+      });
+    }
     // Record boss kill + time
-    const elapsed = this.scene.time.now - (this.scene as unknown as { stageStartTime?: number }).stageStartTime!;
+    const stageStart = (this.scene as unknown as { stageStartTime?: number }).stageStartTime ?? this.scene.time.now;
+    const elapsed = this.scene.time.now - stageStart;
     SaveSystem.recordBossKill(this.id, elapsed);
     // Drop items
     if (this.data.drops) {
@@ -213,11 +258,17 @@ export class BossEntity {
       EventBus.emit('LEVEL_UP', { level: xpResult.newLevel });
       AudioSystem.play('levelUp');
     }
-    EventBus.emit('BOSS_PHASE', { phase: 0, healthPct: 0, dead: true });
-    EventBus.emit('BOSS_DEAD', { id: this.id, lore: this.data.lore });
-    this.bossGfx?.destroy(); this.bossGfx = null;
-    this.bossCore?.destroy(); this.bossCore = null;
-    if (this.sprite && this.sprite.active) this.sprite.destroy();
+    // Emit death events after kneeling animation (1.5s delay)
+    this.scene.time.delayedCall(1500, () => {
+      EventBus.emit('BOSS_PHASE', { phase: 0, healthPct: 0, dead: true });
+      EventBus.emit('BOSS_DEAD', { id: this.id, lore: this.data.lore });
+    });
+    // Destroy sprite after full kneeling (2.2s)
+    this.scene.time.delayedCall(2200, () => {
+      this.bossGfx?.destroy(); this.bossGfx = null;
+      this.bossCore?.destroy(); this.bossCore = null;
+      if (this.sprite && this.sprite.active) this.sprite.destroy();
+    });
   }
 
   destroy(): void {
