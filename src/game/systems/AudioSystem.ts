@@ -41,6 +41,54 @@ export type SfxName =
 // ─── Ambient types ─────────────────────────────────────────────────────
 export type AmbientType = 'factory' | 'silence' | 'boss';
 
+// ═══ AUDIO REGISTRY (Data-Driven) ═══════════════════════════════════════
+// Each SFX is defined here with its category, synthesis params, and volume.
+// Adding a new sound = adding an entry here. No code changes needed.
+interface SfxDef {
+  category: SoundCategory;
+  type: 'tone' | 'sweep' | 'noise' | 'noise+tone';
+  oscType?: OscillatorType;
+  freq?: number;
+  freq2?: number;       // for sweep end
+  dur: number;
+  vol: number;
+  // For multi-tone (like arpeggios)
+  sequence?: { freq: number; delay: number; dur: number; vol: number }[];
+}
+
+const SFX_REGISTRY: Record<SfxName, SfxDef> = {
+  // ── Weapons ──
+  fire:         { category: 'weapons', type: 'tone', oscType: 'square', freq: 800, dur: 0.06, vol: 0.15 },
+  melee:        { category: 'weapons', type: 'sweep', oscType: 'sawtooth', freq: 300, freq2: 80, dur: 0.12, vol: 0.2 },
+  weaponSwitch: { category: 'weapons', type: 'tone', oscType: 'square', freq: 500, dur: 0.04, vol: 0.08 },
+
+  // ── Combat: Player movement ──
+  dash:         { category: 'combat', type: 'sweep', oscType: 'sine', freq: 200, freq2: 600, dur: 0.08, vol: 0.15 },
+  jump:         { category: 'combat', type: 'sweep', oscType: 'square', freq: 200, freq2: 500, dur: 0.06, vol: 0.12 },
+  doubleJump:   { category: 'combat', type: 'sweep', oscType: 'square', freq: 400, freq2: 800, dur: 0.06, vol: 0.12 },
+
+  // ── Combat: Damage ──
+  hit:          { category: 'combat', type: 'noise', dur: 0.08, vol: 0.2 },
+  explosion:    { category: 'combat', type: 'noise+tone', oscType: 'sine', freq: 100, dur: 0.3, vol: 0.4 },
+  enemyHit:     { category: 'combat', type: 'tone', oscType: 'square', freq: 400, dur: 0.05, vol: 0.1 },
+  bossHit:      { category: 'combat', type: 'tone', oscType: 'square', freq: 200, dur: 0.08, vol: 0.15 },
+  bossDeath:    { category: 'combat', type: 'sweep', oscType: 'sawtooth', freq: 200, freq2: 50, dur: 0.5, vol: 0.4 },
+  playerDeath:  { category: 'combat', type: 'sweep', oscType: 'sawtooth', freq: 400, freq2: 50, dur: 0.5, vol: 0.4 },
+  phaseChange:  { category: 'combat', type: 'sweep', oscType: 'sawtooth', freq: 100, freq2: 300, dur: 0.3, vol: 0.3 },
+
+  // ── UI ──
+  uiClick:      { category: 'ui', type: 'tone', oscType: 'square', freq: 600, dur: 0.04, vol: 0.1 },
+  uiHover:      { category: 'ui', type: 'tone', oscType: 'square', freq: 400, dur: 0.03, vol: 0.05 },
+  checkpoint:   { category: 'ui', type: 'tone', oscType: 'sine', freq: 800, dur: 0.1, vol: 0.2,
+                  sequence: [{ freq: 1200, delay: 0.1, dur: 0.1, vol: 0.2 }] },
+  levelUp:      { category: 'ui', type: 'tone', oscType: 'sine', freq: 523, dur: 0.15, vol: 0.25,
+                  sequence: [{ freq: 659, delay: 0.1, dur: 0.15, vol: 0.25 }, { freq: 784, delay: 0.2, dur: 0.2, vol: 0.25 }] },
+  skillUnlock:  { category: 'ui', type: 'tone', oscType: 'sine', freq: 880, dur: 0.1, vol: 0.2,
+                  sequence: [{ freq: 1320, delay: 0.1, dur: 0.15, vol: 0.2 }] },
+  victory:      { category: 'ui', type: 'tone', oscType: 'sine', freq: 523, dur: 0.2, vol: 0.3,
+                  sequence: [{ freq: 659, delay: 0.15, dur: 0.2, vol: 0.3 }, { freq: 784, delay: 0.3, dur: 0.3, vol: 0.3 }] },
+};
+
 // ─── Category metadata ─────────────────────────────────────────────────
 const CATEGORY_INFO: Record<SoundCategory, { defaultVolume: number }> = {
   music:      { defaultVolume: 0.4 },
@@ -51,19 +99,6 @@ const CATEGORY_INFO: Record<SoundCategory, { defaultVolume: number }> = {
   npc:        { defaultVolume: 0.7 },
   environment:{ defaultVolume: 0.4 },
   voice:      { defaultVolume: 0.9 },
-};
-
-// ─── SFX → Category mapping ────────────────────────────────────────────
-const SFX_CATEGORY: Record<SfxName, SoundCategory> = {
-  // Combat
-  hit: 'combat', explosion: 'combat', enemyHit: 'combat', bossHit: 'combat',
-  bossDeath: 'combat', playerDeath: 'combat', phaseChange: 'combat',
-  // Weapons
-  fire: 'weapons', melee: 'weapons', weaponSwitch: 'weapons',
-  // Player movement
-  dash: 'combat', jump: 'combat', doubleJump: 'combat',
-  // UI
-  uiClick: 'ui', uiHover: 'ui', checkpoint: 'ui', levelUp: 'ui', skillUnlock: 'ui', victory: 'ui',
 };
 
 export class AudioSystem {
@@ -183,42 +218,36 @@ export class AudioSystem {
   static setMuted(m: boolean): void { this.muted = m; this.updateAllVolumes(); }
   static isMuted(): boolean { return this.muted; }
 
-  // ─── SFX Playback ───────────────────────────────────────────────────
+  // ─── SFX Playback (Data-Driven via SFX_REGISTRY) ────────────────────
 
   static play(name: SfxName): void {
     if (!this.ctx) return;
+    const def = SFX_REGISTRY[name];
+    if (!def) return;
     const now = this.ctx.currentTime;
-    const cat = SFX_CATEGORY[name] ?? 'combat';
-    const gain = this.categoryGains.get(cat);
+    const gain = this.categoryGains.get(def.category);
     if (!gain) return;
 
-    switch (name) {
-      // ── Weapons ──
-      case 'fire': this.tone('square', 800, 0.06, 0.15, now, gain); break;
-      case 'melee': this.sweep('sawtooth', 300, 80, 0.12, 0.2, now, gain); break;
-      case 'weaponSwitch': this.tone('square', 500, 0.04, 0.08, now, gain); break;
-
-      // ── Combat: Player movement ──
-      case 'dash': this.sweep('sine', 200, 600, 0.08, 0.15, now, gain); break;
-      case 'jump': this.sweep('square', 200, 500, 0.06, 0.12, now, gain); break;
-      case 'doubleJump': this.sweep('square', 400, 800, 0.06, 0.12, now, gain); break;
-
-      // ── Combat: Damage ──
-      case 'hit': this.noise(0.08, 0.2, now, gain); break;
-      case 'explosion': this.noise(0.3, 0.4, now, gain); this.tone('sine', 100, 0.2, 0.3, now, gain); break;
-      case 'enemyHit': this.tone('square', 400, 0.05, 0.1, now, gain); break;
-      case 'bossHit': this.tone('square', 200, 0.08, 0.15, now, gain); break;
-      case 'bossDeath': this.sweep('sawtooth', 200, 50, 0.5, 0.4, now, gain); break;
-      case 'playerDeath': this.sweep('sawtooth', 400, 50, 0.5, 0.4, now, gain); break;
-      case 'phaseChange': this.sweep('sawtooth', 100, 300, 0.3, 0.3, now, gain); break;
-
-      // ── UI ──
-      case 'uiClick': this.tone('square', 600, 0.04, 0.1, now, gain); break;
-      case 'uiHover': this.tone('square', 400, 0.03, 0.05, now, gain); break;
-      case 'checkpoint': this.tone('sine', 800, 0.1, 0.2, now, gain); this.tone('sine', 1200, 0.1, 0.2, now + 0.1, gain); break;
-      case 'levelUp': this.tone('sine', 523, 0.15, 0.25, now, gain); this.tone('sine', 659, 0.15, 0.25, now + 0.1, gain); this.tone('sine', 784, 0.2, 0.25, now + 0.2, gain); break;
-      case 'skillUnlock': this.tone('sine', 880, 0.1, 0.2, now, gain); this.tone('sine', 1320, 0.15, 0.2, now + 0.1, gain); break;
-      case 'victory': this.tone('sine', 523, 0.2, 0.3, now, gain); this.tone('sine', 659, 0.2, 0.3, now + 0.15, gain); this.tone('sine', 784, 0.3, 0.3, now + 0.3, gain); break;
+    switch (def.type) {
+      case 'tone':
+        this.tone(def.oscType ?? 'sine', def.freq ?? 440, def.dur, def.vol, now, gain);
+        break;
+      case 'sweep':
+        this.sweep(def.oscType ?? 'sine', def.freq ?? 200, def.freq2 ?? 100, def.dur, def.vol, now, gain);
+        break;
+      case 'noise':
+        this.noise(def.dur, def.vol, now, gain);
+        break;
+      case 'noise+tone':
+        this.noise(def.dur, def.vol, now, gain);
+        this.tone(def.oscType ?? 'sine', def.freq ?? 100, def.dur * 0.6, def.vol * 0.7, now, gain);
+        break;
+    }
+    // Play sequence tones (arpeggios, chords)
+    if (def.sequence) {
+      for (const step of def.sequence) {
+        this.tone(def.oscType ?? 'sine', step.freq, step.dur, step.vol, now + step.delay, gain);
+      }
     }
   }
 
