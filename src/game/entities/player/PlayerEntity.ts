@@ -19,6 +19,7 @@ import { getSkill } from '../../data/skills/skills';
 import { SKILLS } from '../../data/skills/skills';
 import type { WeaponId, WeaponData, PlayerStats, Direction } from '../../data/types';
 import { Projectile } from '../combat/Projectile';
+import { MechaSpriteFactory, type MechVisualHandle } from '../sprites/MechaSpriteFactory';
 
 export class PlayerEntity {
   public sprite: Phaser.Physics.Matter.Image;
@@ -67,14 +68,17 @@ export class PlayerEntity {
   private animTime = 0;
   private wasGrounded = true;
 
-  // Visual parts
-  private mechaTorso: Phaser.GameObjects.Rectangle | null = null;
-  private mechaHead: Phaser.GameObjects.Rectangle | null = null;
-  private mechaLegL: Phaser.GameObjects.Rectangle | null = null;
-  private mechaLegR: Phaser.GameObjects.Rectangle | null = null;
-  private core: Phaser.GameObjects.Arc | null = null;
-  private visor: Phaser.GameObjects.Rectangle | null = null;
-  private gunArm: Phaser.GameObjects.Rectangle | null = null;
+  // Visual handle — MechVisualHandle from factory (multi-layered mech)
+  private visual: MechVisualHandle | null = null;
+  // Physics polish state
+  private squashY = 1;   // vertical scale (squash/stretch)
+  private squashX = 1;   // horizontal scale
+  private tilt = 0;      // momentum tilt (radians)
+  private lastVy = 0;
+  private lastVx = 0;
+  private groundedLastFrame = true;
+  private jumpAnticipationUntil = 0;
+  private lastThrusterEmit = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -197,19 +201,8 @@ export class PlayerEntity {
   }
 
   private buildVisual(): void {
-    const scene = this.scene;
-    this.mechaTorso = scene.add.rectangle(0, 0, 36, 30, 0x1a2840, 1);
-    this.mechaTorso.setStrokeStyle(2, 0x39d0d8, 0.8); this.mechaTorso.setDepth(14);
-    this.core = scene.add.circle(0, 0, 4, 0x66f0ff, 0.9); this.core.setDepth(15);
-    this.mechaHead = scene.add.rectangle(0, 0, 16, 14, 0x2a3850, 1);
-    this.mechaHead.setStrokeStyle(1, 0x66f0ff, 0.9); this.mechaHead.setDepth(15);
-    this.visor = scene.add.rectangle(0, 0, 10, 3, 0x66f0ff, 0.8); this.visor.setDepth(16);
-    this.mechaLegL = scene.add.rectangle(0, 0, 9, 18, 0x2a3850, 1);
-    this.mechaLegL.setStrokeStyle(1, 0x39d0d8, 0.6); this.mechaLegL.setDepth(13);
-    this.mechaLegR = scene.add.rectangle(0, 0, 9, 18, 0x2a3850, 1);
-    this.mechaLegR.setStrokeStyle(1, 0x39d0d8, 0.6); this.mechaLegR.setDepth(13);
-    this.gunArm = scene.add.rectangle(0, 0, 28, 6, 0x1a2030, 1);
-    this.gunArm.setOrigin(0, 0.5); this.gunArm.setDepth(15);
+    // Use the MechaSpriteFactory — multi-layered detailed mech (no more flat rectangles)
+    this.visual = MechaSpriteFactory.buildPlayerAtlas(this.scene);
   }
 
   // ---- Public API ----
@@ -395,6 +388,9 @@ export class PlayerEntity {
     if (!this.alive || !this.sprite || !this.sprite.active) return;
     this.jumpBufferUntil = this.scene.time.now + PLAYER.JUMP_BUFFER_MS;
     const now = this.scene.time.now;
+    // Jump anticipation — squash for 80ms before launch
+    this.jumpAnticipationUntil = now + 80;
+    this.squashY = 0.85; this.squashX = 1.15;
 
     // Wall Jump — Mag-Clamp Thruster burst: powerful push from wall
     if (!this.grounded && this.touchingWall && this.abilities.has('wallJump')) {
@@ -557,6 +553,7 @@ export class PlayerEntity {
   }
 
   private updateAnimation(deltaMs: number): void {
+    if (!this.visual) return;
     this.animTime += deltaMs;
     const pos = this.position;
     const facing = this.facing === 'right' ? 1 : -1;
@@ -565,59 +562,123 @@ export class PlayerEntity {
     const vy = body?.velocity.y ?? 0;
     const isMoving = Math.abs(vx) > 0.5 && this.grounded;
     const isJumping = !this.grounded;
+    const isDashing = this.isDashing;
 
-    const bob = isMoving ? Math.sin(this.animTime / 80) * 2 : 0;
-    if (this.mechaTorso) { this.mechaTorso.setPosition(pos.x, pos.y - 6 + bob); this.mechaTorso.setScale(facing, 1); }
-    if (this.core) {
-      this.core.setPosition(pos.x, pos.y - 6 + bob);
-      const pulse = 0.7 + Math.sin(this.animTime / 200) * 0.2;
-      this.core.setAlpha(pulse); this.core.setRadius(3 + pulse * 2);
-    }
-    if (this.mechaHead) this.mechaHead.setPosition(pos.x + facing * 6, pos.y - 18 + bob);
-    if (this.visor) { this.visor.setPosition(pos.x + facing * 6, pos.y - 19 + bob); this.visor.setAlpha(0.5 + Math.sin(this.animTime / 150) * 0.3); }
-    if (this.mechaLegL && this.mechaLegR) {
-      if (isJumping) {
-        this.mechaLegL.setPosition(pos.x - 6, pos.y + 10); this.mechaLegL.setAngle(-20);
-        this.mechaLegR.setPosition(pos.x + 6, pos.y + 10); this.mechaLegR.setAngle(20);
-      } else if (isMoving) {
-        const phase = this.animTime / 100;
-        this.mechaLegL.setPosition(pos.x - 8, pos.y + 14); this.mechaLegL.setAngle(Math.sin(phase) * 12);
-        this.mechaLegR.setPosition(pos.x + 8, pos.y + 14); this.mechaLegR.setAngle(Math.sin(phase + Math.PI) * 12);
+    // ── Physics polish: squash & stretch ──
+    // Recover from anticipation
+    if (this.scene.time.now > this.jumpAnticipationUntil) {
+      // Landing squash — if we just landed with downward velocity
+      if (this.grounded && !this.groundedLastFrame && this.lastVy > 4) {
+        this.squashY = 0.7; this.squashX = 1.25;
+      }
+      // Stretch on fast upward movement (jump apex)
+      if (isJumping && vy < -6) {
+        this.squashY = Phaser.Math.Linear(this.squashY, 1.2, 0.15);
+        this.squashX = Phaser.Math.Linear(this.squashX, 0.88, 0.15);
       } else {
-        this.mechaLegL.setPosition(pos.x - 8, pos.y + 14); this.mechaLegL.setAngle(0);
-        this.mechaLegR.setPosition(pos.x + 8, pos.y + 14); this.mechaLegR.setAngle(0);
+        // Ease back to neutral
+        this.squashY = Phaser.Math.Linear(this.squashY, 1, 0.18);
+        this.squashX = Phaser.Math.Linear(this.squashX, 1, 0.18);
       }
     }
-    if (this.gunArm) {
-      this.gunArm.setPosition(pos.x, pos.y - 6 + bob);
-      const dir = this.getAimDirection();
-      const targetAngle = Math.atan2(dir.y, dir.x);
-      this.aimAngle = Phaser.Math.Angle.RotateTo(this.aimAngle, targetAngle, 0.3);
-      this.gunArm.setRotation(this.aimAngle);
-      this.gunArm.setStrokeStyle(1, this.weaponData.color, 0.8);
+
+    // ── Momentum tilt — lean into the direction of motion ──
+    const targetTilt = isDashing
+      ? facing * 0.25
+      : isMoving
+        ? facing * (vx / 30)  // subtle lean
+        : isJumping
+          ? (vy < 0 ? facing * 0.08 : facing * 0.04)  // tilt up when rising, less when falling
+          : 0;
+    this.tilt = Phaser.Math.Linear(this.tilt, targetTilt, 0.12);
+
+    // ── Apply transform to visual container ──
+    this.visual.container.setPosition(pos.x, pos.y - 4);
+    this.visual.container.setRotation(this.tilt);
+    this.visual.container.setScale(facing * this.squashX, this.squashY);
+    this.visual.setFacing(facing as 1 | -1);
+
+    // ── Core pulse — brighten on dash, dim on low energy ──
+    const energyPct = this.energy.current / this.energy.max;
+    const dashBoost = isDashing ? 0.4 : 0;
+    const pulseBrightness = 0.4 + Math.sin(this.animTime / 200) * 0.15 + dashBoost;
+    this.visual.setCorePulse(Math.min(1, pulseBrightness * (0.5 + energyPct * 0.5)));
+
+    // ── Thruster VFX ──
+    // Intensity 0..1 based on: jumping (full), dashing (full), falling fast (medium), grounded (0)
+    let thrusterIntensity = 0;
+    if (isDashing) thrusterIntensity = 0.9;
+    else if (isJumping && vy < 0) thrusterIntensity = 0.7;  // rising
+    else if (isJumping && vy > 2) thrusterIntensity = 0.3;  // falling gently
+    else if (this.wallSlideActive) thrusterIntensity = 0.5;
+    this.visual.setThrusterIntensity(thrusterIntensity);
+
+    // Emit thruster particles when intensity is high
+    const now = this.scene.time.now;
+    if (thrusterIntensity > 0.4 && now - this.lastThrusterEmit > 30) {
+      this.lastThrusterEmit = now;
+      // Emit downward thruster flame particles
+      for (const dx of [-9, 9]) {
+        const flame = this.scene.add.circle(pos.x + dx * facing, pos.y + 12, 2 + Math.random() * 2, 0xffc040, 0.8);
+        flame.setBlendMode(Phaser.BlendModes.ADD).setDepth(13);
+        this.scene.tweens.add({
+          targets: flame,
+          y: pos.y + 24, alpha: 0, scale: 0.4,
+          duration: 150, onComplete: () => flame.destroy(),
+        });
+      }
     }
-    // Landing impact
-    if (this.grounded && !this.wasGrounded && vy > 3) {
+
+    // ── Landing impact — dust + camera shake ──
+    if (this.grounded && !this.wasGrounded && this.lastVy > 3) {
       this.particles.dust(pos.x, pos.y + 20);
-      this.scene.cameras.main.shake(60, 0.003 * Math.min(vy / 5, 1));
+      this.scene.cameras.main.shake(60, 0.003 * Math.min(this.lastVy / 5, 1));
+      // Extra dust puff for hard landings
+      if (this.lastVy > 7) {
+        for (let i = 0; i < 6; i++) {
+          const dustX = pos.x + (Math.random() - 0.5) * 30;
+          const dust = this.scene.add.circle(dustX, pos.y + 20, 3, 0x6a5a4a, 0.5);
+          dust.setDepth(12);
+          this.scene.tweens.add({
+            targets: dust,
+            y: pos.y + 28, x: dustX + (Math.random() - 0.5) * 30,
+            alpha: 0, scale: 2, duration: 400, ease: 'Sine.out',
+            onComplete: () => dust.destroy(),
+          });
+        }
+      }
     }
+
+    // ── Per-step dust when running ──
+    if (isMoving && now - this.lastThrusterEmit > 100) {
+      const stepDust = this.scene.add.circle(pos.x + (Math.random() - 0.5) * 8, pos.y + 18, 1.5, 0x4a3a2a, 0.4);
+      stepDust.setDepth(11);
+      this.scene.tweens.add({
+        targets: stepDust, y: pos.y + 22, alpha: 0, duration: 250,
+        onComplete: () => stepDust.destroy(),
+      });
+    }
+
     this.wasGrounded = this.grounded;
-    // Flash while invulnerable
+    this.groundedLastFrame = this.grounded;
+    this.lastVy = vy;
+    this.lastVx = vx;
+
+    // ── Flash while invulnerable ──
     if (this.flashTimer > 0) {
       this.flashTimer -= deltaMs;
       const on = Math.floor(this.flashTimer / 80) % 2 === 0;
-      this.sprite.setAlpha(on ? 0.45 : 0);
+      this.visual.container.setAlpha(on ? 0.4 : 1);
     } else {
-      this.sprite.setAlpha(0);
+      this.visual.container.setAlpha(1);
     }
   }
 
   destroy(): void {
     // Clear input callbacks so destroyed player doesn't receive input
     InputSystem.clearCallbacks();
-    this.gunArm?.destroy(); this.mechaTorso?.destroy(); this.mechaHead?.destroy();
-    this.mechaLegL?.destroy(); this.mechaLegR?.destroy();
-    this.core?.destroy(); this.visor?.destroy();
+    this.visual?.destroy();
+    this.visual = null;
     if (this.sprite && this.sprite.active) this.sprite.destroy();
   }
 }

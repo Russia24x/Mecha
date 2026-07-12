@@ -13,6 +13,7 @@ import { getEnemy } from '../../data/enemies/enemies';
 import { getItem } from '../../data/items/items';
 import type { EnemyTypeId, EnemyData, EnemyState } from '../../data/types';
 import { Projectile } from '../combat/Projectile';
+import { MechaSpriteFactory, type MechVisualHandle } from '../sprites/MechaSpriteFactory';
 
 let enemyCounter = 0;
 
@@ -39,6 +40,9 @@ export class EnemyEntity {
   private lastStrafeChange = 0;
   private lastFireAt = 0;
   private visualGfx: Phaser.GameObjects.Graphics | null = null;
+  private visual: MechVisualHandle | null = null;
+  private facing: 1 | -1 = 1;
+  private animTime = 0;
 
   private particles: import('../../systems/ParticleSystem').ParticleSystem;
 
@@ -71,35 +75,17 @@ export class EnemyEntity {
   }
 
   private buildVisual(): void {
+    // Use the factory for all enemy types — real mech designs, not geometric shapes
     const c = this.data.color;
-    const w = this.data.size.w;
-    const h = this.data.size.h;
-    const g = this.scene.add.graphics();
-    g.setDepth(14);
-    if (this.type === 'drone' || this.type === 'flying_ai') {
-      g.fillStyle(0x1a1a2a, 1); g.fillCircle(0, 0, w / 2);
-      g.lineStyle(2, c, 0.8); g.strokeCircle(0, 0, w / 2);
-      g.fillStyle(c, 0.9); g.fillCircle(0, 0, 4);
-    } else if (this.type === 'spider') {
-      g.fillStyle(0x2a1a0a, 1); g.fillEllipse(0, 0, w * 0.7, h * 0.8);
-      g.fillStyle(c, 0.7); g.fillCircle(w * 0.15, 0, w * 0.25);
-      g.fillStyle(0xff0000, 0.9); g.fillCircle(w * 0.2, -3, 2); g.fillCircle(w * 0.2, 3, 2);
-    } else if (this.type === 'sniper') {
-      g.fillStyle(0x0a2a1a, 1); g.fillRect(-w / 2, -h / 2, w, h);
-      g.lineStyle(2, c, 0.6); g.strokeRect(-w / 2, -h / 2, w, h);
-      g.fillStyle(c, 0.9); g.fillRect(-2, -h / 2 - 12, 4, 12);
-      g.fillStyle(c, 0.8); g.fillCircle(0, 0, 4);
-    } else if (this.type === 'elite') {
-      g.fillStyle(0x2a0a1a, 1); g.fillRect(-w / 2, -h / 2, w, h);
-      g.lineStyle(3, c, 0.9); g.strokeRect(-w / 2, -h / 2, w, h);
-      g.fillStyle(c, 0.5); g.fillRect(-w / 2 + 4, -h / 2 + 4, w - 8, 6);
-      g.fillStyle(c, 0.9); g.fillCircle(0, 0, 6);
-    } else { // heavy
-      g.fillStyle(0x1a0a2a, 1); g.fillRect(-w / 2, -h / 2, w, h);
-      g.lineStyle(2, c, 0.6); g.strokeRect(-w / 2, -h / 2, w, h);
-      g.fillStyle(c, 0.9); g.fillCircle(0, 0, 5);
+    switch (this.type) {
+      case 'drone':       this.visual = MechaSpriteFactory.buildDrone(this.scene, c); break;
+      case 'spider':      this.visual = MechaSpriteFactory.buildSpider(this.scene, c); break;
+      case 'sniper':      this.visual = MechaSpriteFactory.buildSniper(this.scene, c); break;
+      case 'heavy':       this.visual = MechaSpriteFactory.buildHeavy(this.scene, c); break;
+      case 'flying_ai':   this.visual = MechaSpriteFactory.buildFlyingAi(this.scene, c); break;
+      case 'elite':       this.visual = MechaSpriteFactory.buildElite(this.scene, c); break;
+      default:            this.visual = MechaSpriteFactory.buildDrone(this.scene, c); break;
     }
-    this.visualGfx = g;
   }
 
   get isAlive(): boolean { return this.alive; }
@@ -141,6 +127,8 @@ export class EnemyEntity {
     }
     EventBus.emit('ENEMY_DEAD', { id: this.id, score: this.data.score, x: posX, y: posY });
     if (this.telegraphGfx) { this.telegraphGfx.destroy(); this.telegraphGfx = null; }
+    this.visual?.destroy();
+    this.visual = null;
     this.visualGfx?.destroy();
     this.visualGfx = null;
     this.sprite.destroy();
@@ -148,6 +136,8 @@ export class EnemyEntity {
 
   destroy(): void {
     if (this.telegraphGfx) { this.telegraphGfx.destroy(); this.telegraphGfx = null; }
+    this.visual?.destroy();
+    this.visual = null;
     this.visualGfx?.destroy();
     this.visualGfx = null;
     if (this.sprite && this.sprite.active) this.sprite.destroy();
@@ -308,13 +298,16 @@ export class EnemyEntity {
 
   private onAttackTelegraph(): void {
     if (this.type === 'spider') {
+      // Spider telegraph: body compresses (squash) before lunge
       const t = Math.min(1, this.stateTime / this.data.timings.telegraphMs);
-      if (this.visualGfx) this.visualGfx.setScale(Phaser.Math.Linear(1, 1.2, t), Phaser.Math.Linear(1, 0.6, t));
+      if (this.visual) this.visual.container.setScale(this.facing * Phaser.Math.Linear(1, 1.2, t), Phaser.Math.Linear(1, 0.7, t));
       this.sprite.setVelocityX(0);
     } else if (this.type === 'heavy' || this.type === 'elite') {
-      if (this.visualGfx) {
+      // Heavy/Elite telegraph: flicker alpha + slight jitter (winding up)
+      if (this.visual) {
         const flash = Math.floor(this.stateTime / 80) % 2 === 0;
-        this.visualGfx.setAlpha(flash ? 0.4 : 1.0);
+        this.visual.container.setAlpha(flash ? 0.5 : 1.0);
+        this.visual.setCorePulse(1);  // max eye brightness — danger
       }
       this.sprite.setVelocityX((Math.random() - 0.5) * 2);
     } else {
@@ -334,13 +327,20 @@ export class EnemyEntity {
         this.sprite.setVelocityX((dx / dist) * (this.data.speed * 3));
         this.sprite.setVelocityY((dy / dist) * (this.data.speed * 3));
       }
+      // Dive-bomb: thruster at max + tilt forward
+      if (this.visual) {
+        this.visual.setThrusterIntensity(1);
+        this.visual.container.setScale(this.facing * 1.1, 0.9);  // stretched in dive
+      }
     } else if (this.data.attackType === 'shoot' || this.data.attackType === 'snipe') {
       this.fire(playerPos);
     } else if (this.data.attackType === 'lunge') {
       this.sprite.setVelocityX(this.lungeDir * (this.data.lungeSpeed ?? 7));
-      if (this.visualGfx) this.visualGfx.setScale(1, 1);
+      if (this.visual) this.visual.container.setScale(this.facing, 1);
     } else if (this.data.attackType === 'charge') {
       this.sprite.setVelocityX(this.lungeDir * (this.data.chargeSpeed ?? 5));
+      // Heavy charge: lean forward
+      if (this.visual) this.visual.container.setScale(this.facing * 1.1, 0.95);
     }
   }
 
@@ -351,10 +351,15 @@ export class EnemyEntity {
       this.sprite.setVelocityX(this.strafeDir * this.data.speed * 0.6);
       const hover = this.hoverBase + Math.sin(now / 360) * 12;
       this.sprite.setVelocityY((hover - this.sprite.y) * 0.06);
+      // Reset thruster / scale after dive-bomb
+      if (this.visual && this.type === 'flying_ai') {
+        this.visual.setThrusterIntensity(0.3);
+        this.visual.container.setScale(this.facing, 1);
+      }
     } else {
       const body = this.sprite.body;
       this.sprite.setVelocityX((body ? body.velocity.x : 0) * 0.85);
-      if (this.visualGfx) this.visualGfx.setScale(1, 1);
+      if (this.visual) this.visual.container.setScale(this.facing, 1);
     }
   }
 
@@ -372,16 +377,34 @@ export class EnemyEntity {
 
   private updateFlash(): void {
     if (!this.sprite || !this.sprite.active) return;
-    if (this.visualGfx) {
-      this.visualGfx.setPosition(this.sprite.x, this.sprite.y);
-      const inTelegraph = this.state === 'attack' && this.attackPhase === 'telegraph';
-      if (!inTelegraph) {
-        if (this.scene.time.now < this.flashUntil) {
-          this.visualGfx.setScale(1.15); this.visualGfx.setAlpha(0.8);
-        } else {
-          this.visualGfx.setScale(1); this.visualGfx.setAlpha(1);
-        }
+    if (!this.visual) return;
+    // Update visual position + facing
+    this.visual.container.setPosition(this.sprite.x, this.sprite.y);
+    this.animTime += 16;
+    const body = this.sprite.body;
+    const vx = body?.velocity.x ?? 0;
+    if (Math.abs(vx) > 0.5) {
+      this.facing = vx > 0 ? 1 : -1;
+    }
+    this.visual.setFacing(this.facing);
+    // Damage flash — brighten + scale punch when recently hit
+    const inTelegraph = this.state === 'attack' && this.attackPhase === 'telegraph';
+    if (!inTelegraph) {
+      if (this.scene.time.now < this.flashUntil) {
+        this.visual.container.setAlpha(0.7);
+        this.visual.setCorePulse(1);  // brighten eye on hit
+        // Tiny scale punch
+        this.visual.container.setScale(this.facing * 1.15, 1.15);
+      } else {
+        this.visual.container.setAlpha(1);
+        this.visual.setCorePulse(0.5);
+        this.visual.container.setScale(this.facing, 1);
       }
+    } else {
+      // Telegraph: brighten eye to max + slight pulse
+      this.visual.setCorePulse(1);
+      const pulse = 1 + Math.sin(this.animTime / 60) * 0.08;
+      this.visual.container.setScale(this.facing * pulse, pulse);
     }
   }
 }

@@ -50,7 +50,13 @@ import { InventoryUI } from '../../ui/inventory/InventoryUI';
 import { QuestUI } from '../../ui/quest/QuestUI';
 import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
+import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
+import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
+import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
+import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
+import { GamepadManager } from '../../shared/GamepadManager';
 import type { EnemyTypeId } from '../../data/types';
+import type { NPCData } from '../../data/types';
 
 type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
 
@@ -94,10 +100,18 @@ export class GameScene extends Phaser.Scene {
   private hud: HUDUI | null = null;
   private dialogueUI!: DialogueUI;
   private pauseMenuUI!: PauseMenuUI;
+  private controlHints: ControlHintsUI | null = null;
   private lorePanel: Phaser.GameObjects.Container | null = null;
   private bossHealthBar: Phaser.GameObjects.Container | null = null;
   private bossHealthFill: Phaser.GameObjects.Rectangle | null = null;
   private bossNameText: Phaser.GameObjects.Text | null = null;
+
+  // Atmosphere + Parallax + NPCs (PLAY-only — never leak to hub/menu)
+  private parallax: ParallaxBackground | null = null;
+  private atmosphere: AtmosphereSystem | null = null;
+  private npcVisuals: Map<string, MechVisualHandle> = new Map();
+  private npcLabels: Map<string, Phaser.GameObjects.Text> = new Map();
+  private npcInteractionPrompt: Phaser.GameObjects.Container | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -572,23 +586,49 @@ export class GameScene extends Phaser.Scene {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     c.removeAll(true);
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9).setDepth(250);
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.92).setDepth(250);
     c.add(overlay);
-    const lines = [
-      'HOW TO PLAY', '',
-      'WASD / ARROWS    →   MOVE',
-      'SPACE                   →   JUMP',
-      'SHIFT                   →   DASH',
-      'J                           →   FIRE',
-      'K                           →   MELEE',
-      '1-4 / Q-E              →   SWITCH WEAPONS',
-      'E                           →   INTERACT',
-      'ESC                       →   PAUSE',
-      '', 'Press ENTER / A to go back',
-    ];
-    c.add(this.add.text(w / 2, h / 2, lines, {
+
+    // Gamepad-aware: pick the right key bindings to display
+    const gp = GamepadManager.isAvailable();
+    const header = gp
+      ? 'HOW TO PLAY  ·  GAMEPAD'
+      : 'HOW TO PLAY  ·  KEYBOARD';
+    const lines = gp
+      ? [
+          header, '',
+          'LEFT STICK        →   MOVE',
+          'A                         →   JUMP',
+          'B                         →   DASH',
+          'X                         →   FIRE',
+          'Y                         →   MELEE',
+          'LB / RB              →   SWITCH WEAPONS',
+          'A (near NPC)     →   INTERACT',
+          'START                  →   PAUSE',
+          'BACK                    →   BACK',
+          '', 'Press ENTER / A to go back',
+        ]
+      : [
+          header, '',
+          'WASD / ARROWS    →   MOVE',
+          'SPACE                   →   JUMP',
+          'SHIFT                   →   DASH',
+          'J                           →   FIRE',
+          'K                           →   MELEE',
+          '1-4 / Q-E              →   SWITCH WEAPONS',
+          'E                           →   INTERACT',
+          'ESC                       →   PAUSE',
+          '', 'Press ENTER / A to go back',
+        ];
+
+    c.add(this.add.text(w / 2, h / 2 - 24, lines, {
       fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', align: 'center', lineSpacing: 6,
     }).setOrigin(0.5).setDepth(251));
+    c.add(this.add.text(w / 2, h * 0.18, 'Press any key to switch input mode — icon updates live', {
+      fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 1,
+    }).setOrigin(0.5).setDepth(251));
+
+    // Allow live re-render when gamepad connects/disconnects while the screen is open.
     const backHandler = () => { this.setState('menu'); window.removeEventListener('keydown', backHandler); };
     setTimeout(() => window.addEventListener('keydown', backHandler), 100);
   }
@@ -617,6 +657,15 @@ export class GameScene extends Phaser.Scene {
     this.sequenceTimers = [];
     resetEnemyIds();
     this.stageStartTime = this.time.now;
+
+    // ── Parallax background (themed per region) ──
+    const theme = (area.regionId === 'forest') ? 'forest' : 'factory';
+    this.parallax = new ParallaxBackground(this, theme as 'factory' | 'forest', area.totalWidth);
+    this.parallax.build();
+
+    // ── Atmosphere system (Phase 2: fog, god rays, particles) ──
+    this.atmosphere = new AtmosphereSystem(this, theme as 'factory' | 'forest', area.totalWidth);
+    this.atmosphere.build();
 
     // Build world from data
     this.areaLoader = new AreaLoader(this, this.physicsSys);
@@ -648,6 +697,12 @@ export class GameScene extends Phaser.Scene {
     // HUD (only in play — NOT in hub)
     this.hud = new HUDUI(this, this.player);
 
+    // ── Spawn NPC sprites + interaction prompts (previously invisible!) ──
+    this.spawnNPCs(area.id);
+
+    // ── Control hints (gamepad-aware) — auto-switches KB ↔ GP ──
+    this.controlHints = new ControlHintsUI(this);
+
     // Collision handler
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
 
@@ -657,6 +712,101 @@ export class GameScene extends Phaser.Scene {
     // Emit section info
     const sec = area.sections.find(s => s.id === this.currentSection);
     if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
+  }
+
+  /** Spawn NPC sprites in the current area — previously NPCs were invisible. */
+  private spawnNPCs(areaId: string): void {
+    const npcs = NPCSystem.getNPCsInArea(areaId);
+    for (const npc of npcs) {
+      let visual: MechVisualHandle;
+      if (npc.id === 'engineer_kara') {
+        visual = MechaSpriteFactory.buildNPC_Kara(this);
+      } else if (npc.id === 'ghost_operator') {
+        visual = MechaSpriteFactory.buildNPC_GhostOperator(this);
+      } else {
+        visual = MechaSpriteFactory.buildNPC_Kara(this);
+      }
+      visual.container.setPosition(npc.x, npc.y);
+      this.npcVisuals.set(npc.id, visual);
+
+      // Name label above NPC (faded amber, only visible when near)
+      const label = this.add.text(npc.x, npc.y - 40, t(`npc.${npc.id}.name`), {
+        fontFamily: 'monospace', fontSize: '11px', color: '#ffc040',
+        stroke: '#000', strokeThickness: 3, letterSpacing: 2,
+      }).setOrigin(0.5).setAlpha(0).setDepth(15);
+      this.npcLabels.set(npc.id, label);
+      this.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1 });
+
+      // NPC light (warm amber for friendly)
+      this.render.addLight({
+        follow: () => {
+          const v = this.npcVisuals.get(npc.id);
+          return v && v.container.active ? new Phaser.Math.Vector2(v.container.x, v.container.y) : new Phaser.Math.Vector2(-9999, -9999);
+        },
+        radius: 80, color: 0xffc040, intensity: 0.25, flicker: 0.08,
+      });
+    }
+  }
+
+  /** Show a floating "Press E to interact" prompt above the nearest NPC. */
+  private updateNpcInteractionPrompt(): void {
+    if (!this.player || !this.player.sprite || !this.player.sprite.active) return;
+    const area = WorldSystem.getCurrentArea();
+    if (!area) return;
+    const npcs = NPCSystem.getNPCsInArea(area.id);
+    let nearestNpc: NPCData | null = null;
+    let nearestDist = 80;  // interaction radius
+    for (const npc of npcs) {
+      const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
+      if (dist < nearestDist) { nearestDist = dist; nearestNpc = npc; }
+    }
+
+    // Highlight nearest NPC label
+    for (const [id, label] of this.npcLabels) {
+      if (nearestNpc && id === nearestNpc.id) {
+        label.setAlpha(1);
+        label.setScale(1.1);
+      } else {
+        // Restore faded pulse
+      }
+    }
+
+    if (nearestNpc) {
+      // Show interaction prompt
+      if (!this.npcInteractionPrompt) {
+        this.npcInteractionPrompt = this.createInteractionPrompt();
+      }
+      this.npcInteractionPrompt.setPosition(nearestNpc.x, nearestNpc.y - 60);
+      this.npcInteractionPrompt.setVisible(true);
+    } else if (this.npcInteractionPrompt) {
+      this.npcInteractionPrompt.setVisible(false);
+    }
+  }
+
+  /** Create a floating "Press E / A" prompt (gamepad-aware). */
+  private createInteractionPrompt(): Phaser.GameObjects.Container {
+    const c = this.add.container(0, 0).setDepth(16);
+    const bg = this.add.rectangle(0, 0, 70, 22, 0x0a0d14, 0.9);
+    bg.setStrokeStyle(1, 0xffc040, 0.7);
+    c.add(bg);
+    const key = GamepadManager.isAvailable() ? 'A' : 'E';
+    const txt = this.add.text(0, 0, `[${key}] TALK`, {
+      fontFamily: 'monospace', fontSize: '10px', color: '#ffc040', stroke: '#000', strokeThickness: 2, letterSpacing: 1,
+    }).setOrigin(0.5);
+    c.add(txt);
+    this.tweens.add({ targets: c, y: '-=4', duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    return c;
+  }
+
+  /** Per-frame: keep NPC name labels positioned above their (potentially bobbing) visuals. */
+  private updateNpcLabels(): void {
+    for (const [id, visual] of this.npcVisuals) {
+      const label = this.npcLabels.get(id);
+      if (!label || !label.active) continue;
+      if (visual && visual.container.active) {
+        label.setPosition(visual.container.x, visual.container.y - 40);
+      }
+    }
   }
 
   private spawnEnemiesForSection(sectionId: number): void {
@@ -894,6 +1044,12 @@ export class GameScene extends Phaser.Scene {
     this.player.update(deltaMs);
     this.render.update(this.time.now);
     this.hud?.update();
+    this.controlHints?.update();
+    // Atmosphere (Phase 2: fog drift, particle motion, god ray breathing)
+    this.atmosphere?.update(deltaMs);
+    // NPC interaction prompt + label follow
+    this.updateNpcInteractionPrompt();
+    this.updateNpcLabels();
     // Ambient dust motes — atmospheric particles around player (per particles skill)
     if (this.time.now % 200 < 16) {
       this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);
@@ -951,6 +1107,20 @@ export class GameScene extends Phaser.Scene {
     this.boss = null;
     if (this.loadedArea && this.areaLoader) this.areaLoader.unload(this.loadedArea);
     this.loadedArea = null;
+    // ── Destroy PLAY-only systems (effect separation: never leak into hub/menu) ──
+    this.parallax?.destroy();
+    this.parallax = null;
+    this.atmosphere?.destroy();
+    this.atmosphere = null;
+    // Destroy NPC visuals + labels
+    this.npcVisuals.forEach(v => v?.destroy());
+    this.npcVisuals.clear();
+    this.npcLabels.forEach(l => { if (l && l.active) l.destroy(); });
+    this.npcLabels.clear();
+    if (this.npcInteractionPrompt) { this.npcInteractionPrompt.destroy(); this.npcInteractionPrompt = null; }
+    // Destroy control hints
+    this.controlHints?.destroy();
+    this.controlHints = null;
     this.tweens.killAll();
     this.sequenceTimers.forEach(t => t.remove());
     this.sequenceTimers = [];
@@ -958,6 +1128,12 @@ export class GameScene extends Phaser.Scene {
     this.hud?.destroy();
     this.hud = null;
     this.render?.destroy();
+    // ── Reset camera filters (vignette leak fix: clear all external filters so
+    // they don't persist into hub/menu/gameover/victory screens) ──
+    try {
+      const cam = this.cameras.main as unknown as { filters?: { external?: { list?: unknown[]; clear?: () => void } } };
+      if (cam.filters?.external?.list) cam.filters.external.list = [];
+    } catch { /* camera filters API varies */ }
     this.camera.resetZoom();
     this.camera.stopFollow();
     this.camera.setBounds(0, 0, GAME.WIDTH, GAME.HEIGHT);
