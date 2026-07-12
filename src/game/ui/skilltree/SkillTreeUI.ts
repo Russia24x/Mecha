@@ -40,7 +40,8 @@ export class SkillTreeUI extends NavigableOverlay {
   private treeButtons: Phaser.GameObjects.Rectangle[] = [];
   private treeTexts: Phaser.GameObjects.Text[] = [];
   private selectedTree: SkillTree = 'combat';
-  private skillNodes: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; node: SkillNode }[] = [];
+  // *** FIX: track ALL texts per skill node (was only tracking nameText — 3 texts leaked per refresh)
+  private skillNodes: { bg: Phaser.GameObjects.Rectangle; texts: Phaser.GameObjects.Text[]; node: SkillNode }[] = [];
   private trees: SkillTree[] = ['combat', 'weapon', 'movement', 'energy', 'protocol', 'survival'];
   private statsText?: Phaser.GameObjects.Text;
 
@@ -76,8 +77,9 @@ export class SkillTreeUI extends NavigableOverlay {
       this.registerNav(bg, textEl, () => { this.selectedTree = tree; this.refreshTree(); AudioSystem.play('uiClick'); });
     });
 
-    this.refreshTree();
-
+    // *** FIX: register Back button BEFORE calling refreshTree().
+    // Previously refreshTree() ran first, so navElements was [tab1..tab6] only,
+    // and skill nodes were spliced at length-1 = 5 (before survival tab, not before back).
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 40, 280, 44, 0x1a2030, 0.95);
     bg.setStrokeStyle(1, 0x39d0d8, 0.6);
@@ -86,6 +88,12 @@ export class SkillTreeUI extends NavigableOverlay {
     }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
+
+    this.refreshTree();
+
+    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, texts, etc.)
+    // Container.setScrollFactor(0,0,true) only works if called AFTER all children added.
+    this.container.setScrollFactor(0, 0, true);
   }
 
   private refreshTree(): void {
@@ -96,9 +104,12 @@ export class SkillTreeUI extends NavigableOverlay {
     this.navElements = this.navElements.filter(el => !skillBgSet.has(el.bg as Phaser.GameObjects.Rectangle));
     removed.forEach(el => {
       if (el.bg && el.bg.active) el.bg.destroy();
-      if (el.text && el.text.active) el.text.destroy();
+      // Note: nameText (el.text) is destroyed via skillNodes.texts below
     });
-    // Clear skillNodes (objects already destroyed above)
+    // *** FIX: destroy ALL 4 texts per skill node (was only destroying nameText via el.text)
+    this.skillNodes.forEach(n => {
+      n.texts.forEach(t => { if (t && t.active) t.destroy(); });
+    });
     this.skillNodes = [];
 
     // Update stats text — use safe setColor
@@ -137,25 +148,35 @@ export class SkillTreeUI extends NavigableOverlay {
       bg.setStrokeStyle(1, strokeColor, node.unlocked ? 0.9 : node.canUnlock ? 0.7 : 0.4);
       this.container.add(bg);
 
+      // *** FIX: track ALL 4 texts so they can be destroyed on refresh
+      const texts: Phaser.GameObjects.Text[] = [];
       const nameText = this.scene.add.text(60, y - 30, node.name, {
         fontFamily: 'monospace', fontSize: '13px',
         color: node.unlocked ? '#40d070' : node.canUnlock ? '#cfd6e0' : '#4a5260',
       }).setOrigin(0, 0);
-      this.container.add(this.scene.add.text(w - 60, y - 30, `${node.skill.cost} SP`, {
+      texts.push(nameText);
+      this.container.add(nameText);
+      const costText = this.scene.add.text(w - 60, y - 30, `${node.skill.cost} SP`, {
         fontFamily: 'monospace', fontSize: '11px',
         color: node.unlocked ? '#40d070' : node.canUnlock ? '#ffe060' : '#3a4350',
-      }).setOrigin(1, 0));
-      this.container.add(this.scene.add.text(60, y - 8, node.description, {
+      }).setOrigin(1, 0);
+      texts.push(costText);
+      this.container.add(costText);
+      const descText = this.scene.add.text(60, y - 8, node.description, {
         fontFamily: 'monospace', fontSize: '10px',
         color: node.unlocked ? '#9be0b0' : node.canUnlock ? '#7a8090' : '#3a4350',
-      }).setOrigin(0, 0));
-      this.container.add(this.scene.add.text(w / 2, y + 30,
+      }).setOrigin(0, 0);
+      texts.push(descText);
+      this.container.add(descText);
+      const statusText = this.scene.add.text(w / 2, y + 30,
         node.unlocked ? '✓ UNLOCKED' : node.canUnlock ? 'PRESS A TO UNLOCK' : node.prereqMet ? 'NOT ENOUGH SP' : '🔒 REQUIRES PREREQUISITE',
         { fontFamily: 'monospace', fontSize: '9px',
           color: node.unlocked ? '#40d070' : node.canUnlock ? '#ffe060' : '#3a4350',
-        }).setOrigin(0.5, 1));
+        }).setOrigin(0.5, 1);
+      texts.push(statusText);
+      this.container.add(statusText);
 
-      this.skillNodes.push({ bg, text: nameText, node });
+      this.skillNodes.push({ bg, texts, node });
 
       // Register for nav (insert before back button)
       const unlockAction = () => {

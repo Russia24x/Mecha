@@ -51,22 +51,28 @@ export class SkillTreeSystem {
     const skill = getSkill(skillId);
     if (!skill) return false;
 
-    // Spend skill points
-    if (!ExperienceSystem.spendSkillPoint()) return false;
+    // *** FIX: spend the skill's actual cost, not just 1 SP.
+    // Previous code called spendSkillPoint() which only deducted 1 SP
+    // regardless of skill.cost — a 3-cost skill was free for 1 SP.
+    const sp = ExperienceSystem.getSkillPoints();
+    if (sp < skill.cost) return false;
+    for (let i = 0; i < skill.cost; i++) {
+      if (!ExperienceSystem.spendSkillPoint()) return false;
+    }
 
     // Unlock the skill
     SaveSystem.unlockSkill(skillId);
 
-    // If skill grants an ability, unlock it
+    // If skill grants an ability, unlock it (but NOT if it's a weapon ID —
+    // weapon unlocks go through unlockWeapon instead, fixing the duplicate emit)
     if (skill.effect.unlock) {
-      SaveSystem.unlockAbility(skill.effect.unlock);
-      EventBus.emit('ABILITY_UNLOCKED', { ability: skill.effect.unlock });
-    }
-
-    // If skill unlocks a weapon
-    if (skill.effect.unlock && this.isWeaponId(skill.effect.unlock)) {
-      SaveSystem.unlockWeapon(skill.effect.unlock);
-      EventBus.emit('WEAPON_UNLOCKED', { weaponId: skill.effect.unlock });
+      if (this.isWeaponId(skill.effect.unlock)) {
+        SaveSystem.unlockWeapon(skill.effect.unlock);
+        EventBus.emit('WEAPON_UNLOCKED', { weaponId: skill.effect.unlock });
+      } else {
+        SaveSystem.unlockAbility(skill.effect.unlock);
+        EventBus.emit('ABILITY_UNLOCKED', { ability: skill.effect.unlock });
+      }
     }
 
     AudioSystem.play('skillUnlock');

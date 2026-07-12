@@ -51,16 +51,19 @@ export class BossEntity {
     this.health = this.maxHealth;
     this.currentPhaseData = this.data.phases[0];
 
+    // *** FIX: use shape config so body matches visual size (was 4×4 from __white)
+    // Also fix B4: use this.id instead of hardcoded 'boss'
     this.sprite = scene.matter.add.image(x, y, '__white', undefined, {
-      label: 'boss', frictionAir: 0.05, density: 0.005,
-    });
+      shape: { type: 'rectangle', width: 120, height: 110 },
+      label: this.id, frictionAir: 0.05, density: 0.005,
+    } as unknown as Phaser.Types.Physics.Matter.MatterBodyConfig);
     this.sprite.setDisplaySize(120, 110);
     this.sprite.setAlpha(0);
     this.sprite.setFixedRotation();
     this.sprite.setIgnoreGravity(true);
     this.sprite.setData('entity', this);
     this.sprite.setData('entityType', 'boss');
-    this.sprite.setData('id', 'boss');
+    this.sprite.setData('id', this.id);  // *** FIX B4: was hardcoded 'boss'
     this.buildVisual();
     EventBus.emit('BOSS_PHASE', { phase: this.phase, healthPct: 1.0 });
   }

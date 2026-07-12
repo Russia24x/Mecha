@@ -14,6 +14,8 @@
 
 export type LoreCategory = 'boss' | 'weapon' | 'npc' | 'area' | 'item' | 'memory';
 
+import { SaveSystem } from './SaveSystem';
+
 export interface LoreEntry {
   id: string;
   category: LoreCategory;
@@ -68,11 +70,8 @@ export class LoreSystem {
 
   /** Initialize from save — load discovered lore IDs. */
   static init(): void {
-    // For now, lore discovery is derived from save state:
-    // - Boss lore → bossesKilled
-    // - Weapon lore → unlockedWeapons
-    // - Area lore → discoveredAreas
-    const save = require('../systems/SaveSystem').SaveSystem.get();
+    // *** FIX: use ESM import instead of require() (which crashes in ESM context)
+    const save = SaveSystem.get();
     for (const entry of LORE_ENTRIES) {
       if (this.checkCondition(entry.unlockCondition, save)) {
         this.discovered.add(entry.id);

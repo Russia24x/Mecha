@@ -72,7 +72,10 @@ export class RenderSystem {
 
   update(timeMs: number): void {
     const ambientFlicker = 0.92 + Math.sin(timeMs / 100) * 0.04 + Math.sin(timeMs / 33) * 0.04;
-    for (const l of this.lights) {
+    // *** FIX: iterate backward by index — removeLight() splices mid-iteration
+    // which causes for..of to skip the element after a removed one.
+    for (let i = this.lights.length - 1; i >= 0; i--) {
+      const l = this.lights[i];
       if (l.follow) {
         try {
           const p = l.follow();

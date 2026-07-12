@@ -25,9 +25,13 @@ export class PhysicsSystem {
   constructor(private scene: Phaser.Scene) {}
 
   addStaticRect(x: number, y: number, w: number, h: number, label = 'solid'): Phaser.Physics.Matter.Image {
+    // *** CRITICAL FIX: setDisplaySize does NOT resize the Matter body.
+    // __white texture is 4×4 — without setRectangle, body stays 4×4.
+    // Per Phaser 4 audit §1.2: setRectangle resets all props, so pass full config.
     const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
+      shape: { type: 'rectangle', width: w, height: h },
       label, isStatic: true,
-    } as BodyConfig);
+    } as BodyConfig & { shape: { type: string; width: number; height: number } });
     obj.setDisplaySize(w, h);
     obj.setVisible(false);
     return obj;
@@ -35,15 +39,19 @@ export class PhysicsSystem {
 
   addSensor(x: number, y: number, w: number, h: number, label: string): Phaser.Physics.Matter.Image {
     const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
+      shape: { type: 'rectangle', width: w, height: h },
       label, isStatic: true, isSensor: true,
-    } as BodyConfig);
+    } as BodyConfig & { shape: { type: string; width: number; height: number } });
     obj.setDisplaySize(w, h);
     obj.setVisible(false);
     return obj;
   }
 
   addDynamicBody(x: number, y: number, w: number, h: number, config: BodyConfig): Phaser.Physics.Matter.Image {
-    const obj = this.scene.matter.add.image(x, y, '__white', undefined, config);
+    const obj = this.scene.matter.add.image(x, y, '__white', undefined, {
+      shape: { type: 'rectangle', width: w, height: h },
+      ...config,
+    } as BodyConfig & { shape: { type: string; width: number; height: number } });
     obj.setDisplaySize(w, h);
     obj.setVisible(false);
     return obj;

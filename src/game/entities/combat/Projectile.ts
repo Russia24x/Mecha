@@ -55,11 +55,13 @@ export class Projectile {
     const category = opts.owner === 'player' ? 0x0010 : 0x0020;
     const mask = opts.owner === 'player' ? 0x0001 | 0x0004 | 0x0008 : 0x0001 | 0x0002;
 
+    // *** FIX: use shape config so sensor body matches visual size (was 4×4)
     this.sprite = scene.matter.add.image(pos.x, pos.y, '__white', undefined, {
+      shape: { type: 'rectangle', width: opts.size, height: opts.size },
       label: `proj-${opts.owner}`,
       isSensor: true, frictionAir: 0, density: 0.0001,
       collisionFilter: { category, mask, group: 0 },
-    });
+    } as unknown as Phaser.Types.Physics.Matter.MatterBodyConfig);
     this.sprite.setDisplaySize(opts.size, opts.size);
     this.sprite.setTint(opts.color);
     this.sprite.setVelocity(dir.x * opts.speed, dir.y * opts.speed);

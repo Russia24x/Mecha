@@ -68,8 +68,9 @@ export class InventoryUI extends NavigableOverlay {
       this.registerNav(bg, textEl, () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
     });
 
-    this.refresh();
-
+    // *** FIX: register Back button BEFORE calling refresh().
+    // Previously refresh() ran first, so "isBack" detection (idx === length-1)
+    // identified a TAB as back — item registered at last position was never cleaned.
     // Back button
     const bg = scene.add.rectangle(w / 2, h - 40, 280, 44, 0x1a2030, 0.95);
     bg.setStrokeStyle(1, 0x39d0d8, 0.6);
@@ -78,6 +79,11 @@ export class InventoryUI extends NavigableOverlay {
     }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });
+
+    this.refresh();
+
+    // *** FIX: propagate scrollFactor(0) to ALL children (overlay, title, etc.)
+    this.container.setScrollFactor(0, 0, true);
   }
 
   private refresh(): void {

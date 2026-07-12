@@ -70,8 +70,16 @@ export class DialogueUI {
     this.container.setVisible(true);
     this.renderLine();
 
-    // Keyboard advance
-    this.advanceHandler = () => this.advance();
+    // *** FIX: remove previous listener BEFORE adding new one (prevents leak).
+    // Also filter by key code so WASD/arrows don't advance the dialogue.
+    if (this.advanceHandler) {
+      window.removeEventListener('keydown', this.advanceHandler);
+    }
+    this.advanceHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ' || e.code === 'Space') {
+        this.advance();
+      }
+    };
     window.addEventListener('keydown', this.advanceHandler);
   }
 

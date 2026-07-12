@@ -92,6 +92,8 @@ export class InputSystem {
   private static listenersAttached = false;
   private static onKeyDown: ((e: KeyboardEvent) => void) | null = null;
   private static onKeyUp: ((e: KeyboardEvent) => void) | null = null;
+  private static onGamepadConnected: (() => void) | null = null;
+  private static onGamepadDisconnected: (() => void) | null = null;
   private static callbacks: InputCallbacks = {};
 
   // Keyboard edge buffer — set by onKeyDown, consumed by update()
@@ -215,8 +217,11 @@ export class InputSystem {
 
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
-    window.addEventListener('gamepadconnected', () => { this.state.gamepadConnected = true; });
-    window.addEventListener('gamepaddisconnected', () => { this.state.gamepadConnected = false; });
+    // *** FIX: store references so destroy() can remove them (was leaking anonymous arrows)
+    this.onGamepadConnected = () => { this.state.gamepadConnected = true; };
+    this.onGamepadDisconnected = () => { this.state.gamepadConnected = false; };
+    window.addEventListener('gamepadconnected', this.onGamepadConnected);
+    window.addEventListener('gamepaddisconnected', this.onGamepadDisconnected);
   }
 
   static setCallbacks(callbacks: InputCallbacks): void {
@@ -319,10 +324,15 @@ export class InputSystem {
     if (typeof window !== 'undefined') {
       if (this.onKeyDown) window.removeEventListener('keydown', this.onKeyDown);
       if (this.onKeyUp) window.removeEventListener('keyup', this.onKeyUp);
+      // *** FIX: remove gamepad listeners too (was leaking)
+      if (this.onGamepadConnected) window.removeEventListener('gamepadconnected', this.onGamepadConnected);
+      if (this.onGamepadDisconnected) window.removeEventListener('gamepaddisconnected', this.onGamepadDisconnected);
     }
     this.listenersAttached = false;
     this.onKeyDown = null;
     this.onKeyUp = null;
+    this.onGamepadConnected = null;
+    this.onGamepadDisconnected = null;
     this.callbacks = {};
     this.kbEdge = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false };
     this.kbHeld = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, left: false, right: false, up: false, down: false };

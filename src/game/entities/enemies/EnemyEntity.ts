@@ -53,9 +53,11 @@ export class EnemyEntity {
     this.projectiles = projectiles;
     this.hoverBase = y;
 
+    // *** FIX: use shape config so body matches visual size (was 4×4 from __white)
     this.sprite = scene.matter.add.image(x, y, '__white', undefined, {
+      shape: { type: 'rectangle', width: this.data.size.w, height: this.data.size.h },
       label: this.id, frictionAir: 0.04, density: 0.003,
-    });
+    } as unknown as Phaser.Types.Physics.Matter.MatterBodyConfig);
     this.sprite.setDisplaySize(this.data.size.w, this.data.size.h);
     this.sprite.setAlpha(0);
     this.sprite.setFixedRotation();

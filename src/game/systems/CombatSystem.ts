@@ -6,11 +6,8 @@
 import Phaser from 'phaser';
 import { AudioSystem } from './AudioSystem';
 
-// Matter.js is loaded globally by Phaser's physics plugin
-declare global {
-  // eslint-disable-next-line no-var
-  var Matter: { Body: { applyForce: (body: unknown, position: unknown, force: { x: number; y: number }) => void } };
-}
+// Matter.js is exposed via Phaser.Physics.Matter.Matter (not a global in Phaser 4.2.1)
+const MatterBody = Phaser.Physics.Matter.Matter.Body;
 
 export interface DamageEvent {
   amount: number;
@@ -46,7 +43,7 @@ export class CombatSystem {
     if (damaged) {
       if (event.point) this.spawnHitFx(event.point.x, event.point.y);
       if (event.knockback && !target.isStatic) {
-        Matter.Body.applyForce(target, target.position, {
+        MatterBody.applyForce(target, target.position, {
           x: event.knockback.x, y: event.knockback.y,
         });
       }
