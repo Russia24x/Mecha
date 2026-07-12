@@ -1,22 +1,24 @@
 /**
- * MECHA: LAST PROTOCOL — Inventory UI v3.2
- * Tabbed view: Weapons, Materials, Consumables, Key Items.
- * Full gamepad navigation: up/down items, left/right tabs, A to use/upgrade.
+ * MECHA: LAST PROTOCOL — Inventory UI v4.0
+ *
+ * REDESIGNED: "DATA VAULT" — Mecha's storage manifest.
+ * Inspired by Armored Core 6 (assembly/loadout UI) + Blasphemous (dark panels).
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
-import { t } from '../../systems/LocalizationSystem';
+import { t, getLocale } from '../../systems/LocalizationSystem';
 import { InventorySystem, type InventorySlot } from '../../systems/InventorySystem';
 import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { getWeapon } from '../../data/weapons/weapons';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
+import { THEME, addCornerBrackets, addScanlines } from '../Theme';
 import type { ItemType, WeaponId } from '../../data/types';
 
 type TabId = 'weapon' | 'material' | 'consumable' | 'key_item';
 
-/** Safely call setColor on a Text object (see SkillTreeUI for details). */
+/** Safely call setColor on a Text object. */
 function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string): void {
   if (!text || !text.active) return;
   const t = text as unknown as { canvas?: HTMLCanvasElement | null };
@@ -24,11 +26,11 @@ function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string):
   try { text.setColor(color); } catch { /* canvas not ready */ }
 }
 
-const TAB_LABELS: Record<TabId, string> = {
-  weapon: '⚔ Weapons',
-  material: '🔩 Materials',
-  consumable: '💊 Consumables',
-  key_item: '🔑 Key Items',
+const TAB_LABELS: Record<TabId, { en: string; fa: string; icon: string }> = {
+  weapon: { en: 'ARSENAL', fa: 'تسلیحات', icon: '🔫' },
+  material: { en: 'COMPONENTS', fa: 'قطعات', icon: '🔩' },
+  consumable: { en: 'CONSUMABLES', fa: 'مصرفی', icon: '💊' },
+  key_item: { en: 'KEY DATA', fa: 'داده کلیدی', icon: '🔑' },
 };
 
 export class InventoryUI extends NavigableOverlay {
@@ -43,12 +45,20 @@ export class InventoryUI extends NavigableOverlay {
   constructor(scene: Phaser.Scene, onBack: () => void) {
     super(scene);
     const w = GAME.WIDTH, h = GAME.HEIGHT;
+    const isFa = getLocale() === 'fa';
 
-    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9);
+    // Background
+    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, THEME.BG_VOID, 0.95);
     this.container.add(overlay);
+    this.container.add(addScanlines(scene, w, h, 0.02));
 
-    this.container.add(scene.add.text(w / 2, 40, 'INVENTORY', {
-      fontFamily: 'monospace', fontSize: '28px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
+    // Title with corner brackets
+    const titleBg = scene.add.rectangle(w / 2, 45, 400, 44, THEME.BG_PANEL, 0.9);
+    titleBg.setStrokeStyle(1, THEME.AMBER, 0.5);
+    this.container.add(titleBg);
+    this.container.add(addCornerBrackets(scene, w / 2, 45, 400, 44, THEME.AMBER, 8, 0.6));
+    this.container.add(scene.add.text(w / 2, 45, isFa ? '▮ مخزن داده ▮' : '▮ DATA VAULT ▮', {
+      fontFamily: 'monospace', fontSize: '20px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
     }).setOrigin(0.5));
 
     // Tabs
@@ -56,26 +66,24 @@ export class InventoryUI extends NavigableOverlay {
     const startX = (w - this.tabs.length * tabW - (this.tabs.length - 1) * tabGap) / 2;
     this.tabs.forEach((tab, i) => {
       const x = startX + i * (tabW + tabGap) + tabW / 2;
-      const bg = scene.add.rectangle(x, 100, tabW, 36, 0x1a2030, 0.95);
-      bg.setStrokeStyle(1, 0x3a4350);
-      const textEl = scene.add.text(x, 100, TAB_LABELS[tab], {
-        fontFamily: 'monospace', fontSize: '11px', color: '#cfd6e0',
+      const bg = scene.add.rectangle(x, 105, tabW, 38, THEME.BG_PANEL, 0.92);
+      bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+      const lbl = TAB_LABELS[tab];
+      const textEl = scene.add.text(x, 105, `${lbl.icon} ${isFa ? lbl.fa : lbl.en}`, {
+        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, letterSpacing: 1,
       }).setOrigin(0.5);
       this.container.add([bg, textEl]);
       this.tabBgs.push(bg);
       this.tabTexts.push(textEl);
-      // Register tab for nav (but tab switching is handled by onNavLeft/onNavRight)
       this.registerNav(bg, textEl, () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
     });
 
-    // *** FIX: register Back button BEFORE calling refresh().
-    // Previously refresh() ran first, so "isBack" detection (idx === length-1)
-    // identified a TAB as back — item registered at last position was never cleaned.
     // Back button
-    const bg = scene.add.rectangle(w / 2, h - 40, 280, 44, 0x1a2030, 0.95);
-    bg.setStrokeStyle(1, 0x39d0d8, 0.6);
-    const textEl = scene.add.text(w / 2, h - 40, t('menu.back'), {
-      fontFamily: 'monospace', fontSize: '16px', color: '#cfd6e0',
+    const bg = scene.add.rectangle(w / 2, h - 30, 220, 40, THEME.BG_PANEL, 0.95);
+    bg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    this.container.add(addCornerBrackets(scene, w / 2, h - 30, 220, 40, THEME.CYAN, 6, 0.5));
+    const textEl = scene.add.text(w / 2, h - 30, isFa ? '▲ خروج' : '▲ DISENGAGE', {
+      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     }).setOrigin(0.5);
     this.container.add([bg, textEl]);
     this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); onBack(); });

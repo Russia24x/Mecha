@@ -1,20 +1,15 @@
 /**
- * MECHA: LAST PROTOCOL — Pause Menu UI v3.4
+ * MECHA: LAST PROTOCOL — Pause Menu UI v4.0
  *
- * ROOT FIX for mouse not working in pause menu:
- * Phaser Container.setScrollFactor(0,0,true) is SUPPOSED to update children,
- * but it doesn't work reliably in Phaser 4.2.1 during constructor.
- * Instead, each child explicitly calls setScrollFactor(0) on creation.
- *
- * Without this, children have scrollFactor=1, so when the camera scrolls
- * (following the player), the hit-test coordinates are offset and clicks
- * never land on buttons.
+ * REDESIGNED: Neural Cortex aesthetic. "SYSTEM SUSPEND" instead of "PAUSED".
+ * Grid layout with circuit-style buttons, corner accents.
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t, getLocale } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { InputSystem } from '../../systems/InputSystem';
+import { THEME, addCornerBrackets, addScanlines } from '../Theme';
 
 export interface PauseMenuCallbacks {
   onResume: () => void;
@@ -31,78 +26,111 @@ export interface PauseMenuCallbacks {
 export class PauseMenuUI {
   private container: Phaser.GameObjects.Container;
   private scene: Phaser.Scene;
-  private buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; onClick: () => void }[] = [];
+  private buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; icon: Phaser.GameObjects.Text; onClick: () => void }[] = [];
   private focusIdx = 0;
   private navCooldown = 0;
 
   constructor(scene: Phaser.Scene, callbacks: PauseMenuCallbacks) {
     this.scene = scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
+    const isFa = getLocale() === 'fa';
     this.container = scene.add.container(0, 0).setDepth(300).setVisible(false);
     this.container.scrollFactorX = 0;
     this.container.scrollFactorY = 0;
 
-    // Overlay — visual only, NOT interactive (doesn't block button clicks)
-    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.75).setScrollFactor(0);
+    // Overlay
+    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.85);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => { /* swallow */ });
     this.container.add(overlay);
 
-    // Title
-    const titleText = scene.add.text(w / 2, 50, t('pause.title'), {
-      fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5,
-    }).setOrigin(0.5).setScrollFactor(0);
-    this.container.add(titleText);
+    // Scanlines
+    this.container.add(addScanlines(scene, w, h, 0.02));
 
-    const isFa = getLocale() === 'fa';
+    // Title bar with corner brackets
+    const titleBg = scene.add.rectangle(w / 2, 60, 500, 50, THEME.BG_PANEL, 0.9);
+    titleBg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    this.container.add(titleBg);
+    this.container.add(addCornerBrackets(scene, w / 2, 60, 500, 50, THEME.CYAN, 8, 0.6));
+    this.container.add(scene.add.text(w / 2, 60, isFa ? '▮ سیستم متوقف ▮' : '▮ SYSTEM SUSPEND ▮', {
+      fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
+    }).setOrigin(0.5));
+
+    // Subtitle
+    this.container.add(scene.add.text(w / 2, 95, isFa ? 'پروتکل‌ها متوقف شدند' : 'PROTOCOLS SUSPENDED', {
+      fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 4,
+    }).setOrigin(0.5));
+
+    // Localization
     const L = (en: string, fa: string) => isFa ? fa : en;
 
-    const colW = 210, rowH = 44, gap = 8;
+    // Grid layout
+    const colW = 220;
+    const rowH = 46;
+    const gap = 8;
     const startX = w / 2 - colW - gap / 2;
-    const startY = 110;
+    const startY = 130;
 
-    this.makeBtn(w / 2, startY, '▶  ' + t('pause.resume'), callbacks.onResume, colW * 2 + gap);
-    this.makeBtn(startX + colW / 2, startY + rowH + gap, '⚔  ' + L('SKILLS', 'مهارت‌ها'), callbacks.onSkills, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '🎒  ' + L('INVENTORY', 'کیف'), callbacks.onInventory, colW);
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '📜  ' + L('QUESTS', 'ماموریت‌ها'), callbacks.onQuests, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '🗺  ' + L('MAP', 'نقشه'), callbacks.onMap, colW);
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙  ' + t('menu.settings'), callbacks.onSettings, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻  ' + t('pause.restart'), callbacks.onRestart, colW);
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⌂  ' + t('pause.quit_hub'), callbacks.onReturnToHub, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 4, '✕  ' + t('pause.quit_menu'), callbacks.onQuit, colW);
+    // Row 0: RESUME (full width)
+    this.makeBtn(w / 2, startY, '▶', isFa ? 'ادامه' : 'RESUME', callbacks.onResume, colW * 2 + gap);
+    // Row 1
+    this.makeBtn(startX + colW / 2, startY + rowH + gap, '⚔', L('NEURAL CORTEX', 'قشر عصبی'), callbacks.onSkills, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '🎒', L('DATA VAULT', 'مخزن داده'), callbacks.onInventory, colW);
+    // Row 2
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '📜', L('MISSION LOG', 'گزارش ماموریت'), callbacks.onQuests, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '🗺', L('TACTICAL MAP', 'نقشه تاکتیکی'), callbacks.onMap, colW);
+    // Row 3
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙', t('menu.settings'), callbacks.onSettings, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻', isFa ? 'راه‌اندازی مجدد' : 'RESTART', callbacks.onRestart, colW);
+    // Row 4
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⌂', isFa ? 'بازگشت به هاب' : 'RETURN TO HUB', callbacks.onReturnToHub, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 4, '✕', isFa ? 'خروج به منو' : 'QUIT TO MENU', callbacks.onQuit, colW);
+
+    // Set interactive on all buttons
+    this.buttons.forEach(b => {
+      b.bg.setInteractive({ useHandCursor: true });
+      b.bg.on('pointerover', () => {
+        this.focusIdx = this.buttons.indexOf(b);
+        this.updateFocus();
+        AudioSystem.play('uiHover');
+      });
+      b.bg.on('pointerout', () => this.updateFocus());
+      b.bg.on('pointerdown', () => {
+        AudioSystem.play('uiClick');
+        b.onClick();
+      });
+    });
   }
 
-  private makeBtn(x: number, y: number, label: string, onClick: () => void, width: number = 320): void {
-    const bg = this.scene.add.rectangle(x, y, width, 40, 0x0a1018, 0.9).setScrollFactor(0);
-    bg.setStrokeStyle(1, 0x1a3040, 0.8);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => {
-      this.focusIdx = this.buttons.findIndex(b => b.bg === bg);
-      this.updateFocus();
-      AudioSystem.play('uiHover');
-    });
-    bg.on('pointerout', () => this.updateFocus());
-    bg.on('pointerdown', () => {
-      AudioSystem.play('uiClick');
-      onClick();
-    });
-    const textEl = this.scene.add.text(x, y, label, {
-      fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
+  private makeBtn(x: number, y: number, icon: string, label: string, onClick: () => void, width: number = 320): void {
+    const bg = this.scene.add.rectangle(x, y, width, 42, THEME.BG_PANEL, 0.92).setScrollFactor(0);
+    bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.7);
+    // Icon (circuit node style)
+    const iconEl = this.scene.add.text(x - width / 2 + 20, y, icon, {
+      fontFamily: 'monospace', fontSize: '16px', color: THEME.TEXT_MED,
     }).setOrigin(0.5).setScrollFactor(0);
-    this.container.add([bg, textEl]);
-    this.buttons.push({ bg, text: textEl, onClick });
+    // Label
+    const textEl = this.scene.add.text(x + 15, y, label, {
+      fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_MED, letterSpacing: 1,
+    }).setOrigin(0.5).setScrollFactor(0);
+    this.container.add([bg, iconEl, textEl]);
+    this.buttons.push({ bg, text: textEl, icon: iconEl, onClick });
   }
 
   private updateFocus(): void {
     this.buttons.forEach((b, i) => {
       if (i === this.focusIdx) {
-        b.bg.setFillStyle(0x0d1820, 1);
-        b.bg.setStrokeStyle(2, 0x39d0d8, 0.9);
-        b.bg.setScale(1.03);
-        b.text.setColor('#66f0ff');
+        b.bg.setFillStyle(THEME.BG_PANEL_HI, 1);
+        b.bg.setStrokeStyle(2, THEME.CYAN, 0.9);
+        b.bg.setScale(1.02);
+        b.text.setColor(THEME.TEXT_ACCENT);
+        b.icon.setColor(THEME.TEXT_ACCENT);
       } else {
-        b.bg.setFillStyle(0x0a1018, 0.9);
-        b.bg.setStrokeStyle(1, 0x1a3040, 0.8);
+        b.bg.setFillStyle(THEME.BG_PANEL, 0.92);
+        b.bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.7);
         b.bg.setScale(1);
-        b.text.setColor('#5a6470');
+        b.text.setColor(THEME.TEXT_MED);
+        b.icon.setColor(THEME.TEXT_MED);
       }
     });
   }
@@ -111,6 +139,7 @@ export class PauseMenuUI {
     this.container.setVisible(true);
     this.focusIdx = 0;
     this.updateFocus();
+    if (!this.scene.input.enabled) this.scene.input.enabled = true;
   }
 
   hide(): void {
