@@ -148,6 +148,36 @@ export class SettingsUI extends NavigableOverlay {
     } else if (this.selectedCategory === 'display') {
       this.makeSlider(rightX, optStartY, t('settings.brightness'), RenderSystem.getBrightness(),
         (v) => { RenderSystem.setBrightness(v); SaveSystem.saveSettings({ brightness: v }); });
+      // ── Fullscreen toggle ──
+      this.makeToggle(rightX, optStartY + 50, isFa ? 'تمام صفحه' : 'FULLSCREEN',
+        this.scene.scale.isFullscreen,
+        (on) => {
+          if (on) {
+            this.scene.scale.startFullscreen();
+          } else {
+            this.scene.scale.stopFullscreen();
+          }
+        });
+      // ── Resolution selector (data-driven, not hardcoded) ──
+      const resolutions = this.getAvailableResolutions();
+      const currentRes = `${this.scene.scale.width}x${this.scene.scale.height}`;
+      this.makeSelector(rightX, optStartY + 100, isFa ? 'رزولوشن' : 'RESOLUTION',
+        resolutions.map(r => r.label),
+        resolutions.findIndex(r => r.label === currentRes) >= 0 ? resolutions.findIndex(r => r.label === currentRes) : 0,
+        (idx) => {
+          const res = resolutions[idx];
+          if (res) {
+            this.scene.scale.resize(res.w, res.h);
+          }
+        });
+      // ── Render quality (data-driven) ──
+      const qualityOptions = [isFa ? 'کم' : 'LOW', isFa ? 'متوسط' : 'MEDIUM', isFa ? 'بالا' : 'HIGH'];
+      this.makeSelector(rightX, optStartY + 150, isFa ? 'کیفیت' : 'QUALITY',
+        qualityOptions, 1, (idx) => {
+          // Adjust darkness based on quality
+          const brightnessLevels = [0.6, 0.75, 0.9];
+          RenderSystem.setBrightness(brightnessLevels[idx] ?? 0.75);
+        });
     } else if (this.selectedCategory === 'language') {
       this.makeLanguageToggle(rightX, optStartY);
     }
@@ -204,6 +234,94 @@ export class SettingsUI extends NavigableOverlay {
       onSelect: () => { /* use L/R */ },
     });
     this.optionElements.push({ objects, bg: sliderBg, text: labelEl, onSelect: () => {} });
+  }
+
+  /** Get available resolutions dynamically from the screen. */
+  private getAvailableResolutions(): { w: number; h: number; label: string }[] {
+    const screenW = window.screen?.width ?? 1920;
+    const screenH = window.screen?.height ?? 1080;
+    const res: { w: number; h: number; label: string }[] = [];
+    // Common resolutions up to screen size
+    const common = [
+      { w: 1280, h: 720, label: '1280x720' },
+      { w: 1366, h: 768, label: '1366x768' },
+      { w: 1600, h: 900, label: '1600x900' },
+      { w: 1920, h: 1080, label: '1920x1080' },
+      { w: 2560, h: 1440, label: '2560x1440' },
+    ];
+    for (const r of common) {
+      if (r.w <= screenW && r.h <= screenH) {
+        res.push(r);
+      }
+    }
+    // Always include current
+    const cur = `${this.scene.scale.width}x${this.scene.scale.height}`;
+    if (!res.find(r => r.label === cur)) {
+      res.unshift({ w: this.scene.scale.width, h: this.scene.scale.height, label: cur });
+    }
+    return res;
+  }
+
+  /** Toggle switch (on/off). */
+  private makeToggle(x: number, y: number, label: string, isOn: boolean, onToggle: (on: boolean) => void): void {
+    const objects: Phaser.GameObjects.GameObject[] = [];
+    const labelEl = this.scene.add.text(x - 240, y, label, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT,
+    })).setOrigin(0, 0.5);
+    objects.push(labelEl);
+    let state = isOn;
+    const bg = this.scene.add.rectangle(x + 100, y, 60, 24, state ? 0x0d2818 : 0x280d0d, 0.95);
+    bg.setStrokeStyle(1, state ? 0x40d070 : 0xff4040, 0.8);
+    bg.setInteractive({ useHandCursor: true });
+    objects.push(bg);
+    const knob = this.scene.add.circle(x + 100 + (state ? 18 : -18), y, 8, state ? 0x40d070 : 0xff4040);
+    objects.push(knob);
+    const stateText = this.scene.add.text(x + 170, y, state ? 'ON' : 'OFF', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '11px', color: state ? '#40d070' : '#ff4040',
+    })).setOrigin(0, 0.5);
+    objects.push(stateText);
+    bg.on('pointerdown', () => {
+      state = !state;
+      bg.setFillStyle(state ? 0x0d2818 : 0x280d0d, 0.95);
+      bg.setStrokeStyle(1, state ? 0x40d070 : 0xff4040, 0.8);
+      knob.setPosition(x + 100 + (state ? 18 : -18), y);
+      knob.setFillStyle(state ? 0x40d070 : 0xff4040);
+      stateText.setText(state ? 'ON' : 'OFF');
+      stateText.setColor(state ? '#40d070' : '#ff4040');
+      onToggle(state);
+    });
+    this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
+  }
+
+  /** Selector (dropdown-like, cycles through options on click). */
+  private makeSelector(x: number, y: number, label: string, options: string[], currentIdx: number, onSelect: (idx: number) => void): void {
+    const objects: Phaser.GameObjects.GameObject[] = [];
+    const labelEl = this.scene.add.text(x - 240, y, label, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT,
+    })).setOrigin(0, 0.5);
+    objects.push(labelEl);
+    let idx = currentIdx;
+    const bg = this.scene.add.rectangle(x + 100, y, 120, 24, 0x0a1018, 0.95);
+    bg.setStrokeStyle(1, 0x1a3040, 0.7);
+    bg.setInteractive({ useHandCursor: true });
+    objects.push(bg);
+    const valueText = this.scene.add.text(x + 100, y, options[idx] || '--', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER,
+    })).setOrigin(0.5);
+    objects.push(valueText);
+    const arrowL = this.scene.add.text(x + 50, y, '◀', {
+      fontFamily: 'monospace', fontSize: '8px', color: '#3a4350',
+    }).setOrigin(0.5);
+    const arrowR = this.scene.add.text(x + 150, y, '▶', {
+      fontFamily: 'monospace', fontSize: '8px', color: '#3a4350',
+    }).setOrigin(0.5);
+    objects.push(arrowL, arrowR);
+    bg.on('pointerdown', () => {
+      idx = (idx + 1) % options.length;
+      valueText.setText(options[idx]);
+      onSelect(idx);
+    });
+    this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
   }
 
   private makeLanguageToggle(x: number, y: number): void {

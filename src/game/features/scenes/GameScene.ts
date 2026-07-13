@@ -52,6 +52,7 @@ import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
+import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
 import { ForestEnvironmentSystem } from '../../world/atmosphere/ForestEnvironmentSystem';
@@ -123,6 +124,8 @@ export class GameScene extends Phaser.Scene {
   private companion: CompanionEntity | null = null;
   // Forest environment (grass/trees/vines/water/rain — forest region only)
   private forestEnv: ForestEnvironmentSystem | null = null;
+  // Performance overlay (toggle with F3)
+  private perfOverlay: PerformanceOverlay | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -194,6 +197,16 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('EMP_PULSE', this.onEmpPulse, this);
     EventBus.on('EMP_HIT', this.onEmpHit, this);
     EventBus.on('HACK_COMPLETE', this.onHackComplete, this);
+
+    // Performance overlay (F3 toggle)
+    this.perfOverlay = new PerformanceOverlay(this);
+    // F3 key listener for toggle
+    window.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.code === 'F3') {
+        e.preventDefault();
+        this.perfOverlay?.toggle();
+      }
+    });
 
     this.setState('menu');
   }
@@ -299,6 +312,12 @@ export class GameScene extends Phaser.Scene {
     InputSystem.update();
     InputSchemeManager.update();  // dynamic scheme detection (KB / Xbox / PS)
     const input = InputSystem.getState();
+
+    // ── Performance overlay toggle (F3) + update ──
+    if (this.perfOverlay) {
+      this.perfOverlay.update(deltaMs);
+    }
+    // F3 key handled via window listener (set up in create)
 
     // *** Overlay input has highest priority — B/ESC closes, gamepad navigates ***
     if (OverlayManager.hasOpen) {
@@ -691,22 +710,15 @@ export class GameScene extends Phaser.Scene {
 
         // Enter / locked
         if (area.unlocked) {
-          const btnBg = this.add.rectangle(actX, nameY + 38, 90, 22, 0x0a1018, 0.9);
-          btnBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : 0x1a3040, 0.7);
-          const btnText = this.add.text(actX, nameY + 38, '▶ ' + L('ENTER', 'ورود'), fixTextStyle({
-            fontFamily: 'monospace', fontSize: '9px', color: '#cfd6e0', letterSpacing: 1,
-          })).setOrigin(0.5);
-          c.add([btnBg, btnText]);
-          btnBg.setInteractive({ useHandCursor: true });
-          btnBg.on('pointerover', () => { btnBg.setFillStyle(0x0d1820, 1); AudioSystem.play('uiHover'); });
-          btnBg.on('pointerout', () => { btnBg.setFillStyle(0x0a1018, 0.9); });
-          btnBg.on('pointerdown', () => {
+          const enterAction = () => {
             AudioSystem.play('uiClick');
             if (area.areaId !== WorldSystem.getCurrent().areaId) {
               WorldSystem.travelTo(area.areaId, 1);
             }
             this.setState('play');
-          });
+          };
+          // ── FIX: Register as focusable button for keyboard/gamepad nav ──
+          this.makeHubCardBtn(actX, nameY + 38, '▶ ' + L('ENTER', 'ورود'), enterAction);
         } else {
           c.add(this.add.text(actX, nameY + 38, L('LOCKED', 'قفل'), fixTextStyle({
             fontFamily: 'monospace', fontSize: '9px', color: '#2a3040',
