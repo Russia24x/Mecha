@@ -926,28 +926,30 @@ export class GameScene extends Phaser.Scene {
     if (!area) return;
     const section = area.sections.find(s => s.id === sectionId);
     if (!section) return;
-    for (const type of section.enemies) {
+    const enemyCount = section.enemies.length;
+    for (let i = 0; i < enemyCount; i++) {
+      const type = section.enemies[i];
       if (type === 'boss' || type.startsWith('boss')) continue;
-      const x = section.x + 400 + Math.random() * 400;
       const et = type as EnemyTypeId;
       const y = et === 'drone' || et === 'flying_ai' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
+      // Distribute enemies across the section width with spacing
+      const sectionWidth = area.sectionWidth;
+      const startX = section.x + 300;
+      const spacing = (sectionWidth - 600) / Math.max(enemyCount, 1);
+      const x = startX + i * spacing + (Math.random() - 0.5) * 80;
       const e = new EnemyEntity(this, this.physicsSys, this.particles, x, y, et, this.projectiles);
       this.enemies.push(e);
       this.targetRegistry.registerEnemy(e);
-      // Mini Boss: spawn an elite in Section 4 as a tougher challenge
-      if (sectionId === 4 && !this.miniBossSpawned) {
-        this.miniBossSpawned = true;
-        const mbX = section.x + 600;
-        const mbY = GAME.HEIGHT - 200;
-        const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
-        this.enemies.push(miniBoss);
-        this.targetRegistry.registerEnemy(miniBoss);
-        // Note: circle light around elite removed per user feedback.
-        this.hud?.toast('⚠ ELITE DETECTED');
-      }
-      // Note: circle light around enemies removed per user feedback — was making
-      // every enemy look like a glowing orb. Enemies are visible via their own
-      // visor/eye glow from MechaSpriteFactory.
+    }
+    // Mini Boss: spawn an elite in Section 4 as a tougher challenge
+    if (sectionId === 4 && !this.miniBossSpawned) {
+      this.miniBossSpawned = true;
+      const mbX = section.x + area.sectionWidth - 300;
+      const mbY = GAME.HEIGHT - 200;
+      const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
+      this.enemies.push(miniBoss);
+      this.targetRegistry.registerEnemy(miniBoss);
+      this.hud?.toast('⚠ ELITE DETECTED');
     }
   }
 

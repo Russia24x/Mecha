@@ -53,8 +53,8 @@ export const ACTS: ActData[] = [
             id: 'abandoned_factory',
             nameKey: 'area.abandoned_factory.name',
             regionId: 'factory',
-            totalWidth: 7680,
-            sectionWidth: 1280,
+            totalWidth: 9216,   // 20% larger: 7680 → 9216
+            sectionWidth: 1536, // 20% larger: 1280 → 1536
             bgColor: 0x05070d,
             checkpointSections: [2, 5],
             unlockedByDefault: true,
@@ -67,114 +67,103 @@ export const ACTS: ActData[] = [
               // ═══════════════════════════════════════════════════════════════
               { id: 1, nameKey: 'section.1.name', x: 0, enemies: [], platforms: [
                 // Entry — flat ground, simple stepping stones
-                { x: 400, y: 560, w: 200, h: 20 },
-                { x: 700, y: 460, w: 160, h: 20 },
-                { x: 980, y: 540, w: 140, h: 20 },
+                { x: 480, y: 560, w: 200, h: 20 },
+                { x: 840, y: 460, w: 160, h: 20 },
+                { x: 1180, y: 540, w: 140, h: 20 },
                 // Upper ledge (double jump reachable — secret area)
-                { x: 550, y: 280, w: 120, h: 20 },
-                { x: 780, y: 180, w: 80, h: 20 },
-                // ── FIX: Far wall blocks S1→S2. Shortcut at GROUND LEVEL so
-                // player can trigger it (player center y≈657, trigger radius 60px).
+                { x: 660, y: 280, w: 120, h: 20 },
+                { x: 940, y: 180, w: 80, h: 20 },
+                // Far wall blocks S1→S2. Shortcut at GROUND LEVEL.
                 // Wall TOP (blocks upper air route)
-                { x: 1200, y: 360, w: 40, h: 200 },   // y=260 to y=460
+                { x: 1440, y: 360, w: 40, h: 200 },   // y=260 to y=460
                 // Wall MIDDLE (fills old gap, extends down to ground-level gap)
-                { x: 1200, y: 540, w: 40, h: 160 },   // y=460 to y=620
+                { x: 1440, y: 540, w: 40, h: 160 },   // y=460 to y=620
                 // GAP at y=620 to y=680 (60px tall, ground level) — shortcut fills this
-                // Player body is ~47px tall, fits through 60px gap comfortably
               ], loreObjects: [
-                { id: 'lore_s1_corpse', type: 'corpse', x: 300, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
+                { id: 'lore_s1_corpse', type: 'corpse', x: 360, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
                 // Secret lore on upper ledge (requires double jump)
-                { id: 'lore_s1_secret', type: 'terminal', x: 580, y: 260, titleKey: 'lore.s1.secret.title', textKey: 'lore.s1.secret.text' },
+                { id: 'lore_s1_secret', type: 'terminal', x: 700, y: 260, titleKey: 'lore.s1.secret.title', textKey: 'lore.s1.secret.text' },
               ], landmarks: [
-                { id: 'lm_s1_mech', type: 'crashed_mech', x: 150, y: 580, w: 140, h: 110, color: 0x2a3040 },
+                { id: 'lm_s1_mech', type: 'crashed_mech', x: 180, y: 580, w: 140, h: 110, color: 0x2a3040 },
               ], collectibles: [
                 // Health fragment on upper secret ledge (requires double jump)
-                { id: 'col_s1_health', type: 'health_fragment', x: 780, y: 150, requiredAbility: 'doubleJump' },
+                { id: 'col_s1_health', type: 'health_fragment', x: 940, y: 150, requiredAbility: 'doubleJump' },
               ], shortcuts: [
-                // ── FIX: Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680) ──
-                // Player on ground (y≈657) is within 60px trigger radius.
-                // opensFrom 'left' = player approaches from S1 side (left) to open.
-                // Once opened, persists for backtracking from S2 side too.
-                { id: 'sc_s1_to_s2', x: 1200, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
+                // Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680)
+                { id: 'sc_s1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
               // Section 2: FIRST COMBAT (0:05-0:12)
               // Moment 4: First drone. Moment 5: Kara's terminal.
               // Design: Cover platforms, vertical combat space.
-              // Visual: Flickering overhead lights, oil stains.
+              // 4x enemies: 1 → 4 drones
               // ═══════════════════════════════════════════════════════════════
-              { id: 2, nameKey: 'section.2.name', x: 1280, enemies: ['drone'], platforms: [
+              { id: 2, nameKey: 'section.2.name', x: 1536, enemies: ['drone', 'drone', 'drone', 'drone'], platforms: [
                 // Ground level cover
-                { x: 1480, y: 520, w: 100, h: 20 },
-                { x: 1700, y: 420, w: 140, h: 20 },
-                { x: 2000, y: 520, w: 100, h: 20 },
-                { x: 2300, y: 460, w: 120, h: 20 },
+                { x: 1780, y: 520, w: 100, h: 20 },
+                { x: 2040, y: 420, w: 140, h: 20 },
+                { x: 2400, y: 520, w: 100, h: 20 },
+                { x: 2760, y: 460, w: 120, h: 20 },
                 // Upper catwalk (alternate route)
-                { x: 1500, y: 260, w: 300, h: 16 },
-                { x: 2100, y: 260, w: 200, h: 16 },
+                { x: 1800, y: 260, w: 360, h: 16 },
+                { x: 2520, y: 260, w: 240, h: 16 },
                 // Connecting wall (wall jump surface)
-                { x: 1820, y: 340, w: 40, h: 200 },
-                // ── FIX: Right boundary wall with GROUND-LEVEL GAP for shortcut ──
-                // Wall TOP (blocks upper air route)
-                { x: 2540, y: 360, w: 40, h: 200 },   // y=260 to y=460
-                // Wall MIDDLE (fills old gap, extends down to ground-level gap)
-                { x: 2540, y: 540, w: 40, h: 160 },   // y=460 to y=620
-                // GAP at y=620 to y=680 (60px, ground level) — shortcut fills this
+                { x: 2180, y: 340, w: 40, h: 200 },
+                // Right boundary wall with GROUND-LEVEL GAP for shortcut
+                { x: 3048, y: 360, w: 40, h: 200 },   // y=260 to y=460
+                { x: 3048, y: 540, w: 40, h: 160 },   // y=460 to y=620
               ], loreObjects: [
-                { id: 'lore_s2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
+                { id: 'lore_s2_terminal', type: 'terminal', x: 2880, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
               ], hazards: [
                 // Small spike pit — teaches hazard awareness
-                { type: 'spike', x: 1920, y: 690, w: 80, h: 20, damage: 20 },
+                { type: 'spike', x: 2300, y: 690, w: 96, h: 20, damage: 20 },
                 // Molten metal pit (graphical lava hazard)
-                { type: 'lava', x: 2200, y: 690, w: 80, h: 20, damage: 35 },
+                { type: 'lava', x: 2640, y: 690, w: 96, h: 20, damage: 35 },
               ], collectibles: [
                 // Energy fragment on upper catwalk (alternate route reward)
-                { id: 'col_s2_energy', type: 'energy_fragment', x: 1600, y: 230 },
+                { id: 'col_s2_energy', type: 'energy_fragment', x: 1920, y: 230 },
               ], shortcuts: [
-                // ── FIX: Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680) ──
-                // Player on ground (y≈657) is within 60px trigger radius.
-                // opensFrom 'left' = player approaches from S2 side (left) to open.
-                { id: 'sc_s2_to_s3', x: 2540, y: 650, w: 40, h: 60, toSection: 3, opensFrom: 'left' },
+                // Shortcut at GROUND LEVEL
+                { id: 'sc_s2_to_s3', x: 3048, y: 650, w: 40, h: 60, toSection: 3, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
               // Section 3: VERTICAL SHAFT — OPTIONAL SECRET (0:12-0:22)
-              // ── FIX Bug 6: wallJump is NOT required for main progress ──
               // Main route: walk along the lower floor past the shaft to the right exit.
               // Optional secret: wall jump (or grapple) up the shaft for a skill point + lore.
-              // The shaft is a reward for skilled players, not a gate.
+              // 4x enemies: 1 → 4 (2 drones + 1 spider + 1 sniper for variety)
               // ═══════════════════════════════════════════════════════════════
-              { id: 3, nameKey: 'section.3.name', x: 2560, enemies: ['drone'], platforms: [
+              { id: 3, nameKey: 'section.3.name', x: 3072, enemies: ['drone', 'drone', 'spider', 'sniper'], platforms: [
                 // Entry platform (main route — walk along the floor)
-                { x: 2660, y: 580, w: 200, h: 20 },
+                { x: 3200, y: 580, w: 240, h: 20 },
                 // Shaft — two facing walls (wall jumpable, but OPTIONAL)
-                { x: 2800, y: 380, w: 40, h: 280 },  // shorter walls — player can walk under
-                { x: 3100, y: 380, w: 40, h: 280 },
+                { x: 3360, y: 380, w: 40, h: 280 },
+                { x: 3720, y: 380, w: 40, h: 280 },
                 // Mid-shelf (resting point during wall jump — optional)
-                { x: 2950, y: 320, w: 100, h: 16 },
+                { x: 3540, y: 320, w: 120, h: 16 },
                 // Top ledge (wall jump reward — optional secret)
-                { x: 2950, y: 200, w: 120, h: 16 },
+                { x: 3540, y: 200, w: 140, h: 16 },
                 // Hidden platform (requires double jump from top ledge — optional)
-                { x: 2750, y: 100, w: 80, h: 16 },
+                { x: 3300, y: 100, w: 96, h: 16 },
                 // MAIN ROUTE exit (lower level — no wallJump needed)
-                { x: 3300, y: 580, w: 200, h: 20 },
-                { x: 3540, y: 540, w: 140, h: 20 },
+                { x: 3960, y: 580, w: 240, h: 20 },
+                { x: 4250, y: 540, w: 168, h: 20 },
                 // Upper exit (optional — for those who wall-jumped up)
-                { x: 3300, y: 380, w: 140, h: 20 },
+                { x: 3960, y: 380, w: 168, h: 20 },
               ], hazards: [
                 // Spike pit ONLY at the bottom of the shaft (not blocking main route)
-                { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 30 },
+                { type: 'spike', x: 3420, y: 690, w: 288, h: 20, damage: 30 },
               ], loreObjects: [
-                { id: 'lore_s3_echo', type: 'echo', x: 2780, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
-                { id: 'lore_s3_secret', type: 'terminal', x: 2760, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
+                { id: 'lore_s3_echo', type: 'echo', x: 3340, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
+                { id: 'lore_s3_secret', type: 'terminal', x: 3310, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
               ], grappleAnchors: [
                 // Grapple anchors — placed high to enable grapple-reach to secret area
-                { id: 'grapple_s3_1', x: 2950, y: 60 },
-                { id: 'grapple_s3_2', x: 3400, y: 220 },
+                { id: 'grapple_s3_1', x: 3540, y: 60 },
+                { id: 'grapple_s3_2', x: 4080, y: 220 },
               ], collectibles: [
                 // Skill point at the top of the shaft (OPTIONAL — requires wall jump or grapple)
-                { id: 'col_s3_skill', type: 'skill_point', x: 2760, y: 50, requiredAbility: 'wallJump' },
+                { id: 'col_s3_skill', type: 'skill_point', x: 3310, y: 50, requiredAbility: 'wallJump' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -182,46 +171,42 @@ export const ACTS: ActData[] = [
               // Moment 6: Emergency lights reveal assembly hall.
               // Design: Wide hall with pillars. Mini boss (Elite) center.
               // Upper ledge with secret corpse (wall jump from pillar).
+              // 4x enemies: 2 → 8 (2 spider + 2 heavy + 2 drone + 1 sniper + 1 flying_ai) + elite miniboss
               // ═══════════════════════════════════════════════════════════════
-              { id: 4, nameKey: 'section.4.name', x: 3840, enemies: ['spider', 'heavy'], platforms: [
+              { id: 4, nameKey: 'section.4.name', x: 4608, enemies: ['spider', 'spider', 'heavy', 'heavy', 'drone', 'drone', 'sniper', 'flying_ai'], platforms: [
                 // Tall pillars (wall jump surfaces + cover)
-                { x: 4240, y: 440, w: 40, h: 260 },
-                { x: 4680, y: 440, w: 40, h: 260 },
+                { x: 5088, y: 440, w: 40, h: 260 },
+                { x: 5616, y: 440, w: 40, h: 260 },
                 // Center platform (elevated combat position)
-                { x: 4440, y: 380, w: 100, h: 20 },
+                { x: 5328, y: 380, w: 120, h: 20 },
                 // Side ledges
-                { x: 4040, y: 480, w: 80, h: 20 },
-                { x: 4900, y: 480, w: 80, h: 20 },
+                { x: 4848, y: 480, w: 96, h: 20 },
+                { x: 5880, y: 480, w: 96, h: 20 },
                 // Upper hidden ledge (wall jump from pillar — secret)
-                { x: 4360, y: 220, w: 80, h: 16 },
+                { x: 5232, y: 220, w: 96, h: 16 },
                 // Upper catwalk (alternate route, connects to S5 upper)
-                { x: 4100, y: 160, w: 200, h: 16 },
-                { x: 4800, y: 160, w: 200, h: 16 },
-                // ── FIX: EMP-gated secret room (right side, blocked by vertical door) ──
-                // Secret room floor
-                { x: 5000, y: 380, w: 120, h: 20 },
-                // Secret room walls (TOP + BOTTOM of door gap)
-                { x: 5000, y: 240, w: 20, h: 200 },  // left wall top (y=140-340)
-                // GAP at y=340-380 — EMP door fills this
-                // Secret room ceiling
-                { x: 5000, y: 140, w: 120, h: 16 },
+                { x: 4920, y: 160, w: 240, h: 16 },
+                { x: 5760, y: 160, w: 240, h: 16 },
+                // EMP-gated secret room (right side, blocked by vertical door)
+                { x: 6000, y: 380, w: 144, h: 20 },
+                { x: 6000, y: 240, w: 20, h: 200 },
+                { x: 6000, y: 140, w: 144, h: 16 },
               ], loreObjects: [
-                { id: 'lore_s4_terminal', type: 'terminal', x: 4100, y: 580, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
-                { id: 'lore_s4_corpse', type: 'corpse', x: 4380, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
+                { id: 'lore_s4_terminal', type: 'terminal', x: 4920, y: 580, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
+                { id: 'lore_s4_corpse', type: 'corpse', x: 5256, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], landmarks: [
-                { id: 'lm_s4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 240, h: 100, color: 0x2a3040 },
+                { id: 'lm_s4_assembly', type: 'assembly_line', x: 5352, y: 500, w: 288, h: 100, color: 0x2a3040 },
               ], hazards: [
                 // Laser beam hazard (graphical energy beam)
-                { type: 'laser', x: 4440, y: 340, w: 200, h: 4, damage: 25 },
+                { type: 'laser', x: 5328, y: 340, w: 240, h: 4, damage: 25 },
               ], empDoors: [
-                // ── FIX: EMP door is VERTICAL, blocks entry to secret room ──
-                // When closed: blocks passage to secret room. When opened (EMP): player enters.
-                { id: 'empdoor_s4_1', x: 5000, y: 360, w: 20, h: 40, },
+                // EMP door is VERTICAL, blocks entry to secret room
+                { id: 'empdoor_s4_1', x: 6000, y: 360, w: 20, h: 40 },
               ], collectibles: [
                 // Health fragment INSIDE the EMP-gated secret room
-                { id: 'col_s4_health', type: 'health_fragment', x: 5060, y: 350, requiredAbility: 'emp' },
+                { id: 'col_s4_health', type: 'health_fragment', x: 6072, y: 350, requiredAbility: 'emp' },
                 // Weapon part on the upper catwalk (alternate route)
-                { id: 'col_s4_weapon', type: 'weapon_part', x: 4900, y: 130, requiredAbility: 'wallJump' },
+                { id: 'col_s4_weapon', type: 'weapon_part', x: 5880, y: 130, requiredAbility: 'wallJump' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -230,25 +215,25 @@ export const ACTS: ActData[] = [
               // Moment 8: PA system looping.
               // Design: Quiet safe room. Guardian silhouette at far end.
               // ═══════════════════════════════════════════════════════════════
-              { id: 5, nameKey: 'section.5.name', x: 5120, enemies: [], platforms: [
+              { id: 5, nameKey: 'section.5.name', x: 6144, enemies: [], platforms: [
                 // Safe ground
-                { x: 5360, y: 560, w: 200, h: 20 },
+                { x: 6432, y: 560, w: 240, h: 20 },
                 // Elevated vantage point
-                { x: 5700, y: 400, w: 120, h: 20 },
+                { x: 6840, y: 400, w: 144, h: 20 },
                 // Guardian pedestal (where it stands)
-                { x: 6100, y: 540, w: 80, h: 60 },
+                { x: 7320, y: 540, w: 96, h: 60 },
                 // Door frame walls (open doorway to nothing)
-                { x: 6200, y: 300, w: 40, h: 300 },
-                { x: 6360, y: 300, w: 40, h: 300 },
+                { x: 7440, y: 300, w: 40, h: 300 },
+                { x: 7632, y: 300, w: 40, h: 300 },
               ], loreObjects: [
-                { id: 'lore_s5_echo', type: 'echo', x: 5600, y: 580, titleKey: 'lore.s5.echo.title', textKey: 'lore.s5.echo.text' },
-                { id: 'lore_s5_terminal', type: 'terminal', x: 5900, y: 580, titleKey: 'lore.s5.terminal.title', textKey: 'lore.s5.terminal.text' },
+                { id: 'lore_s5_echo', type: 'echo', x: 6720, y: 580, titleKey: 'lore.s5.echo.title', textKey: 'lore.s5.echo.text' },
+                { id: 'lore_s5_terminal', type: 'terminal', x: 7080, y: 580, titleKey: 'lore.s5.terminal.title', textKey: 'lore.s5.terminal.text' },
               ], landmarks: [
                 // Guardian silhouette — standing at the open door
-                { id: 'lm_s5_guardian', type: 'tower', x: 6100, y: 400, w: 50, h: 200, color: 0x1a2030 },
+                { id: 'lm_s5_guardian', type: 'tower', x: 7320, y: 400, w: 50, h: 200, color: 0x1a2030 },
               ], collectibles: [
                 // Energy fragment on the elevated vantage point
-                { id: 'col_s5_energy', type: 'energy_fragment', x: 5700, y: 370 },
+                { id: 'col_s5_energy', type: 'energy_fragment', x: 6840, y: 370 },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -256,24 +241,24 @@ export const ACTS: ActData[] = [
               // Moment 9: Atlas kneels. Moment 10: Horizon view.
               // Design: Wide arena. Walls for wall jump. Cover platforms.
               // ═══════════════════════════════════════════════════════════════
-              { id: 6, nameKey: 'section.6.name', x: 6400, enemies: [], bossId: 'guardian_ax09', platforms: [
+              { id: 6, nameKey: 'section.6.name', x: 7680, enemies: [], bossId: 'guardian_ax09', platforms: [
                 // Arena walls (prevent retreat + wall jump surfaces)
-                { x: 6480, y: 420, w: 40, h: 260 },
-                { x: 7600, y: 420, w: 40, h: 260 },
+                { x: 7776, y: 420, w: 40, h: 260 },
+                { x: 9120, y: 420, w: 40, h: 260 },
                 // Cover platforms (symmetrical)
-                { x: 6800, y: 520, w: 100, h: 20 },
-                { x: 7280, y: 520, w: 100, h: 20 },
+                { x: 8160, y: 520, w: 120, h: 20 },
+                { x: 8736, y: 520, w: 120, h: 20 },
                 // Upper platforms (wall jump → safe spot)
-                { x: 6700, y: 320, w: 80, h: 16 },
-                { x: 7380, y: 320, w: 80, h: 16 },
+                { x: 8040, y: 320, w: 96, h: 16 },
+                { x: 8856, y: 320, w: 96, h: 16 },
               ], loreObjects: [
-                { id: 'lore_s6_corpse', type: 'corpse', x: 6550, y: 580, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
-                { id: 'lore_s6_terminal', type: 'terminal', x: 7450, y: 580, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
+                { id: 'lore_s6_corpse', type: 'corpse', x: 7860, y: 580, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
+                { id: 'lore_s6_terminal', type: 'terminal', x: 8940, y: 580, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
               ], landmarks: [
-                { id: 'lm_s6_door', type: 'tower', x: 6440, y: 280, w: 80, h: 440, color: 0x3a3040 },
+                { id: 'lm_s6_door', type: 'tower', x: 7728, y: 280, w: 96, h: 440, color: 0x3a3040 },
               ], collectibles: [
                 // Skill point reward on the upper safe spot (wall jump required)
-                { id: 'col_s6_skill', type: 'skill_point', x: 6700, y: 290, requiredAbility: 'wallJump' },
+                { id: 'col_s6_skill', type: 'skill_point', x: 8040, y: 290, requiredAbility: 'wallJump' },
               ]},
             ],
           },
