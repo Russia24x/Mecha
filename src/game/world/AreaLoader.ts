@@ -30,10 +30,18 @@ export class AreaLoader {
   private scene: Phaser.Scene;
   private physics: PhysicsSystem;
   private regionId: string = 'factory';
+  private activeTweens: Phaser.Tweens.Tween[] = [];
 
   constructor(scene: Phaser.Scene, physics: PhysicsSystem) {
     this.scene = scene;
     this.physics = physics;
+  }
+
+  /** Create a tween and track it for cleanup on unload. */
+  private trackedTween(config: Phaser.Types.Tweens.TweenBuilderConfig): Phaser.Tweens.Tween {
+    const t = this.trackedTween(config);
+    this.activeTweens.push(t);
+    return t;
   }
 
   /**
@@ -167,7 +175,7 @@ export class AreaLoader {
     const glow = this.scene.add.circle(0, 0, 14, 0x66f0ff, 0.15);
     glow.setBlendMode(Phaser.BlendModes.ADD);
     container.add(glow);
-    this.scene.tweens.add({
+    this.trackedTween({
       targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.2 },
       duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
@@ -190,7 +198,7 @@ export class AreaLoader {
       container.add(spoke);
     }
     // Slow rotation
-    this.scene.tweens.add({ targets: container, rotation: Math.PI * 2, duration: 4000, repeat: -1, ease: 'Linear' });
+    this.trackedTween({ targets: container, rotation: Math.PI * 2, duration: 4000, repeat: -1, ease: 'Linear' });
     container.setDepth(6);
     container.setData('grappleAnchorId', anchor.id);
     container.setData('isGrappleAnchor', true);
@@ -209,7 +217,7 @@ export class AreaLoader {
       const line = this.scene.add.rectangle(0, -door.h / 4 + i * door.h / 4, door.w - 4, 1, 0xc060ff, 0.5);
       line.setBlendMode(Phaser.BlendModes.ADD);
       container.add(line);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: line, alpha: { from: 0.2, to: 0.7 }, duration: 600 + i * 200, yoyo: true, repeat: -1,
       });
     }
@@ -287,7 +295,7 @@ export class AreaLoader {
     const glow = this.scene.add.circle(0, 0, 16, color, 0.15);
     glow.setBlendMode(Phaser.BlendModes.ADD);
     container.add(glow);
-    this.scene.tweens.add({
+    this.trackedTween({
       targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.3 },
       duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
@@ -320,11 +328,11 @@ export class AreaLoader {
     }
 
     // Float animation
-    this.scene.tweens.add({
+    this.trackedTween({
       targets: container, y: col.y - 6, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
     // Slow rotation on the glow
-    this.scene.tweens.add({
+    this.trackedTween({
       targets: glow, rotation: Math.PI * 2, duration: 3000, repeat: -1, ease: 'Linear',
     });
 
@@ -431,7 +439,7 @@ export class AreaLoader {
       glow.setBlendMode(Phaser.BlendModes.ADD);
       glow.setDepth(6);
       result.visualRects.push(glow as unknown as Phaser.GameObjects.Rectangle);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: glow, alpha: { from: 0.08, to: 0.2 }, scale: { from: 0.8, to: 1.2 },
         duration: 2000 + Math.random() * 1000, yoyo: true, repeat: -1,
       });
@@ -450,7 +458,7 @@ export class AreaLoader {
       spore.setBlendMode(Phaser.BlendModes.ADD);
       spore.setDepth(4);
       result.visualRects.push(spore as unknown as Phaser.GameObjects.Rectangle);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: spore,
         y: sy - 30, alpha: 0, scale: 2,
         duration: 2000 + Math.random() * 1000, repeat: -1,
@@ -465,7 +473,7 @@ export class AreaLoader {
       plant.setBlendMode(Phaser.BlendModes.ADD);
       plant.setDepth(6);
       result.visualRects.push(plant as unknown as Phaser.GameObjects.Rectangle);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: plant, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1,
       });
     }
@@ -681,7 +689,7 @@ export class AreaLoader {
       const spark = this.scene.add.circle(sparkX, sparkY, 1.5, 0xffc040, 0);
       spark.setBlendMode(Phaser.BlendModes.ADD);
       spark.setDepth(6);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: spark, alpha: { from: 0, to: 0.8 }, duration: 80, yoyo: true, repeat: -1,
         delay: Math.random() * 4000, repeatDelay: 3000 + Math.random() * 4000,
       });
@@ -734,7 +742,7 @@ export class AreaLoader {
       const flash = this.scene.add.circle(x + 2, y, 4 + Math.random() * 3, 0xc0e0ff, 0.9);
       flash.setBlendMode(Phaser.BlendModes.ADD);
       flash.setDepth(7);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: flash, alpha: 0, scale: 2, duration: 100,
         onComplete: () => flash.destroy(),
       });
@@ -753,7 +761,7 @@ export class AreaLoader {
       }
       bolt.strokePath();
       bolt.setBlendMode(Phaser.BlendModes.ADD);
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: bolt, alpha: 0, duration: 80,
         onComplete: () => bolt.destroy(),
       });
@@ -763,7 +771,7 @@ export class AreaLoader {
         const py = y + (Math.random() - 0.5) * 6;
         const p = this.scene.add.circle(px, py, 1, 0xc0e0ff, 1);
         p.setBlendMode(Phaser.BlendModes.ADD).setDepth(7);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: p,
           x: px + (Math.random() - 0.5) * 20,
           y: py + 4 + Math.random() * 8,
@@ -805,7 +813,7 @@ export class AreaLoader {
       result.visualRects.push(flame as unknown as Phaser.GameObjects.Rectangle);
 
       // Flicker: scale + alpha oscillation
-      this.scene.tweens.add({
+      this.trackedTween({
         targets: flame,
         scaleX: { from: 0.7, to: 1.2 },
         scaleY: { from: 0.8, to: 1.3 },
@@ -821,7 +829,7 @@ export class AreaLoader {
     glow.setBlendMode(Phaser.BlendModes.ADD);
     glow.setDepth(5);
     result.visualRects.push(glow as unknown as Phaser.GameObjects.Rectangle);
-    this.scene.tweens.add({
+    this.trackedTween({
       targets: glow, alpha: { from: 0.1, to: 0.2 }, scale: { from: 0.9, to: 1.1 },
       duration: 200, yoyo: true, repeat: -1,
     });
@@ -834,7 +842,7 @@ export class AreaLoader {
         if (!oil.active) { smokeTimer.remove(); return; }
         const smoke = this.scene.add.circle(x + (Math.random() - 0.5) * 10, y - 8, 3 + Math.random() * 2, 0x3a3a3a, 0.3);
         smoke.setDepth(7);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: smoke,
           y: y - 40 - Math.random() * 20,
           x: x + (Math.random() - 0.5) * 20,
@@ -873,7 +881,7 @@ export class AreaLoader {
           0xa0a0b0, 0.4,
         );
         steam.setDepth(6);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: steam,
           y: y - 30 - Math.random() * 20,
           x: x + (Math.random() - 0.5) * 30,
@@ -921,7 +929,7 @@ export class AreaLoader {
         const glow = this.scene.add.rectangle(0, 0, hazard.w + 16, hazard.h + 8, 0x40ff40, 0.1);
         glow.setBlendMode(Phaser.BlendModes.ADD);
         container.add(glow);
-        this.scene.tweens.add({ targets: glow, alpha: { from: 0.05, to: 0.15 }, duration: 1000, yoyo: true, repeat: -1 });
+        this.trackedTween({ targets: glow, alpha: { from: 0.05, to: 0.15 }, duration: 1000, yoyo: true, repeat: -1 });
         const surface = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0x40a020, 0.7);
         surface.setBlendMode(Phaser.BlendModes.ADD);
         container.add(surface);
@@ -933,7 +941,7 @@ export class AreaLoader {
           const bubble = this.scene.add.circle(bx, 0, 2 + Math.random() * 2, 0x80ff40, 0.7);
           bubble.setBlendMode(Phaser.BlendModes.ADD);
           container.add(bubble);
-          this.scene.tweens.add({
+          this.trackedTween({
             targets: bubble, y: { from: hazard.h / 4, to: -hazard.h / 4 },
             scale: { from: 0.5, to: 1.5 }, alpha: { from: 0.7, to: 0 },
             duration: 1200 + Math.random() * 600, repeat: -1, delay: Math.random() * 1500,
@@ -970,7 +978,7 @@ export class AreaLoader {
       const glow = this.scene.add.rectangle(0, 0, hazard.w + 20, hazard.h + 10, 0xff4020, 0.15);
       glow.setBlendMode(Phaser.BlendModes.ADD);
       container.add(glow);
-      this.scene.tweens.add({ targets: glow, alpha: { from: 0.1, to: 0.25 }, duration: 800, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: glow, alpha: { from: 0.1, to: 0.25 }, duration: 800, yoyo: true, repeat: -1 });
       const surface = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff6020, 0.7);
       surface.setBlendMode(Phaser.BlendModes.ADD);
       container.add(surface);
@@ -988,7 +996,7 @@ export class AreaLoader {
         const bubble = this.scene.add.circle(bx, 0, 2 + Math.random() * 2, 0xffc040, 0.8);
         bubble.setBlendMode(Phaser.BlendModes.ADD);
         container.add(bubble);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: bubble,
           y: { from: hazard.h / 4, to: -hazard.h / 4 },
           scale: { from: 0.5, to: 1.5 },
@@ -1001,7 +1009,7 @@ export class AreaLoader {
         const shimmer = this.scene.add.rectangle((Math.random() - 0.5) * hazard.w * 0.6, -hazard.h / 2 - 4 - i * 3, 8, 1, 0xff8040, 0.3);
         shimmer.setBlendMode(Phaser.BlendModes.ADD);
         container.add(shimmer);
-        this.scene.tweens.add({ targets: shimmer, x: { from: shimmer.x - 6, to: shimmer.x + 6 }, alpha: { from: 0.1, to: 0.4 }, duration: 600 + i * 200, yoyo: true, repeat: -1 });
+        this.trackedTween({ targets: shimmer, x: { from: shimmer.x - 6, to: shimmer.x + 6 }, alpha: { from: 0.1, to: 0.4 }, duration: 600 + i * 200, yoyo: true, repeat: -1 });
       }
 
     } else if (hazard.type === 'laser') {
@@ -1019,7 +1027,7 @@ export class AreaLoader {
         emitterGlow.setBlendMode(Phaser.BlendModes.ADD);
         container.add(emitterGlow);
       }
-      this.scene.tweens.add({ targets: [beam, beamGlow], alpha: { from: 0.7, to: 1 }, duration: 80, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: [beam, beamGlow], alpha: { from: 0.7, to: 1 }, duration: 80, yoyo: true, repeat: -1 });
 
     } else {
       const vis = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff2030, 0.3);
@@ -1049,7 +1057,7 @@ export class AreaLoader {
       const screen = this.scene.add.rectangle(0, -8, 28, 24, 0xffc040, 0.15);
       screen.setBlendMode(Phaser.BlendModes.ADD);
       parts.push(screen);
-      this.scene.tweens.add({ targets: screen, alpha: { from: 0.08, to: 0.25 }, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.trackedTween({ targets: screen, alpha: { from: 0.08, to: 0.25 }, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       // Scan lines on screen
       for (let i = 0; i < 4; i++) {
         const line = this.scene.add.rectangle(0, -18 + i * 6, 24, 1, 0xffc040, 0.2);
@@ -1059,11 +1067,11 @@ export class AreaLoader {
       const glow = this.scene.add.circle(0, -5, 50, 0xffc040, 0.04);
       glow.setBlendMode(Phaser.BlendModes.ADD);
       parts.push(glow);
-      this.scene.tweens.add({ targets: glow, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.03, to: 0.08 }, duration: 2000, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: glow, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.03, to: 0.08 }, duration: 2000, yoyo: true, repeat: -1 });
       // Prompt
       const label = this.scene.add.text(0, 32, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#ffc040', letterSpacing: 1 }).setOrigin(0.5);
       parts.push(label);
-      this.scene.tweens.add({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
 
     } else if (lore.type === 'corpse') {
       // CORPSE: Full fallen mech — body, limbs, flickering core
@@ -1086,14 +1094,14 @@ export class AreaLoader {
       const core = this.scene.add.circle(0, -2, 4, 0x6a3040, 0.6);
       core.setBlendMode(Phaser.BlendModes.ADD);
       parts.push(core);
-      this.scene.tweens.add({ targets: core, alpha: { from: 0.1, to: 0.6 }, duration: 400 + Math.random() * 200, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: core, alpha: { from: 0.1, to: 0.6 }, duration: 400 + Math.random() * 200, yoyo: true, repeat: -1 });
       // Oil pool (dark ellipse)
       const oil = this.scene.add.ellipse(0, 16, 60, 12, 0x050408, 0.6);
       parts.push(oil);
       // Prompt
       const label = this.scene.add.text(0, 28, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#6a5060', letterSpacing: 1 }).setOrigin(0.5);
       parts.push(label);
-      this.scene.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.8 }, duration: 1000, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: label, alpha: { from: 0.3, to: 0.8 }, duration: 1000, yoyo: true, repeat: -1 });
 
     } else {
       // ECHO: Suspended speaker array with visible sound waves
@@ -1111,7 +1119,7 @@ export class AreaLoader {
         wave.setStrokeStyle(1, 0x40c0ff, 0.3);
         wave.setBlendMode(Phaser.BlendModes.ADD);
         parts.push(wave);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: wave, scale: { from: 1, to: 2.5 }, alpha: { from: 0.4, to: 0 },
           duration: 2000, delay: i * 600, repeat: -1, ease: 'Sine.out',
         });
@@ -1124,11 +1132,11 @@ export class AreaLoader {
       glow.setBlendMode(Phaser.BlendModes.ADD);
       parts.push(glow);
       // Floating animation
-      this.scene.tweens.add({ targets: container, y: lore.y - 5, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.trackedTween({ targets: container, y: lore.y - 5, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
       // Prompt
       const label = this.scene.add.text(0, 24, '▼ LISTEN', { fontFamily: 'monospace', fontSize: '8px', color: '#40c0ff', letterSpacing: 1 }).setOrigin(0.5);
       parts.push(label);
-      this.scene.tweens.add({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
     }
 
     container.add(parts);
@@ -1166,7 +1174,7 @@ export class AreaLoader {
       const eye = this.scene.add.circle(-lm.w * 0.3, -lm.h * 0.3, 4, 0x3a1010, 0.4);
       eye.setBlendMode(Phaser.BlendModes.ADD);
       container.add(eye);
-      this.scene.tweens.add({ targets: eye, alpha: { from: 0.1, to: 0.3 }, duration: 3000, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: eye, alpha: { from: 0.1, to: 0.3 }, duration: 3000, yoyo: true, repeat: -1 });
       // Dust particles around
       for (let i = 0; i < 5; i++) {
         const dust = this.scene.add.circle(
@@ -1176,7 +1184,7 @@ export class AreaLoader {
         );
         dust.setBlendMode(Phaser.BlendModes.ADD);
         container.add(dust);
-        this.scene.tweens.add({
+        this.trackedTween({
           targets: dust, y: dust.y - 20 - Math.random() * 30, alpha: 0,
           duration: 3000 + Math.random() * 2000, repeat: -1, delay: Math.random() * 2000,
         });
@@ -1210,7 +1218,7 @@ export class AreaLoader {
           const spark = this.scene.add.circle(x, -20, 2, 0xffc040, 0.3);
           spark.setBlendMode(Phaser.BlendModes.ADD);
           container.add(spark);
-          this.scene.tweens.add({ targets: spark, alpha: { from: 0, to: 0.4 }, duration: 200, yoyo: true, repeat: -1, delay: Math.random() * 3000 });
+          this.trackedTween({ targets: spark, alpha: { from: 0, to: 0.4 }, duration: 200, yoyo: true, repeat: -1, delay: Math.random() * 3000 });
         }
       }
 
@@ -1231,7 +1239,7 @@ export class AreaLoader {
       const light = this.scene.add.circle(0, -lm.h / 2 + 10, 8, 0xffc040, 0.3);
       light.setBlendMode(Phaser.BlendModes.ADD);
       container.add(light);
-      this.scene.tweens.add({ targets: light, alpha: { from: 0.1, to: 0.5 }, scale: { from: 0.8, to: 1.3 }, duration: 1500, yoyo: true, repeat: -1 });
+      this.trackedTween({ targets: light, alpha: { from: 0.1, to: 0.5 }, scale: { from: 0.8, to: 1.3 }, duration: 1500, yoyo: true, repeat: -1 });
       // Light cone (shining down)
       const cone = this.scene.add.triangle(0, 0, -30, -lm.h / 2, 30, -lm.h / 2, 0, 0, 0xffc040, 0.02);
       cone.setBlendMode(Phaser.BlendModes.ADD);
@@ -1249,6 +1257,9 @@ export class AreaLoader {
 
   /** Destroy all loaded area objects. */
   unload(loaded: LoadedArea): void {
+    // ── Stop all tracked tweens (sparks, fire, steam, lore pulses, etc.) ──
+    this.activeTweens.forEach(t => { if (t && t.isPlaying()) t.stop(); });
+    this.activeTweens = [];
     // Clean up hazard timers (electrical sparks, fire smoke, steam) before destroying visuals
     loaded.visualRects.forEach(v => {
       if (!v) return;

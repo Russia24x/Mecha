@@ -80,6 +80,10 @@ export class PlayerEntity {
   private static readonly HACK_DURATION_MS = 1500;
   private hackProgressBar: Phaser.GameObjects.Rectangle | null = null;
 
+  // ── Performance: particle pool for thruster/dust/EMP effects ──
+  private particlePool: Phaser.GameObjects.Arc[] = [];
+  private static readonly POOL_SIZE = 20;
+
   // External references (set by GameScene) — for EMP (stun enemies) + Grapple (find anchors) + Hack (find hackable)
   private enemiesRef: import('../enemies/EnemyEntity').EnemyEntity[] = [];
   private grappleAnchors: Phaser.Math.Vector2[] = [];
@@ -164,6 +168,7 @@ export class PlayerEntity {
     this.sprite.setData('entityType', 'player');
 
     this.buildVisual();
+    this.initParticlePool();
 
     // Register gameplay callbacks with InputSystem.
     // InputSystem.init() is already called in GameScene.create() — listeners are attached.
@@ -250,13 +255,38 @@ export class PlayerEntity {
     // ── Load selected chassis + paint from save data ──
     const save = SaveSystem.getPlayer();
     const chassisId = save.selectedChassis || 'assault';
-    // Get paint colors
     let primaryColor = 0x2a3850;
     let accentColor = 0x39d0d8;
     const paint = getPaint((save.selectedPaint as 'factory_gray') || 'factory_gray');
     if (paint) { primaryColor = paint.primaryColor; accentColor = paint.accentColor; }
-    // Build the player visual with the selected chassis + paint
     this.visual = MechaSpriteFactory.buildPlayer(this.scene, chassisId, primaryColor, accentColor);
+  }
+
+  /** Initialize the particle pool — pre-allocate circles for reuse. */
+  private initParticlePool(): void {
+    for (let i = 0; i < PlayerEntity.POOL_SIZE; i++) {
+      const c = this.scene.add.circle(0, 0, 3, 0xffc040, 0);
+      c.setBlendMode(Phaser.BlendModes.ADD);
+      c.setVisible(false);
+      c.setDepth(13);
+      this.particlePool.push(c);
+    }
+  }
+
+  /** Spawn a pooled particle at (x, y) with given color, radius, life. */
+  private spawnPooled(x: number, y: number, radius: number, color: number, lifeMs: number, depth: number = 13): void {
+    const p = this.particlePool.find(p => p && !p.visible);
+    if (!p) return;
+    p.setPosition(x, y);
+    p.setRadius(radius);
+    p.setFillStyle(color, 0.8);
+    p.setDepth(depth);
+    p.setAlpha(0.8);
+    p.setVisible(true);
+    this.scene.tweens.add({
+      targets: p, alpha: 0, scale: 0.3, duration: lifeMs,
+      onComplete: () => { p.setVisible(false); p.setScale(1); },
+    });
   }
 
   // ---- Public API ----
@@ -647,18 +677,13 @@ export class PlayerEntity {
       this.sprite.setVelocityY(PlayerEntity.HOVER_FALL_VELOCITY);
       // Drain energy
       this.energy.current = Math.max(0, this.energy.current - PlayerEntity.HOVER_ENERGY_PER_SEC * (1 / 60));
-      // Emit downward thruster flame
+      // Emit downward thruster flame (pooled)
       const now = this.scene.time.now;
       if (now - this.lastThrusterEmit > 25) {
         this.lastThrusterEmit = now;
         const pos = this.position;
         for (let i = 0; i < 3; i++) {
-          const flame = this.scene.add.circle(pos.x + (Math.random() - 0.5) * 16, pos.y + 14, 3 + Math.random() * 2, 0x66f0ff, 0.8);
-          flame.setBlendMode(Phaser.BlendModes.ADD).setDepth(13);
-          this.scene.tweens.add({
-            targets: flame, y: pos.y + 30, alpha: 0, scale: 0.3,
-            duration: 200, onComplete: () => flame.destroy(),
-          });
+          this.spawnPooled(pos.x + (Math.random() - 0.5) * 16, pos.y + 14, 3 + Math.random() * 2, 0x66f0ff, 200);
         }
       }
     } else {
@@ -988,15 +1013,9 @@ export class PlayerEntity {
     const now = this.scene.time.now;
     if (thrusterIntensity > 0.4 && now - this.lastThrusterEmit > 30) {
       this.lastThrusterEmit = now;
-      // Emit downward thruster flame particles
+      // Emit downward thruster flame particles (pooled)
       for (const dx of [-9, 9]) {
-        const flame = this.scene.add.circle(pos.x + dx * facing, pos.y + 12, 2 + Math.random() * 2, 0xffc040, 0.8);
-        flame.setBlendMode(Phaser.BlendModes.ADD).setDepth(13);
-        this.scene.tweens.add({
-          targets: flame,
-          y: pos.y + 24, alpha: 0, scale: 0.4,
-          duration: 150, onComplete: () => flame.destroy(),
-        });
+        this.spawnPooled(pos.x + dx * facing, pos.y + 12, 2 + Math.random() * 2, 0xffc040, 150);
       }
     }
 
@@ -1004,30 +1023,18 @@ export class PlayerEntity {
     if (this.grounded && !this.wasGrounded && this.lastVy > 3) {
       this.particles.dust(pos.x, pos.y + 20);
       this.scene.cameras.main.shake(60, 0.003 * Math.min(this.lastVy / 5, 1));
-      // Extra dust puff for hard landings
+      // Extra dust puff for hard landings (pooled)
       if (this.lastVy > 7) {
         for (let i = 0; i < 6; i++) {
           const dustX = pos.x + (Math.random() - 0.5) * 30;
-          const dust = this.scene.add.circle(dustX, pos.y + 20, 3, 0x6a5a4a, 0.5);
-          dust.setDepth(12);
-          this.scene.tweens.add({
-            targets: dust,
-            y: pos.y + 28, x: dustX + (Math.random() - 0.5) * 30,
-            alpha: 0, scale: 2, duration: 400, ease: 'Sine.out',
-            onComplete: () => dust.destroy(),
-          });
+          this.spawnPooled(dustX, pos.y + 20, 3, 0x6a5a4a, 400, 12);
         }
       }
     }
 
-    // ── Per-step dust when running ──
+    // ── Per-step dust when running (pooled) ──
     if (isMoving && now - this.lastThrusterEmit > 100) {
-      const stepDust = this.scene.add.circle(pos.x + (Math.random() - 0.5) * 8, pos.y + 18, 1.5, 0x4a3a2a, 0.4);
-      stepDust.setDepth(11);
-      this.scene.tweens.add({
-        targets: stepDust, y: pos.y + 22, alpha: 0, duration: 250,
-        onComplete: () => stepDust.destroy(),
-      });
+      this.spawnPooled(pos.x + (Math.random() - 0.5) * 8, pos.y + 18, 1.5, 0x4a3a2a, 250, 11);
     }
 
     this.wasGrounded = this.grounded;

@@ -55,6 +55,9 @@ const DEFAULT_SAVE: SaveData = {
 
 export class SaveSystem {
   private static cache: SaveData | null = null;
+  // ── Performance: in-memory Sets for per-frame lookups (avoid array.includes every frame) ──
+  private static collectedCache: Set<string> | null = null;
+  private static shortcutsCache: Set<string> | null = null;
 
   private static load(): SaveData {
     if (this.cache) return this.cache;
@@ -250,28 +253,42 @@ export class SaveSystem {
 
   /** Check if a collectible has already been collected (persists across deaths/reloads). */
   static isCollectibleCollected(id: string): boolean {
-    return this.load().player.collectedCollectibles.includes(id);
+    if (!this.collectedCache) {
+      this.collectedCache = new Set(this.load().player.collectedCollectibles ?? []);
+    }
+    return this.collectedCache.has(id);
   }
 
   /** Mark a collectible as collected. Returns true if this is a new collection. */
   static markCollectibleCollected(id: string): boolean {
+    if (!this.collectedCache) {
+      this.collectedCache = new Set(this.load().player.collectedCollectibles ?? []);
+    }
+    if (this.collectedCache.has(id)) return false;
+    this.collectedCache.add(id);
     const data = this.load();
-    if (data.player.collectedCollectibles.includes(id)) return false;
-    data.player.collectedCollectibles.push(id);
+    data.player.collectedCollectibles = [...this.collectedCache];
     this.persist();
     return true;
   }
 
   /** Check if a shortcut door has been opened (persists across deaths/reloads). */
   static isShortcutOpened(id: string): boolean {
-    return this.load().player.openedShortcuts.includes(id);
+    if (!this.shortcutsCache) {
+      this.shortcutsCache = new Set(this.load().player.openedShortcuts ?? []);
+    }
+    return this.shortcutsCache.has(id);
   }
 
   /** Mark a shortcut door as opened. Returns true if this is a new opening. */
   static markShortcutOpened(id: string): boolean {
+    if (!this.shortcutsCache) {
+      this.shortcutsCache = new Set(this.load().player.openedShortcuts ?? []);
+    }
+    if (this.shortcutsCache.has(id)) return false;
+    this.shortcutsCache.add(id);
     const data = this.load();
-    if (data.player.openedShortcuts.includes(id)) return false;
-    data.player.openedShortcuts.push(id);
+    data.player.openedShortcuts = [...this.shortcutsCache];
     this.persist();
     return true;
   }

@@ -126,17 +126,19 @@ export class ForestEnvironmentSystem {
   }
 
   updateGrass(playerX: number): void {
+    const view = this.scene.cameras.main.worldView;
+    const margin = 100;
     for (const blade of this.grass) {
+      // ── Culling: skip grass blades outside camera viewport ──
+      if (blade.x < view.x - margin || blade.x > view.right + margin) continue;
       const dist = Math.abs(blade.x - playerX);
       if (dist < 40) {
-        // Bend away from player
         const dir = blade.x < playerX ? -1 : 1;
         const intensity = (1 - dist / 40);
         blade.targetBend = dir * intensity;
       } else {
         blade.targetBend = 0;
       }
-      // Spring back
       blade.bend = Phaser.Math.Linear(blade.bend, blade.targetBend, blade.springiness);
       this.drawGrassBlade(blade);
     }
@@ -238,7 +240,11 @@ export class ForestEnvironmentSystem {
   }
 
   updateVines(deltaMs: number, playerX: number): void {
+    const view = this.scene.cameras.main.worldView;
+    const margin = 100;
     for (const vine of this.vines) {
+      // ── Culling: skip vines outside camera viewport ──
+      if (vine.anchorX < view.x - margin || vine.anchorX > view.right + margin) continue;
       // Proximity sway
       const dist = Math.abs(vine.anchorX - playerX);
       if (dist < 100) {
