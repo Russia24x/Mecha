@@ -42,7 +42,8 @@ export type InputScheme = 'keyboard' | 'xbox' | 'playstation' | 'generic_gamepad
 export type GameAction =
   | 'move' | 'jump' | 'dash' | 'fire' | 'melee'
   | 'interact' | 'pause' | 'back'
-  | 'weaponNext' | 'weaponPrev';
+  | 'weaponNext' | 'weaponPrev'
+  | 'grapple' | 'emp';
 
 interface SchemeLabels {
   [key: string]: string;  // action → display label
@@ -59,6 +60,8 @@ const KEYBOARD_LABELS: SchemeLabels = {
   back: 'ESC',
   weaponNext: 'Q',
   weaponPrev: 'E',
+  grapple: 'F',
+  emp: 'G',
 };
 
 const XBOX_LABELS: SchemeLabels = {
@@ -72,6 +75,8 @@ const XBOX_LABELS: SchemeLabels = {
   back: 'B',
   weaponNext: 'RB',
   weaponPrev: 'LB',
+  grapple: 'D-UP',
+  emp: 'D-DOWN',
 };
 
 const PLAYSTATION_LABELS: SchemeLabels = {
@@ -85,6 +90,8 @@ const PLAYSTATION_LABELS: SchemeLabels = {
   back: 'CIRCLE',
   weaponNext: 'R1',
   weaponPrev: 'L1',
+  grapple: 'D-UP',
+  emp: 'D-DOWN',
 };
 
 const GENERIC_LABELS: SchemeLabels = {

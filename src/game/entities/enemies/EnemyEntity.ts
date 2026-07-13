@@ -54,6 +54,7 @@ export class EnemyEntity {
   private postureBarBg: Phaser.GameObjects.Rectangle | null = null;
   private static readonly STAGGER_DURATION_MS = 1500;
   private static readonly POSTURE_DECAY_PER_SEC = 15;  // posture decays when not hit
+  public hacked = false;  // When true, enemy is friendly (hacked by player)
 
   private particles: import('../../systems/ParticleSystem').ParticleSystem;
 
@@ -257,14 +258,15 @@ export class EnemyEntity {
     switch (this.state) {
       case 'patrol':
         this.onPatrol();
-        if (!isStaggered && this.inRange(playerPos) && this.hasLineOfSight(playerPos)) this.changeState('aggro');
+        // Hacked enemies never aggro the player
+        if (!this.hacked && !isStaggered && this.inRange(playerPos) && this.hasLineOfSight(playerPos)) this.changeState('aggro');
         break;
       case 'aggro':
         this.onAggro(playerPos);
-        if (!isStaggered && (!this.inRange(playerPos) || !this.hasLineOfSight(playerPos))) this.changeState('patrol');
+        if (!this.hacked && !isStaggered && (!this.inRange(playerPos) || !this.hasLineOfSight(playerPos))) this.changeState('patrol');
         break;
       case 'attack':
-        if (!isStaggered) this.runAttackFSM(playerPos);
+        if (!isStaggered && !this.hacked) this.runAttackFSM(playerPos);
         break;
       case 'stagger':
         // Phase 3: stagger lasts until staggeredUntil expires, then return to aggro
@@ -482,6 +484,21 @@ export class EnemyEntity {
       this.facing = vx > 0 ? 1 : -1;
     }
     this.visual.setFacing(this.facing);
+
+    // Hacked enemies get a green tint to show they're friendly
+    if (this.hacked) {
+      this.visual.container.setAlpha(0.9);
+      this.visual.setCorePulse(0.7);
+      // Green tint via scale pulse
+      const pulse = 1 + Math.sin(this.animTime / 200) * 0.05;
+      this.visual.container.setScale(this.facing * pulse, pulse);
+      // Periodic green spark
+      if (this.animTime % 60 < 16) {
+        this.particles.sparks(this.sprite.x, this.sprite.y, 0x40ff80, 1);
+      }
+      return;
+    }
+
     // Damage flash — brighten + scale punch when recently hit
     const inTelegraph = this.state === 'attack' && this.attackPhase === 'telegraph';
     if (!inTelegraph) {

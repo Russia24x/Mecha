@@ -180,6 +180,9 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('LEVEL_UP', () => this.hud?.toast(t('levelup')));
     EventBus.on('SKILL_UNLOCKED', () => { this.player?.refreshStats(); });
     EventBus.on('ABILITY_UNLOCKED', () => { this.player?.refreshStats(); });
+    // ── Ability events ──
+    EventBus.on('EMP_PULSE', this.onEmpPulse, this);
+    EventBus.on('HACK_COMPLETE', this.onHackComplete, this);
 
     this.setState('menu');
   }
@@ -699,9 +702,25 @@ export class GameScene extends Phaser.Scene {
     // Spawn enemies for current section
     this.spawnEnemiesForSection(this.currentSection);
 
+    // ── Set player external refs (enemies + grapple anchor positions) for abilities ──
+    this.updatePlayerExternalRefs();
+
     // Emit section info
     const sec = area.sections.find(s => s.id === this.currentSection);
     if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
+  }
+
+  /** Update player's external references — enemies array + grapple anchor positions. */
+  private updatePlayerExternalRefs(): void {
+    if (!this.player || !this.loadedArea) return;
+    // Extract grapple anchor positions from loaded area containers
+    const anchorPositions: Phaser.Math.Vector2[] = [];
+    for (const anchor of this.loadedArea.grappleAnchors) {
+      if (anchor && anchor.active) {
+        anchorPositions.push(new Phaser.Math.Vector2(anchor.x, anchor.y));
+      }
+    }
+    this.player.setExternalRefs(this.enemies, anchorPositions);
   }
 
   /** Spawn NPC sprites in the current area — previously NPCs were invisible. */
@@ -922,6 +941,8 @@ export class GameScene extends Phaser.Scene {
     this.currentSection = id;
     WorldSystem.setSection(id);
     this.spawnEnemiesForSection(id);
+    // Refresh player external refs (new enemies spawned)
+    this.updatePlayerExternalRefs();
   }
 
   private activateCheckpoint(): void {
@@ -953,6 +974,9 @@ export class GameScene extends Phaser.Scene {
 
   private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
     const id = enemyGo.getData('id') as string | undefined;
+    // Find the enemy entity to check if hacked
+    const enemy = this.enemies.find(e => e.id === id);
+    if (enemy?.hacked) return;  // Hacked enemies don't damage the player
     const dmg = id?.startsWith('drone-') ? 8 : id?.startsWith('spider-') ? 14 : id?.startsWith('heavy-') ? 22 : id?.startsWith('sniper-') ? 12 : 10;
     if (this.player.takeDamage(dmg)) {
       const enemyX = (enemyGo as unknown as { x?: number }).x;
@@ -1272,6 +1296,46 @@ export class GameScene extends Phaser.Scene {
     });
   };
 
+  // ================ ABILITY EVENT HANDLERS ================
+
+  /** EMP pulse — open any EMP doors in range + stun enemies (stun handled in PlayerEntity). */
+  private onEmpPulse = (payload: unknown): void => {
+    const data = payload as { x: number; y: number; radius: number };
+    if (!this.loadedArea) return;
+    for (const door of this.loadedArea.empDoors) {
+      if (!door || !door.active) continue;
+      if (door.getData('empDoorOpen')) continue;
+      const dist = Phaser.Math.Distance.Between(data.x, data.y, door.x, door.y);
+      if (dist < data.radius) {
+        // Open the door
+        door.setData('empDoorOpen', true);
+        this.tweens.add({
+          targets: door, alpha: 0, scaleY: 0, duration: 400, ease: 'Cubic.out',
+          onComplete: () => { door.setVisible(false); },
+        });
+        // Spark burst
+        this.particles.sparks(door.x, door.y, 0xc060ff, 12);
+        this.hud?.toast(getLocale() === 'fa' ? '◆ در EMP باز شد' : '◆ EMP DOOR OPENED');
+        AudioSystem.play('skillUnlock');
+      }
+    }
+  };
+
+  /** Hack complete — convert enemy to friendly (disable hostile AI). */
+  private onHackComplete = (payload: unknown): void => {
+    const data = payload as { enemyId: string };
+    for (const enemy of this.enemies) {
+      if (enemy.id === data.enemyId) {
+        // Mark as hacked — enemy stops attacking player
+        (enemy as unknown as { hacked?: boolean }).hacked = true;
+        this.hud?.toast(getLocale() === 'fa' ? '◆ دشمن هک شد' : '◆ ENEMY HACKED');
+        // Visual: green tint (will be handled in enemy updateFlash)
+        this.particles.sparks(enemy.position.x, enemy.position.y, 0x40ff80, 10);
+        break;
+      }
+    }
+  };
+
   // ================ GAMEOVER / VICTORY ================
 
   private buildGameOver(): void {
@@ -1492,6 +1556,8 @@ export class GameScene extends Phaser.Scene {
     EventBus.off('LEVEL_UP');
     EventBus.off('SKILL_UNLOCKED');
     EventBus.off('ABILITY_UNLOCKED');
+    EventBus.off('EMP_PULSE', this.onEmpPulse, this);
+    EventBus.off('HACK_COMPLETE', this.onHackComplete, this);
     OverlayManager.destroy();
     InputSystem.destroy();
   }

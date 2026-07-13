@@ -723,3 +723,96 @@ Stage Summary:
 - Files modified: InputSystem.ts, GamepadManager.ts, InputSchemeManager.ts, PauseMenuUI.ts, SettingsUI.ts, SkillTreeUI.ts, InventoryUI.ts, QuestUI.ts, WorldMapUI.ts, MechaSpriteFactory.ts, PlayerEntity.ts, EnemyEntity.ts, SaveSystem.ts, GameScene.ts, en.json, fa.json
 - TypeScript: clean. Next.js build: success.
 - Combat now feels Heavy·Precise·Punishing: attacks lock movement, enemies stagger on posture break (crit window), death costs 50% XP. All UI text renders Persian correctly. Gamepad mapping matches user's PS4/Xbox preferences. Network Echo NPC is a holographic data fragment (not a ghost) per World Bible.
+
+---
+Task ID: phase4-abilities
+Agent: main
+Task: Implement 4 missing abilities (Hover, Grapple, EMP, Hack) per Game Director priority 1. Add Memory Layer rule. Add ability-gated content (grapple anchors, EMP doors) for Metroidvania design.
+
+Work Log:
+- Added Rule 7 to RULES.md: "Every Area must have at least one reason the player remembers it 10 minutes later" — the Memory Layer rule. Not boss, not loot, but a moment.
+
+- Extended InputSystem with grapple + emp actions:
+  * New InputCallbacks: grapple, emp
+  * New InputState fields: heldJump, grapplePressed, empPressed
+  * Keyboard: F = grapple, G = emp
+  * Gamepad: D-pad Up (btn 12) = grapple, D-pad Down (btn 13) = emp
+  * D-pad Left/Right still overrides left stick (Up/Down now reserved for abilities)
+  * Added heldJump to InputState for hover ability
+
+- Updated InputSchemeManager with grapple + emp labels:
+  * KB: grapple='F', emp='G'
+  * Xbox: grapple='D-UP', emp='D-DOWN'
+  * PS: grapple='D-UP', emp='D-DOWN'
+
+- Implemented 4 abilities in PlayerEntity:
+
+  HOVER (tryHover):
+  * Hold jump button in mid-air (when falling) to slow descent
+  * Velocity set to -1.5 (slow fall)
+  * Drains 30 energy/sec
+  * Visual: cyan thruster flame particles downward
+  * Requires 'hover' ability unlocked
+
+  GRAPPLE (tryGrapple + updateGrapple):
+  * Fires toward nearest grapple anchor within 320px range + in aim direction (dot > 0.5)
+  * Pulls player toward anchor at 14 speed
+  * Duration: 600ms, Cooldown: 800ms
+  * Visual: cyan line from player to anchor (fades on release)
+  * Requires 'grapple' ability unlocked
+  * Needs grapple anchor entities in world (data-driven)
+
+  EMP (tryEMP):
+  * Emits circular pulse, 200px radius
+  * Costs 40 energy, 3s cooldown
+  * Stuns enemies in radius (via EMP_HIT event)
+  * Opens EMP-locked doors (via EMP_PULSE event)
+  * Visual: 2 expanding cyan rings + screen flash + camera shake + spark bursts
+  * Requires 'emp' ability unlocked
+
+  HACK (tryHack + completeHack):
+  * Hold interact near hackable enemy (within 60px)
+  * Progress bar fills over 1.5s (green bar above enemy)
+  * On success: enemy becomes friendly (stops attacking player, green sparks)
+  * Emits HACK_COMPLETE event for GameScene
+  * Requires 'hack' ability unlocked
+  * drone + flying_ai are hackable (data flag)
+
+- Added setExternalRefs() to PlayerEntity — GameScene passes enemies array + grapple anchor positions
+- Added updatePlayerExternalRefs() to GameScene — called in buildPlay + enterSection
+
+- Added ability-gated content types to types.ts:
+  * GrappleAnchorData { id, x, y }
+  * EmpDoorData { id, x, y, w, h }
+  * Added grappleAnchors + empDoors to SectionData
+  * Added hackable flag to EnemyData
+
+- Added content to acts.ts:
+  * Section 3 (Vertical Shaft): 2 grapple anchors at high positions (enable reaching secret area)
+  * Section 4 (Assembly Hall): 1 EMP door blocking upper catwalk secret area
+
+- Updated AreaLoader:
+  * createGrappleAnchor(): glowing cyan ring with pulsing glow, rotating spokes, center dot
+  * createEmpDoor(): magenta barrier with animated energy field lines + lock icon
+  * Both added to LoadedArea interface + unload() cleanup
+
+- Updated EnemyEntity:
+  * Added hacked flag (public)
+  * Hacked enemies: never aggro player, never attack, green tint + periodic green sparks
+  * handleEnemyContact in GameScene: checks hacked flag, skips damage
+
+- Updated GameScene:
+  * EventBus listeners for EMP_PULSE (opens EMP doors in range) + HACK_COMPLETE (marks enemy hacked)
+  * onEmpPulse: opens EMP doors with spark burst + toast + sound
+  * onHackComplete: marks enemy hacked + green sparks + toast
+  * Cleanup in shutdown()
+
+- Updated ControlHintsUI: now shows 7 slots — JUMP, DASH, FIRE, MELEE, GRAPPLE, EMP, INTERACT (removed MOVE + PAUSE to make room)
+
+Stage Summary:
+- Files modified: RULES.md (Rule 7), InputSystem.ts, InputSchemeManager.ts, PlayerEntity.ts, EnemyEntity.ts, GameScene.ts, AreaLoader.ts, ControlHintsUI.ts, types.ts, enemies.ts, acts.ts
+- TypeScript: clean. Next.js build: success.
+- All 4 abilities now functional: Hover (passive, hold jump), Grapple (F/D-Up, pulls to anchors), EMP (G/D-Down, stuns + opens doors), Hack (hold interact near hackable enemy).
+- 2 grapple anchors in S3, 1 EMP door in S4 — first Metroidvania ability-gated content.
+- drone + flying_ai hackable. Hacked enemies become friendly (green tint, no damage to player).
+- Memory Layer rule added to RULES.md.

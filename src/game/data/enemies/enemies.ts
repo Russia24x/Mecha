@@ -23,6 +23,7 @@ export const ENEMIES: Record<EnemyTypeId, EnemyData> = {
     bulletDamage: 6,
     timings: { telegraphMs: 500, windowMs: 200, recoveryMs: 600 },
     drops: [{ itemId: 'scrap_metal', chance: 0.35, minAmount: 1, maxAmount: 2 }],
+    hackable: true,  // Drones are AI-controlled — can be hacked
   },
   spider: {
     id: 'spider',
@@ -97,6 +98,7 @@ export const ENEMIES: Record<EnemyTypeId, EnemyData> = {
     bulletDamage: 8,
     timings: { telegraphMs: 300, windowMs: 150, recoveryMs: 400 },
     drops: [{ itemId: 'ai_chip', chance: 0.4, minAmount: 1, maxAmount: 1 }],
+    hackable: true,  // Flying AI units are hackable
   },
   elite: {
     id: 'elite',

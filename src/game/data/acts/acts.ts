@@ -116,6 +116,10 @@ export const ACTS: ActData[] = [
               ], loreObjects: [
                 { id: 'lore_s3_echo', type: 'echo', x: 2780, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
                 { id: 'lore_s3_secret', type: 'terminal', x: 2760, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
+              ], grappleAnchors: [
+                // Grapple anchors — placed high to enable grapple-reach to secret area
+                { id: 'grapple_s3_1', x: 2950, y: 60 },
+                { id: 'grapple_s3_2', x: 3400, y: 220 },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -143,6 +147,9 @@ export const ACTS: ActData[] = [
                 { id: 'lore_s4_corpse', type: 'corpse', x: 4380, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], landmarks: [
                 { id: 'lm_s4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 240, h: 100, color: 0x2a3040 },
+              ], empDoors: [
+                // EMP-locked door — blocks access to upper catwalk secret area
+                { id: 'empdoor_s4_1', x: 4360, y: 240, w: 80, h: 16 },
               ]},
 
               // ═══════════════════════════════════════════════════════════════

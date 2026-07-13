@@ -118,3 +118,25 @@ gameplay logic, or progression systems.
 
 > **Every step reveals a forgotten truth. Every battle asks a forgotten question.**
 > **The world is not waiting to be saved. It is waiting to be understood.**
+
+---
+
+## قانون ۷ — Memory Layer
+
+> **هر Area باید حداقل یک دلیل داشته باشد که بازیکن ۱۰ دقیقه بعد هنوز آن را به خاطر بیاورد.**
+
+نه به خاطر باس.
+نه به خاطر Loot.
+بلکه به خاطر یک لحظه خاص.
+
+این لحظه می‌تواند باشد:
+- یک مکا که سال‌ها همان‌جا افتاده، با پنل چشمک‌زن "AWAITING ORDER"
+- رد گلوله‌های قدیمی روی دیوار
+- صدای دوردست کارخانه که گاهی شنیده می‌شود
+- ترمینالی که فقط دو خط متن دارد
+- چراغی که هنوز بعد از سال‌ها چشمک می‌زند
+- یک NPC که چیزی را نگفته، اما حضورش معنا دارد
+
+این **Memory Layer** است — نه Story، نه Cutscene، بلکه خاطره.
+
+اگر یک Area این لحظه را نداشته باشد، طراحی شکست خورده — حتی اگر گرافیک، مبارزه و لور کامل باشد.

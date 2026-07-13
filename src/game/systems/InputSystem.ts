@@ -25,6 +25,8 @@ export interface InputCallbacks {
   interact?: () => void;
   weaponNext?: () => void;
   weaponPrev?: () => void;
+  grapple?: () => void;
+  emp?: () => void;
 }
 
 export interface InputState {
@@ -33,6 +35,7 @@ export interface InputState {
   heldUp: boolean;
   heldDown: boolean;
   heldFire: boolean;
+  heldJump: boolean;
   jumpPressed: boolean;
   firePressed: boolean;
   meleePressed: boolean;
@@ -42,6 +45,8 @@ export interface InputState {
   pausePressed: boolean;
   interactPressed: boolean;
   backPressed: boolean;
+  grapplePressed: boolean;
+  empPressed: boolean;
   leftStickX: number;
   leftStickY: number;
   rightStickX: number;
@@ -60,6 +65,8 @@ interface EdgeBuffer {
   pause: boolean;
   interact: boolean;
   back: boolean;
+  grapple: boolean;
+  emp: boolean;
 }
 
 /** Keyboard held-state (for auto-repeat prevention + held movement). */
@@ -76,14 +83,17 @@ interface KbHeldState {
   right: boolean;
   up: boolean;
   down: boolean;
+  grapple: boolean;
+  emp: boolean;
 }
 
 export class InputSystem {
   private static state: InputState = {
-    heldLeft: false, heldRight: false, heldUp: false, heldDown: false, heldFire: false,
+    heldLeft: false, heldRight: false, heldUp: false, heldDown: false, heldFire: false, heldJump: false,
     jumpPressed: false, firePressed: false, meleePressed: false, dashPressed: false,
     weaponNextPressed: false, weaponPrevPressed: false, pausePressed: false, interactPressed: false,
     backPressed: false,
+    grapplePressed: false, empPressed: false,
     leftStickX: 0, leftStickY: 0, rightStickX: 0, rightStickY: 0,
     gamepadConnected: false,
   };
@@ -100,6 +110,7 @@ export class InputSystem {
   private static kbEdge: EdgeBuffer = {
     jump: false, fire: false, melee: false, dash: false,
     weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false,
+    grapple: false, emp: false,
   };
 
   // Keyboard held state — tracks which keys are physically held (for auto-repeat prevention)
@@ -107,6 +118,7 @@ export class InputSystem {
     jump: false, fire: false, melee: false, dash: false,
     weaponNext: false, weaponPrev: false, pause: false, interact: false,
     left: false, right: false, up: false, down: false,
+    grapple: false, emp: false,
   };
 
   static init(): void {
@@ -149,6 +161,22 @@ export class InputSystem {
             this.kbHeld.weaponPrev = true;
             this.kbEdge.weaponPrev = true;
             this.callbacks.weaponPrev?.();
+          }
+          break;
+        case 'KeyF':
+          // Grapple ability
+          if (!this.kbHeld.grapple) {
+            this.kbHeld.grapple = true;
+            this.kbEdge.grapple = true;
+            this.callbacks.grapple?.();
+          }
+          break;
+        case 'KeyG':
+          // EMP ability
+          if (!this.kbHeld.emp) {
+            this.kbHeld.emp = true;
+            this.kbEdge.emp = true;
+            this.callbacks.emp?.();
           }
           break;
         case 'Escape':
@@ -194,6 +222,8 @@ export class InputSystem {
         case 'KeyK': this.kbHeld.melee = false; break;
         case 'KeyE': this.kbHeld.interact = false; break;
         case 'KeyQ': this.kbHeld.weaponPrev = false; break;
+        case 'KeyF': this.kbHeld.grapple = false; break;
+        case 'KeyG': this.kbHeld.emp = false; break;
         case 'Escape': this.kbHeld.pause = false; break;
         case 'ShiftLeft': case 'ShiftRight': this.kbHeld.dash = false; break;
         case 'KeyA': case 'ArrowLeft':
@@ -272,19 +302,22 @@ export class InputSystem {
         if (edge(5)) { gpWeaponNext = true; this.callbacks.weaponNext?.(); }
         if (edge(4)) { gpWeaponPrev = true; this.callbacks.weaponPrev?.(); }
         if (edge(9)) { gpPause = true; this.callbacks.pause?.(); }
+        // Grapple = D-pad Up (button 12), EMP = D-pad Down (button 13)
+        if (edge(12)) { this.kbEdge.grapple = true; this.callbacks.grapple?.(); }
+        if (edge(13)) { this.kbEdge.emp = true; this.callbacks.emp?.(); }
 
-        // D-pad overrides
-        if (held(12)) this.state.leftStickY = -1;
-        if (held(13)) this.state.leftStickY = 1;
+        // D-pad Left/Right overrides left stick for movement (Up/Down reserved for abilities)
         if (held(14)) this.state.leftStickX = -1;
         if (held(15)) this.state.leftStickX = 1;
 
-        // Held fire = keyboard J held OR gamepad X/RT held
+        // Held states
         this.state.heldFire = this.kbHeld.fire || held(2) || held(7);
+        this.state.heldJump = this.kbHeld.jump || held(0);
         this.prevButtons = btns;
       } else {
         this.state.gamepadConnected = false;
         this.state.heldFire = this.kbHeld.fire;
+        this.state.heldJump = this.kbHeld.jump;
         // Reset axes when no gamepad
         this.state.leftStickX = 0;
         this.state.leftStickY = 0;
@@ -293,6 +326,7 @@ export class InputSystem {
       }
     } else {
       this.state.heldFire = this.kbHeld.fire;
+      this.state.heldJump = this.kbHeld.jump;
     }
 
     // *** MERGE keyboard edges + gamepad edges into state ***
@@ -306,6 +340,8 @@ export class InputSystem {
     this.state.pausePressed = this.kbEdge.pause || gpPause;
     this.state.interactPressed = this.kbEdge.interact || gpInteract;
     this.state.backPressed = this.kbEdge.back || gpBack;
+    this.state.grapplePressed = this.kbEdge.grapple;
+    this.state.empPressed = this.kbEdge.emp;
 
     // Clear keyboard edges (consumed by GameScene this frame)
     this.kbEdge.jump = false;
@@ -317,6 +353,8 @@ export class InputSystem {
     this.kbEdge.pause = false;
     this.kbEdge.interact = false;
     this.kbEdge.back = false;
+    this.kbEdge.grapple = false;
+    this.kbEdge.emp = false;
   }
 
   static getState(): Readonly<InputState> { return this.state; }
@@ -335,8 +373,8 @@ export class InputSystem {
     this.onGamepadConnected = null;
     this.onGamepadDisconnected = null;
     this.callbacks = {};
-    this.kbEdge = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false };
-    this.kbHeld = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, left: false, right: false, up: false, down: false };
+    this.kbEdge = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false, grapple: false, emp: false };
+    this.kbHeld = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, left: false, right: false, up: false, down: false, grapple: false, emp: false };
   }
 
   static isGamepadAvailable(): boolean {

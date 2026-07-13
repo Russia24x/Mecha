@@ -20,6 +20,8 @@ export interface LoadedArea {
   visualRects: Phaser.GameObjects.Rectangle[];
   loreObjects: Phaser.GameObjects.Container[];
   landmarks: Phaser.GameObjects.Container[];
+  grappleAnchors: Phaser.GameObjects.Container[];
+  empDoors: Phaser.GameObjects.Container[];
 }
 
 export class AreaLoader {
@@ -45,6 +47,8 @@ export class AreaLoader {
       visualRects: [],
       loreObjects: [],
       landmarks: [],
+      grappleAnchors: [],
+      empDoors: [],
     };
 
     // Floor (spans entire area)
@@ -121,6 +125,84 @@ export class AreaLoader {
         result.landmarks.push(container);
       }
     }
+    // Grapple Anchors — ability-gated (Metroidvania)
+    if (section.grappleAnchors) {
+      for (const anchor of section.grappleAnchors) {
+        const container = this.createGrappleAnchor(anchor);
+        result.grappleAnchors.push(container);
+      }
+    }
+    // EMP Doors — ability-gated (Metroidvania)
+    if (section.empDoors) {
+      for (const door of section.empDoors) {
+        const container = this.createEmpDoor(door);
+        result.empDoors.push(container);
+      }
+    }
+  }
+
+  /** Create a grapple anchor — glowing ring that the player can grapple to. */
+  private createGrappleAnchor(anchor: { id: string; x: number; y: number }): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(anchor.x, anchor.y);
+    // Outer glow ring (pulsing cyan)
+    const glow = this.scene.add.circle(0, 0, 14, 0x66f0ff, 0.15);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(glow);
+    this.scene.tweens.add({
+      targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.2 },
+      duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+    // Inner ring (solid)
+    const ring = this.scene.add.circle(0, 0, 8, 0x66f0ff, 0);
+    ring.setStrokeStyle(2, 0x66f0ff, 0.8);
+    container.add(ring);
+    // Center dot
+    const dot = this.scene.add.circle(0, 0, 2, 0x66f0ff, 0.9);
+    dot.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(dot);
+    // Rotating spokes (4 small lines)
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2;
+      const spoke = this.scene.add.rectangle(
+        Math.cos(angle) * 6, Math.sin(angle) * 6, 4, 1, 0x66f0ff, 0.6
+      );
+      spoke.setRotation(angle);
+      spoke.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(spoke);
+    }
+    // Slow rotation
+    this.scene.tweens.add({ targets: container, rotation: Math.PI * 2, duration: 4000, repeat: -1, ease: 'Linear' });
+    container.setDepth(6);
+    container.setData('grappleAnchorId', anchor.id);
+    container.setData('isGrappleAnchor', true);
+    return container;
+  }
+
+  /** Create an EMP door — locked barrier that opens when hit by EMP pulse. */
+  private createEmpDoor(door: { id: string; x: number; y: number; w: number; h: number }): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(door.x, door.y);
+    // Door body (magenta barrier)
+    const body = this.scene.add.rectangle(0, 0, door.w, door.h, 0x602080, 0.6);
+    body.setStrokeStyle(2, 0xc060ff, 0.8);
+    container.add(body);
+    // Energy field lines (horizontal, animated)
+    for (let i = 0; i < 3; i++) {
+      const line = this.scene.add.rectangle(0, -door.h / 4 + i * door.h / 4, door.w - 4, 1, 0xc060ff, 0.5);
+      line.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(line);
+      this.scene.tweens.add({
+        targets: line, alpha: { from: 0.2, to: 0.7 }, duration: 600 + i * 200, yoyo: true, repeat: -1,
+      });
+    }
+    // Lock indicator (small icon)
+    const lock = this.scene.add.text(0, 0, '🔒', { fontSize: '10px', color: '#c060ff' }).setOrigin(0.5);
+    container.add(lock);
+    container.setDepth(7);
+    container.setData('empDoorId', door.id);
+    container.setData('isEmpDoor', true);
+    container.setData('empDoorOpen', false);
+    container.setSize(door.w, door.h);
+    return container;
   }
 
   private addSolid(result: LoadedArea, x: number, y: number, w: number, h: number): void {
@@ -827,6 +909,8 @@ export class AreaLoader {
     loaded.bossEntryTrigger?.destroy();
     loaded.loreObjects.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.landmarks.forEach(l => { if (l && l.active) l.destroy(); });
+    loaded.grappleAnchors.forEach(a => { if (a && a.active) a.destroy(); });
+    loaded.empDoors.forEach(d => { if (d && d.active) d.destroy(); });
     loaded.solids = [];
     loaded.sectionTriggers = [];
     loaded.checkpointTriggers = [];
@@ -835,6 +919,8 @@ export class AreaLoader {
     loaded.visualRects = [];
     loaded.loreObjects = [];
     loaded.landmarks = [];
+    loaded.grappleAnchors = [];
+    loaded.empDoors = [];
   }
 }
 

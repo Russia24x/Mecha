@@ -64,16 +64,16 @@ export class ControlHintsUI {
 
     // Hint slots — each tied to a GameAction
     const hints: { action: GameAction; label: string }[] = [
-      { action: 'move',         label: 'MOVE' },
       { action: 'jump',         label: 'JUMP' },
       { action: 'dash',         label: 'DASH' },
       { action: 'fire',         label: 'FIRE' },
       { action: 'melee',        label: 'MELEE' },
+      { action: 'grapple',      label: 'GRAPPLE' },
+      { action: 'emp',          label: 'EMP' },
       { action: 'interact',     label: 'INTERACT' },
-      { action: 'pause',        label: 'PAUSE' },
     ];
 
-    const slotW = 130;
+    const slotW = 115;
     const totalW = hints.length * slotW;
     const startX = (w - totalW) / 2 + slotW / 2;
 

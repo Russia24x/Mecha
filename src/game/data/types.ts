@@ -120,6 +120,7 @@ export interface EnemyData {
   chargeSpeed?: number;
   timings: { telegraphMs: number; windowMs: number; recoveryMs: number };
   drops?: DropTable[];
+  hackable?: boolean;  // Can be hacked with the Hack ability
 }
 
 export interface DropTable {
@@ -214,6 +215,8 @@ export interface SectionData {
   hazards?: HazardData[];
   loreObjects?: LoreObjectData[];
   landmarks?: LandmarkData[];
+  grappleAnchors?: GrappleAnchorData[];
+  empDoors?: EmpDoorData[];
 }
 
 export interface LoreObjectData {
@@ -249,6 +252,21 @@ export interface HazardData {
   w: number;
   h: number;
   damage: number;
+}
+
+// ── Ability-gated content (Metroidvania) ──
+export interface GrappleAnchorData {
+  id: string;
+  x: number;
+  y: number;
+}
+
+export interface EmpDoorData {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
 }
 
 export interface ParallaxLayerData {
@@ -352,4 +370,7 @@ export type GameEvent =
   | 'DIALOGUE_END'
   | 'AREA_ENTER'
   | 'ABILITY_UNLOCKED'
-  | 'INPUT_SCHEME_CHANGED';
+  | 'INPUT_SCHEME_CHANGED'
+  | 'EMP_PULSE'
+  | 'EMP_HIT'
+  | 'HACK_COMPLETE';
