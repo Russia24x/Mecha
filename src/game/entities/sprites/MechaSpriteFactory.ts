@@ -74,7 +74,7 @@ export class MechaSpriteFactory {
     return this.buildPlayerBase(scene, primaryColor, accentColor, {
       bodyScale: 0.85, legScale: 0.8, headScale: 0.9,
       walkAmplitude: 0.10, walkSpeed: 1.4, bobAmount: 1.5,
-      hasShoulderCannons: false, bodyColor: primaryColor, accentColor,
+      hasShoulderCannons: false, bodyColor: primaryColor, accentColor, chassisType: 'scout',
     });
   }
 
@@ -86,7 +86,7 @@ export class MechaSpriteFactory {
     return this.buildPlayerBase(scene, primaryColor, accentColor, {
       bodyScale: 1.0, legScale: 1.0, headScale: 1.0,
       walkAmplitude: 0.12, walkSpeed: 1.0, bobAmount: 2,
-      hasShoulderCannons: false, bodyColor: primaryColor, accentColor,
+      hasShoulderCannons: false, bodyColor: primaryColor, accentColor, chassisType: 'scout',
     });
   }
 
@@ -98,7 +98,7 @@ export class MechaSpriteFactory {
     return this.buildPlayerBase(scene, primaryColor, accentColor, {
       bodyScale: 1.2, legScale: 1.3, headScale: 1.1,
       walkAmplitude: 0.16, walkSpeed: 0.7, bobAmount: 3,
-      hasShoulderCannons: true, bodyColor: primaryColor, accentColor,
+      hasShoulderCannons: true, bodyColor: primaryColor, accentColor, chassisType: 'titan',
     });
   }
 
@@ -115,15 +115,13 @@ export class MechaSpriteFactory {
       walkAmplitude: number; walkSpeed: number; bobAmount: number;
       hasShoulderCannons: boolean;
       bodyColor: number; accentColor: number;
+      chassisType: 'scout' | 'assault' | 'titan';
     },
   ): MechVisualHandle {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
+    const ct = config.chassisType;
 
-    // ── Shadow (ground projection) ──
-    const shadow = scene.add.ellipse(0, 28, 50, 12, 0x000000, 0.5);
-    shadow.setDepth(-1);
-    parts.push(shadow);
 
     // ── Leg thruster glow (back layer, intensifies on jump/dash) ──
     const thrusterL = scene.add.circle(-9, 16, 6, 0xffc040, 0);
@@ -133,34 +131,82 @@ export class MechaSpriteFactory {
     thrusterR.setBlendMode(Phaser.BlendModes.ADD); thrusterR.setDepth(0);
     parts.push(thrusterR);
 
-    // ── Legs (armored, two-tone) ──
+    // ── Legs — shape varies by chassis type ──
     const legL = scene.add.graphics();
     legL.setDepth(2);
-    legL.fillStyle(config.bodyColor, 1); legL.fillRect(-13, 4, 10, 18);
-    legL.fillStyle(0x1a2030, 1); legL.fillRect(-13, 18, 10, 4);
-    legL.fillStyle(config.accentColor, 0.6); legL.fillRect(-12, 6, 8, 2);
-    legL.lineStyle(1, config.accentColor, 0.5); legL.strokeRect(-13, 4, 10, 18);
-    parts.push(legL);
     const legR = scene.add.graphics();
     legR.setDepth(2);
-    legR.fillStyle(config.bodyColor, 1); legR.fillRect(3, 4, 10, 18);
-    legR.fillStyle(0x1a2030, 1); legR.fillRect(3, 18, 10, 4);
-    legR.fillStyle(config.accentColor, 0.6); legR.fillRect(4, 6, 8, 2);
-    legR.lineStyle(1, config.accentColor, 0.5); legR.strokeRect(3, 4, 10, 18);
-    parts.push(legR);
+    if (ct === 'scout') {
+      // Scout: thin, tapered legs (agile)
+      legL.fillStyle(config.bodyColor, 1); legL.fillRoundedRect(-12, 4, 8, 20, 2);
+      legL.fillStyle(0x1a2030, 1); legL.fillRoundedRect(-12, 20, 8, 4, 1);
+      legL.fillStyle(config.accentColor, 0.5); legL.fillRect(-11, 6, 6, 1);
+      legL.lineStyle(1, config.accentColor, 0.4); legL.strokeRoundedRect(-12, 4, 8, 20, 2);
+      legR.fillStyle(config.bodyColor, 1); legR.fillRoundedRect(4, 4, 8, 20, 2);
+      legR.fillStyle(0x1a2030, 1); legR.fillRoundedRect(4, 20, 8, 4, 1);
+      legR.fillStyle(config.accentColor, 0.5); legR.fillRect(5, 6, 6, 1);
+      legR.lineStyle(1, config.accentColor, 0.4); legR.strokeRoundedRect(4, 4, 8, 20, 2);
+    } else if (ct === 'titan') {
+      // Titan: thick, blocky legs (heavy stomp)
+      legL.fillStyle(config.bodyColor, 1); legL.fillRoundedRect(-16, 4, 14, 22, 3);
+      legL.fillStyle(0x1a2030, 1); legL.fillRect(-16, 22, 14, 6);
+      legL.fillStyle(config.accentColor, 0.6); legL.fillRect(-14, 8, 10, 2);
+      legL.fillStyle(0x5a6a80, 0.6); legL.fillCircle(-14, 14, 1.5); legL.fillCircle(-8, 14, 1.5);
+      legL.lineStyle(1, config.accentColor, 0.5); legL.strokeRoundedRect(-16, 4, 14, 22, 3);
+      legR.fillStyle(config.bodyColor, 1); legR.fillRoundedRect(2, 4, 14, 22, 3);
+      legR.fillStyle(0x1a2030, 1); legR.fillRect(2, 22, 14, 6);
+      legR.fillStyle(config.accentColor, 0.6); legR.fillRect(4, 8, 10, 2);
+      legR.fillStyle(0x5a6a80, 0.6); legR.fillCircle(4, 14, 1.5); legR.fillCircle(10, 14, 1.5);
+      legR.lineStyle(1, config.accentColor, 0.5); legR.strokeRoundedRect(2, 4, 14, 22, 3);
+    } else {
+      // Assault: standard legs (balanced)
+      legL.fillStyle(config.bodyColor, 1); legL.fillRect(-13, 4, 10, 18);
+      legL.fillStyle(0x1a2030, 1); legL.fillRect(-13, 18, 10, 4);
+      legL.fillStyle(config.accentColor, 0.6); legL.fillRect(-12, 6, 8, 2);
+      legL.lineStyle(1, config.accentColor, 0.5); legL.strokeRect(-13, 4, 10, 18);
+      legR.fillStyle(config.bodyColor, 1); legR.fillRect(3, 4, 10, 18);
+      legR.fillStyle(0x1a2030, 1); legR.fillRect(3, 18, 10, 4);
+      legR.fillStyle(config.accentColor, 0.6); legR.fillRect(4, 6, 8, 2);
+      legR.lineStyle(1, config.accentColor, 0.5); legR.strokeRect(3, 4, 10, 18);
+    }
+    parts.push(legL, legR);
 
-    // ── Torso (armored chest with core reactor) ──
+    // ── Torso — shape varies by chassis type ──
     const torso = scene.add.graphics();
     torso.setDepth(5);
-    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-16, -16, 32, 26, 4);
-    torso.fillStyle(0x2a4060, 1); torso.fillRoundedRect(-14, -14, 28, 6, 2);
-    torso.fillStyle(0x101820, 1); torso.fillRoundedRect(-12, 4, 24, 6, 2);
-    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-20, -14, 6, 14, 2);
-    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(14, -14, 6, 14, 2);
-    torso.lineStyle(2, config.accentColor, 0.8); torso.strokeRoundedRect(-16, -16, 32, 26, 4);
-    torso.fillStyle(0x5a6a80, 0.7);
-    torso.fillCircle(-12, -10, 1); torso.fillCircle(12, -10, 1);
-    torso.fillCircle(-12, 6, 1); torso.fillCircle(12, 6, 1);
+    if (ct === 'scout') {
+      // Scout: slim V-shaped torso (agile silhouette)
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-14, -14, 28, 24, 4);
+      torso.fillStyle(0x2a4060, 1); torso.fillRoundedRect(-12, -12, 24, 5, 2);
+      torso.fillStyle(0x101820, 1); torso.fillRoundedRect(-10, 3, 20, 5, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-18, -12, 5, 12, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(13, -12, 5, 12, 2);
+      torso.lineStyle(2, config.accentColor, 0.8); torso.strokeRoundedRect(-14, -14, 28, 24, 4);
+    } else if (ct === 'titan') {
+      // Titan: wide, bulky torso with extra armor plates
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-20, -18, 40, 30, 5);
+      torso.fillStyle(0x2a4060, 1); torso.fillRoundedRect(-18, -16, 36, 7, 3);
+      torso.fillStyle(0x101820, 1); torso.fillRoundedRect(-15, 4, 30, 8, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-26, -16, 8, 16, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(18, -16, 8, 16, 2);
+      // Extra armor plates
+      torso.fillStyle(0x3a4050, 0.8); torso.fillRoundedRect(-12, -8, 24, 10, 2);
+      torso.lineStyle(2, config.accentColor, 0.8); torso.strokeRoundedRect(-20, -18, 40, 30, 5);
+      torso.fillStyle(0x6a7080, 0.7);
+      torso.fillCircle(-15, -12, 1.5); torso.fillCircle(15, -12, 1.5);
+      torso.fillCircle(-15, 8, 1.5); torso.fillCircle(15, 8, 1.5);
+    } else {
+      // Assault: standard torso
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-16, -16, 32, 26, 4);
+      torso.fillStyle(0x2a4060, 1); torso.fillRoundedRect(-14, -14, 28, 6, 2);
+      torso.fillStyle(0x101820, 1); torso.fillRoundedRect(-12, 4, 24, 6, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-20, -14, 6, 14, 2);
+      torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(14, -14, 6, 14, 2);
+      torso.lineStyle(2, config.accentColor, 0.8); torso.strokeRoundedRect(-16, -16, 32, 26, 4);
+      torso.fillStyle(0x5a6a80, 0.7);
+      torso.fillCircle(-12, -10, 1); torso.fillCircle(12, -10, 1);
+      torso.fillCircle(-12, 6, 1); torso.fillCircle(12, 6, 1);
+    }
     parts.push(torso);
 
     // ── Core reactor (glowing amber, pulsing) ──
@@ -243,15 +289,36 @@ export class MechaSpriteFactory {
       },
       // ── Restore old walking animation: leg swing via sine phase ──
       setWalkPhase: (phase: number, isMoving: boolean, isJumping: boolean) => {
+        const walkAmp = config.walkAmplitude;
+        const walkSpd = config.walkSpeed;
         if (isJumping) {
-          legL.setRotation(-20 * Math.PI / 180);
-          legR.setRotation(20 * Math.PI / 180);
+          // Jump pose varies by chassis
+          if (ct === 'scout') {
+            // Scout: legs tucked tight (agile leap)
+            legL.setRotation(-25 * Math.PI / 180);
+            legR.setRotation(15 * Math.PI / 180);
+          } else if (ct === 'titan') {
+            // Titan: legs spread wide (heavy launch)
+            legL.setRotation(-12 * Math.PI / 180);
+            legR.setRotation(12 * Math.PI / 180);
+          } else {
+            legL.setRotation(-20 * Math.PI / 180);
+            legR.setRotation(20 * Math.PI / 180);
+          }
         } else if (isMoving) {
-          legL.setRotation(Math.sin(phase) * 12 * Math.PI / 180);
-          legR.setRotation(Math.sin(phase + Math.PI) * 12 * Math.PI / 180);
+          // Walk cycle — amplitude + speed varies by chassis
+          const amp = walkAmp * 180 * Math.PI / 180;  // convert to radians
+          legL.setRotation(Math.sin(phase * walkSpd) * amp);
+          legR.setRotation(Math.sin(phase * walkSpd + Math.PI) * amp);
         } else {
-          legL.setRotation(0);
-          legR.setRotation(0);
+          // Idle — slight breathing sway for scout, solid for titan
+          if (ct === 'scout') {
+            legL.setRotation(Math.sin(phase * 0.3) * 0.02);
+            legR.setRotation(-Math.sin(phase * 0.3) * 0.02);
+          } else {
+            legL.setRotation(0);
+            legR.setRotation(0);
+          }
         }
       },
       // ── Gun barrel rotation toward aim direction (all-direction aim) ──

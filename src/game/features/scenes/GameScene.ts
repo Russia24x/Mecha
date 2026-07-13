@@ -589,29 +589,29 @@ export class GameScene extends Phaser.Scene {
 
       // Image preview with proper mask
       if (this.textures.exists('factory_bg_2')) {
-        const previewImg = this.add.image(x, previewY, 'factory_bg_2');
-        previewImg.setDepth(2.6);
+        // ── FIX: Use a container + bitmap mask for reliable clipping ──
+        const imgContainer = this.add.container(x, previewY);
+        imgContainer.setDepth(2.6);
+        const previewImg = this.add.image(0, 0, 'factory_bg_2');
         const tex = this.textures.get('factory_bg_2').getSourceImage();
         const imgAR = tex.width / tex.height;
         const frameAR = previewW / previewH;
-        // Cover fit: scale so image fills the frame, overflow gets masked
+        // Cover fit: scale image so it covers the frame
         let scale: number;
         if (imgAR > frameAR) {
-          // Image wider — fit height, crop width
-          scale = previewH / tex.height;
+          scale = previewH / tex.height;  // fit height, overflow width
         } else {
-          // Image taller — fit width, crop height
-          scale = previewW / tex.width;
+          scale = previewW / tex.width;   // fit width, overflow height
         }
         previewImg.setScale(scale);
-        // Mask: fill a rectangle at the IMAGE's position in screen space
-        // Geometry masks work in world coordinates, so we draw at the image's center
-        const maskShape = this.make.graphics({ x: 0, y: 0 }, false);
-        maskShape.fillStyle(0xffffff, 1);
-        maskShape.fillRect(x - previewW / 2, previewY - previewH / 2, previewW, previewH);
-        const mask = maskShape.createGeometryMask();
-        previewImg.setMask(mask);
-        c.add(previewImg);
+        imgContainer.add(previewImg);
+        // Clip with a graphics mask drawn in container-local coordinates
+        const maskGfx = this.make.graphics({ x: 0, y: 0 }, false);
+        maskGfx.fillStyle(0xffffff, 1);
+        maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
+        const mask = maskGfx.createGeometryMask();
+        imgContainer.setMask(mask);
+        c.add(imgContainer);
 
         // Darken if locked
         if (!area.unlocked) {
