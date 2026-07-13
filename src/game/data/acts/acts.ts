@@ -54,8 +54,15 @@ export const ACTS: ActData[] = [
                 // Upper ledge (double jump reachable — secret area)
                 { x: 550, y: 280, w: 120, h: 20 },
                 { x: 780, y: 180, w: 80, h: 20 },
-                // Far wall (visual boundary)
-                { x: 1200, y: 360, w: 40, h: 360 },
+                // ── FIX: Far wall has a GAP where the shortcut door sits ──
+                // Wall TOP section (above shortcut gap)
+                { x: 1200, y: 360, w: 40, h: 200 },   // y=260 to y=460
+                // Wall BOTTOM section (below shortcut gap)
+                { x: 1200, y: 600, w: 40, h: 120 },   // y=540 to y=660
+                // GAP is at y=460 to y=540 — shortcut door fills this gap
+                // When shortcut opens, player can walk through to S6
+                // Platform on the S6 side (so player doesn't fall)
+                { x: 1260, y: 500, w: 40, h: 20 },
               ], loreObjects: [
                 { id: 'lore_s1_corpse', type: 'corpse', x: 300, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
                 // Secret lore on upper ledge (requires double jump)
@@ -66,9 +73,10 @@ export const ACTS: ActData[] = [
                 // Health fragment on upper secret ledge (requires double jump)
                 { id: 'col_s1_health', type: 'health_fragment', x: 780, y: 150, requiredAbility: 'doubleJump' },
               ], shortcuts: [
-                // Shortcut from S6 (boss arena) back to S1 — opens from right
-                // This is the "after boss" fast-travel back to start
-                { id: 'sc_s6_to_s1', x: 1180, y: 500, w: 20, h: 120, toSection: 6, opensFrom: 'right' },
+                // ── FIX: Shortcut sits in the GAP of the far wall (y=460-540) ──
+                // When closed: blocks passage to S6. When opened: player walks through.
+                // opensFrom 'right' = player must approach from the S6 side (post-boss) to open it.
+                { id: 'sc_s6_to_s1', x: 1200, y: 500, w: 40, h: 80, toSection: 6, opensFrom: 'right' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -88,6 +96,14 @@ export const ACTS: ActData[] = [
                 { x: 2100, y: 260, w: 200, h: 16 },
                 // Connecting wall (wall jump surface)
                 { x: 1820, y: 340, w: 40, h: 200 },
+                // ── FIX: Right boundary wall with GAP for shortcut ──
+                // Wall TOP (above shortcut gap)
+                { x: 2540, y: 360, w: 40, h: 200 },   // y=260 to y=460
+                // Wall BOTTOM (below shortcut gap)
+                { x: 2540, y: 600, w: 40, h: 120 },   // y=540 to y=660
+                // GAP at y=460-540 — shortcut door fills this
+                // Upper catwalk extension (connects to S4 upper route)
+                { x: 2400, y: 500, w: 140, h: 16 },
               ], loreObjects: [
                 { id: 'lore_s2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
               ], hazards: [
@@ -97,9 +113,10 @@ export const ACTS: ActData[] = [
                 // Energy fragment on upper catwalk (alternate route reward)
                 { id: 'col_s2_energy', type: 'energy_fragment', x: 1600, y: 230 },
               ], shortcuts: [
-                // Shortcut from S4 (assembly hall) back to S2 — opens from left
-                // Allows backtracking after mini-boss without going through S3 shaft again
-                { id: 'sc_s4_to_s2', x: 1300, y: 300, w: 20, h: 120, toSection: 4, opensFrom: 'left' },
+                // ── FIX: Shortcut in the GAP of the right wall (y=460-540) ──
+                // When closed: blocks upper route to S4. When opened: player walks through.
+                // opensFrom 'left' = player approaches from S2 side (after coming from S4) to open it.
+                { id: 'sc_s4_to_s2', x: 2540, y: 500, w: 40, h: 80, toSection: 4, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -161,17 +178,26 @@ export const ACTS: ActData[] = [
                 // Upper catwalk (alternate route, connects to S5 upper)
                 { x: 4100, y: 160, w: 200, h: 16 },
                 { x: 4800, y: 160, w: 200, h: 16 },
+                // ── FIX: EMP-gated secret room (right side, blocked by vertical door) ──
+                // Secret room floor
+                { x: 5000, y: 380, w: 120, h: 20 },
+                // Secret room walls (TOP + BOTTOM of door gap)
+                { x: 5000, y: 240, w: 20, h: 200 },  // left wall top (y=140-340)
+                // GAP at y=340-380 — EMP door fills this
+                // Secret room ceiling
+                { x: 5000, y: 140, w: 120, h: 16 },
               ], loreObjects: [
                 { id: 'lore_s4_terminal', type: 'terminal', x: 4100, y: 580, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
                 { id: 'lore_s4_corpse', type: 'corpse', x: 4380, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], landmarks: [
                 { id: 'lm_s4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 240, h: 100, color: 0x2a3040 },
               ], empDoors: [
-                // EMP-locked door — blocks access to upper catwalk secret area
-                { id: 'empdoor_s4_1', x: 4360, y: 240, w: 80, h: 16 },
+                // ── FIX: EMP door is VERTICAL, blocks entry to secret room ──
+                // When closed: blocks passage to secret room. When opened (EMP): player enters.
+                { id: 'empdoor_s4_1', x: 5000, y: 360, w: 20, h: 40, },
               ], collectibles: [
-                // Health fragment behind the EMP door (requires EMP ability)
-                { id: 'col_s4_health', type: 'health_fragment', x: 4360, y: 190, requiredAbility: 'emp' },
+                // Health fragment INSIDE the EMP-gated secret room
+                { id: 'col_s4_health', type: 'health_fragment', x: 5060, y: 350, requiredAbility: 'emp' },
                 // Weapon part on the upper catwalk (alternate route)
                 { id: 'col_s4_weapon', type: 'weapon_part', x: 4900, y: 130, requiredAbility: 'wallJump' },
               ]},

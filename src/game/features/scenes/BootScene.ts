@@ -19,6 +19,10 @@ export class BootScene extends Phaser.Scene {
     g.generateTexture('__white', 1, 1);
     g.destroy();
 
+    // ── Load background art assets (user-provided images) ──
+    this.load.image('factory_bg_1', '/game-assets/backgrounds/factory_bg_1.png');
+    this.load.image('factory_bg_2', '/game-assets/backgrounds/factory_bg_2.png');
+
     // Loading bar.
     const w = GAME.WIDTH;
     const h = GAME.HEIGHT;

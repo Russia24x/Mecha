@@ -894,3 +894,44 @@ Stage Summary:
 - Files modified: AreaLoader.ts (physics bodies + cleanup + requiredAbility), GameScene.ts (6 fix methods + hidePreCollectedItems + preOpenShortcuts + onEmpHit + checkCollectiblePickups), InputSystem.ts (heldInteract field), PlayerEntity.ts (tryHack requires heldInteract), EnemyEntity.ts (forceStagger public method), acts.ts (S3 redesign).
 - TypeScript: clean. Next.js build: success.
 - All 6 critical bugs fixed: doors now block, hack requires input, EMP stuns, collected items stay hidden, ability-gated collectibles are actually gated, S3 is no longer a soft-lock.
+
+---
+Task ID: bugfix-round-2-real-paths
+Agent: main
+Task: Fix the core issue — hidden doors + shortcuts were just decoration, not real gameplay blockers. User said "they're just names, no actual effect on the game." Also: use user's uploaded images as background art for stage 1.
+
+Work Log:
+- CRITICAL FIX: The doors/shortcuts were placed ON TOP of existing walls, not in GAPS. When a door opened, the wall behind it still blocked the player — so opening a door did nothing. This is why the user said "they're just decoration."
+
+- Redesigned S1 (Awakening):
+  * Far wall was a single solid block (1200, 360, 40, 360). Now split into TOP (y=260-460) + BOTTOM (y=540-660) with a GAP at y=460-540.
+  * Shortcut door sc_s6_to_s1 now sits IN THE GAP (1200, 500, 40, 80).
+  * When closed: blocks passage to S6. When opened: player can walk through to S6.
+  * Added platform on S6 side (1260, 500) so player doesn't fall.
+
+- Redesigned S2 (First Combat):
+  * Added right boundary wall with GAP at y=460-540.
+  * Shortcut door sc_s4_to_s2 now sits IN THE GAP (2540, 500, 40, 80).
+  * Added upper catwalk extension (2400, 500) connecting to the shortcut.
+  * When closed: blocks upper route to S4. When opened: player can walk through.
+
+- Redesigned S4 (Assembly Hall):
+  * EMP door was HORIZONTAL (80x16) sitting on top of a platform — blocking nothing.
+  * Now VERTICAL (20x40) blocking entry to a secret room.
+  * Added secret room: floor (5000, 380), left wall top (5000, 240, 200h), ceiling (5000, 140).
+  * GAP at y=340-380 — EMP door fills this.
+  * Health fragment moved INSIDE the secret room (5060, 350).
+  * When closed: blocks entry to secret room. When opened (EMP): player enters.
+
+- Background art (user's uploaded images):
+  * Copied to public/game-assets/backgrounds/factory_bg_1.png + factory_bg_2.png
+  * Loaded in BootScene.preload() as 'factory_bg_1' + 'factory_bg_2' textures
+  * Added buildBackgroundArt() to ParallaxBackground — tiles the images across the entire world width with slow parallax (0.15, 0.05), alpha 0.65, alternating between the two images + flip for seamless tiling.
+  * Depth -1.5 (between sky -2 and far layer -1).
+  * Subtle alpha drift tween (0.55 ↔ 0.75 over 5s).
+
+Stage Summary:
+- Files modified: acts.ts (S1 + S2 + S4 redesigned with real door gaps), BootScene.ts (load background images), ParallaxBackground.ts (buildBackgroundArt method).
+- TypeScript: clean. Next.js build: success.
+- Now doors/shortcuts actually CHANGE THE GAME: closed = blocked, opened = passable. The walls have GAPS where doors sit, so opening a door creates a real new path.
+- Stage 1 now uses user's atmospheric images as background art, tiled across the world.

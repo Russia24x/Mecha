@@ -53,6 +53,9 @@ export class ParallaxBackground {
     // === SKY (depth -2, fully static — base color wash) ===
     this.buildSky();
 
+    // === BACKGROUND ART (user-provided images, tiled across world) ===
+    this.buildBackgroundArt();
+
     // === FAR layer (depth -1, scrollFactor 0.1) ===
     const farCfg: LayerConfig = { scrollX: 0.1, scrollY: 0.05, depth: -1, alpha: 0.5 };
     if (this.theme === 'factory') this.buildFactoryFar(farCfg);
@@ -110,6 +113,58 @@ export class ParallaxBackground {
       sky.fillRect(0, 0, w, h);
     }
     this.layers.push(sky);
+  }
+
+  /**
+   * Build background art layer using user-provided images.
+   * The images are tiled horizontally across the entire world width
+   * with a slow parallax scroll factor. This gives the world a real
+   * painted/artistic backdrop instead of just procedural graphics.
+   */
+  private buildBackgroundArt(): void {
+    if (this.theme !== 'factory') return;  // only factory has art for now
+
+    // Check if textures are loaded
+    if (!this.scene.textures.exists('factory_bg_1')) return;
+    if (!this.scene.textures.exists('factory_bg_2')) return;
+
+    const textureKey = 'factory_bg_1';
+    const tex = this.scene.textures.get(textureKey);
+    const imgW = tex.getSourceImage().width;
+    const imgH = tex.getSourceImage().height;
+    const targetH = GAME.HEIGHT;
+    const scale = targetH / imgH;  // scale to fit screen height
+    const tileW = imgW * scale;
+
+    // Tile across the world width
+    const tileCount = Math.ceil(this.worldWidth / tileW) + 1;
+    const container = this.scene.add.container(0, 0);
+    container.setDepth(-1.5);  // between sky (-2) and far layer (-1)
+    container.setScrollFactor(0.15, 0.05);  // slow parallax
+    container.setAlpha(0.65);  // semi-transparent so it blends with sky
+
+    for (let i = 0; i < tileCount; i++) {
+      const x = i * tileW;
+      const img = this.scene.add.image(x, GAME.HEIGHT / 2, textureKey);
+      img.setOrigin(0, 0.5);
+      img.setScale(scale);
+      // Alternate between the two images for variety
+      if (i % 2 === 1 && this.scene.textures.exists('factory_bg_2')) {
+        img.setTexture('factory_bg_2');
+      }
+      // Flip every other tile for seamless tiling
+      if (i % 2 === 1) {
+        img.setFlipX(true);
+      }
+      container.add(img);
+    }
+    this.layers.push(container);
+
+    // Subtle drift tween
+    this.tweens.push(this.scene.tweens.add({
+      targets: container, alpha: { from: 0.55, to: 0.75 },
+      duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    }));
   }
 
   // ─── FACTORY: FAR — distant smokestacks + skyline ───────────────────────
