@@ -543,133 +543,170 @@ export class GameScene extends Phaser.Scene {
       fontFamily: 'monospace', fontSize: '13px', color: '#5a6470', stroke: '#000', strokeThickness: 2,
     })).setOrigin(0.5).setDepth(2));
 
-    // === Area cards ===
+    // === Act-based world map ===
+    // Layout: horizontal scrollable columns, one per Act.
+    // Each Act column has: Act title + 3 area cards stacked vertically.
     const tree = WorldMapSystem.getMapTree();
-    const areas: { areaId: string; nameKey: string; unlocked: boolean; discovered: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean }[] = [];
-    for (const actData of tree) {
-      for (const regionData of actData.regions) {
+
+    // ── Collect all acts with their areas ──
+    const actData: {
+      actId: number;
+      actName: string;
+      areas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[];
+    }[] = [];
+    for (const act of tree) {
+      const actAreas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[] = [];
+      for (const regionData of act.regions) {
         for (const node of regionData.nodes) {
-          areas.push({
+          actAreas.push({
             areaId: node.area.id,
             nameKey: node.area.nameKey,
             unlocked: node.unlocked,
-            discovered: node.discovered,
             isCurrent: node.isCurrent,
             bossDefeated: node.bossDefeated,
             hasBoss: node.hasBoss,
+            regionId: node.area.regionId,
           });
         }
       }
+      actData.push({
+        actId: act.act.id,
+        actName: t(act.act.nameKey),
+        areas: actAreas,
+      });
     }
 
-    // ── Hub card layout (improved UI/UX) ──
-    const cardW = 300;
-    const cardH = 260;
-    const cardGap = 28;
-    const totalW = areas.length * cardW + (areas.length - 1) * cardGap;
+    // ── Layout: Act columns side by side ──
+    const cardW = 200;
+    const cardH = 180;
+    const cardGap = 12;
+    const actGap = 28;
+    const actTitleH = 36;
+    const actsToShow = actData.filter(a => a.areas.length > 0);
+    const totalW = actsToShow.length * cardW + (actsToShow.length - 1) * actGap;
     const startX = (w - totalW) / 2 + cardW / 2;
-    const cardY = h * 0.40;
-    const previewH = 120;  // fixed height
-    const previewW = cardW - 24;  // fixed width (was cardW - 16)
+    const baseY = 110;
 
-    areas.forEach((area, i) => {
-      const x = startX + i * (cardW + cardGap);
-      const cardTop = cardY - cardH / 2;
-      const previewTop = cardTop + 14;
-      const previewY = previewTop + previewH / 2;
+    actsToShow.forEach((act, actIdx) => {
+      const actX = startX + actIdx * (cardW + actGap);
 
-      // Card background
-      const cardBg = this.add.rectangle(x, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.92);
-      cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
-      cardBg.setDepth(2);
-      c.add(cardBg);
-
-      // ── Preview image area (top portion of card) ──
-      // Background frame (dark)
-      const previewFrame = this.add.rectangle(x, previewY, previewW, previewH, 0x05080c, 1);
-      previewFrame.setDepth(2.5);
-      c.add(previewFrame);
-
-      // Image preview with proper clipping
-      if (this.textures.exists('factory_bg_2')) {
-        // ── FIX: Container at frame position + mask in WORLD coords at same position ──
-        const imgContainer = this.add.container(x, previewY);
-        imgContainer.setDepth(2.6);
-        const previewImg = this.add.image(0, 0, 'factory_bg_2');
-        const tex = this.textures.get('factory_bg_2').getSourceImage();
-        const imgAR = tex.width / tex.height;
-        const frameAR = previewW / previewH;
-        // Cover fit: scale image so it covers the frame
-        let scale: number;
-        if (imgAR > frameAR) {
-          scale = previewH / tex.height;
-        } else {
-          scale = previewW / tex.width;
-        }
-        previewImg.setScale(scale);
-        imgContainer.add(previewImg);
-        // ── FIX: Geometry mask must be drawn in WORLD coordinates matching the container position ──
-        const maskGfx = this.make.graphics({ x: x, y: previewY }, false);
-        maskGfx.fillStyle(0xffffff, 1);
-        maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
-        const mask = maskGfx.createGeometryMask();
-        imgContainer.setMask(mask);
-        c.add(imgContainer);
-
-        // Darken if locked
-        if (!area.unlocked) {
-          previewImg.setAlpha(0.25);
-          previewImg.setTint(0x303030);
-        } else if (area.isCurrent) {
-          previewImg.setTint(0x99ddff);
-        }
-        // Overlay gradient at bottom of preview for text legibility
-        const gradient = this.add.rectangle(x, previewY + previewH / 2 - 14, previewW, 28, 0x05080c, 0.75);
-        gradient.setDepth(2.7);
-        c.add(gradient);
-      }
-
-      // Preview border (on top of image)
-      const previewBorder = this.add.rectangle(x, previewY, previewW, previewH, 0x000000, 0);
-      previewBorder.setStrokeStyle(1, 0x1a3040, 0.8);
-      previewBorder.setDepth(2.8);
-      c.add(previewBorder);
-
-      // Area name (below preview)
-      const nameY = previewY + previewH / 2 + 22;
-      const nameText = this.add.text(x, nameY, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '15px',
-        color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
-        stroke: '#000', strokeThickness: 2,
-      })).setOrigin(0.5).setDepth(3);
-      c.add(nameText);
-
-      // Status text (below name)
-      let status = '';
-      let statusColor = '#3a4350';
-      if (area.isCurrent) { status = '◆ ' + L('CURRENT', 'فعلی'); statusColor = '#39d0d8'; }
-      else if (area.bossDefeated) { status = '★ ' + L('CLEARED', 'تکمیل شده'); statusColor = '#ffc040'; }
-      else if (area.hasBoss && area.unlocked) { status = '⚔ ' + L('BOSS', 'باس'); statusColor = '#ff6060'; }
-      c.add(this.add.text(x, nameY + 22, status, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '10px', color: statusColor, letterSpacing: 1,
+      // ── Act title bar ──
+      const actTitleBg = this.add.rectangle(actX, baseY, cardW, actTitleH, 0x0d1820, 0.95);
+      actTitleBg.setStrokeStyle(1, act.actId <= 1 ? 0x39d0d8 : 0x1a3040, act.actId <= 1 ? 0.8 : 0.4);
+      actTitleBg.setDepth(2);
+      c.add(actTitleBg);
+      const romanNum = ['I', 'II', 'III', 'IV', 'V'][act.actId - 1] || String(act.actId);
+      c.add(this.add.text(actX, baseY, `ACT ${romanNum}`, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '11px', color: act.actId <= 1 ? '#39d0d8' : '#3a4350',
+        stroke: '#000', strokeThickness: 2, letterSpacing: 2,
+      })).setOrigin(0.5).setDepth(3));
+      // Act name below title
+      c.add(this.add.text(actX, baseY + actTitleH / 2 + 10, act.actName, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
+        wordWrap: { width: cardW - 10 }, align: 'center',
       })).setOrigin(0.5).setDepth(3));
 
-      // Enter button (at bottom of card)
-      if (area.unlocked) {
-        this.makeHubCardBtn(x, nameY + 48, '▶ ' + L('ENTER', 'ورود'), () => {
-          AudioSystem.play('uiClick');
-          if (area.areaId !== WorldSystem.getCurrent().areaId) {
-            WorldSystem.travelTo(area.areaId, 1);
+      // ── Area cards inside this Act (stacked vertically) ──
+      act.areas.forEach((area, areaIdx) => {
+        const cardY = baseY + actTitleH + 20 + areaIdx * (cardH + cardGap) + cardH / 2;
+        const previewH = 80;
+        const previewW = cardW - 16;
+        const previewY = cardY - cardH / 2 + 14 + previewH / 2;
+
+        // Card background
+        const cardBg = this.add.rectangle(actX, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.92);
+        cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
+        cardBg.setDepth(2);
+        c.add(cardBg);
+
+        // Preview frame
+        const previewFrame = this.add.rectangle(actX, previewY, previewW, previewH, 0x05080c, 1);
+        previewFrame.setDepth(2.5);
+        c.add(previewFrame);
+
+        // Preview image — use factory_bg_2 for factory, different for forest
+        const previewTexture = area.regionId === 'forest' ? 'factory_bg_1' : 'factory_bg_2';
+        if (this.textures.exists(previewTexture)) {
+          const imgContainer = this.add.container(actX, previewY);
+          imgContainer.setDepth(2.6);
+          const previewImg = this.add.image(0, 0, previewTexture);
+          const tex = this.textures.get(previewTexture).getSourceImage();
+          const imgAR = tex.width / tex.height;
+          const frameAR = previewW / previewH;
+          let scale: number;
+          if (imgAR > frameAR) {
+            scale = previewH / tex.height;
+          } else {
+            scale = previewW / tex.width;
           }
-          this.setState('play');
-        });
-      } else {
-        // Show lock requirement
-        const lockText = this.add.text(x, nameY + 48, L('LOCKED', 'قفل'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '11px', color: '#2a3040', letterSpacing: 1,
-        })).setOrigin(0.5).setDepth(3);
-        c.add(lockText);
-      }
+          previewImg.setScale(scale);
+          imgContainer.add(previewImg);
+          const maskGfx = this.make.graphics({ x: actX, y: previewY }, false);
+          maskGfx.fillStyle(0xffffff, 1);
+          maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
+          const mask = maskGfx.createGeometryMask();
+          imgContainer.setMask(mask);
+          c.add(imgContainer);
+          if (!area.unlocked) {
+            previewImg.setAlpha(0.2);
+            previewImg.setTint(0x303030);
+          } else if (area.isCurrent) {
+            previewImg.setTint(0x99ddff);
+          }
+          // Gradient overlay
+          const gradient = this.add.rectangle(actX, previewY + previewH / 2 - 10, previewW, 20, 0x05080c, 0.7);
+          gradient.setDepth(2.7);
+          c.add(gradient);
+        }
+
+        // Preview border
+        const previewBorder = this.add.rectangle(actX, previewY, previewW, previewH, 0x000000, 0);
+        previewBorder.setStrokeStyle(1, 0x1a3040, 0.8);
+        previewBorder.setDepth(2.8);
+        c.add(previewBorder);
+
+        // Area name
+        const nameY = previewY + previewH / 2 + 18;
+        c.add(this.add.text(actX, nameY, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
+          fontFamily: 'monospace', fontSize: '11px',
+          color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
+          stroke: '#000', strokeThickness: 2, wordWrap: { width: cardW - 10 }, align: 'center',
+        })).setOrigin(0.5).setDepth(3));
+
+        // Status
+        let status = '';
+        let statusColor = '#3a4350';
+        if (area.isCurrent) { status = '◆ ' + L('CURRENT', 'فعلی'); statusColor = '#39d0d8'; }
+        else if (area.bossDefeated) { status = '★ ' + L('CLEARED', 'تکمیل'); statusColor = '#ffc040'; }
+        else if (area.hasBoss && area.unlocked) { status = '⚔ ' + L('BOSS', 'باس'); statusColor = '#ff6060'; }
+        c.add(this.add.text(actX, nameY + 18, status, fixTextStyle({
+          fontFamily: 'monospace', fontSize: '8px', color: statusColor, letterSpacing: 1,
+        })).setOrigin(0.5).setDepth(3));
+
+        // Enter / locked
+        if (area.unlocked) {
+          const btnBg = this.add.rectangle(actX, nameY + 38, 90, 22, 0x0a1018, 0.9);
+          btnBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : 0x1a3040, 0.7);
+          const btnText = this.add.text(actX, nameY + 38, '▶ ' + L('ENTER', 'ورود'), fixTextStyle({
+            fontFamily: 'monospace', fontSize: '9px', color: '#cfd6e0', letterSpacing: 1,
+          })).setOrigin(0.5);
+          c.add([btnBg, btnText]);
+          btnBg.setInteractive({ useHandCursor: true });
+          btnBg.on('pointerover', () => { btnBg.setFillStyle(0x0d1820, 1); AudioSystem.play('uiHover'); });
+          btnBg.on('pointerout', () => { btnBg.setFillStyle(0x0a1018, 0.9); });
+          btnBg.on('pointerdown', () => {
+            AudioSystem.play('uiClick');
+            if (area.areaId !== WorldSystem.getCurrent().areaId) {
+              WorldSystem.travelTo(area.areaId, 1);
+            }
+            this.setState('play');
+          });
+        } else {
+          c.add(this.add.text(actX, nameY + 38, L('LOCKED', 'قفل'), fixTextStyle({
+            fontFamily: 'monospace', fontSize: '9px', color: '#2a3040',
+          })).setOrigin(0.5).setDepth(3));
+        }
+      });
     });
 
     // === Bottom bar: Navigation icons (improved UI) ===
