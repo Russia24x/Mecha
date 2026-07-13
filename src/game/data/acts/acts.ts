@@ -73,15 +73,14 @@ export const ACTS: ActData[] = [
                 // Upper ledge (double jump reachable — secret area)
                 { x: 550, y: 280, w: 120, h: 20 },
                 { x: 780, y: 180, w: 80, h: 20 },
-                // ── FIX: Far wall has a GAP where the shortcut door sits ──
-                // Wall TOP section (above shortcut gap)
+                // ── FIX: Far wall blocks S1→S2. Shortcut at GROUND LEVEL so
+                // player can trigger it (player center y≈657, trigger radius 60px).
+                // Wall TOP (blocks upper air route)
                 { x: 1200, y: 360, w: 40, h: 200 },   // y=260 to y=460
-                // Wall BOTTOM section (below shortcut gap)
-                { x: 1200, y: 600, w: 40, h: 120 },   // y=540 to y=660
-                // GAP is at y=460 to y=540 — shortcut door fills this gap
-                // When shortcut opens, player can walk through to S6
-                // Platform on the S6 side (so player doesn't fall)
-                { x: 1260, y: 500, w: 40, h: 20 },
+                // Wall MIDDLE (fills old gap, extends down to ground-level gap)
+                { x: 1200, y: 540, w: 40, h: 160 },   // y=460 to y=620
+                // GAP at y=620 to y=680 (60px tall, ground level) — shortcut fills this
+                // Player body is ~47px tall, fits through 60px gap comfortably
               ], loreObjects: [
                 { id: 'lore_s1_corpse', type: 'corpse', x: 300, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
                 // Secret lore on upper ledge (requires double jump)
@@ -92,10 +91,11 @@ export const ACTS: ActData[] = [
                 // Health fragment on upper secret ledge (requires double jump)
                 { id: 'col_s1_health', type: 'health_fragment', x: 780, y: 150, requiredAbility: 'doubleJump' },
               ], shortcuts: [
-                // ── FIX: Shortcut sits in the GAP of the far wall (y=460-540) ──
-                // When closed: blocks passage to S6. When opened: player walks through.
-                // opensFrom 'right' = player must approach from the S6 side (post-boss) to open it.
-                { id: 'sc_s6_to_s1', x: 1200, y: 500, w: 40, h: 80, toSection: 6, opensFrom: 'right' },
+                // ── FIX: Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680) ──
+                // Player on ground (y≈657) is within 60px trigger radius.
+                // opensFrom 'left' = player approaches from S1 side (left) to open.
+                // Once opened, persists for backtracking from S2 side too.
+                { id: 'sc_s1_to_s2', x: 1200, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -115,14 +115,12 @@ export const ACTS: ActData[] = [
                 { x: 2100, y: 260, w: 200, h: 16 },
                 // Connecting wall (wall jump surface)
                 { x: 1820, y: 340, w: 40, h: 200 },
-                // ── FIX: Right boundary wall with GAP for shortcut ──
-                // Wall TOP (above shortcut gap)
+                // ── FIX: Right boundary wall with GROUND-LEVEL GAP for shortcut ──
+                // Wall TOP (blocks upper air route)
                 { x: 2540, y: 360, w: 40, h: 200 },   // y=260 to y=460
-                // Wall BOTTOM (below shortcut gap)
-                { x: 2540, y: 600, w: 40, h: 120 },   // y=540 to y=660
-                // GAP at y=460-540 — shortcut door fills this
-                // Upper catwalk extension (connects to S4 upper route)
-                { x: 2400, y: 500, w: 140, h: 16 },
+                // Wall MIDDLE (fills old gap, extends down to ground-level gap)
+                { x: 2540, y: 540, w: 40, h: 160 },   // y=460 to y=620
+                // GAP at y=620 to y=680 (60px, ground level) — shortcut fills this
               ], loreObjects: [
                 { id: 'lore_s2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
               ], hazards: [
@@ -134,10 +132,10 @@ export const ACTS: ActData[] = [
                 // Energy fragment on upper catwalk (alternate route reward)
                 { id: 'col_s2_energy', type: 'energy_fragment', x: 1600, y: 230 },
               ], shortcuts: [
-                // ── FIX: Shortcut in the GAP of the right wall (y=460-540) ──
-                // When closed: blocks upper route to S4. When opened: player walks through.
-                // opensFrom 'left' = player approaches from S2 side (after coming from S4) to open it.
-                { id: 'sc_s4_to_s2', x: 2540, y: 500, w: 40, h: 80, toSection: 4, opensFrom: 'left' },
+                // ── FIX: Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680) ──
+                // Player on ground (y≈657) is within 60px trigger radius.
+                // opensFrom 'left' = player approaches from S2 side (left) to open.
+                { id: 'sc_s2_to_s3', x: 2540, y: 650, w: 40, h: 60, toSection: 3, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════

@@ -382,10 +382,64 @@ export class AreaLoader {
         if (Math.random() < 0.15) this.addFireHazard(result, x + (Math.random() - 0.5) * w * 0.5, y + h / 2 - 2);
         if (Math.random() < 0.20) this.addSteamVent(result, x + (Math.random() - 0.5) * w * 0.6, y - h / 2 - 4);
       }
+      // ── Visual supports for floating platforms (Issue #4 fix) ──
+      // Add cables/pipes hanging DOWN from platform bottom to make it look
+      // supported rather than floating in mid-air.
+      if ((isFloor || isLedge) && y < GAME.HEIGHT - 100) {
+        this.addPlatformSupports(result, x, y, w, h);
+      }
     } else if (this.regionId === 'forest') {
       if (isFloor && w >= 100) this.addForestDecorations(result, x, y, w, h);
       if (isWall && h > 100) this.addForestWallDecorations(result, x, y, w, h);
     }
+  }
+
+  /**
+   * Add visual supports (hanging cables + thin pipes) below floating platforms.
+   * This makes platforms look anchored rather than floating in mid-air.
+   * Purely cosmetic — no physics body.
+   */
+  private addPlatformSupports(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(4);  // slightly behind platform (depth 5)
+    const bottomY = y + h / 2;
+
+    // Hanging cables from platform bottom — 2-3 thin vertical lines
+    const cableCount = w >= 200 ? 3 : 2;
+    for (let i = 0; i < cableCount; i++) {
+      const cx = x - w / 2 + (w / (cableCount + 1)) * (i + 1);
+      const cableLen = 20 + Math.random() * 40;
+      // Cable (dark thin line)
+      g.lineStyle(2, 0x1a1e28, 0.8);
+      g.beginPath();
+      g.moveTo(cx, bottomY);
+      g.lineTo(cx, bottomY + cableLen);
+      g.strokePath();
+      // Cable end cap (small circle)
+      g.fillStyle(0x2a3040, 0.7);
+      g.fillCircle(cx, bottomY + cableLen, 2);
+    }
+
+    // Thin support strut at each end (diagonal brace to wall or ground)
+    const strutLen = Math.min(60, (GAME.HEIGHT - 80) - bottomY);
+    if (strutLen > 20) {
+      const leftX = x - w / 2 + 4;
+      const rightX = x + w / 2 - 4;
+      // Left strut (diagonal going down-out)
+      g.lineStyle(3, 0x2a3040, 0.6);
+      g.beginPath();
+      g.moveTo(leftX, bottomY);
+      g.lineTo(leftX - 8, bottomY + strutLen);
+      g.strokePath();
+      // Right strut
+      g.beginPath();
+      g.moveTo(rightX, bottomY);
+      g.lineTo(rightX + 8, bottomY + strutLen);
+      g.strokePath();
+    }
+
+    g.setPosition(0, 0);
+    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
   }
 
   /** Forest platform — mossy stone/wood, completely different from factory metal. */
