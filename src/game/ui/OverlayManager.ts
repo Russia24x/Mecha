@@ -26,7 +26,7 @@ import type Phaser from 'phaser';
 import { InputSystem } from '../systems/InputSystem';
 import { AudioSystem } from '../systems/AudioSystem';
 
-export type OverlayId = 'settings' | 'skills' | 'inventory' | 'quests' | 'map' | 'dialogue';
+export type OverlayId = 'settings' | 'skills' | 'inventory' | 'quests' | 'map' | 'dialogue' | 'hangar';
 
 export interface OverlayUI {
   show(): void;

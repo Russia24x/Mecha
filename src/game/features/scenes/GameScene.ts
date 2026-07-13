@@ -49,6 +49,7 @@ import { SkillTreeUI } from '../../ui/skilltree/SkillTreeUI';
 import { InventoryUI } from '../../ui/inventory/InventoryUI';
 import { QuestUI } from '../../ui/quest/QuestUI';
 import { WorldMapUI } from '../../ui/map/WorldMapUI';
+import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
@@ -265,6 +266,9 @@ export class GameScene extends Phaser.Scene {
           () => this.closeOverlay(),
           (areaId: string) => this.fastTravel(areaId),
         );
+        break;
+      case 'hangar':
+        ui = new HangarUI(this, () => this.closeOverlay());
         break;
     }
     if (!ui) return;
@@ -670,13 +674,14 @@ export class GameScene extends Phaser.Scene {
 
     const navY = h - 55;
     const navItems: { icon: string; label: string; action: () => void }[] = [
+      { icon: '⚙', label: L('HANGAR', 'هانگر'), action: () => this.openOverlay('hangar') },
       { icon: '⚔', label: L('SKILLS', 'مهارت‌ها'), action: () => this.openOverlay('skills') },
       { icon: '◈', label: L('INVENTORY', 'کیف'), action: () => this.openOverlay('inventory') },
       { icon: '▤', label: L('QUESTS', 'ماموریت‌ها'), action: () => this.openOverlay('quests') },
-      { icon: '⚙', label: t('menu.settings'), action: () => this.openOverlay('settings') },
+      { icon: '⌂', label: L('SETTINGS', 'تنظیمات'), action: () => this.openOverlay('settings') },
       { icon: '←', label: t('menu.back'), action: () => this.setState('menu') },
     ];
-    const navGap = 130;
+    const navGap = 115;
     const navStartX = w / 2 - (navItems.length - 1) * navGap / 2;
 
     navItems.forEach((item) => {

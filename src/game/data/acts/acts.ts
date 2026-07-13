@@ -109,6 +109,8 @@ export const ACTS: ActData[] = [
               ], hazards: [
                 // Small spike pit — teaches hazard awareness
                 { type: 'spike', x: 1920, y: 690, w: 80, h: 20, damage: 20 },
+                // Molten metal pit (graphical lava hazard)
+                { type: 'lava', x: 2200, y: 690, w: 80, h: 20, damage: 35 },
               ], collectibles: [
                 // Energy fragment on upper catwalk (alternate route reward)
                 { id: 'col_s2_energy', type: 'energy_fragment', x: 1600, y: 230 },
@@ -191,6 +193,9 @@ export const ACTS: ActData[] = [
                 { id: 'lore_s4_corpse', type: 'corpse', x: 4380, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], landmarks: [
                 { id: 'lm_s4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 240, h: 100, color: 0x2a3040 },
+              ], hazards: [
+                // Laser beam hazard (graphical energy beam)
+                { type: 'laser', x: 4440, y: 340, w: 200, h: 4, damage: 25 },
               ], empDoors: [
                 // ── FIX: EMP door is VERTICAL, blocks entry to secret room ──
                 // When closed: blocks passage to secret room. When opened (EMP): player enters.

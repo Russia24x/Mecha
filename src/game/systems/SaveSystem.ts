@@ -30,6 +30,13 @@ const DEFAULT_PLAYER: PlayerState = {
   abilities: [],
   collectedCollectibles: [],
   openedShortcuts: [],
+  // Hangar defaults
+  selectedChassis: 'assault',
+  selectedPaint: 'factory_gray',
+  unlockedChassis: ['scout', 'assault', 'titan'],
+  unlockedPaints: ['factory_gray'],
+  unlockedCompanions: [],
+  selectedCompanion: null,
 };
 
 const DEFAULT_SAVE: SaveData = {
@@ -87,6 +94,12 @@ export class SaveSystem {
     if (!migrated.player.weaponLevels) migrated.player.weaponLevels = { assault_rifle: 1 };
     if (!migrated.player.collectedCollectibles) migrated.player.collectedCollectibles = [];
     if (!migrated.player.openedShortcuts) migrated.player.openedShortcuts = [];
+    if (!migrated.player.selectedChassis) migrated.player.selectedChassis = 'assault';
+    if (!migrated.player.selectedPaint) migrated.player.selectedPaint = 'factory_gray';
+    if (!migrated.player.unlockedChassis) migrated.player.unlockedChassis = ['scout', 'assault', 'titan'];
+    if (!migrated.player.unlockedPaints) migrated.player.unlockedPaints = ['factory_gray'];
+    if (!migrated.player.unlockedCompanions) migrated.player.unlockedCompanions = [];
+    if (migrated.player.selectedCompanion === undefined) migrated.player.selectedCompanion = null;
     migrated.version = SAVE_VERSION;
     return migrated;
   }
@@ -191,6 +204,44 @@ export class SaveSystem {
     const data = this.load();
     data.player.skillPoints += 1;
     this.persist();
+  }
+
+  // ── Hangar: Chassis + Paint + Companion ──
+
+  static setSelectedChassis(chassisId: string): void {
+    const data = this.load();
+    data.player.selectedChassis = chassisId;
+    this.persist();
+  }
+
+  static setSelectedPaint(paintId: string): void {
+    const data = this.load();
+    data.player.selectedPaint = paintId;
+    this.persist();
+  }
+
+  static unlockPaint(paintId: string): void {
+    const data = this.load();
+    if (!data.player.unlockedPaints.includes(paintId)) {
+      data.player.unlockedPaints.push(paintId);
+      this.persist();
+    }
+  }
+
+  static unlockChassis(chassisId: string): void {
+    const data = this.load();
+    if (!data.player.unlockedChassis.includes(chassisId)) {
+      data.player.unlockedChassis.push(chassisId);
+      this.persist();
+    }
+  }
+
+  static isChassisUnlocked(chassisId: string): boolean {
+    return this.load().player.unlockedChassis.includes(chassisId);
+  }
+
+  static isPaintUnlocked(paintId: string): boolean {
+    return this.load().player.unlockedPaints.includes(paintId);
   }
 
   /** Check if a collectible has already been collected (persists across deaths/reloads). */

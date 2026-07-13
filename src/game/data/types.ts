@@ -38,8 +38,79 @@ export interface PlayerState {
   weaponLevels: Record<string, number>;
   inventory: InventoryItem[];
   abilities: string[];
-  collectedCollectibles: string[];  // IDs of collected collectibles (persisted)
-  openedShortcuts: string[];        // IDs of opened shortcut doors (persisted)
+  collectedCollectibles: string[];
+  openedShortcuts: string[];
+  // ── Hangar customization ──
+  selectedChassis: string;        // 'scout' | 'assault' | 'titan'
+  selectedPaint: string;          // 'factory_gray' | 'military_green' | ...
+  unlockedChassis: string[];      // unlocked chassis IDs
+  unlockedPaints: string[];       // unlocked paint IDs
+  unlockedCompanions: string[];   // unlocked companion IDs (future)
+  selectedCompanion: string | null; // currently equipped companion (null = none)
+}
+
+// ================ CHASSIS ================
+export type ChassisId = 'scout' | 'assault' | 'titan';
+
+export interface ChassisAnimProfile {
+  walkSpeed: number;       // leg swing cycle multiplier
+  walkAmplitude: number;   // leg swing angle amplitude (radians)
+  bobAmount: number;       // vertical bob amount (pixels)
+  idleSway: number;        // idle body sway amount
+}
+
+export interface ChassisMovementFeel {
+  speedMult: number;
+  jumpMult: number;
+  dashMult: number;
+  dashCooldownMult: number;
+}
+
+export interface ChassisCombatFeel {
+  meleeMult: number;
+  fireRateMult: number;
+  maxHealthMult: number;
+  maxEnergyMult: number;
+}
+
+export interface ChassisData {
+  id: ChassisId;
+  nameKey: string;
+  descKey: string;
+  category: 'light' | 'balanced' | 'heavy';
+  scale: number;           // visual scale multiplier
+  anim: ChassisAnimProfile;
+  movement: ChassisMovementFeel;
+  combat: ChassisCombatFeel;
+  color: number;           // accent color
+  unlockedByDefault: boolean;
+}
+
+// ================ PAINT ================
+export type PaintId = 'factory_gray' | 'military_green' | 'protocol_white' | 'rust';
+
+export interface PaintData {
+  id: PaintId;
+  nameKey: string;
+  descKey: string;
+  primaryColor: number;    // main body color
+  accentColor: number;     // accent/trim color
+  unlockedByDefault: boolean;
+}
+
+// ================ COMPANION ================
+export type CompanionId = 'protocol_echo' | 'scout_drone' | 'repair_drone' | 'scanner_drone' | 'shield_drone' | 'medic_drone' | 'cargo_drone';
+
+export interface CompanionData {
+  id: CompanionId;
+  nameKey: string;
+  descKey: string;
+  category: 'combat' | 'support' | 'utility' | 'story';
+  color: number;
+  unlockedByDefault: boolean;
+  // Future hooks (not implemented yet, but architecture-ready):
+  // followBehavior: 'hover' | 'orbit' | 'trail';
+  // abilities: string[];  // e.g. ['scan', 'heal', 'shield']
 }
 
 // ================ WEAPONS ================

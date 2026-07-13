@@ -108,11 +108,9 @@ export class AreaLoader {
         trigger.setData('isHazard', true);
         trigger.setData('hazardDamage', hazard.damage);
         result.hazardTriggers.push(trigger);
-        // Visual: red spike strip
-        const hazardVis = this.scene.add.rectangle(hazard.x, hazard.y, hazard.w, hazard.h, 0xff2030, 0.3);
-        hazardVis.setStrokeStyle(1, 0xff4050, 0.5);
-        hazardVis.setDepth(5);
-        result.visualRects.push(hazardVis);
+        // ── Graphical hazard visuals per type ──
+        const hazardVis = this.createHazardVisual(hazard);
+        result.visualRects.push(hazardVis as unknown as Phaser.GameObjects.Rectangle);
       }
     }
     // Lore Objects — interactable environmental storytelling
@@ -805,6 +803,97 @@ export class AreaLoader {
       },
     });
     (pipe as unknown as { __steamTimer?: Phaser.Time.TimerEvent }).__steamTimer = steamTimer;
+  }
+
+  /**
+   * Create a graphical hazard visual based on hazard type.
+   * - spike: jagged metal spikes pointing up
+   * - lava/molten: glowing orange-red molten metal with bubbles + glow
+   * - laser: horizontal energy beam with flicker
+   */
+  private createHazardVisual(hazard: { type: string; x: number; y: number; w: number; h: number; damage: number }): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(hazard.x, hazard.y);
+    container.setDepth(5);
+
+    if (hazard.type === 'spike') {
+      const base = this.scene.add.rectangle(0, hazard.h / 2 - 4, hazard.w, 4, 0x1a1e28, 1);
+      base.setStrokeStyle(1, 0x2a3040, 0.8);
+      container.add(base);
+      const spikeCount = Math.floor(hazard.w / 10);
+      const spikeSpacing = hazard.w / spikeCount;
+      for (let i = 0; i < spikeCount; i++) {
+        const sx = -hazard.w / 2 + (i + 0.5) * spikeSpacing;
+        const spike = this.scene.add.triangle(sx, 0, -4, hazard.h / 2, 4, hazard.h / 2, 0, -hazard.h / 2 + 2, 0x4a5060, 0.9);
+        spike.setStrokeStyle(1, 0x6a7080, 0.6);
+        container.add(spike);
+        const tip = this.scene.add.circle(sx, -hazard.h / 2 + 3, 1, 0x8a90a0, 0.8);
+        container.add(tip);
+      }
+      const warning = this.scene.add.rectangle(0, hazard.h / 2 - 1, hazard.w, 2, 0xffcc00, 0.4);
+      container.add(warning);
+
+    } else if (hazard.type === 'lava' || hazard.type === 'molten') {
+      const glow = this.scene.add.rectangle(0, 0, hazard.w + 20, hazard.h + 10, 0xff4020, 0.15);
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(glow);
+      this.scene.tweens.add({ targets: glow, alpha: { from: 0.1, to: 0.25 }, duration: 800, yoyo: true, repeat: -1 });
+      const surface = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff6020, 0.7);
+      surface.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(surface);
+      const base = this.scene.add.rectangle(0, hazard.h / 4, hazard.w, hazard.h / 2, 0x8a2010, 0.8);
+      container.add(base);
+      for (let i = 0; i < 4; i++) {
+        const cx = (Math.random() - 0.5) * hazard.w * 0.8;
+        const crack = this.scene.add.rectangle(cx, hazard.h / 4, 2 + Math.random() * 3, hazard.h / 2 - 2, 0xff8030, 0.6);
+        crack.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(crack);
+      }
+      const bubbleCount = Math.max(3, Math.floor(hazard.w / 30));
+      for (let i = 0; i < bubbleCount; i++) {
+        const bx = (Math.random() - 0.5) * hazard.w * 0.8;
+        const bubble = this.scene.add.circle(bx, 0, 2 + Math.random() * 2, 0xffc040, 0.8);
+        bubble.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(bubble);
+        this.scene.tweens.add({
+          targets: bubble,
+          y: { from: hazard.h / 4, to: -hazard.h / 4 },
+          scale: { from: 0.5, to: 1.5 },
+          alpha: { from: 0.8, to: 0 },
+          duration: 1200 + Math.random() * 800, repeat: -1, delay: Math.random() * 2000,
+          onComplete: (_t, targets) => { (targets[0] as Phaser.GameObjects.Arc).setY(hazard.h / 4).setAlpha(0.8).setScale(0.5); },
+        });
+      }
+      for (let i = 0; i < 3; i++) {
+        const shimmer = this.scene.add.rectangle((Math.random() - 0.5) * hazard.w * 0.6, -hazard.h / 2 - 4 - i * 3, 8, 1, 0xff8040, 0.3);
+        shimmer.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(shimmer);
+        this.scene.tweens.add({ targets: shimmer, x: { from: shimmer.x - 6, to: shimmer.x + 6 }, alpha: { from: 0.1, to: 0.4 }, duration: 600 + i * 200, yoyo: true, repeat: -1 });
+      }
+
+    } else if (hazard.type === 'laser') {
+      const beam = this.scene.add.rectangle(0, 0, hazard.w, 3, 0x66f0ff, 0.9);
+      beam.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(beam);
+      const beamGlow = this.scene.add.rectangle(0, 0, hazard.w, 8, 0x66f0ff, 0.3);
+      beamGlow.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(beamGlow);
+      for (const ex of [-hazard.w / 2, hazard.w / 2]) {
+        const emitter = this.scene.add.rectangle(ex, 0, 6, 10, 0x1a3040, 0.9);
+        emitter.setStrokeStyle(1, 0x66f0ff, 0.7);
+        container.add(emitter);
+        const emitterGlow = this.scene.add.circle(ex, 0, 5, 0x66f0ff, 0.5);
+        emitterGlow.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(emitterGlow);
+      }
+      this.scene.tweens.add({ targets: [beam, beamGlow], alpha: { from: 0.7, to: 1 }, duration: 80, yoyo: true, repeat: -1 });
+
+    } else {
+      const vis = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff2030, 0.3);
+      vis.setStrokeStyle(1, 0xff4050, 0.5);
+      container.add(vis);
+    }
+
+    return container;
   }
 
   /** Create an interactable lore object — dramatic visual, not just a rectangle */
