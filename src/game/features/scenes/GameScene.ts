@@ -168,6 +168,7 @@ export class GameScene extends Phaser.Scene {
     this.pauseMenuUI = new PauseMenuUI(this, {
       onResume: () => this.togglePause(),
       onRestart: () => this.restartStage(),
+      onCheckpoint: () => this.returnToCheckpoint(),
       onSettings: () => this.openOverlay('settings'),
       onSkills: () => this.openOverlay('skills'),
       onInventory: () => this.openOverlay('inventory'),
@@ -589,21 +590,26 @@ export class GameScene extends Phaser.Scene {
 
     actsToShow.forEach((act, actIdx) => {
       const actX = startX + actIdx * (cardW + actGap);
+      const hasUnlocked = act.areas.some(a => a.unlocked);
 
       // ── Act title bar ──
-      const actTitleBg = this.add.rectangle(actX, baseY, cardW, actTitleH, 0x0d1820, 0.95);
-      actTitleBg.setStrokeStyle(1, act.actId <= 1 ? 0x39d0d8 : 0x1a3040, act.actId <= 1 ? 0.8 : 0.4);
+      const actTitleH2 = 44;
+      const actTitleBg = this.add.rectangle(actX, baseY, cardW, actTitleH2, hasUnlocked ? 0x0d1820 : 0x05080c, 0.95);
+      actTitleBg.setStrokeStyle(2, hasUnlocked ? 0x39d0d8 : 0x1a3040, hasUnlocked ? 0.8 : 0.4);
       actTitleBg.setDepth(2);
       c.add(actTitleBg);
       const romanNum = ['I', 'II', 'III', 'IV', 'V'][act.actId - 1] || String(act.actId);
-      c.add(this.add.text(actX, baseY, `ACT ${romanNum}`, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: act.actId <= 1 ? '#39d0d8' : '#3a4350',
-        stroke: '#000', strokeThickness: 2, letterSpacing: 2,
+      // ACT number — bigger + brighter
+      c.add(this.add.text(actX, baseY - 8, `ACT ${romanNum}`, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '14px', color: hasUnlocked ? '#66f0ff' : '#3a4350',
+        stroke: '#000', strokeThickness: 3, letterSpacing: 3,
       })).setOrigin(0.5).setDepth(3));
-      // Act name below title
-      c.add(this.add.text(actX, baseY + actTitleH / 2 + 10, act.actName, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
-        wordWrap: { width: cardW - 10 }, align: 'center',
+      // Act name — bigger + brighter
+      c.add(this.add.text(actX, baseY + 10, act.actName, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '10px',
+        color: hasUnlocked ? '#cfd6e0' : '#2a3040',
+        stroke: '#000', strokeThickness: 2,
+        wordWrap: { width: cardW - 16 }, align: 'center',
       })).setOrigin(0.5).setDepth(3));
 
       // ── Area cards inside this Act (stacked vertically) ──
@@ -668,9 +674,9 @@ export class GameScene extends Phaser.Scene {
         // Area name
         const nameY = previewY + previewH / 2 + 18;
         c.add(this.add.text(actX, nameY, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '11px',
-          color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
-          stroke: '#000', strokeThickness: 2, wordWrap: { width: cardW - 10 }, align: 'center',
+          fontFamily: 'monospace', fontSize: '12px',
+          color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#e0e8f0' : '#3a4350',
+          stroke: '#000', strokeThickness: 3, wordWrap: { width: cardW - 10 }, align: 'center', letterSpacing: 1,
         })).setOrigin(0.5).setDepth(3));
 
         // Status
@@ -848,8 +854,12 @@ export class GameScene extends Phaser.Scene {
     // ── Spawn NPC sprites + interaction prompts (previously invisible!) ──
     this.spawnNPCs(area.id);
 
-    // ── Control hints (gamepad-aware) — auto-switches KB ↔ GP ──
+    // ── Control hints (gamepad-aware) — only visible on section 1 ──
     this.controlHints = new ControlHintsUI(this);
+    // Only show on section 1, hide on all other sections
+    if (this.currentSection !== 1) {
+      this.controlHints.setVisible(false);
+    }
 
     // ── Spawn companion (Protocol Echo) — follows player ──
     this.companion = new CompanionEntity(this, startX + 30, startY - 40);
@@ -1277,6 +1287,10 @@ export class GameScene extends Phaser.Scene {
     this.spawnEnemiesForSection(id);
     // Refresh player external refs (new enemies spawned)
     this.updatePlayerExternalRefs();
+    // ── Hide control hints after leaving section 1 ──
+    if (id !== 1 && this.controlHints) {
+      this.controlHints.setVisible(false);
+    }
   }
 
   private activateCheckpoint(): void {
@@ -1543,6 +1557,18 @@ export class GameScene extends Phaser.Scene {
     CheckpointSystem.clear();
     this.cleanupPlay();
     this.setState('play');
+  }
+
+  /** Return to last checkpoint (without clearing it). */
+  private returnToCheckpoint(): void {
+    if (!CheckpointSystem.hasCheckpoint()) {
+      this.hud?.toast(getLocale() === 'fa' ? 'چک‌پوینتی موجود نیست' : 'NO CHECKPOINT');
+      return;
+    }
+    this.paused = false;
+    this.pauseMenuUI.hide();
+    this.cleanupPlay();
+    this.setState('play');  // rebuilds at checkpoint position
   }
 
   private fastTravel(areaId: string): void {

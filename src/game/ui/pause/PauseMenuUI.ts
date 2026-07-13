@@ -14,6 +14,7 @@ import { THEME, addCornerBrackets, addScanlines } from '../Theme';
 export interface PauseMenuCallbacks {
   onResume: () => void;
   onRestart: () => void;
+  onCheckpoint: () => void;
   onSettings: () => void;
   onSkills: () => void;
   onInventory: () => void;
@@ -74,17 +75,53 @@ export class PauseMenuUI {
     // Row 0: RESUME (full width)
     this.makeBtn(w / 2, startY, '▶', isFa ? 'ادامه' : 'RESUME', callbacks.onResume, colW * 2 + gap);
     // Row 1
-    this.makeBtn(startX + colW / 2, startY + rowH + gap, '⚔', L('NEURAL CORTEX', 'قشر عصبی'), callbacks.onSkills, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '🎒', L('DATA VAULT', 'مخزن داده'), callbacks.onInventory, colW);
+    this.makeBtn(startX + colW / 2, startY + rowH + gap, '◆', isFa ? 'چک‌پوینت' : 'CHECKPOINT', callbacks.onCheckpoint, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + rowH + gap, '↻', isFa ? 'راه‌اندازی مجدد' : 'RESTART', callbacks.onRestart, colW);
     // Row 2
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '📜', L('MISSION LOG', 'گزارش ماموریت'), callbacks.onQuests, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '🗺', L('TACTICAL MAP', 'نقشه تاکتیکی'), callbacks.onMap, colW);
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 2, '⚔', L('NEURAL CORTEX', 'قشر عصبی'), callbacks.onSkills, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 2, '◈', L('DATA VAULT', 'مخزن داده'), callbacks.onInventory, colW);
     // Row 3
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '⚙', t('menu.settings'), callbacks.onSettings, colW);
-    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '↻', isFa ? 'راه‌اندازی مجدد' : 'RESTART', callbacks.onRestart, colW);
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 3, '▤', L('MISSION LOG', 'گزارش'), callbacks.onQuests, colW);
+    this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 3, '⌂', isFa ? 'بازگشت به هاب' : 'RETURN TO HUB', callbacks.onReturnToHub, colW);
     // Row 4
-    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⌂', isFa ? 'بازگشت به هاب' : 'RETURN TO HUB', callbacks.onReturnToHub, colW);
+    this.makeBtn(startX + colW / 2, startY + (rowH + gap) * 4, '⚙', t('menu.settings'), callbacks.onSettings, colW);
     this.makeBtn(startX + colW + gap + colW / 2, startY + (rowH + gap) * 4, '✕', isFa ? 'خروج به منو' : 'QUIT TO MENU', callbacks.onQuit, colW);
+
+    // ── Map preview (right sidebar) ──
+    const previewX = w - 150;
+    const previewY = 250;
+    const previewW = 220;
+    const previewH = 130;
+    const previewBg = scene.add.rectangle(previewX, previewY, previewW, previewH, 0x05080c, 1);
+    previewBg.setStrokeStyle(1, 0x1a3040, 0.6);
+    previewBg.setDepth(2);
+    this.container.add(previewBg);
+    // Use factory_bg_2 as preview (or factory_bg_1 for forest)
+    const previewTex = 'factory_bg_2';
+    if (scene.textures.exists(previewTex)) {
+      const pvImg = scene.add.image(previewX, previewY, previewTex);
+      const tex = scene.textures.get(previewTex).getSourceImage();
+      const imgAR = tex.width / tex.height;
+      const frameAR = previewW / previewH;
+      let sc: number;
+      if (imgAR > frameAR) { sc = previewH / tex.height; } else { sc = previewW / tex.width; }
+      pvImg.setScale(sc);
+      // Mask
+      const pvMask = scene.make.graphics({ x: previewX, y: previewY }, false);
+      pvMask.fillStyle(0xffffff, 1);
+      pvMask.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
+      const pvMaskObj = pvMask.createGeometryMask();
+      pvImg.setMask(pvMaskObj);
+      pvImg.setAlpha(0.5);
+      pvImg.setDepth(2);
+      this.container.add(pvImg);
+    }
+    // Preview label
+    this.container.add(scene.add.text(previewX, previewY + previewH / 2 + 14, isFa ? 'نقشه فعلی' : 'CURRENT MAP', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 2,
+    })).setOrigin(0.5).setDepth(3));
+    // Map button (below preview)
+    this.makeBtn(previewX, previewY + previewH / 2 + 44, '▣', isFa ? 'نقشه' : 'MAP', callbacks.onMap, 160);
 
     // Set interactive on all buttons
     this.buttons.forEach(b => {
