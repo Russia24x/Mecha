@@ -55,6 +55,7 @@ import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
 import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
+import { CompanionEntity } from '../../entities/companion/CompanionEntity';
 import { GamepadManager } from '../../shared/GamepadManager';
 import { InputSchemeManager } from '../../systems/InputSchemeManager';
 import type { EnemyTypeId } from '../../data/types';
@@ -117,6 +118,8 @@ export class GameScene extends Phaser.Scene {
   private lastLostXp = 0;
   // ── FIX Bug 5: Throttle for locked collectible toast ──
   private _lastLockedToastAt = 0;
+  // Companion entity (Protocol Echo — follows player)
+  private companion: CompanionEntity | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -802,6 +805,9 @@ export class GameScene extends Phaser.Scene {
     // ── Control hints (gamepad-aware) — auto-switches KB ↔ GP ──
     this.controlHints = new ControlHintsUI(this);
 
+    // ── Spawn companion (Protocol Echo) — follows player ──
+    this.companion = new CompanionEntity(this, startX + 30, startY - 40);
+
     // Collision handler
     this.matter.world.on('collisionstart', this.onCollisionStart, this);
 
@@ -1360,6 +1366,8 @@ export class GameScene extends Phaser.Scene {
     // ── Metroidvania: check collectible pickups + shortcut activations ──
     this.checkCollectiblePickups();
     this.checkShortcutActivations();
+    // ── Companion update — follows player ──
+    this.companion?.update(deltaMs, this.player.position);
     // Ambient dust motes — atmospheric particles around player (per particles skill)
     if (this.time.now % 200 < 16) {
       this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);
@@ -1431,6 +1439,9 @@ export class GameScene extends Phaser.Scene {
     // Destroy control hints
     this.controlHints?.destroy();
     this.controlHints = null;
+    // Destroy companion
+    this.companion?.destroy();
+    this.companion = null;
     this.tweens.killAll();
     this.sequenceTimers.forEach(t => t.remove());
     this.sequenceTimers = [];

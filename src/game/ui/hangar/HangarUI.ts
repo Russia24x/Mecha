@@ -1,13 +1,25 @@
 /**
- * MECHA: LAST PROTOCOL — Hangar UI
+ * MECHA: LAST PROTOCOL — Hangar UI v2.0
  *
- * The Hangar is the central customization hub. It has 4 tabs:
- *   1. CHASSIS — select mech frame (Scout/Assault/Titan) — changes visual + stats + animation
- *   2. LOADOUT — weapon selection (future — currently shows current loadout)
- *   3. COMPANION — AI companion selection (locked — architecture-ready for future)
+ * Full-screen customization overlay with 4 tabs:
+ *   1. CHASSIS — select mech frame (Scout/Assault/Titan)
+ *   2. LOADOUT — weapon selection (placeholder)
+ *   3. COMPANION — AI companion selection (locked)
  *   4. PAINT — cosmetic color scheme
  *
- * Architecture is future-proof: adding new chassis/paints/companions = data only.
+ * Layout:
+ *   ┌─────────────────────────────────────────────┐
+ *   │  HANGAR                              [EXIT] │
+ *   ├─────────────────────────────────────────────┤
+ *   │ [CHASSIS] [LOADOUT] [COMPANION] [PAINT]     │
+ *   ├──────────────────┬──────────────────────────┤
+ *   │                  │                          │
+ *   │   MECHA PREVIEW  │   STATS / DESCRIPTION    │
+ *   │   (animated)     │   (details)              │
+ *   │                  │                          │
+ *   ├──────────────────┴──────────────────────────┤
+ *   │   [SELECT] / [EQUIPPED]                     │
+ *   └─────────────────────────────────────────────┘
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
@@ -19,6 +31,7 @@ import { PAINTS, getAllPaints } from '../../data/paints/paints';
 import { COMPANIONS, getAllCompanions } from '../../data/companions/companions';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
+import type { ChassisData, PaintData, CompanionData } from '../../data/types';
 
 type HangarTab = 'chassis' | 'loadout' | 'companion' | 'paint';
 
@@ -27,25 +40,45 @@ export class HangarUI extends NavigableOverlay {
   private contentContainer: Phaser.GameObjects.Container | null = null;
   private tabButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; tab: HangarTab }[] = [];
   private onBackCallback: () => void;
+  private selectedIndex = 0;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     super(scene);
     this.onBackCallback = onBack;
-    // Build title bar
-    const w = GAME.WIDTH;
-    this.addFixed(this.scene.add.text(w / 2, 50, t('hangar.title'), fixTextStyle({
-      fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 4, letterSpacing: 4,
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
+
+    // ── Full-screen background (covers hub completely) ──
+    const bgOverlay = scene.add.rectangle(w / 2, h / 2, w, h, THEME.BG_VOID, 0.97);
+    this.container.add(bgOverlay);
+    bgOverlay.setInteractive();  // block clicks from going to hub
+
+    // ── Main panel frame ──
+    const panelX = w / 2, panelY = h / 2;
+    const panelW = w - 60, panelH = h - 60;
+    const panelBg = scene.add.rectangle(panelX, panelY, panelW, panelH, THEME.BG_PANEL, 0.95);
+    panelBg.setStrokeStyle(2, THEME.STROKE_DIM, 0.6);
+    this.container.add(panelBg);
+
+    // ── Title bar ──
+    const titleBg = scene.add.rectangle(w / 2, 42, panelW - 20, 40, THEME.BG_DARK, 0.95);
+    titleBg.setStrokeStyle(1, THEME.CYAN, 0.4);
+    this.container.add(titleBg);
+    this.container.add(scene.add.text(w / 2, 42, `▸ ${t('hangar.title')}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 3, letterSpacing: 4,
     })).setOrigin(0.5));
-    // Back button
-    const backBg = this.scene.add.rectangle(w - 80, 50, 120, 32, THEME.BG_PANEL, 0.95);
-    backBg.setStrokeStyle(1, THEME.CYAN, 0.5);
-    const backText = this.scene.add.text(w - 80, 50, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
-      fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
+
+    // Exit button (top right)
+    const exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
+    exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    const exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5);
-    this.addFixed(backBg, backText);
-    backBg.setInteractive({ useHandCursor: true });
-    backBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
-    this.registerNav(backBg, backText, () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    this.container.add([ exitBg, exitText ]);
+    exitBg.setInteractive({ useHandCursor: true });
+    exitBg.on('pointerover', () => { exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+    exitBg.on('pointerout', () => { exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+    exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    this.registerNav(exitBg, exitText, () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
 
     this.buildTabs();
     this.showTab('chassis');
@@ -54,9 +87,8 @@ export class HangarUI extends NavigableOverlay {
 
   private buildTabs(): void {
     const w = GAME.WIDTH;
-    const tabY = 100;
-    const tabW = 180;
-    const tabGap = 8;
+    const tabY = 85;
+    const tabW = 170, tabGap = 6;
     const tabs: { id: HangarTab; label: string }[] = [
       { id: 'chassis', label: t('hangar.tab.chassis') },
       { id: 'loadout', label: t('hangar.tab.loadout') },
@@ -68,15 +100,15 @@ export class HangarUI extends NavigableOverlay {
 
     tabs.forEach((tab, i) => {
       const x = startX + i * (tabW + tabGap);
-      const bg = this.scene.add.rectangle(x, tabY, tabW, 36, THEME.BG_PANEL, 0.9);
+      const bg = this.scene.add.rectangle(x, tabY, tabW, 32, THEME.BG_PANEL, 0.9);
       bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
       bg.setInteractive({ useHandCursor: true });
       const textEl = this.scene.add.text(x, tabY, tab.label, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_MED, letterSpacing: 2,
+        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, letterSpacing: 2,
       })).setOrigin(0.5);
-      this.addFixed(bg, textEl);
+      this.container.add([ bg, textEl ]);
       this.tabButtons.push({ bg, text: textEl, tab: tab.id });
-      bg.on('pointerover', () => { bg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+      bg.on('pointerover', () => { if (this.currentTab !== tab.id) { bg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); } });
       bg.on('pointerout', () => { if (this.currentTab !== tab.id) bg.setFillStyle(THEME.BG_PANEL, 0.9); });
       bg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
       this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
@@ -85,6 +117,7 @@ export class HangarUI extends NavigableOverlay {
 
   private showTab(tab: HangarTab): void {
     this.currentTab = tab;
+    this.selectedIndex = 0;
     // Update tab highlight
     this.tabButtons.forEach(tb => {
       if (tb.tab === tab) {
@@ -103,8 +136,7 @@ export class HangarUI extends NavigableOverlay {
       this.contentContainer = null;
     }
     this.contentContainer = this.scene.add.container(0, 0);
-    this.addFixed(this.contentContainer);
-    // Render tab content
+    this.container.add(this.contentContainer);
     switch (tab) {
       case 'chassis': this.renderChassisTab(); break;
       case 'loadout': this.renderLoadoutTab(); break;
@@ -115,182 +147,236 @@ export class HangarUI extends NavigableOverlay {
 
   // ─── CHASSIS TAB ───────────────────────────────────────────────────────
   private renderChassisTab(): void {
-    const w = GAME.WIDTH;
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allChassis = getAllChassis();
     const selected = SaveSystem.getPlayer().selectedChassis;
-    const cardW = 240, cardH = 200, gap = 24;
-    const totalW = allChassis.length * cardW + (allChassis.length - 1) * gap;
-    const startX = (w - totalW) / 2 + cardW / 2;
-    const cardY = 260;
+    // Set selectedIndex to current selection
+    this.selectedIndex = allChassis.findIndex(c => c.id === selected);
+
+    // Left panel: list of chassis (clickable cards)
+    const listX = 120, listY = 140;
+    const listW = 200, itemH = 80, itemGap = 12;
 
     allChassis.forEach((chassis, i) => {
-      const x = startX + i * (cardW + gap);
+      const y = listY + i * (itemH + itemGap);
       const isUnlocked = SaveSystem.isChassisUnlocked(chassis.id);
       const isSelected = selected === chassis.id;
+      const isHighlighted = i === this.selectedIndex;
 
-      // Card background
-      const cardBg = this.scene.add.rectangle(x, cardY, cardW, cardH, isSelected ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95);
-      cardBg.setStrokeStyle(2, isSelected ? THEME.CYAN : THEME.STROKE_DIM, isSelected ? 0.9 : 0.5);
-      cc.add(cardBg);
+      const itemBg = this.scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
+        isSelected ? THEME.BG_PANEL_HI : isHighlighted ? 0x0d1820 : THEME.BG_PANEL, 0.95);
+      itemBg.setStrokeStyle(2, isSelected ? THEME.CYAN : isHighlighted ? THEME.AMBER : THEME.STROKE_DIM,
+        isSelected ? 0.9 : isHighlighted ? 0.7 : 0.4);
+      cc.add(itemBg);
 
-      // Chassis visual preview (scaled mech silhouette)
-      const previewY = cardY - 50;
-      const previewGfx = this.scene.add.graphics();
-      previewGfx.fillStyle(chassis.color, 0.8);
-      // Body shape varies by category
+      // Chassis icon (colored shape)
+      const iconGfx = this.scene.add.graphics();
+      iconGfx.fillStyle(chassis.color, isUnlocked ? 0.9 : 0.3);
+      const s = chassis.scale;
       if (chassis.category === 'light') {
-        // Scout — slim
-        previewGfx.fillRoundedRect(-16 * chassis.scale, -14 * chassis.scale, 32 * chassis.scale, 28 * chassis.scale, 4);
+        iconGfx.fillRoundedRect(-14 * s, -12 * s, 28 * s, 24 * s, 3);
       } else if (chassis.category === 'balanced') {
-        // Assault — standard
-        previewGfx.fillRoundedRect(-18, -16, 36, 30, 4);
+        iconGfx.fillRoundedRect(-16, -14, 32, 28, 3);
       } else {
-        // Titan — bulky
-        previewGfx.fillRoundedRect(-22 * chassis.scale, -20 * chassis.scale, 44 * chassis.scale, 36 * chassis.scale, 4);
+        iconGfx.fillRoundedRect(-20 * s, -18 * s, 40 * s, 32 * s, 4);
       }
-      previewGfx.lineStyle(2, chassis.color, 0.9);
-      previewGfx.strokeRoundedRect(-22, -24, 44, 40, 4);
-      previewGfx.setPosition(x, previewY);
-      cc.add(previewGfx);
-
-      // Glow if selected
-      if (isSelected) {
-        const glow = this.scene.add.circle(x, previewY, 36, chassis.color, 0.1);
-        glow.setBlendMode(Phaser.BlendModes.ADD);
-        cc.add(glow);
-        this.scene.tweens.add({ targets: glow, alpha: { from: 0.05, to: 0.15 }, scale: { from: 0.9, to: 1.1 }, duration: 1200, yoyo: true, repeat: -1 });
-      }
+      iconGfx.setPosition(listX - 70, y + itemH / 2);
+      cc.add(iconGfx);
 
       // Name
-      cc.add(this.scene.add.text(x, cardY + 10, t(chassis.nameKey), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '14px', color: isSelected ? THEME.TEXT_ACCENT : THEME.TEXT_BRIGHT, letterSpacing: 2,
-      })).setOrigin(0.5));
+      cc.add(this.scene.add.text(listX - 40, y + 18, t(chassis.nameKey), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '13px',
+        color: isSelected ? THEME.TEXT_ACCENT : isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
+      })).setOrigin(0, 0.5));
 
       // Category
-      cc.add(this.scene.add.text(x, cardY + 30, chassis.category.toUpperCase(), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
-      })).setOrigin(0.5));
+      cc.add(this.scene.add.text(listX - 40, y + 42, chassis.category.toUpperCase(), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1,
+      })).setOrigin(0, 0.5));
 
-      // Stats bars (simplified)
-      const statY = cardY + 50;
-      const stats = [
-        { label: 'SPD', val: chassis.movement.speedMult },
-        { label: 'HP', val: chassis.combat.maxHealthMult },
-        { label: 'DMG', val: chassis.combat.meleeMult },
-      ];
-      stats.forEach((stat, si) => {
-        const sy = statY + si * 16;
-        cc.add(this.scene.add.text(x - 70, sy, stat.label, fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
-        })).setOrigin(0, 0.5));
-        const barBg = this.scene.add.rectangle(x - 40, sy, 80, 6, 0x05080c, 1).setStrokeStyle(1, THEME.STROKE_DIM, 0.5).setOrigin(0, 0.5);
-        cc.add(barBg);
-        const barFill = this.scene.add.rectangle(x - 39, sy, 78 * Math.min(1, stat.val / 1.5), 4, chassis.color, 1).setOrigin(0, 0.5);
-        cc.add(barFill);
-      });
+      // Selection indicator
+      if (isSelected) {
+        cc.add(this.scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', {
+          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT,
+        }).setOrigin(0.5));
+      }
 
-      // Select button
-      if (isUnlocked && !isSelected) {
-        const btnBg = this.scene.add.rectangle(x, cardY + cardH / 2 - 16, 100, 24, THEME.BG_PANEL, 0.9);
-        btnBg.setStrokeStyle(1, chassis.color, 0.7);
-        btnBg.setInteractive({ useHandCursor: true });
-        const btnText = this.scene.add.text(x, cardY + cardH / 2 - 16, '▶ ' + (getLocale() === 'fa' ? 'انتخاب' : 'SELECT'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_BRIGHT, letterSpacing: 1,
-        })).setOrigin(0.5);
-        cc.add([btnBg, btnText]);
-        btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-        btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.9); });
-        btnBg.on('pointerdown', () => {
-          AudioSystem.play('uiClick');
-          SaveSystem.setSelectedChassis(chassis.id);
-          this.showTab('chassis');  // refresh
-        });
-        this.registerNav(btnBg, btnText, () => {
-          AudioSystem.play('uiClick');
+      // Click to select
+      itemBg.setInteractive({ useHandCursor: true });
+      itemBg.on('pointerover', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); });
+      itemBg.on('pointerout', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+      itemBg.on('pointerdown', () => {
+        AudioSystem.play('uiClick');
+        if (isUnlocked && !isSelected) {
           SaveSystem.setSelectedChassis(chassis.id);
           this.showTab('chassis');
-        });
-      } else if (isSelected) {
-        cc.add(this.scene.add.text(x, cardY + cardH / 2 - 16, '◆ ' + (getLocale() === 'fa' ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT, letterSpacing: 1,
-        })).setOrigin(0.5));
-      }
+        }
+      });
+      this.registerNav(itemBg, itemBg as unknown as Phaser.GameObjects.Text, () => {
+        if (isUnlocked && !isSelected) { SaveSystem.setSelectedChassis(chassis.id); this.showTab('chassis'); }
+      });
     });
 
-    // Description at bottom
-    const selectedChassis = CHASSIS[selected as keyof typeof CHASSIS];
-    if (selectedChassis) {
-      cc.add(this.scene.add.text(w / 2, 400, t(selectedChassis.descKey), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, align: 'center', wordWrap: { width: 600 },
+    // Right panel: large preview + stats
+    const previewX = w / 2 + 120, previewY = h / 2 + 20;
+    const selChassis = allChassis[Math.max(0, this.selectedIndex)];
+
+    // Preview background
+    const previewBg = this.scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9);
+    previewBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+    cc.add(previewBg);
+
+    // Large mech preview
+    const mechGfx = this.scene.add.graphics();
+    mechGfx.fillStyle(selChassis.color, 0.8);
+    const ms = selChassis.scale * 2.5;
+    // Body
+    mechGfx.fillRoundedRect(-18 * ms, -16 * ms, 36 * ms, 30 * ms, 5);
+    mechGfx.lineStyle(3, selChassis.color, 0.9);
+    mechGfx.strokeRoundedRect(-18 * ms, -16 * ms, 36 * ms, 30 * ms, 5);
+    // Core
+    mechGfx.fillStyle(0xffffff, 0.6);
+    mechGfx.fillCircle(0, -2 * ms, 5 * ms);
+    mechGfx.fillStyle(selChassis.color, 0.9);
+    mechGfx.fillCircle(0, -2 * ms, 3 * ms);
+    // Legs
+    mechGfx.fillStyle(0x2a3850, 0.9);
+    mechGfx.fillRect(-14 * ms, 12 * ms, 8 * ms, 14 * ms);
+    mechGfx.fillRect(6 * ms, 12 * ms, 8 * ms, 14 * ms);
+    // Head
+    mechGfx.fillStyle(0x2a3850, 0.9);
+    mechGfx.fillRoundedRect(-7 * ms, -26 * ms, 14 * ms, 12 * ms, 2);
+    mechGfx.setPosition(previewX, previewY - 20);
+    cc.add(mechGfx);
+
+    // Glow
+    const glow = this.scene.add.circle(previewX, previewY - 20, 60 * selChassis.scale, selChassis.color, 0.08);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    cc.add(glow);
+    this.scene.tweens.add({ targets: glow, alpha: { from: 0.05, to: 0.12 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
+
+    // Stats panel (below preview)
+    const statsY = previewY + 130;
+    const stats = [
+      { label: isFa() ? 'سرعت' : 'SPEED', val: selChassis.movement.speedMult, color: 0x39d0d8 },
+      { label: isFa() ? 'پرش' : 'JUMP', val: selChassis.movement.jumpMult, color: 0x66f0ff },
+      { label: isFa() ? 'سلامتی' : 'HEALTH', val: selChassis.combat.maxHealthMult, color: 0x40d070 },
+      { label: isFa() ? 'ضربه' : 'MELEE', val: selChassis.combat.meleeMult, color: 0xff6040 },
+      { label: isFa() ? 'انرژی' : 'ENERGY', val: selChassis.combat.maxEnergyMult, color: 0x4090ff },
+    ];
+    stats.forEach((stat, si) => {
+      const sy = statsY + si * 22;
+      cc.add(this.scene.add.text(previewX - 130, sy, stat.label, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
+      })).setOrigin(0, 0.5));
+      // Bar
+      cc.add(this.scene.add.rectangle(previewX - 60, sy, 100, 8, 0x05080c, 1).setStrokeStyle(1, THEME.STROKE_DIM, 0.5).setOrigin(0, 0.5));
+      const barWidth = Math.min(100, 100 * stat.val / 1.5);
+      cc.add(this.scene.add.rectangle(previewX - 59, sy, barWidth, 6, stat.color, 1).setOrigin(0, 0.5));
+    });
+
+    // Description (bottom)
+    cc.add(this.scene.add.text(previewX, previewY + 200, t(selChassis.descKey), fixTextStyle({
+      fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED, align: 'center', wordWrap: { width: 300 }, lineSpacing: 4,
+    })).setOrigin(0.5));
+
+    // Equipped/Select button
+    const isSelected = selected === selChassis.id;
+    if (isSelected) {
+      cc.add(this.scene.add.text(previewX, previewY + 250, '◆ ' + (isFa() ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_ACCENT, letterSpacing: 2,
       })).setOrigin(0.5));
+    } else if (SaveSystem.isChassisUnlocked(selChassis.id)) {
+      const btnBg = this.scene.add.rectangle(previewX, previewY + 250, 120, 28, THEME.BG_PANEL, 0.95);
+      btnBg.setStrokeStyle(1, selChassis.color, 0.7);
+      const btnText = this.scene.add.text(previewX, previewY + 250, '▶ ' + (isFa() ? 'انتخاب' : 'SELECT'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 1,
+      })).setOrigin(0.5);
+      cc.add([btnBg, btnText]);
+      btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
+      this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
     }
   }
 
   // ─── LOADOUT TAB ───────────────────────────────────────────────────────
   private renderLoadoutTab(): void {
-    const w = GAME.WIDTH;
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const player = SaveSystem.getPlayer();
-    cc.add(this.scene.add.text(w / 2, 250, getLocale() === 'fa' ? 'تجهیزات فعلی' : 'CURRENT LOADOUT', fixTextStyle({
-      fontFamily: 'monospace', fontSize: '16px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
+
+    const panelX = w / 2, panelY = h / 2 + 20;
+    const panelBg = this.scene.add.rectangle(panelX, panelY, 500, 300, THEME.BG_DARK, 0.9);
+    panelBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+    cc.add(panelBg);
+
+    cc.add(this.scene.add.text(panelX, panelY - 100, isFa() ? 'تجهیزات فعلی' : 'CURRENT LOADOUT', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '16px', color: THEME.TEXT_BRIGHT, letterSpacing: 3,
     })).setOrigin(0.5));
-    // Show current weapon
-    cc.add(this.scene.add.text(w / 2, 290, getLocale() === 'fa' ? `سلاح: ${player.currentWeapon}` : `WEAPON: ${player.currentWeapon}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_AMBER,
+
+    cc.add(this.scene.add.text(panelX, panelY - 50, isFa() ? `سلاح: ${player.currentWeapon}` : `WEAPON: ${player.currentWeapon}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER,
     })).setOrigin(0.5));
-    cc.add(this.scene.add.text(w / 2, 320, getLocale() === 'fa' ? 'بخش تجهیزات کامل در نسخه‌های آینده' : 'Full loadout system coming in future versions', fixTextStyle({
-      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_DIM, align: 'center',
-    })).setOrigin(0.5));
+
+    cc.add(this.scene.add.text(panelX, panelY + 20, isFa()
+      ? 'سیستم تجهیزات کامل در نسخه‌های آینده\nشامل: سلاح اصلی، سلاح کمکی، ضربه نزدیک، ماژول هسته، ماژول غیرفعال'
+      : 'Full loadout system coming in future versions\nIncludes: Primary, Secondary, Melee, Core Module, Passive Module',
+      fixTextStyle({
+        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_DIM, align: 'center', lineSpacing: 6,
+      })).setOrigin(0.5));
   }
 
   // ─── COMPANION TAB ─────────────────────────────────────────────────────
   private renderCompanionTab(): void {
-    const w = GAME.WIDTH;
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allCompanions = getAllCompanions();
-    const cardW = 200, cardH = 160, gap = 20;
+    const cardW = 160, cardH = 180, gap = 16;
     const totalW = allCompanions.length * cardW + (allCompanions.length - 1) * gap;
     const startX = (w - totalW) / 2 + cardW / 2;
-    const cardY = 280;
+    const cardY = h / 2 + 20;
 
     allCompanions.forEach((companion, i) => {
       const x = startX + i * (cardW + gap);
       const isUnlocked = companion.unlockedByDefault;
-      // Card
       const cardBg = this.scene.add.rectangle(x, cardY, cardW, cardH, isUnlocked ? THEME.BG_PANEL : 0x05080c, 0.95);
       cardBg.setStrokeStyle(1, isUnlocked ? companion.color : THEME.STROKE_DIM, isUnlocked ? 0.7 : 0.3);
       cc.add(cardBg);
-      // Companion visual (orb)
-      const orb = this.scene.add.circle(x, cardY - 30, 16, companion.color, isUnlocked ? 0.6 : 0.15);
+      // Orb
+      const orb = this.scene.add.circle(x, cardY - 40, 18, companion.color, isUnlocked ? 0.6 : 0.12);
       orb.setBlendMode(Phaser.BlendModes.ADD);
       cc.add(orb);
       if (isUnlocked) {
         this.scene.tweens.add({ targets: orb, alpha: { from: 0.4, to: 0.8 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
       }
+      // Inner ring
+      const ring = this.scene.add.circle(x, cardY - 40, 10, 0x000000, 0);
+      ring.setStrokeStyle(1, companion.color, isUnlocked ? 0.5 : 0.15);
+      cc.add(ring);
       // Name
       cc.add(this.scene.add.text(x, cardY + 10, t(companion.nameKey), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
+        fontFamily: 'monospace', fontSize: '10px', color: isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0.5));
       // Status
       if (!isUnlocked) {
-        cc.add(this.scene.add.text(x, cardY + 40, t('hangar.locked'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_RED, letterSpacing: 2,
+        cc.add(this.scene.add.text(x, cardY + 38, t('hangar.locked'), fixTextStyle({
+          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED, letterSpacing: 2,
         })).setOrigin(0.5));
-        cc.add(this.scene.add.text(x, cardY + 60, t('hangar.coming_soon'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1,
+        cc.add(this.scene.add.text(x, cardY + 56, t('hangar.coming_soon'), fixTextStyle({
+          fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM, letterSpacing: 1,
         })).setOrigin(0.5));
       } else {
-        cc.add(this.scene.add.text(x, cardY + 40, companion.category.toUpperCase(), fixTextStyle({
+        cc.add(this.scene.add.text(x, cardY + 38, companion.category.toUpperCase(), fixTextStyle({
           fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1,
         })).setOrigin(0.5));
       }
     });
 
     // Description
-    cc.add(this.scene.add.text(w / 2, 420, getLocale() === 'fa'
-      ? 'همراهان سیستم مستقلی هستند که دنبال بازیکن می‌آیند. معماری آماده است — در نسخه‌های آینده فعال می‌شود.'
-      : 'Companions are independent AI entities that follow the player. Architecture is ready — activated in future versions.',
+    cc.add(this.scene.add.text(w / 2, cardY + 140, isFa()
+      ? 'همراهان سیستم مستقلی هستند که دنبال بازیکن می‌آیند.\nمعماری آماده است — در نسخه‌های آینده فعال می‌شود.\nProtocol Echo: شروع به عنوان گوی خفته → رشد با داستان → آشکارسازی'
+      : 'Companions are independent AI entities that follow the player.\nArchitecture is ready — activated in future versions.\nProtocol Echo: dormant orb → grows with story → revealed',
       fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_DIM, align: 'center', wordWrap: { width: 600 }, lineSpacing: 4,
       })).setOrigin(0.5));
@@ -298,69 +384,124 @@ export class HangarUI extends NavigableOverlay {
 
   // ─── PAINT TAB ─────────────────────────────────────────────────────────
   private renderPaintTab(): void {
-    const w = GAME.WIDTH;
+    const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allPaints = getAllPaints();
     const selected = SaveSystem.getPlayer().selectedPaint;
-    const cardW = 180, cardH = 140, gap = 20;
-    const totalW = allPaints.length * cardW + (allPaints.length - 1) * gap;
-    const startX = (w - totalW) / 2 + cardW / 2;
-    const cardY = 280;
+    this.selectedIndex = allPaints.findIndex(p => p.id === selected);
+
+    // Left panel: paint list
+    const listX = 120, listY = 140;
+    const listW = 200, itemH = 70, itemGap = 12;
 
     allPaints.forEach((paint, i) => {
-      const x = startX + i * (cardW + gap);
+      const y = listY + i * (itemH + itemGap);
       const isUnlocked = SaveSystem.isPaintUnlocked(paint.id);
       const isSelected = selected === paint.id;
-      // Card
-      const cardBg = this.scene.add.rectangle(x, cardY, cardW, cardH, isSelected ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95);
-      cardBg.setStrokeStyle(2, isSelected ? paint.accentColor : THEME.STROKE_DIM, isSelected ? 0.9 : 0.5);
-      cc.add(cardBg);
-      // Paint preview (colored mech silhouette)
-      const previewGfx = this.scene.add.graphics();
-      previewGfx.fillStyle(paint.primaryColor, isUnlocked ? 0.9 : 0.3);
-      previewGfx.fillRoundedRect(-18, -16, 36, 30, 4);
-      previewGfx.lineStyle(2, paint.accentColor, isUnlocked ? 0.9 : 0.3);
-      previewGfx.strokeRoundedRect(-18, -16, 36, 30, 4);
-      previewGfx.fillStyle(paint.accentColor, isUnlocked ? 0.8 : 0.2);
-      previewGfx.fillCircle(0, -2, 4);
-      previewGfx.setPosition(x, cardY - 30);
-      cc.add(previewGfx);
+      const isHighlighted = i === this.selectedIndex;
+
+      const itemBg = this.scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
+        isSelected ? THEME.BG_PANEL_HI : isHighlighted ? 0x0d1820 : THEME.BG_PANEL, 0.95);
+      itemBg.setStrokeStyle(2, isSelected ? paint.accentColor : isHighlighted ? THEME.AMBER : THEME.STROKE_DIM,
+        isSelected ? 0.9 : isHighlighted ? 0.7 : 0.4);
+      cc.add(itemBg);
+
+      // Color swatch
+      const swatch = this.scene.add.graphics();
+      swatch.fillStyle(paint.primaryColor, isUnlocked ? 0.9 : 0.3);
+      swatch.fillRoundedRect(-18, -14, 36, 28, 3);
+      swatch.lineStyle(2, paint.accentColor, isUnlocked ? 0.9 : 0.3);
+      swatch.strokeRoundedRect(-18, -14, 36, 28, 3);
+      swatch.fillStyle(paint.accentColor, isUnlocked ? 0.8 : 0.2);
+      swatch.fillCircle(0, -2, 4);
+      swatch.setPosition(listX - 70, y + itemH / 2);
+      cc.add(swatch);
+
       // Name
-      cc.add(this.scene.add.text(x, cardY + 20, t(paint.nameKey), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: isUnlocked ? (isSelected ? THEME.TEXT_ACCENT : THEME.TEXT_BRIGHT) : THEME.TEXT_DIM, letterSpacing: 1,
-      })).setOrigin(0.5));
-      // Status / select button
-      if (isUnlocked && !isSelected) {
-        const btnBg = this.scene.add.rectangle(x, cardY + cardH / 2 - 16, 80, 22, THEME.BG_PANEL, 0.9);
-        btnBg.setStrokeStyle(1, paint.accentColor, 0.6);
-        btnBg.setInteractive({ useHandCursor: true });
-        const btnText = this.scene.add.text(x, cardY + cardH / 2 - 16, '▶ ' + (getLocale() === 'fa' ? 'انتخاب' : 'SELECT'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_BRIGHT,
-        })).setOrigin(0.5);
-        cc.add([btnBg, btnText]);
-        btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-        btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.9); });
-        btnBg.on('pointerdown', () => {
-          AudioSystem.play('uiClick');
-          SaveSystem.setSelectedPaint(paint.id);
-          this.showTab('paint');
-        });
-        this.registerNav(btnBg, btnText, () => {
-          AudioSystem.play('uiClick');
-          SaveSystem.setSelectedPaint(paint.id);
-          this.showTab('paint');
-        });
-      } else if (isSelected) {
-        cc.add(this.scene.add.text(x, cardY + cardH / 2 - 16, '◆ ' + (getLocale() === 'fa' ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_ACCENT,
-        })).setOrigin(0.5));
-      } else {
-        cc.add(this.scene.add.text(x, cardY + cardH / 2 - 16, t('hangar.locked'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_RED,
-        })).setOrigin(0.5));
+      cc.add(this.scene.add.text(listX - 40, y + 18, t(paint.nameKey), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '12px',
+        color: isSelected ? THEME.TEXT_ACCENT : isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
+      })).setOrigin(0, 0.5));
+
+      // Status
+      if (isSelected) {
+        cc.add(this.scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', {
+          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT,
+        }).setOrigin(0.5));
+      } else if (!isUnlocked) {
+        cc.add(this.scene.add.text(listX - 40, y + 40, t('hangar.locked'), fixTextStyle({
+          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED,
+        })).setOrigin(0, 0.5));
       }
+
+      itemBg.setInteractive({ useHandCursor: true });
+      itemBg.on('pointerover', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); });
+      itemBg.on('pointerout', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+      itemBg.on('pointerdown', () => {
+        AudioSystem.play('uiClick');
+        if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
+      });
+      this.registerNav(itemBg, itemBg as unknown as Phaser.GameObjects.Text, () => {
+        if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
+      });
     });
+
+    // Right panel: large preview
+    const previewX = w / 2 + 120, previewY = h / 2 + 20;
+    const selPaint = allPaints[Math.max(0, this.selectedIndex)];
+    const previewBg = this.scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9);
+    previewBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+    cc.add(previewBg);
+
+    // Large mech preview with paint colors
+    const mechGfx = this.scene.add.graphics();
+    mechGfx.fillStyle(selPaint.primaryColor, 0.9);
+    mechGfx.fillRoundedRect(-45, -40, 90, 75, 6);
+    mechGfx.lineStyle(3, selPaint.accentColor, 0.9);
+    mechGfx.strokeRoundedRect(-45, -40, 90, 75, 6);
+    mechGfx.fillStyle(selPaint.accentColor, 0.8);
+    mechGfx.fillCircle(0, -5, 8);
+    mechGfx.fillStyle(0x2a3850, 0.9);
+    mechGfx.fillRect(-35, 30, 20, 35);
+    mechGfx.fillRect(15, 30, 20, 35);
+    mechGfx.fillRoundedRect(-18, -65, 36, 30, 3);
+    mechGfx.lineStyle(1, selPaint.accentColor, 0.6);
+    mechGfx.strokeRoundedRect(-18, -65, 36, 30, 3);
+    mechGfx.setPosition(previewX, previewY - 20);
+    cc.add(mechGfx);
+
+    // Paint name + description
+    cc.add(this.scene.add.text(previewX, previewY + 150, t(selPaint.nameKey), fixTextStyle({
+      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
+    })).setOrigin(0.5));
+    cc.add(this.scene.add.text(previewX, previewY + 175, t(selPaint.descKey), fixTextStyle({
+      fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED, align: 'center', wordWrap: { width: 280 },
+    })).setOrigin(0.5));
+
+    // Equipped/Select button
+    const isSelected = selected === selPaint.id;
+    if (isSelected) {
+      cc.add(this.scene.add.text(previewX, previewY + 230, '◆ ' + (isFa() ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_ACCENT, letterSpacing: 2,
+      })).setOrigin(0.5));
+    } else if (SaveSystem.isPaintUnlocked(selPaint.id)) {
+      const btnBg = this.scene.add.rectangle(previewX, previewY + 230, 120, 28, THEME.BG_PANEL, 0.95);
+      btnBg.setStrokeStyle(1, selPaint.accentColor, 0.7);
+      const btnText = this.scene.add.text(previewX, previewY + 230, '▶ ' + (isFa() ? 'انتخاب' : 'SELECT'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 1,
+      })).setOrigin(0.5);
+      cc.add([btnBg, btnText]);
+      btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
+      this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
+    } else {
+      cc.add(this.scene.add.text(previewX, previewY + 230, t('hangar.locked'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_RED, letterSpacing: 2,
+      })).setOrigin(0.5));
+    }
   }
 }
+
+function isFa(): boolean { return getLocale() === 'fa'; }
 
 export default HangarUI;

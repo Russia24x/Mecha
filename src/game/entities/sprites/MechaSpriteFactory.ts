@@ -48,11 +48,75 @@ export interface MechVisualHandle {
 
 export class MechaSpriteFactory {
   /**
-   * Build the PLAYER mech — "Atlas", a humanoid combat frame.
-   * Cyan visor, amber core reactor, dual leg thrusters, shoulder pauldrons.
-   * Carries a rifle on right arm.
+   * Build the PLAYER mech — dispatches to the correct chassis builder.
+   * @param chassisId 'scout' | 'assault' | 'titan'
+   * @param primaryColor paint primary color (body)
+   * @param accentColor paint accent color (trim/core)
    */
-  static buildPlayerAtlas(scene: Phaser.Scene): MechVisualHandle {
+  static buildPlayer(
+    scene: Phaser.Scene,
+    chassisId: string = 'assault',
+    primaryColor: number = 0x2a3850,
+    accentColor: number = 0x39d0d8,
+  ): MechVisualHandle {
+    switch (chassisId) {
+      case 'scout':  return this.buildPlayerScout(scene, primaryColor, accentColor);
+      case 'titan':  return this.buildPlayerTitan(scene, primaryColor, accentColor);
+      default:       return this.buildPlayerAtlas(scene, primaryColor, accentColor);
+    }
+  }
+
+  /**
+   * SCOUT chassis — light, slim, fast.
+   * Smaller body, thinner limbs, brighter visor, agile feel.
+   */
+  static buildPlayerScout(scene: Phaser.Scene, primaryColor: number = 0x2a3850, accentColor: number = 0x39d0d8): MechVisualHandle {
+    return this.buildPlayerBase(scene, primaryColor, accentColor, {
+      bodyScale: 0.85, legScale: 0.8, headScale: 0.9,
+      walkAmplitude: 0.10, walkSpeed: 1.4, bobAmount: 1.5,
+      hasShoulderCannons: false, bodyColor: primaryColor, accentColor,
+    });
+  }
+
+  /**
+   * ASSAULT chassis — balanced (default).
+   * Standard proportions, medium weight.
+   */
+  static buildPlayerAtlas(scene: Phaser.Scene, primaryColor: number = 0x2a3850, accentColor: number = 0x39d0d8): MechVisualHandle {
+    return this.buildPlayerBase(scene, primaryColor, accentColor, {
+      bodyScale: 1.0, legScale: 1.0, headScale: 1.0,
+      walkAmplitude: 0.12, walkSpeed: 1.0, bobAmount: 2,
+      hasShoulderCannons: false, bodyColor: primaryColor, accentColor,
+    });
+  }
+
+  /**
+   * TITAN chassis — heavy, bulky, slow.
+   * Larger body, thicker limbs, heavier feel, stomping steps.
+   */
+  static buildPlayerTitan(scene: Phaser.Scene, primaryColor: number = 0x2a3850, accentColor: number = 0x39d0d8): MechVisualHandle {
+    return this.buildPlayerBase(scene, primaryColor, accentColor, {
+      bodyScale: 1.2, legScale: 1.3, headScale: 1.1,
+      walkAmplitude: 0.16, walkSpeed: 0.7, bobAmount: 3,
+      hasShoulderCannons: true, bodyColor: primaryColor, accentColor,
+    });
+  }
+
+  /**
+   * Base player builder — used by all 3 chassis variants.
+   * Accepts a config that controls proportions + animation feel.
+   */
+  private static buildPlayerBase(
+    scene: Phaser.Scene,
+    _defaultColor: number,
+    defaultAccent: number,
+    config: {
+      bodyScale: number; legScale: number; headScale: number;
+      walkAmplitude: number; walkSpeed: number; bobAmount: number;
+      hasShoulderCannons: boolean;
+      bodyColor: number; accentColor: number;
+    },
+  ): MechVisualHandle {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
@@ -72,28 +136,28 @@ export class MechaSpriteFactory {
     // ── Legs (armored, two-tone) ──
     const legL = scene.add.graphics();
     legL.setDepth(2);
-    legL.fillStyle(0x2a3850, 1); legL.fillRect(-13, 4, 10, 18);
+    legL.fillStyle(config.bodyColor, 1); legL.fillRect(-13, 4, 10, 18);
     legL.fillStyle(0x1a2030, 1); legL.fillRect(-13, 18, 10, 4);
-    legL.fillStyle(0x39d0d8, 0.6); legL.fillRect(-12, 6, 8, 2);
-    legL.lineStyle(1, 0x39d0d8, 0.5); legL.strokeRect(-13, 4, 10, 18);
+    legL.fillStyle(config.accentColor, 0.6); legL.fillRect(-12, 6, 8, 2);
+    legL.lineStyle(1, config.accentColor, 0.5); legL.strokeRect(-13, 4, 10, 18);
     parts.push(legL);
     const legR = scene.add.graphics();
     legR.setDepth(2);
-    legR.fillStyle(0x2a3850, 1); legR.fillRect(3, 4, 10, 18);
+    legR.fillStyle(config.bodyColor, 1); legR.fillRect(3, 4, 10, 18);
     legR.fillStyle(0x1a2030, 1); legR.fillRect(3, 18, 10, 4);
-    legR.fillStyle(0x39d0d8, 0.6); legR.fillRect(4, 6, 8, 2);
-    legR.lineStyle(1, 0x39d0d8, 0.5); legR.strokeRect(3, 4, 10, 18);
+    legR.fillStyle(config.accentColor, 0.6); legR.fillRect(4, 6, 8, 2);
+    legR.lineStyle(1, config.accentColor, 0.5); legR.strokeRect(3, 4, 10, 18);
     parts.push(legR);
 
     // ── Torso (armored chest with core reactor) ──
     const torso = scene.add.graphics();
     torso.setDepth(5);
-    torso.fillStyle(0x1a2840, 1); torso.fillRoundedRect(-16, -16, 32, 26, 4);
+    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-16, -16, 32, 26, 4);
     torso.fillStyle(0x2a4060, 1); torso.fillRoundedRect(-14, -14, 28, 6, 2);
     torso.fillStyle(0x101820, 1); torso.fillRoundedRect(-12, 4, 24, 6, 2);
-    torso.fillStyle(0x2a3850, 1); torso.fillRoundedRect(-20, -14, 6, 14, 2);
-    torso.fillStyle(0x2a3850, 1); torso.fillRoundedRect(14, -14, 6, 14, 2);
-    torso.lineStyle(2, 0x39d0d8, 0.8); torso.strokeRoundedRect(-16, -16, 32, 26, 4);
+    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(-20, -14, 6, 14, 2);
+    torso.fillStyle(config.bodyColor, 1); torso.fillRoundedRect(14, -14, 6, 14, 2);
+    torso.lineStyle(2, config.accentColor, 0.8); torso.strokeRoundedRect(-16, -16, 32, 26, 4);
     torso.fillStyle(0x5a6a80, 0.7);
     torso.fillCircle(-12, -10, 1); torso.fillCircle(12, -10, 1);
     torso.fillCircle(-12, 6, 1); torso.fillCircle(12, 6, 1);
@@ -113,16 +177,17 @@ export class MechaSpriteFactory {
     // ── Head/cockpit (with cyan visor) ──
     const head = scene.add.graphics();
     head.setDepth(8);
-    head.fillStyle(0x2a3850, 1); head.fillRoundedRect(-7, -28, 14, 14, 3);
+    head.fillStyle(config.bodyColor, 1); head.fillRoundedRect(-7, -28, 14, 14, 3);
     head.fillStyle(0x1a2030, 1); head.fillRoundedRect(-5, -26, 10, 4, 1);
-    head.lineStyle(1, 0x39d0d8, 0.7); head.strokeRoundedRect(-7, -28, 14, 14, 3);
-    head.lineStyle(1, 0x39d0d8, 0.6); head.beginPath();
+    head.lineStyle(1, config.accentColor, 0.7); head.strokeRoundedRect(-7, -28, 14, 14, 3);
+    head.lineStyle(1, config.accentColor, 0.6); head.beginPath();
     head.moveTo(5, -28); head.lineTo(7, -34); head.strokePath();
     head.fillStyle(0xffc040, 0.9); head.fillCircle(7, -34, 1.2);
     parts.push(head);
 
     // ── Visor (cyan glow, the "eyes") ──
-    const visor = scene.add.rectangle(0, -24, 8, 2, 0x66f0ff, 0.95);
+    const visor = scene.add.rectangle(0, -24, 8, 2, config.accentColor, 0.95);
+    visor.setBlendMode(Phaser.BlendModes.ADD);
     visor.setBlendMode(Phaser.BlendModes.ADD); visor.setDepth(9);
     parts.push(visor);
 
@@ -131,9 +196,9 @@ export class MechaSpriteFactory {
     gunArm.setDepth(10);
     const gunGfx = scene.add.graphics();
     gunGfx.fillStyle(0x1a2030, 1); gunGfx.fillRect(0, -3, 26, 6);
-    gunGfx.fillStyle(0x2a3850, 1); gunGfx.fillRect(20, -4, 8, 8);
-    gunGfx.fillStyle(0x39d0d8, 0.5); gunGfx.fillRect(2, -2, 18, 1);
-    gunGfx.lineStyle(1, 0x39d0d8, 0.6); gunGfx.strokeRect(0, -3, 26, 6);
+    gunGfx.fillStyle(config.bodyColor, 1); gunGfx.fillRect(20, -4, 8, 8);
+    gunGfx.fillStyle(config.accentColor, 0.5); gunGfx.fillRect(2, -2, 18, 1);
+    gunGfx.lineStyle(1, config.accentColor, 0.6); gunGfx.strokeRect(0, -3, 26, 6);
     gunArm.add(gunGfx);
     const muzzle = scene.add.circle(28, 0, 3, 0xfff04a, 0);
     muzzle.setBlendMode(Phaser.BlendModes.ADD);
@@ -143,9 +208,9 @@ export class MechaSpriteFactory {
     // ── Left arm — armored (with pauldron) ──
     const leftArm = scene.add.graphics();
     leftArm.setDepth(4);
-    leftArm.fillStyle(0x1a2840, 1); leftArm.fillRoundedRect(-22, -10, 8, 18, 2);
-    leftArm.fillStyle(0x39d0d8, 0.5); leftArm.fillRect(-21, -8, 6, 1);
-    leftArm.lineStyle(1, 0x39d0d8, 0.4); leftArm.strokeRoundedRect(-22, -10, 8, 18, 2);
+    leftArm.fillStyle(config.bodyColor, 1); leftArm.fillRoundedRect(-22, -10, 8, 18, 2);
+    leftArm.fillStyle(config.accentColor, 0.5); leftArm.fillRect(-21, -8, 6, 1);
+    leftArm.lineStyle(1, config.accentColor, 0.4); leftArm.strokeRoundedRect(-22, -10, 8, 18, 2);
     parts.push(leftArm);
 
     container.add(parts);

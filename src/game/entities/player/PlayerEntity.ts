@@ -20,6 +20,7 @@ import { SKILLS } from '../../data/skills/skills';
 import type { WeaponId, WeaponData, PlayerStats, Direction } from '../../data/types';
 import { Projectile } from '../combat/Projectile';
 import { MechaSpriteFactory, type MechVisualHandle } from '../sprites/MechaSpriteFactory';
+import { getPaint } from '../../data/paints/paints';
 
 export class PlayerEntity {
   public sprite: Phaser.Physics.Matter.Image;
@@ -246,8 +247,16 @@ export class PlayerEntity {
   }
 
   private buildVisual(): void {
-    // Use the MechaSpriteFactory — multi-layered detailed mech (no more flat rectangles)
-    this.visual = MechaSpriteFactory.buildPlayerAtlas(this.scene);
+    // ── Load selected chassis + paint from save data ──
+    const save = SaveSystem.getPlayer();
+    const chassisId = save.selectedChassis || 'assault';
+    // Get paint colors
+    let primaryColor = 0x2a3850;
+    let accentColor = 0x39d0d8;
+    const paint = getPaint((save.selectedPaint as 'factory_gray') || 'factory_gray');
+    if (paint) { primaryColor = paint.primaryColor; accentColor = paint.accentColor; }
+    // Build the player visual with the selected chassis + paint
+    this.visual = MechaSpriteFactory.buildPlayer(this.scene, chassisId, primaryColor, accentColor);
   }
 
   // ---- Public API ----
