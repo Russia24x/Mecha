@@ -451,6 +451,8 @@ export interface GameSettings {
   sfxVolume: number;
   muted: boolean;
   brightness: number;
+  quality: 'low' | 'medium' | 'high';
+  fullscreen: boolean;
 }
 
 export interface SaveData {

@@ -20,11 +20,20 @@ export class RenderSystem {
   private lights: Light[] = [];
 
   private static brightness = 0.85;  // was 0.7 — too dark per user feedback
-  private static readonly MAX_DARKNESS = 0.08;  // was 0.2 — was over-darkening the world
+  private static maxDarkness = 0.08;  // was 0.2 — was over-darkening the world
+
+  static setMaxDarkness(v: number): void {
+    RenderSystem.maxDarkness = Phaser.Math.Clamp(v, 0, 0.3);
+    for (const inst of RenderSystem._instances) {
+      if (inst.darkness && inst.darkness.active) {
+        inst.darkness.setAlpha((1 - RenderSystem.brightness) * RenderSystem.maxDarkness);
+      }
+    }
+  }
   private static _instances: RenderSystem[] = [];
 
   constructor(scene: Phaser.Scene) {
-    const alpha = (1 - RenderSystem.brightness) * RenderSystem.MAX_DARKNESS;
+    const alpha = (1 - RenderSystem.brightness) * RenderSystem.maxDarkness;
     this.darkness = scene.add.rectangle(
       GAME.WIDTH / 2, GAME.HEIGHT / 2, GAME.WIDTH, GAME.HEIGHT, 0x000010, alpha
     );
@@ -38,7 +47,7 @@ export class RenderSystem {
     RenderSystem.brightness = Phaser.Math.Clamp(b, 0, 1);
     for (const inst of RenderSystem._instances) {
       if (inst.darkness && inst.darkness.active) {
-        inst.darkness.setAlpha((1 - RenderSystem.brightness) * RenderSystem.MAX_DARKNESS);
+        inst.darkness.setAlpha((1 - RenderSystem.brightness) * RenderSystem.maxDarkness);
       }
     }
   }

@@ -13,7 +13,9 @@ const DEFAULT_SETTINGS: GameSettings = {
   musicVolume: 0.4,
   sfxVolume: 0.8,
   muted: false,
-  brightness: 0.7,
+  brightness: 0.85,
+  quality: 'high',
+  fullscreen: false,
 };
 
 const DEFAULT_PLAYER: PlayerState = {
@@ -100,6 +102,8 @@ export class SaveSystem {
     if (!migrated.player.unlockedPaints) migrated.player.unlockedPaints = ['factory_gray'];
     if (!migrated.player.unlockedCompanions) migrated.player.unlockedCompanions = [];
     if (migrated.player.selectedCompanion === undefined) migrated.player.selectedCompanion = null;
+    if (!migrated.settings.quality) migrated.settings.quality = 'high';
+    if (migrated.settings.fullscreen === undefined) migrated.settings.fullscreen = false;
     migrated.version = SAVE_VERSION;
     return migrated;
   }

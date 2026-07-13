@@ -12,6 +12,7 @@ import { RenderSystem } from '../../systems/RenderSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
 import { THEME, addCornerBrackets, addScanlines } from '../Theme';
+import { QualityManager, type QualityLevel } from '../../systems/QualityManager';
 import type { Locale } from '../../data/types';
 
 type CategoryId = 'audio' | 'display' | 'language';
@@ -149,14 +150,16 @@ export class SettingsUI extends NavigableOverlay {
       this.makeSlider(rightX, optStartY, t('settings.brightness'), RenderSystem.getBrightness(),
         (v) => { RenderSystem.setBrightness(v); SaveSystem.saveSettings({ brightness: v }); });
       // ── Fullscreen toggle ──
+      const savedFullscreen = SaveSystem.getSettings().fullscreen ?? false;
       this.makeToggle(rightX, optStartY + 50, isFa ? 'تمام صفحه' : 'FULLSCREEN',
-        this.scene.scale.isFullscreen,
+        this.scene.scale.isFullscreen || savedFullscreen,
         (on) => {
           if (on) {
             this.scene.scale.startFullscreen();
           } else {
             this.scene.scale.stopFullscreen();
           }
+          SaveSystem.saveSettings({ fullscreen: on });
         });
       // ── Resolution selector (data-driven, not hardcoded) ──
       const resolutions = this.getAvailableResolutions();
@@ -167,16 +170,27 @@ export class SettingsUI extends NavigableOverlay {
         (idx) => {
           const res = resolutions[idx];
           if (res) {
-            this.scene.scale.resize(res.w, res.h);
+            // Phaser Scale.FIT mode: resize the parent container CSS size
+            // The game always renders at 1280x720 internally, browser scales canvas
+            const canvas = this.scene.scale.canvas;
+            if (canvas) {
+              canvas.style.width = res.w + 'px';
+              canvas.style.height = res.h + 'px';
+            }
+            this.scene.scale.refresh();
           }
         });
-      // ── Render quality (data-driven) ──
+      // ── Render quality — actually changes game behavior ──
+      const savedQuality = (SaveSystem.getSettings().quality ?? 'high') as QualityLevel;
+      const qualityIdx = savedQuality === 'low' ? 0 : savedQuality === 'medium' ? 1 : 2;
       const qualityOptions = [isFa ? 'کم' : 'LOW', isFa ? 'متوسط' : 'MEDIUM', isFa ? 'بالا' : 'HIGH'];
       this.makeSelector(rightX, optStartY + 150, isFa ? 'کیفیت' : 'QUALITY',
-        qualityOptions, 1, (idx) => {
-          // Adjust darkness based on quality
-          const brightnessLevels = [0.6, 0.75, 0.9];
-          RenderSystem.setBrightness(brightnessLevels[idx] ?? 0.75);
+        qualityOptions, qualityIdx, (idx) => {
+          const level: QualityLevel = idx === 0 ? 'low' : idx === 1 ? 'medium' : 'high';
+          QualityManager.setQuality(level);
+          SaveSystem.saveSettings({ quality: level });
+          // Adjust FPS target
+          this.scene.game.loop.targetFps = QualityManager.getFpsTarget();
         });
     } else if (this.selectedCategory === 'language') {
       this.makeLanguageToggle(rightX, optStartY);
@@ -337,14 +351,16 @@ export class SettingsUI extends NavigableOverlay {
     objects.push(labelEl);
 
     const enBg = this.scene.add.rectangle(x - 60, y, 120, 36, currentLang === 'en' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
-      .setStrokeStyle(1, currentLang === 'en' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'en' ? 0.9 : 0.5);
+      .setStrokeStyle(1, currentLang === 'en' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'en' ? 0.9 : 0.5)
+      .setInteractive({ useHandCursor: true });
     objects.push(enBg);
     const enText = this.scene.add.text(x - 60, y, 'EN', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'en' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
     })).setOrigin(0.5);
     objects.push(enText);
     const faBg = this.scene.add.rectangle(x + 80, y, 120, 36, currentLang === 'fa' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
-      .setStrokeStyle(1, currentLang === 'fa' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'fa' ? 0.9 : 0.5);
+      .setStrokeStyle(1, currentLang === 'fa' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'fa' ? 0.9 : 0.5)
+      .setInteractive({ useHandCursor: true });
     objects.push(faBg);
     const faText = this.scene.add.text(x + 80, y, 'فارسی', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'fa' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
@@ -359,6 +375,9 @@ export class SettingsUI extends NavigableOverlay {
       AudioSystem.play('uiClick');
       this.scene.scene.restart();
     };
+    // ── FIX: Mouse click handlers on both language buttons ──
+    enBg.on('pointerdown', () => { if (currentLang !== 'en') switchLang('en'); });
+    faBg.on('pointerdown', () => { if (currentLang !== 'fa') switchLang('fa'); });
     const backIdx = this.navElements.length - 1;
     this.navElements.splice(backIdx, 0, { bg: enBg, text: enText, onSelect: () => switchLang('en') });
     this.navElements.splice(backIdx, 0, { bg: faBg, text: faText, onSelect: () => switchLang('fa') });

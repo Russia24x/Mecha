@@ -60,6 +60,7 @@ import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprite
 import { CompanionEntity } from '../../entities/companion/CompanionEntity';
 import { GamepadManager } from '../../shared/GamepadManager';
 import { InputSchemeManager } from '../../systems/InputSchemeManager';
+import { QualityManager } from '../../systems/QualityManager';
 import type { EnemyTypeId } from '../../data/types';
 
 type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
@@ -151,6 +152,8 @@ export class GameScene extends Phaser.Scene {
     AudioSystem.setSfxVolume(settings.sfxVolume);
     AudioSystem.setMuted(settings.muted);
     RenderSystem.setBrightness(settings.brightness);
+    // ── Apply quality setting on startup ──
+    QualityManager.setQuality((settings.quality ?? 'high') as 'low' | 'medium' | 'high');
     setLocale(settings.locale);
 
     // Init meta systems
