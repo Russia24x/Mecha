@@ -36,11 +36,14 @@ import { SkillTreeSystem } from '../../systems/SkillTreeSystem';
 import { WorldSystem } from '../../world/WorldSystem';
 import { WorldMapSystem } from '../../world/WorldMapSystem';
 import { AreaLoader, type LoadedArea } from '../../world/AreaLoader';
+import { MetroidvaniaController } from '../../world/MetroidvaniaController';
+import { NpcInteractionController } from '../../world/NpcInteractionController';
 import { CheckpointSystem } from '../../world/CheckpointSystem';
 import { PlayerEntity } from '../../entities/player/PlayerEntity';
 import { EnemyEntity, resetEnemyIds } from '../../entities/enemies/EnemyEntity';
 import { BossEntity } from '../../entities/boss/BossEntity';
 import { Projectile } from '../../entities/combat/Projectile';
+import { TargetRegistry } from '../../entities/combat/TargetRegistry';
 import { HUDUI } from '../../ui/hud/HUDUI';
 import { DialogueUI } from '../../ui/dialogue/DialogueUI';
 import { PauseMenuUI } from '../../ui/pause/PauseMenuUI';
@@ -52,11 +55,11 @@ import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
+import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
 import { ForestEnvironmentSystem } from '../../world/atmosphere/ForestEnvironmentSystem';
-import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
 import { CompanionEntity } from '../../entities/companion/CompanionEntity';
 import { GamepadManager } from '../../shared/GamepadManager';
 import { InputSchemeManager } from '../../systems/InputSchemeManager';
@@ -91,6 +94,8 @@ export class GameScene extends Phaser.Scene {
   private enemies: EnemyEntity[] = [];
   private boss: BossEntity | null = null;
   private projectiles: Projectile[] = [];
+  /** Typed registry of damageable targets — used by Projectile for O(m) hit detection. */
+  private targetRegistry = new TargetRegistry();
 
   // World
   private areaLoader!: AreaLoader;
@@ -107,26 +112,22 @@ export class GameScene extends Phaser.Scene {
   private pauseMenuUI!: PauseMenuUI;
   private controlHints: ControlHintsUI | null = null;
   private lorePanel: Phaser.GameObjects.Container | null = null;
-  private bossHealthBar: Phaser.GameObjects.Container | null = null;
-  private bossHealthFill: Phaser.GameObjects.Rectangle | null = null;
-  private bossNameText: Phaser.GameObjects.Text | null = null;
+  private bossHealthBar: BossHealthBarUI | null = null;
 
   // Atmosphere + Parallax + NPCs (PLAY-only — never leak to hub/menu)
   private parallax: ParallaxBackground | null = null;
   private atmosphere: AtmosphereSystem | null = null;
-  private npcVisuals: Map<string, MechVisualHandle> = new Map();
-  private npcLabels: Map<string, Phaser.GameObjects.Text> = new Map();
-  private npcInteractionPrompt: Phaser.GameObjects.Container | null = null;
+  private npcInteraction: NpcInteractionController | null = null;
   // Phase 3: Death penalty tracking
   private lastLostXp = 0;
-  // ── FIX Bug 5: Throttle for locked collectible toast ──
-  private _lastLockedToastAt = 0;
   // Companion entity (Protocol Echo — follows player)
   private companion: CompanionEntity | null = null;
   // Forest environment (grass/trees/vines/water/rain — forest region only)
   private forestEnv: ForestEnvironmentSystem | null = null;
   // Performance overlay (toggle with F3)
   private perfOverlay: PerformanceOverlay | null = null;
+  // Metroidvania controller (collectibles + shortcuts) — PLAY-only
+  private metroidvania: MetroidvaniaController | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -817,6 +818,8 @@ export class GameScene extends Phaser.Scene {
     this.sequenceTimers = [];
     resetEnemyIds();
     this.stageStartTime = this.time.now;
+    // Reset target registry for fresh play session
+    this.targetRegistry.clear();
 
     // ── Parallax background (themed per region) ──
     const theme = (area.regionId === 'forest') ? 'forest' : 'factory';
@@ -837,10 +840,12 @@ export class GameScene extends Phaser.Scene {
     this.areaLoader = new AreaLoader(this, this.physicsSys);
     this.loadedArea = this.areaLoader.load(area);
 
+    // Metroidvania controller (collectibles + shortcuts)
+    this.metroidvania = new MetroidvaniaController(this, this.particles);
     // ── FIX Bug 4: Hide collectibles that were already collected (persisted) ──
-    this.hidePreCollectedItems();
+    this.metroidvania.hidePreCollectedItems(this.loadedArea);
     // ── FIX Bug 1: Pre-open shortcuts that were already opened (persisted) ──
-    this.preOpenShortcuts();
+    this.metroidvania.preOpenShortcuts(this.loadedArea);
 
     // Render system (darkness + lights)
     this.render = new RenderSystem(this);
@@ -854,6 +859,7 @@ export class GameScene extends Phaser.Scene {
     const startY = cp.y;
     this.currentSection = cp.section;
     this.player = new PlayerEntity(this, this.physicsSys, this.particles, this.combat, startX, startY, this.projectiles);
+    this.targetRegistry.registerPlayer(this.player);
 
     this.camera.follow(this.player.sprite, 0.1);
     this.camera.setDeadzone(160, 100);
@@ -867,7 +873,8 @@ export class GameScene extends Phaser.Scene {
     this.hud = new HUDUI(this, this.player);
 
     // ── Spawn NPC sprites + interaction prompts (previously invisible!) ──
-    this.spawnNPCs(area.id);
+    this.npcInteraction = new NpcInteractionController(this);
+    this.npcInteraction.spawnNPCs(area.id);
 
     // ── Control hints (gamepad-aware) — only visible on section 1 ──
     this.controlHints = new ControlHintsUI(this);
@@ -907,287 +914,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ================ METROIDVANIA: COLLECTIBLES + SHORTCUTS ================
+  // Extracted to MetroidvaniaController — see src/game/world/MetroidvaniaController.ts
+  // GameScene delegates via this.metroidvania.checkCollectiblePickups(...) etc.
 
-  /** ── FIX Bug 4: Hide collectibles that were already collected (persisted). ── */
-  private hidePreCollectedItems(): void {
-    if (!this.loadedArea) return;
-    for (const col of this.loadedArea.collectibles) {
-      if (!col || !col.active) continue;
-      const id = col.getData('collectibleId') as string;
-      if (SaveSystem.isCollectibleCollected(id)) {
-        col.setData('collected', true);
-        col.setVisible(false);
-        col.setActive(false);
-      }
-    }
-  }
-
-  /** ── FIX Bug 1: Pre-open shortcuts that were already opened (persisted). ── */
-  private preOpenShortcuts(): void {
-    if (!this.loadedArea) return;
-    for (const sc of this.loadedArea.shortcuts) {
-      if (!sc || !sc.active) continue;
-      const id = sc.getData('shortcutId') as string;
-      if (SaveSystem.isShortcutOpened(id)) {
-        // Silently open (remove physics + hide visual) without toast
-        sc.setData('shortcutOpen', true);
-        const physicsBody = sc.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
-        if (physicsBody && physicsBody.active) {
-          try { this.matter.world.remove(physicsBody.body as MatterJS.Body); } catch { /* */ }
-          physicsBody.destroy();
-        }
-        sc.setAlpha(0.3);
-        sc.setScale(1, 0);
-        sc.setVisible(false);
-      }
-    }
-  }
-
-  /** Check if player is near any collectible → pick it up. */
-  private checkCollectiblePickups(): void {
-    if (!this.loadedArea || !this.player?.sprite?.active) return;
-    const px = this.player.sprite.x;
-    const py = this.player.sprite.y;
-    for (const col of this.loadedArea.collectibles) {
-      if (!col || !col.active) continue;
-      if (col.getData('collected')) continue;
-      const cx = col.x;
-      const cy = col.y;
-      const dist = Phaser.Math.Distance.Between(px, py, cx, cy);
-      if (dist < 35) {
-        // ── FIX Bug 5: Check requiredAbility before allowing pickup ──
-        const requiredAbility = col.getData('requiredAbility') as string | null;
-        if (requiredAbility && !this.player.hasAbility(requiredAbility)) {
-          // Player doesn't have the required ability — show locked toast (throttled)
-          if (this.time.now - (this._lastLockedToastAt || 0) > 1000) {
-            this._lastLockedToastAt = this.time.now;
-            const abilityName = getLocale() === 'fa' ? requiredAbility : requiredAbility.toUpperCase();
-            this.hud?.toast(getLocale() === 'fa'
-              ? `🔒 نیاز به ${abilityName}`
-              : `🔒 REQUIRES ${abilityName}`);
-          }
-          continue;  // skip pickup
-        }
-        this.pickupCollectible(col);
-      }
-    }
-  }
-
-  /** Pick up a collectible — grant reward, mark as collected, visual burst. */
-  private pickupCollectible(col: Phaser.GameObjects.Container): void {
-    const id = col.getData('collectibleId') as string;
-    const type = col.getData('collectibleType') as string;
-    // Persist collection
-    const isNew = SaveSystem.markCollectibleCollected(id);
-    if (!isNew) return;  // already collected (shouldn't happen, but guard)
-    col.setData('collected', true);
-
-    // Grant reward based on type
-    let toastMsg = '';
-    let toastColor = 0xffffff;
-    switch (type) {
-      case 'health_fragment':
-        // Increase max health by 10
-        this.player.health.max += 10;
-        this.player.health.current += 10;
-        toastMsg = getLocale() === 'fa' ? '◆ +10 حداکثر سلامتی' : '◆ +10 MAX HEALTH';
-        toastColor = 0x40d070;
-        break;
-      case 'energy_fragment':
-        // Increase max energy by 10
-        this.player.energy.max += 10;
-        this.player.energy.current += 10;
-        toastMsg = getLocale() === 'fa' ? '◆ +10 حداکثر انرژی' : '◆ +10 MAX ENERGY';
-        toastColor = 0x4090ff;
-        break;
-      case 'skill_point':
-        // Grant a skill point
-        SaveSystem.grantSkillPoint();
-        toastMsg = getLocale() === 'fa' ? '◆ +1 امتیاز مهارت' : '◆ +1 SKILL POINT';
-        toastColor = 0xffc040;
-        break;
-      case 'weapon_part':
-        // Grant a weapon part (for future weapon upgrade system)
-        SaveSystem.addItem('weapon_part', 1);
-        toastMsg = getLocale() === 'fa' ? '◆ قطعه سلاح' : '◆ WEAPON PART';
-        toastColor = 0xff80ff;
-        break;
-    }
-
-    // Visual: spark burst + fade out
-    this.particles.sparks(col.x, col.y, toastColor, 12);
-    this.particles.screenFlash(toastColor, 0.15, 250);
-    this.tweens.add({
-      targets: col, alpha: 0, scale: 2, duration: 300, ease: 'Cubic.out',
-      onComplete: () => { col.setVisible(false); },
-    });
-    // Sound
-    AudioSystem.play('skillUnlock');
-    // Toast
-    this.hud?.toast(toastMsg);
-  }
-
-  /** Check if player is approaching a shortcut from the correct side → open it. */
-  private checkShortcutActivations(): void {
-    if (!this.loadedArea || !this.player?.sprite?.active) return;
-    const px = this.player.sprite.x;
-    const py = this.player.sprite.y;
-    for (const sc of this.loadedArea.shortcuts) {
-      if (!sc || !sc.active) continue;
-      if (sc.getData('shortcutOpen')) continue;
-      const id = sc.getData('shortcutId') as string;
-      // Skip if already opened in save data
-      if (SaveSystem.isShortcutOpened(id)) {
-        this.openShortcut(sc, id, false);  // silently open (already persisted)
-        continue;
-      }
-      // Check if player is close enough + on the correct side
-      const sx = sc.x;
-      const sy = sc.y;
-      const opensFrom = sc.getData('opensFrom') as string;
-      const dist = Phaser.Math.Distance.Between(px, py, sx, sy);
-      if (dist > 60) continue;
-      // Check side
-      let onCorrectSide = false;
-      switch (opensFrom) {
-        case 'left':   onCorrectSide = px < sx; break;
-        case 'right':  onCorrectSide = px > sx; break;
-        case 'top':    onCorrectSide = py < sy; break;
-        case 'bottom': onCorrectSide = py > sy; break;
-      }
-      if (onCorrectSide) {
-        this.openShortcut(sc, id, true);
-      }
-    }
-  }
-
-  /** Open a shortcut door — visual animation + persist + remove physics body. */
-  private openShortcut(sc: Phaser.GameObjects.Container, id: string, withToast: boolean): void {
-    sc.setData('shortcutOpen', true);
-    SaveSystem.markShortcutOpened(id);
-    // ── FIX Bug 1: Remove the physics body so player can pass through ──
-    const physicsBody = sc.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
-    if (physicsBody && physicsBody.active) {
-      this.matter.world.remove(physicsBody.body as MatterJS.Body);
-      physicsBody.destroy();
-    }
-    // Visual: door slides open
-    this.tweens.add({
-      targets: sc, alpha: { from: 1, to: 0.3 }, scaleY: 0, duration: 500, ease: 'Cubic.out',
-    });
-    this.particles.sparks(sc.x, sc.y, 0xffc040, 8);
-    AudioSystem.play('skillUnlock');
-    if (withToast) {
-      this.hud?.toast(getLocale() === 'fa' ? '⇌ میان‌بر باز شد' : '⇌ SHORTCUT OPENED');
-    }
-  }
-
-  /** Spawn NPC sprites in the current area — previously NPCs were invisible. */
-  private spawnNPCs(areaId: string): void {
-    const npcs = NPCSystem.getNPCsInArea(areaId);
-    for (const npc of npcs) {
-      let visual: MechVisualHandle;
-      if (npc.id === 'engineer_kara') {
-        visual = MechaSpriteFactory.buildNPC_Kara(this);
-      } else if (npc.id === 'ghost_operator') {
-        visual = MechaSpriteFactory.buildNPC_GhostOperator(this);
-      } else {
-        visual = MechaSpriteFactory.buildNPC_Kara(this);
-      }
-      visual.container.setPosition(npc.x, npc.y);
-      this.npcVisuals.set(npc.id, visual);
-
-      // Name label above NPC (faded amber, only visible when near)
-      const label = this.add.text(npc.x, npc.y - 40, t(`npc.${npc.id}.name`), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: '#ffc040',
-        stroke: '#000', strokeThickness: 3, letterSpacing: 2,
-      })).setOrigin(0.5).setAlpha(0).setDepth(15);
-      this.npcLabels.set(npc.id, label);
-      this.tweens.add({ targets: label, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1 });
-      // Note: NPC circle light removed per user feedback — NPCs are now visible
-      // via their own mech glow (Kara's hover thruster + Ghost Operator's hologram).
-    }
-  }
-
-  /** Show a floating "Press E to interact" prompt above the nearest NPC OR lore object. */
-  private updateNpcInteractionPrompt(): void {
-    if (!this.player || !this.player.sprite || !this.player.sprite.active) return;
-    const area = WorldSystem.getCurrentArea();
-    if (!area) return;
-
-    // Find nearest interactable — NPCs first, then lore objects
-    let nearestX = 0, nearestY = 0, nearestKind: 'npc' | 'lore' | null = null;
-    let nearestDist = 80;  // interaction radius
-
-    // NPCs
-    const npcs = NPCSystem.getNPCsInArea(area.id);
-    for (const npc of npcs) {
-      const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
-      if (dist < nearestDist) {
-        nearestDist = dist; nearestX = npc.x; nearestY = npc.y - 60; nearestKind = 'npc';
-      }
-    }
-
-    // Lore objects (terminals / corpses / echoes)
-    if (this.loadedArea) {
-      for (const loreObj of this.loadedArea.loreObjects) {
-        if (!loreObj || !loreObj.active) continue;
-        const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, loreObj.x, loreObj.y);
-        if (dist < 70) {
-          if (dist < nearestDist) {
-            nearestDist = dist; nearestX = loreObj.x; nearestY = loreObj.y - 50; nearestKind = 'lore';
-          }
-        }
-      }
-    }
-
-    if (nearestKind) {
-      // Show / move interaction prompt
-      if (!this.npcInteractionPrompt) {
-        this.npcInteractionPrompt = this.createInteractionPrompt();
-      }
-      this.npcInteractionPrompt.setPosition(nearestX, nearestY);
-      this.npcInteractionPrompt.setVisible(true);
-      // Update label text based on kind + active input scheme
-      const txt = this.npcInteractionPrompt.getAt(1) as Phaser.GameObjects.Text;
-      if (txt && txt.active) {
-        const key = InputSchemeManager.getLabel('interact');
-        const action = nearestKind === 'npc'
-          ? (getLocale() === 'fa' ? 'صحبت' : 'TALK')
-          : (getLocale() === 'fa' ? 'بررسی' : 'EXAMINE');
-        txt.setText(`[${key}] ${action}`);
-      }
-    } else if (this.npcInteractionPrompt) {
-      this.npcInteractionPrompt.setVisible(false);
-    }
-  }
-
-  /** Create a floating interaction prompt (dynamic scheme, Persian-aware). */
-  private createInteractionPrompt(): Phaser.GameObjects.Container {
-    const c = this.add.container(0, 0).setDepth(16);
-    const bg = this.add.rectangle(0, 0, 90, 22, 0x0a0d14, 0.92);
-    bg.setStrokeStyle(1, 0xffc040, 0.8);
-    c.add(bg);
-    const key = InputSchemeManager.getLabel('interact');
-    const action = getLocale() === 'fa' ? 'صحبت' : 'TALK';
-    const txt = this.add.text(0, 0, `[${key}] ${action}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '11px', color: '#ffc040', stroke: '#000', strokeThickness: 2,
-    })).setOrigin(0.5);
-    c.add(txt);
-    this.tweens.add({ targets: c, y: '-=4', duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-    return c;
-  }
-
-  /** Per-frame: keep NPC name labels positioned above their (potentially bobbing) visuals. */
-  private updateNpcLabels(): void {
-    for (const [id, visual] of this.npcVisuals) {
-      const label = this.npcLabels.get(id);
-      if (!label || !label.active) continue;
-      if (visual && visual.container.active) {
-        label.setPosition(visual.container.x, visual.container.y - 40);
-      }
-    }
-  }
+  // ================ NPC INTERACTION ================
+  // Extracted to NpcInteractionController — see src/game/world/NpcInteractionController.ts
+  // GameScene delegates via this.npcInteraction.spawnNPCs(...) etc.
 
   private spawnEnemiesForSection(sectionId: number): void {
     const area = WorldSystem.getCurrentArea();
@@ -1201,6 +933,7 @@ export class GameScene extends Phaser.Scene {
       const y = et === 'drone' || et === 'flying_ai' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
       const e = new EnemyEntity(this, this.physicsSys, this.particles, x, y, et, this.projectiles);
       this.enemies.push(e);
+      this.targetRegistry.registerEnemy(e);
       // Mini Boss: spawn an elite in Section 4 as a tougher challenge
       if (sectionId === 4 && !this.miniBossSpawned) {
         this.miniBossSpawned = true;
@@ -1208,6 +941,7 @@ export class GameScene extends Phaser.Scene {
         const mbY = GAME.HEIGHT - 200;
         const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
         this.enemies.push(miniBoss);
+        this.targetRegistry.registerEnemy(miniBoss);
         // Note: circle light around elite removed per user feedback.
         this.hud?.toast('⚠ ELITE DETECTED');
       }
@@ -1254,45 +988,17 @@ export class GameScene extends Phaser.Scene {
 
   // ─── Boss Health Bar ─────────────────────────────────────────────────
   private createBossHealthBar(bossId: string): void {
-    this.destroyBossHealthBar();
-    const w = GAME.WIDTH;
-    const barW = 600, barH = 16;
-    const x = w / 2, y = 30;
-    const container = this.add.container(0, 0).setDepth(210).setScrollFactor(0);
-    // BG
-    const bg = this.add.rectangle(x, y, barW + 4, barH + 4, 0x0a0d14, 0.9);
-    bg.setStrokeStyle(1, 0xff4060, 0.5);
-    container.add(bg);
-    // Fill
-    this.bossHealthFill = this.add.rectangle(x - barW / 2, y, barW, barH, 0xff4060, 0.9);
-    this.bossHealthFill.setOrigin(0, 0.5);
-    container.add(this.bossHealthFill);
-    // Name
-    const bossData = BossEntity.getBossData ? BossEntity.getBossData(bossId) : null;
-    const bossName = bossData ? t(bossData.nameKey) : 'BOSS';
-    this.bossNameText = this.add.text(x, y - 18, bossName, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '14px', color: '#ff6080', stroke: '#000', strokeThickness: 3, letterSpacing: 3,
-    })).setOrigin(0.5);
-    container.add(this.bossNameText);
-    // Fade in
-    container.setAlpha(0);
-    this.tweens.add({ targets: container, alpha: 1, duration: 600, delay: 400 });
-    this.bossHealthBar = container;
+    if (!this.bossHealthBar) this.bossHealthBar = new BossHealthBarUI(this);
+    this.bossHealthBar.show(bossId);
   }
 
   private updateBossHealthBar(): void {
-    if (!this.boss || !this.boss.isAlive || !this.bossHealthFill) return;
-    const pct = this.boss.getHealthPct();
-    this.bossHealthFill.setDisplaySize(600 * pct, 16);
-    // Color shift: red → amber as HP drops
-    if (pct < 0.3) this.bossHealthFill.setFillStyle(0xff2030, 0.9);
-    else if (pct < 0.6) this.bossHealthFill.setFillStyle(0xff8030, 0.9);
+    if (!this.boss || !this.bossHealthBar) return;
+    this.bossHealthBar.update(this.boss);
   }
 
   private destroyBossHealthBar(): void {
-    if (this.bossHealthBar) { this.bossHealthBar.destroy(); this.bossHealthBar = null; }
-    this.bossHealthFill = null;
-    this.bossNameText = null;
+    this.bossHealthBar?.hide();
   }
 
   private enterSection(id: number): void {
@@ -1322,6 +1028,7 @@ export class GameScene extends Phaser.Scene {
     const x = bossSection.x + 800;
     const y = GAME.HEIGHT - 320;
     this.boss = new BossEntity(this, this.physicsSys, this.particles, bossSection.bossId, x, y, this.projectiles, () => this.player.position);
+    this.targetRegistry.registerBoss(this.boss);
     // Switch to boss ambient (tense, dissonant)
     AudioSystem.startAmbient('boss');
     AudioSystem.play('phaseChange');
@@ -1436,11 +1143,13 @@ export class GameScene extends Phaser.Scene {
     // Atmosphere (Phase 2: fog drift, particle motion, god ray breathing)
     this.atmosphere?.update(deltaMs);
     // NPC interaction prompt + label follow
-    this.updateNpcInteractionPrompt();
-    this.updateNpcLabels();
+    this.npcInteraction?.updatePrompt(this.player, this.loadedArea);
+    this.npcInteraction?.updateLabels();
     // ── Metroidvania: check collectible pickups + shortcut activations ──
-    this.checkCollectiblePickups();
-    this.checkShortcutActivations();
+    if (this.metroidvania && this.loadedArea) {
+      this.metroidvania.checkCollectiblePickups(this.loadedArea, this.player, this.hud);
+      this.metroidvania.checkShortcutActivations(this.loadedArea, this.player, this.hud);
+    }
     // ── Companion update — follows player ──
     this.companion?.update(deltaMs, this.player.position);
     // ── Forest environment update (grass, trees, vines, water, rain) ──
@@ -1458,13 +1167,23 @@ export class GameScene extends Phaser.Scene {
     const playerPos = this.player.position;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      if (!e.isAlive || !e.sprite || !e.sprite.active) { this.enemies.splice(i, 1); continue; }
-      try { e.update(deltaMs, playerPos); } catch { this.enemies.splice(i, 1); continue; }
+      if (!e.isAlive || !e.sprite || !e.sprite.active) {
+        this.targetRegistry.unregisterEnemy(e);
+        this.enemies.splice(i, 1);
+        continue;
+      }
+      try { e.update(deltaMs, playerPos); } catch {
+        this.targetRegistry.unregisterEnemy(e);
+        this.enemies.splice(i, 1);
+        continue;
+      }
     }
     // Boss
     if (this.boss && this.boss.isAlive && this.boss.sprite && this.boss.sprite.active) {
       try { this.boss.update(deltaMs); } catch { /* */ }
       this.updateBossHealthBar();
+    } else if (this.boss && (!this.boss.isAlive || !this.boss.sprite || !this.boss.sprite.active)) {
+      this.targetRegistry.unregisterBoss();
     }
     // Out of bounds
     if (this.player.sprite.y > GAME.HEIGHT + 80) {
@@ -1500,6 +1219,8 @@ export class GameScene extends Phaser.Scene {
     this.enemies = [];
     this.boss?.destroy();
     this.boss = null;
+    // Clear target registry — no more damageable targets exist
+    this.targetRegistry.clear();
     if (this.loadedArea && this.areaLoader) this.areaLoader.unload(this.loadedArea);
     this.loadedArea = null;
     // ── Destroy PLAY-only systems (effect separation: never leak into hub/menu) ──
@@ -1507,12 +1228,9 @@ export class GameScene extends Phaser.Scene {
     this.parallax = null;
     this.atmosphere?.destroy();
     this.atmosphere = null;
-    // Destroy NPC visuals + labels
-    this.npcVisuals.forEach(v => v?.destroy());
-    this.npcVisuals.clear();
-    this.npcLabels.forEach(l => { if (l && l.active) l.destroy(); });
-    this.npcLabels.clear();
-    if (this.npcInteractionPrompt) { this.npcInteractionPrompt.destroy(); this.npcInteractionPrompt = null; }
+    // Destroy NPC visuals + labels + interaction prompt
+    this.npcInteraction?.cleanup();
+    this.npcInteraction = null;
     // Destroy control hints
     this.controlHints?.destroy();
     this.controlHints = null;
@@ -1522,6 +1240,8 @@ export class GameScene extends Phaser.Scene {
     // Destroy forest environment
     this.forestEnv?.destroy();
     this.forestEnv = null;
+    // Destroy metroidvania controller
+    this.metroidvania = null;
     this.tweens.killAll();
     this.sequenceTimers.forEach(t => t.remove());
     this.sequenceTimers = [];
