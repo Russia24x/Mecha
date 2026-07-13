@@ -39,7 +39,7 @@ export class AreaLoader {
 
   /** Create a tween and track it for cleanup on unload. */
   private trackedTween(config: Phaser.Types.Tweens.TweenBuilderConfig): Phaser.Tweens.Tween {
-    const t = this.trackedTween(config);
+    const t = this.scene.tweens.add(config);
     this.activeTweens.push(t);
     return t;
   }
