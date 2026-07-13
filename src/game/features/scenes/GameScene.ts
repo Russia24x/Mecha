@@ -587,21 +587,20 @@ export class GameScene extends Phaser.Scene {
         const tex = this.textures.get('factory_bg_2').getSourceImage();
         const imgAR = tex.width / tex.height;
         const frameAR = previewW / previewH;
-        // Cover fit: scale so image fills the frame, crop overflow
-        let displayW: number, displayH: number;
+        // Cover fit: scale so image fills the frame, overflow gets masked
+        let scale: number;
         if (imgAR > frameAR) {
-          // Image wider — fit height, overflow width
-          displayH = previewH;
-          displayW = previewH * imgAR;
+          // Image wider — fit height, crop width
+          scale = previewH / tex.height;
         } else {
-          // Image taller — fit width, overflow height
-          displayW = previewW;
-          displayH = previewW / imgAR;
+          // Image taller — fit width, crop height
+          scale = previewW / tex.width;
         }
-        previewImg.setDisplaySize(displayW, displayH);
-        // Mask the image to the preview frame rectangle
-        const maskShape = this.make.graphics({}, false);
-        maskShape.fillStyle(0xffffff);
+        previewImg.setScale(scale);
+        // Mask: fill a rectangle at the IMAGE's position in screen space
+        // Geometry masks work in world coordinates, so we draw at the image's center
+        const maskShape = this.make.graphics({ x: 0, y: 0 }, false);
+        maskShape.fillStyle(0xffffff, 1);
         maskShape.fillRect(x - previewW / 2, previewY - previewH / 2, previewW, previewH);
         const mask = maskShape.createGeometryMask();
         previewImg.setMask(mask);
@@ -615,7 +614,7 @@ export class GameScene extends Phaser.Scene {
           previewImg.setTint(0x99ddff);
         }
         // Overlay gradient at bottom of preview for text legibility
-        const gradient = this.add.rectangle(x, previewY + previewH / 2 - 12, previewW, 24, 0x05080c, 0.7);
+        const gradient = this.add.rectangle(x, previewY + previewH / 2 - 14, previewW, 28, 0x05080c, 0.75);
         gradient.setDepth(2.7);
         c.add(gradient);
       }
