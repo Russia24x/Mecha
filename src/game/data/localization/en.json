@@ -151,6 +151,8 @@
   "item.ai_chip.desc": "Advanced processing unit",
   "item.elite_core.name": "Elite Core",
   "item.elite_core.desc": "Rare energy core from elites",
+  "item.weapon_part.name": "Weapon Part",
+  "item.weapon_part.desc": "Salvaged weapon component — used for upgrades",
   "item.guardian_core.name": "Guardian Core",
   "item.guardian_core.desc": "Core from Guardian AX-09",
   "item.overseer_eye.name": "Overseer Eye",

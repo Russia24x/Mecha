@@ -816,3 +816,58 @@ Stage Summary:
 - 2 grapple anchors in S3, 1 EMP door in S4 — first Metroidvania ability-gated content.
 - drone + flying_ai hackable. Hacked enemies become friendly (green tint, no damage to player).
 - Memory Layer rule added to RULES.md.
+
+---
+Task ID: phase2-metroidvania-structure
+Agent: main
+Task: Implement Metroidvania level structure — shortcuts (one-way doors), collectibles (health/energy/skill/weapon pickups), ability-gated paths. Transform linear corridor into branching, backtracking world.
+
+Work Log:
+- Added 3 new data types to types.ts:
+  * ShortcutData: one-way door (id, x, y, w, h, toSection, opensFrom: left/right/top/bottom)
+  * CollectibleData: pickup (id, type: health_fragment | energy_fragment | skill_point | weapon_part, x, y, requiredAbility?)
+  * SecretRoomData: hidden area (id, x, y, w, h, requiredAbility?, discoveryTextKey?)
+  * CollectibleType union type
+  * Added shortcuts, collectibles, secretRooms to SectionData
+
+- Updated AreaLoader with 2 new builders:
+  * createShortcut(): amber industrial door frame with body + directional arrow indicator + "⇌" label. Tracks shortcutOpen state + opensFrom direction. Opens with slide animation (scaleY→0, alpha→0.3).
+  * createCollectible(): glowing orb with type-specific color (green=health, blue=energy, amber=skill, magenta=weapon_part). Pulsing glow + float animation + type-specific icon (plus/diamond/star/square). Interactive + tracks collected state.
+  * Both added to LoadedArea interface + unload() cleanup.
+
+- Redesigned Act I (6 sections) with Metroidvania content:
+  * S1: health_fragment on upper secret ledge (requires doubleJump) + shortcut S6→S1 (opensFrom right — after boss fast-travel)
+  * S2: energy_fragment on upper catwalk (alternate route reward) + shortcut S4→S2 (opensFrom left — backtracking after mini-boss)
+  * S3: skill_point at top of vertical shaft (requires wallJump) — already had 2 grapple anchors
+  * S4: health_fragment behind EMP door (requires emp) + weapon_part on upper catwalk (requires wallJump) — already had EMP door
+  * S5: energy_fragment on elevated vantage point
+  * S6: skill_point on upper safe spot (requires wallJump)
+
+- Updated PlayerState with 2 new persisted fields:
+  * collectedCollectibles: string[] — IDs of collected items (never respawn)
+  * openedShortcuts: string[] — IDs of opened doors (stay open forever)
+  * Migration logic in load() for backward compatibility
+
+- Added 5 new methods to SaveSystem:
+  * grantSkillPoint() — directly add 1 skill point (for collectible reward)
+  * isCollectibleCollected(id) — check if already collected
+  * markCollectibleCollected(id) — persist collection, returns true if new
+  * isShortcutOpened(id) — check if already opened
+  * markShortcutOpened(id) — persist opening, returns true if new
+
+- Implemented Metroidvania systems in GameScene:
+  * checkCollectiblePickups(): per-frame check if player within 35px of any collectible → pickupCollectible()
+  * pickupCollectible(): grants reward based on type (health_fragment: +10 max HP, energy_fragment: +10 max EN, skill_point: +1 SP, weapon_part: +1 item). Visual: spark burst + screen flash + fade out. Sound + toast.
+  * checkShortcutActivations(): per-frame check if player within 60px of a shortcut AND on the correct side (opensFrom) → openShortcut()
+  * openShortcut(): slide animation + spark burst + sound + toast. Persists via markShortcutOpened().
+  * Both called from updatePlay() every frame.
+
+- Added weapon_part item to items.ts + localization (en: "Weapon Part", fa: "قطعه سلاح")
+
+Stage Summary:
+- Files modified: types.ts, AreaLoader.ts, acts.ts, SaveSystem.ts, GameScene.ts, items.ts, en.json, fa.json
+- TypeScript: clean. Next.js build: success.
+- Act I now has 7 collectibles (2 health, 2 energy, 2 skill points, 1 weapon part) + 2 shortcuts (S6→S1 post-boss, S4→S2 post-mini-boss) + 2 grapple anchors + 1 EMP door + existing ability-gated paths.
+- Collectibles persist across deaths/reloads (collectedCollectibles in save data).
+- Shortcuts persist and stay open forever once activated (openedShortcuts in save data).
+- This is the first real Metroidvania structure — player now has reasons to backtrack, explore, and use abilities to reach hidden rewards.

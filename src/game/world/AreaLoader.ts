@@ -22,6 +22,8 @@ export interface LoadedArea {
   landmarks: Phaser.GameObjects.Container[];
   grappleAnchors: Phaser.GameObjects.Container[];
   empDoors: Phaser.GameObjects.Container[];
+  shortcuts: Phaser.GameObjects.Container[];
+  collectibles: Phaser.GameObjects.Container[];
 }
 
 export class AreaLoader {
@@ -49,6 +51,8 @@ export class AreaLoader {
       landmarks: [],
       grappleAnchors: [],
       empDoors: [],
+      shortcuts: [],
+      collectibles: [],
     };
 
     // Floor (spans entire area)
@@ -139,6 +143,20 @@ export class AreaLoader {
         result.empDoors.push(container);
       }
     }
+    // Shortcuts — one-way doors (Dark Souls style backtracking)
+    if (section.shortcuts) {
+      for (const sc of section.shortcuts) {
+        const container = this.createShortcut(sc);
+        result.shortcuts.push(container);
+      }
+    }
+    // Collectibles — pickups (health/energy fragments, skill points)
+    if (section.collectibles) {
+      for (const col of section.collectibles) {
+        const container = this.createCollectible(col);
+        result.collectibles.push(container);
+      }
+    }
   }
 
   /** Create a grapple anchor — glowing ring that the player can grapple to. */
@@ -202,6 +220,110 @@ export class AreaLoader {
     container.setData('isEmpDoor', true);
     container.setData('empDoorOpen', false);
     container.setSize(door.w, door.h);
+    return container;
+  }
+
+  /** Create a shortcut door — one-way, opens from one side and stays open. */
+  private createShortcut(sc: { id: string; x: number; y: number; w: number; h: number; toSection: number; opensFrom: string }): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(sc.x, sc.y);
+    // Door frame (amber, industrial)
+    const frame = this.scene.add.rectangle(0, 0, sc.w + 8, sc.h + 8, 0x1a1814, 0.9);
+    frame.setStrokeStyle(2, 0xffc040, 0.6);
+    container.add(frame);
+    // Door body (closed = solid, open = transparent)
+    const body = this.scene.add.rectangle(0, 0, sc.w, sc.h, 0x2a2018, 0.85);
+    body.setStrokeStyle(1, 0xffc040, 0.4);
+    container.add(body);
+    // "Opens from" indicator — small arrow on the correct side
+    const arrowColor = 0xffc040;
+    let arrowX = 0, arrowY = 0, arrowRot = 0;
+    switch (sc.opensFrom) {
+      case 'left':  arrowX = -sc.w / 2 - 8; arrowRot = Math.PI; break;
+      case 'right': arrowX = sc.w / 2 + 8;  arrowRot = 0; break;
+      case 'top':   arrowY = -sc.h / 2 - 8; arrowRot = Math.PI / 2; break;
+      case 'bottom': arrowY = sc.h / 2 + 8; arrowRot = -Math.PI / 2; break;
+    }
+    const arrow = this.scene.add.triangle(arrowX, arrowY, -4, -4, 4, -4, 0, 4, arrowColor, 0.8);
+    arrow.setRotation(arrowRot);
+    container.add(arrow);
+    // Label
+    const label = this.scene.add.text(0, 0, '⇌', { fontSize: '12px', color: '#ffc040' }).setOrigin(0.5);
+    container.add(label);
+
+    container.setDepth(6);
+    container.setData('shortcutId', sc.id);
+    container.setData('isShortcut', true);
+    container.setData('shortcutOpen', false);
+    container.setData('opensFrom', sc.opensFrom);
+    container.setData('toSection', sc.toSection);
+    container.setSize(sc.w, sc.h);
+    return container;
+  }
+
+  /** Create a collectible pickup — glowing orb that grants a reward. */
+  private createCollectible(col: { id: string; type: string; x: number; y: number }): Phaser.GameObjects.Container {
+    const container = this.scene.add.container(col.x, col.y);
+    // Color per type
+    const colors: Record<string, number> = {
+      health_fragment: 0x40d070,
+      energy_fragment: 0x4090ff,
+      skill_point: 0xffc040,
+      weapon_part: 0xff80ff,
+    };
+    const color = colors[col.type] ?? 0xffffff;
+
+    // Outer glow (pulsing)
+    const glow = this.scene.add.circle(0, 0, 16, color, 0.15);
+    glow.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(glow);
+    this.scene.tweens.add({
+      targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.3 },
+      duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+
+    // Core orb
+    const orb = this.scene.add.circle(0, 0, 5, color, 0.9);
+    orb.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(orb);
+
+    // Type-specific icon (small shape inside)
+    let icon: Phaser.GameObjects.Shape;
+    if (col.type === 'health_fragment') {
+      // Plus sign
+      icon = this.scene.add.rectangle(0, 0, 6, 2, 0xffffff, 0.9);
+      container.add(icon);
+      const icon2 = this.scene.add.rectangle(0, 0, 2, 6, 0xffffff, 0.9);
+      container.add(icon2);
+    } else if (col.type === 'energy_fragment') {
+      // Diamond
+      icon = this.scene.add.polygon(0, 0, [0, -4, 4, 0, 0, 4, -4, 0], 0xffffff, 0.9);
+      container.add(icon);
+    } else if (col.type === 'skill_point') {
+      // Star (approximated with triangle)
+      icon = this.scene.add.triangle(0, 0, -4, 3, 4, 3, 0, -4, 0xffffff, 0.9);
+      container.add(icon);
+    } else {
+      // weapon_part — small square
+      icon = this.scene.add.rectangle(0, 0, 4, 4, 0xffffff, 0.9);
+      container.add(icon);
+    }
+
+    // Float animation
+    this.scene.tweens.add({
+      targets: container, y: col.y - 6, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+    // Slow rotation on the glow
+    this.scene.tweens.add({
+      targets: glow, rotation: Math.PI * 2, duration: 3000, repeat: -1, ease: 'Linear',
+    });
+
+    container.setDepth(8);
+    container.setData('collectibleId', col.id);
+    container.setData('isCollectible', true);
+    container.setData('collectibleType', col.type);
+    container.setData('collected', false);
+    container.setSize(20, 20);
+    container.setInteractive({ useHandCursor: false });
     return container;
   }
 
@@ -911,6 +1033,8 @@ export class AreaLoader {
     loaded.landmarks.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.grappleAnchors.forEach(a => { if (a && a.active) a.destroy(); });
     loaded.empDoors.forEach(d => { if (d && d.active) d.destroy(); });
+    loaded.shortcuts.forEach(s => { if (s && s.active) s.destroy(); });
+    loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
     loaded.solids = [];
     loaded.sectionTriggers = [];
     loaded.checkpointTriggers = [];
@@ -921,6 +1045,8 @@ export class AreaLoader {
     loaded.landmarks = [];
     loaded.grappleAnchors = [];
     loaded.empDoors = [];
+    loaded.shortcuts = [];
+    loaded.collectibles = [];
   }
 }
 

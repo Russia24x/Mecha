@@ -28,6 +28,8 @@ const DEFAULT_PLAYER: PlayerState = {
   weaponLevels: { assault_rifle: 1 },
   inventory: [],
   abilities: [],
+  collectedCollectibles: [],
+  openedShortcuts: [],
 };
 
 const DEFAULT_SAVE: SaveData = {
@@ -83,6 +85,8 @@ export class SaveSystem {
     if (!migrated.player.unlockedSkills) migrated.player.unlockedSkills = [];
     if (!migrated.player.unlockedWeapons) migrated.player.unlockedWeapons = ['assault_rifle'];
     if (!migrated.player.weaponLevels) migrated.player.weaponLevels = { assault_rifle: 1 };
+    if (!migrated.player.collectedCollectibles) migrated.player.collectedCollectibles = [];
+    if (!migrated.player.openedShortcuts) migrated.player.openedShortcuts = [];
     migrated.version = SAVE_VERSION;
     return migrated;
   }
@@ -178,6 +182,43 @@ export class SaveSystem {
       data.player.abilities.push(ability);
     }
     this.persist();
+  }
+
+  // ── Metroidvania: Collectibles + Shortcuts ──
+
+  /** Grant a skill point directly (for collectible rewards). */
+  static grantSkillPoint(): void {
+    const data = this.load();
+    data.player.skillPoints += 1;
+    this.persist();
+  }
+
+  /** Check if a collectible has already been collected (persists across deaths/reloads). */
+  static isCollectibleCollected(id: string): boolean {
+    return this.load().player.collectedCollectibles.includes(id);
+  }
+
+  /** Mark a collectible as collected. Returns true if this is a new collection. */
+  static markCollectibleCollected(id: string): boolean {
+    const data = this.load();
+    if (data.player.collectedCollectibles.includes(id)) return false;
+    data.player.collectedCollectibles.push(id);
+    this.persist();
+    return true;
+  }
+
+  /** Check if a shortcut door has been opened (persists across deaths/reloads). */
+  static isShortcutOpened(id: string): boolean {
+    return this.load().player.openedShortcuts.includes(id);
+  }
+
+  /** Mark a shortcut door as opened. Returns true if this is a new opening. */
+  static markShortcutOpened(id: string): boolean {
+    const data = this.load();
+    if (data.player.openedShortcuts.includes(id)) return false;
+    data.player.openedShortcuts.push(id);
+    this.persist();
+    return true;
   }
 
   static addItem(itemId: string, amount: number = 1): void {

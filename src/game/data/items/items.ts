@@ -29,6 +29,10 @@ export const ITEMS: Record<string, ItemData> = {
     id: 'elite_core', nameKey: 'item.elite_core.name', descriptionKey: 'item.elite_core.desc',
     type: 'material', stackable: true, maxStack: 99,
   },
+  weapon_part: {
+    id: 'weapon_part', nameKey: 'item.weapon_part.name', descriptionKey: 'item.weapon_part.desc',
+    type: 'material', stackable: true, maxStack: 99,
+  },
 
   // Key Items (boss drops)
   guardian_core: {

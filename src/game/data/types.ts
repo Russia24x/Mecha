@@ -38,6 +38,8 @@ export interface PlayerState {
   weaponLevels: Record<string, number>;
   inventory: InventoryItem[];
   abilities: string[];
+  collectedCollectibles: string[];  // IDs of collected collectibles (persisted)
+  openedShortcuts: string[];        // IDs of opened shortcut doors (persisted)
 }
 
 // ================ WEAPONS ================
@@ -217,6 +219,9 @@ export interface SectionData {
   landmarks?: LandmarkData[];
   grappleAnchors?: GrappleAnchorData[];
   empDoors?: EmpDoorData[];
+  shortcuts?: ShortcutData[];
+  collectibles?: CollectibleData[];
+  secretRooms?: SecretRoomData[];
 }
 
 export interface LoreObjectData {
@@ -267,6 +272,45 @@ export interface EmpDoorData {
   y: number;
   w: number;
   h: number;
+}
+
+// ── Metroidvania structure ──
+
+/** One-way shortcut door — opens from one side, stays open forever. Dark Souls style. */
+export interface ShortcutData {
+  id: string;
+  x: number;          // door position
+  y: number;
+  w: number;
+  h: number;
+  /** Section ID this shortcut leads TO (for display). */
+  toSection: number;
+  /** Direction the door opens from: 'left' | 'right' | 'top' | 'bottom' */
+  opensFrom: 'left' | 'right' | 'top' | 'bottom';
+}
+
+/** Collectible pickup — grants health, energy, or skill point. */
+export type CollectibleType = 'health_fragment' | 'energy_fragment' | 'skill_point' | 'weapon_part';
+export interface CollectibleData {
+  id: string;
+  type: CollectibleType;
+  x: number;
+  y: number;
+  /** Optional: ability required to reach this collectible. */
+  requiredAbility?: string;
+}
+
+/** Secret room — hidden area with reward, optionally ability-gated. */
+export interface SecretRoomData {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  /** Ability required to access (for display). */
+  requiredAbility?: string;
+  /** Lore text key shown when discovered. */
+  discoveryTextKey?: string;
 }
 
 export interface ParallaxLayerData {

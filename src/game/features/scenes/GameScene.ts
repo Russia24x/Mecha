@@ -723,6 +723,128 @@ export class GameScene extends Phaser.Scene {
     this.player.setExternalRefs(this.enemies, anchorPositions);
   }
 
+  // ================ METROIDVANIA: COLLECTIBLES + SHORTCUTS ================
+
+  /** Check if player is near any collectible → pick it up. */
+  private checkCollectiblePickups(): void {
+    if (!this.loadedArea || !this.player?.sprite?.active) return;
+    const px = this.player.sprite.x;
+    const py = this.player.sprite.y;
+    for (const col of this.loadedArea.collectibles) {
+      if (!col || !col.active) continue;
+      if (col.getData('collected')) continue;
+      const cx = col.x;
+      const cy = col.y;
+      const dist = Phaser.Math.Distance.Between(px, py, cx, cy);
+      if (dist < 35) {
+        this.pickupCollectible(col);
+      }
+    }
+  }
+
+  /** Pick up a collectible — grant reward, mark as collected, visual burst. */
+  private pickupCollectible(col: Phaser.GameObjects.Container): void {
+    const id = col.getData('collectibleId') as string;
+    const type = col.getData('collectibleType') as string;
+    // Persist collection
+    const isNew = SaveSystem.markCollectibleCollected(id);
+    if (!isNew) return;  // already collected (shouldn't happen, but guard)
+    col.setData('collected', true);
+
+    // Grant reward based on type
+    let toastMsg = '';
+    let toastColor = 0xffffff;
+    switch (type) {
+      case 'health_fragment':
+        // Increase max health by 10
+        this.player.health.max += 10;
+        this.player.health.current += 10;
+        toastMsg = getLocale() === 'fa' ? '◆ +10 حداکثر سلامتی' : '◆ +10 MAX HEALTH';
+        toastColor = 0x40d070;
+        break;
+      case 'energy_fragment':
+        // Increase max energy by 10
+        this.player.energy.max += 10;
+        this.player.energy.current += 10;
+        toastMsg = getLocale() === 'fa' ? '◆ +10 حداکثر انرژی' : '◆ +10 MAX ENERGY';
+        toastColor = 0x4090ff;
+        break;
+      case 'skill_point':
+        // Grant a skill point
+        SaveSystem.grantSkillPoint();
+        toastMsg = getLocale() === 'fa' ? '◆ +1 امتیاز مهارت' : '◆ +1 SKILL POINT';
+        toastColor = 0xffc040;
+        break;
+      case 'weapon_part':
+        // Grant a weapon part (for future weapon upgrade system)
+        SaveSystem.addItem('weapon_part', 1);
+        toastMsg = getLocale() === 'fa' ? '◆ قطعه سلاح' : '◆ WEAPON PART';
+        toastColor = 0xff80ff;
+        break;
+    }
+
+    // Visual: spark burst + fade out
+    this.particles.sparks(col.x, col.y, toastColor, 12);
+    this.particles.screenFlash(toastColor, 0.15, 250);
+    this.tweens.add({
+      targets: col, alpha: 0, scale: 2, duration: 300, ease: 'Cubic.out',
+      onComplete: () => { col.setVisible(false); },
+    });
+    // Sound
+    AudioSystem.play('skillUnlock');
+    // Toast
+    this.hud?.toast(toastMsg);
+  }
+
+  /** Check if player is approaching a shortcut from the correct side → open it. */
+  private checkShortcutActivations(): void {
+    if (!this.loadedArea || !this.player?.sprite?.active) return;
+    const px = this.player.sprite.x;
+    const py = this.player.sprite.y;
+    for (const sc of this.loadedArea.shortcuts) {
+      if (!sc || !sc.active) continue;
+      if (sc.getData('shortcutOpen')) continue;
+      const id = sc.getData('shortcutId') as string;
+      // Skip if already opened in save data
+      if (SaveSystem.isShortcutOpened(id)) {
+        this.openShortcut(sc, id, false);  // silently open (already persisted)
+        continue;
+      }
+      // Check if player is close enough + on the correct side
+      const sx = sc.x;
+      const sy = sc.y;
+      const opensFrom = sc.getData('opensFrom') as string;
+      const dist = Phaser.Math.Distance.Between(px, py, sx, sy);
+      if (dist > 60) continue;
+      // Check side
+      let onCorrectSide = false;
+      switch (opensFrom) {
+        case 'left':   onCorrectSide = px < sx; break;
+        case 'right':  onCorrectSide = px > sx; break;
+        case 'top':    onCorrectSide = py < sy; break;
+        case 'bottom': onCorrectSide = py > sy; break;
+      }
+      if (onCorrectSide) {
+        this.openShortcut(sc, id, true);
+      }
+    }
+  }
+
+  /** Open a shortcut door — visual animation + persist. */
+  private openShortcut(sc: Phaser.GameObjects.Container, id: string, withToast: boolean): void {
+    sc.setData('shortcutOpen', true);
+    SaveSystem.markShortcutOpened(id);
+    // Visual: door slides open
+    this.tweens.add({
+      targets: sc, alpha: { from: 1, to: 0.3 }, scaleY: 0, duration: 500, ease: 'Cubic.out',
+    });
+    this.particles.sparks(sc.x, sc.y, 0xffc040, 8);
+    AudioSystem.play('skillUnlock');
+    if (withToast) {
+      this.hud?.toast(getLocale() === 'fa' ? '⇌ میان‌بر باز شد' : '⇌ SHORTCUT OPENED');
+    }
+  }
+
   /** Spawn NPC sprites in the current area — previously NPCs were invisible. */
   private spawnNPCs(areaId: string): void {
     const npcs = NPCSystem.getNPCsInArea(areaId);
@@ -1075,6 +1197,9 @@ export class GameScene extends Phaser.Scene {
     // NPC interaction prompt + label follow
     this.updateNpcInteractionPrompt();
     this.updateNpcLabels();
+    // ── Metroidvania: check collectible pickups + shortcut activations ──
+    this.checkCollectiblePickups();
+    this.checkShortcutActivations();
     // Ambient dust motes — atmospheric particles around player (per particles skill)
     if (this.time.now % 200 < 16) {
       this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);

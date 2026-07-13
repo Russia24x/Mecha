@@ -62,6 +62,13 @@ export const ACTS: ActData[] = [
                 { id: 'lore_s1_secret', type: 'terminal', x: 580, y: 260, titleKey: 'lore.s1.secret.title', textKey: 'lore.s1.secret.text' },
               ], landmarks: [
                 { id: 'lm_s1_mech', type: 'crashed_mech', x: 150, y: 580, w: 140, h: 110, color: 0x2a3040 },
+              ], collectibles: [
+                // Health fragment on upper secret ledge (requires double jump)
+                { id: 'col_s1_health', type: 'health_fragment', x: 780, y: 150, requiredAbility: 'doubleJump' },
+              ], shortcuts: [
+                // Shortcut from S6 (boss arena) back to S1 — opens from right
+                // This is the "after boss" fast-travel back to start
+                { id: 'sc_s6_to_s1', x: 1180, y: 500, w: 20, h: 120, toSection: 6, opensFrom: 'right' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -86,6 +93,13 @@ export const ACTS: ActData[] = [
               ], hazards: [
                 // Small spike pit — teaches hazard awareness
                 { type: 'spike', x: 1920, y: 690, w: 80, h: 20, damage: 20 },
+              ], collectibles: [
+                // Energy fragment on upper catwalk (alternate route reward)
+                { id: 'col_s2_energy', type: 'energy_fragment', x: 1600, y: 230 },
+              ], shortcuts: [
+                // Shortcut from S4 (assembly hall) back to S2 — opens from left
+                // Allows backtracking after mini-boss without going through S3 shaft again
+                { id: 'sc_s4_to_s2', x: 1300, y: 300, w: 20, h: 120, toSection: 4, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -120,6 +134,9 @@ export const ACTS: ActData[] = [
                 // Grapple anchors — placed high to enable grapple-reach to secret area
                 { id: 'grapple_s3_1', x: 2950, y: 60 },
                 { id: 'grapple_s3_2', x: 3400, y: 220 },
+              ], collectibles: [
+                // Skill point at the top of the shaft (requires wall jump or grapple)
+                { id: 'col_s3_skill', type: 'skill_point', x: 2760, y: 50, requiredAbility: 'wallJump' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -150,6 +167,11 @@ export const ACTS: ActData[] = [
               ], empDoors: [
                 // EMP-locked door — blocks access to upper catwalk secret area
                 { id: 'empdoor_s4_1', x: 4360, y: 240, w: 80, h: 16 },
+              ], collectibles: [
+                // Health fragment behind the EMP door (requires EMP ability)
+                { id: 'col_s4_health', type: 'health_fragment', x: 4360, y: 190, requiredAbility: 'emp' },
+                // Weapon part on the upper catwalk (alternate route)
+                { id: 'col_s4_weapon', type: 'weapon_part', x: 4900, y: 130, requiredAbility: 'wallJump' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -174,6 +196,9 @@ export const ACTS: ActData[] = [
               ], landmarks: [
                 // Guardian silhouette — standing at the open door
                 { id: 'lm_s5_guardian', type: 'tower', x: 6100, y: 400, w: 50, h: 200, color: 0x1a2030 },
+              ], collectibles: [
+                // Energy fragment on the elevated vantage point
+                { id: 'col_s5_energy', type: 'energy_fragment', x: 5700, y: 370 },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
@@ -196,6 +221,9 @@ export const ACTS: ActData[] = [
                 { id: 'lore_s6_terminal', type: 'terminal', x: 7450, y: 580, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
               ], landmarks: [
                 { id: 'lm_s6_door', type: 'tower', x: 6440, y: 280, w: 80, h: 440, color: 0x3a3040 },
+              ], collectibles: [
+                // Skill point reward on the upper safe spot (wall jump required)
+                { id: 'col_s6_skill', type: 'skill_point', x: 6700, y: 290, requiredAbility: 'wallJump' },
               ]},
             ],
           },

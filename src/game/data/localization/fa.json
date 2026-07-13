@@ -151,6 +151,8 @@
   "item.ai_chip.desc": "واحد پردازش پیشرفته",
   "item.elite_core.name": "هسته نخبه",
   "item.elite_core.desc": "هسته انرژی کمیاب از نخبه‌ها",
+  "item.weapon_part.name": "قطعه سلاح",
+  "item.weapon_part.desc": "قطعه سلاح بازیافتی — برای ارتقا استفاده می‌شود",
   "item.guardian_core.name": "هسته نگهبان",
   "item.guardian_core.desc": "هسته از نگهبان AX-09",
   "item.overseer_eye.name": "چشم نظارت‌کننده",
