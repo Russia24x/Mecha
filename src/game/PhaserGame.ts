@@ -11,6 +11,7 @@ import { GAME } from './shared/Constants';
 import { BootScene } from './features/scenes/BootScene';
 import { GameScene } from './features/scenes/GameScene';
 import { UIScene } from './features/scenes/UIScene';
+import { FullscreenManager } from './systems/FullscreenManager';
 
 export class PhaserGame {
   private static instance: Phaser.Game | null = null;
@@ -54,13 +55,19 @@ export class PhaserGame {
       scene: [BootScene, GameScene, UIScene],
     });
 
+    // Initialize FullscreenManager with Phaser's ScaleManager so it can:
+    // 1. Request browser fullscreen on the game's parent container
+    // 2. Call scale.refresh() after entering/exiting so canvas recalculates
+    // 3. Listen for fullscreenchange events (ESC exit detection)
+    FullscreenManager.init(this.instance.scale);
+
     if (typeof window !== 'undefined') {
       (window as unknown as { __MECHA_GAME__: Phaser.Game }).__MECHA_GAME__ = this.instance;
       if (this.f11Handler) window.removeEventListener('keydown', this.f11Handler);
       this.f11Handler = (e: KeyboardEvent) => {
         if (e.code === 'F11') {
           e.preventDefault();
-          this.toggleFullscreen(parent);
+          FullscreenManager.toggle();
         }
       };
       window.addEventListener('keydown', this.f11Handler);
@@ -68,12 +75,15 @@ export class PhaserGame {
     return this.instance;
   }
 
-  static toggleFullscreen(parent: HTMLElement | string): void {
-    if (typeof document === 'undefined') return;
-    const el = typeof parent === 'string' ? document.getElementById(parent) : parent;
-    if (!el) return;
-    if (!document.fullscreenElement) el.requestFullscreen?.();
-    else document.exitFullscreen?.();
+  /**
+   * Toggle browser fullscreen on the game's parent container.
+   * Delegates to FullscreenManager which handles:
+   *   - Browser fullscreen request (requestFullscreen API)
+   *   - Canvas resize via :fullscreen CSS + scale.refresh()
+   *   - State sync with settings UI toggle
+   */
+  static toggleFullscreen(_parent?: HTMLElement | string): void {
+    FullscreenManager.toggle();
   }
 
   static destroy(): void {
@@ -81,6 +91,7 @@ export class PhaserGame {
       window.removeEventListener('keydown', this.f11Handler);
       this.f11Handler = null;
     }
+    FullscreenManager.cleanup();
     if (this.instance) {
       this.instance.destroy(true);
       this.instance = null;

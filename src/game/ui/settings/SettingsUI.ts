@@ -13,6 +13,7 @@ import { SaveSystem } from '../../systems/SaveSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
 import { THEME, addCornerBrackets, addScanlines } from '../Theme';
 import { QualityManager, type QualityLevel } from '../../systems/QualityManager';
+import { FullscreenManager } from '../../systems/FullscreenManager';
 import type { Locale } from '../../data/types';
 
 type CategoryId = 'audio' | 'display' | 'language';
@@ -149,18 +150,26 @@ export class SettingsUI extends NavigableOverlay {
     } else if (this.selectedCategory === 'display') {
       this.makeSlider(rightX, optStartY, t('settings.brightness'), RenderSystem.getBrightness(),
         (v) => { RenderSystem.setBrightness(v); SaveSystem.saveSettings({ brightness: v }); });
-      // ── Fullscreen toggle ──
+      // ── Fullscreen toggle (browser fullscreen + canvas fill) ──
       const savedFullscreen = SaveSystem.getSettings().fullscreen ?? false;
-      this.makeToggle(rightX, optStartY + 50, isFa ? 'تمام صفحه' : 'FULLSCREEN',
-        this.scene.scale.isFullscreen || savedFullscreen,
+      const setFullscreenVisual = this.makeToggle(rightX, optStartY + 50, isFa ? 'تمام صفحه' : 'FULLSCREEN',
+        FullscreenManager.isActive() || savedFullscreen,
         (on) => {
+          // FullscreenManager.toggle() handles browser fullscreen + canvas resize.
+          // We don't call startFullscreen/stopFullscreen directly because those
+          // only fullscreen the Phaser canvas, not the browser window.
           if (on) {
-            this.scene.scale.startFullscreen();
+            FullscreenManager.enter();
           } else {
-            this.scene.scale.stopFullscreen();
+            FullscreenManager.exit();
           }
           SaveSystem.saveSettings({ fullscreen: on });
         });
+      // Sync toggle visual when fullscreen state changes externally
+      // (e.g. user presses ESC or F11 to exit fullscreen)
+      FullscreenManager.onChange((active) => {
+        setFullscreenVisual(active);
+      });
       // ── Resolution selector (data-driven, not hardcoded) ──
       const resolutions = this.getAvailableResolutions();
       const currentRes = `${this.scene.scale.width}x${this.scene.scale.height}`;
@@ -277,7 +286,7 @@ export class SettingsUI extends NavigableOverlay {
   }
 
   /** Toggle switch (on/off). */
-  private makeToggle(x: number, y: number, label: string, isOn: boolean, onToggle: (on: boolean) => void): void {
+  private makeToggle(x: number, y: number, label: string, isOn: boolean, onToggle: (on: boolean) => void): (on: boolean) => void {
     const objects: Phaser.GameObjects.GameObject[] = [];
     const labelEl = this.scene.add.text(x - 240, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT,
@@ -294,18 +303,26 @@ export class SettingsUI extends NavigableOverlay {
       fontFamily: 'monospace', fontSize: '11px', color: state ? '#40d070' : '#ff4040',
     })).setOrigin(0, 0.5);
     objects.push(stateText);
-    bg.on('pointerdown', () => {
-      state = !state;
+
+    /** Update visual state without triggering onToggle (for external sync). */
+    const setVisualState = (on: boolean): void => {
+      state = on;
+      if (!bg.active) return;
       bg.setFillStyle(state ? 0x0d2818 : 0x280d0d, 0.95);
       bg.setStrokeStyle(1, state ? 0x40d070 : 0xff4040, 0.8);
       knob.setPosition(x + 100 + (state ? 18 : -18), y);
       knob.setFillStyle(state ? 0x40d070 : 0xff4040);
       stateText.setText(state ? 'ON' : 'OFF');
       stateText.setColor(state ? '#40d070' : '#ff4040');
+    };
+
+    bg.on('pointerdown', () => {
+      setVisualState(!state);
       onToggle(state);
     });
     this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
     this.container.add(objects);
+    return setVisualState;
   }
 
   /** Selector (dropdown-like, cycles through options on click). */
