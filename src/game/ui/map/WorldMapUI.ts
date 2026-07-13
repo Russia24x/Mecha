@@ -84,6 +84,25 @@ export class WorldMapUI extends NavigableOverlay {
     this.container.add(mapPanel);
     this.container.add(addCornerBrackets(scene, w / 2, mapY + mapH / 2, mapW, mapH, THEME.CYAN, 10, 0.6));
 
+    // ── Map background art: use factory_bg_2 as the map preview ──
+    if (scene.textures.exists('factory_bg_2')) {
+      const mapBg = scene.add.image(w / 2, mapY + mapH / 2, 'factory_bg_2');
+      mapBg.setDepth(0.5);
+      // Scale to fit map panel (cover fit)
+      const tex = scene.textures.get('factory_bg_2').getSourceImage();
+      const imgAR = tex.width / tex.height;
+      const panelAR = mapW / mapH;
+      let scale: number;
+      if (imgAR > panelAR) {
+        scale = mapH / tex.height;  // fit height
+      } else {
+        scale = mapW / tex.width;   // fit width
+      }
+      mapBg.setScale(scale);
+      mapBg.setAlpha(0.35);  // semi-transparent so nodes are visible
+      this.container.add(mapBg);
+    }
+
     // Legend (bottom of map)
     const legendY = mapY + mapH - 25;
     const legendItems = isFa ? [

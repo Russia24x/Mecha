@@ -543,10 +543,47 @@ export class GameScene extends Phaser.Scene {
       cardBg.setDepth(2);
       c.add(cardBg);
 
-      const previewBg = this.add.rectangle(x, cardY - 30, cardW - 20, 100, 0x05080c, 1);
-      previewBg.setStrokeStyle(1, 0x0a1018, 0.5);
-      previewBg.setDepth(2);
-      c.add(previewBg);
+      // ── Preview: use the factory_bg_2 image as the map preview thumbnail ──
+      const previewW = cardW - 20;
+      const previewH = 100;
+      const previewX = x;
+      const previewY = cardY - 30;
+      // Background frame
+      const previewFrame = this.add.rectangle(previewX, previewY, previewW, previewH, 0x05080c, 1);
+      previewFrame.setStrokeStyle(1, 0x0a1018, 0.5);
+      previewFrame.setDepth(2);
+      c.add(previewFrame);
+      // Image preview (if texture exists)
+      if (this.textures.exists('factory_bg_2')) {
+        const previewImg = this.add.image(previewX, previewY, 'factory_bg_2');
+        previewImg.setDepth(2.5);
+        // Crop/mask to fit the preview frame
+        const tex = this.textures.get('factory_bg_2').getSourceImage();
+        const imgAR = tex.width / tex.height;
+        const frameAR = previewW / previewH;
+        if (imgAR > frameAR) {
+          // Image is wider — fit height, crop width
+          previewImg.setDisplaySize(tex.height * frameAR, previewH);
+        } else {
+          // Image is taller — fit width, crop height
+          previewImg.setDisplaySize(previewW, tex.width / frameAR);
+        }
+        // Set as mask via crop (simpler: just set displaySize + use a crop rect)
+        previewImg.setCrop(
+          (tex.width - Math.min(tex.width, tex.height * frameAR)) / 2,
+          (tex.height - Math.min(tex.height, tex.width / frameAR)) / 2,
+          Math.min(tex.width, tex.height * frameAR),
+          Math.min(tex.height, tex.width / frameAR)
+        );
+        c.add(previewImg);
+        // Darken if locked
+        if (!area.unlocked) {
+          previewImg.setAlpha(0.3);
+          previewImg.setTint(0x404040);
+        } else if (area.isCurrent) {
+          previewImg.setTint(0x88ddff);
+        }
+      }
 
       const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px',
