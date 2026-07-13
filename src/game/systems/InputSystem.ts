@@ -36,6 +36,7 @@ export interface InputState {
   heldDown: boolean;
   heldFire: boolean;
   heldJump: boolean;
+  heldInteract: boolean;
   jumpPressed: boolean;
   firePressed: boolean;
   meleePressed: boolean;
@@ -89,7 +90,7 @@ interface KbHeldState {
 
 export class InputSystem {
   private static state: InputState = {
-    heldLeft: false, heldRight: false, heldUp: false, heldDown: false, heldFire: false, heldJump: false,
+    heldLeft: false, heldRight: false, heldUp: false, heldDown: false, heldFire: false, heldJump: false, heldInteract: false,
     jumpPressed: false, firePressed: false, meleePressed: false, dashPressed: false,
     weaponNextPressed: false, weaponPrevPressed: false, pausePressed: false, interactPressed: false,
     backPressed: false,
@@ -313,11 +314,13 @@ export class InputSystem {
         // Held states
         this.state.heldFire = this.kbHeld.fire || held(2) || held(7);
         this.state.heldJump = this.kbHeld.jump || held(0);
+        this.state.heldInteract = this.kbHeld.interact || held(1);  // B/Circle = interact
         this.prevButtons = btns;
       } else {
         this.state.gamepadConnected = false;
         this.state.heldFire = this.kbHeld.fire;
         this.state.heldJump = this.kbHeld.jump;
+        this.state.heldInteract = this.kbHeld.interact;
         // Reset axes when no gamepad
         this.state.leftStickX = 0;
         this.state.leftStickY = 0;
@@ -327,6 +330,7 @@ export class InputSystem {
     } else {
       this.state.heldFire = this.kbHeld.fire;
       this.state.heldJump = this.kbHeld.jump;
+      this.state.heldInteract = this.kbHeld.interact;
     }
 
     // *** MERGE keyboard edges + gamepad edges into state ***

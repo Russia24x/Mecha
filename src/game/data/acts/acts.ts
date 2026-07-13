@@ -103,29 +103,31 @@ export const ACTS: ActData[] = [
               ]},
 
               // ═══════════════════════════════════════════════════════════════
-              // Section 3: VERTICAL SHAFT — WALL JUMP TUTORIAL (0:12-0:22)
-              // Design: Deep vertical shaft. Two facing walls.
-              // Player falls in, must wall jump to escape.
-              // Bottom = spikes. Top = secret lore.
+              // Section 3: VERTICAL SHAFT — OPTIONAL SECRET (0:12-0:22)
+              // ── FIX Bug 6: wallJump is NOT required for main progress ──
+              // Main route: walk along the lower floor past the shaft to the right exit.
+              // Optional secret: wall jump (or grapple) up the shaft for a skill point + lore.
+              // The shaft is a reward for skilled players, not a gate.
               // ═══════════════════════════════════════════════════════════════
               { id: 3, nameKey: 'section.3.name', x: 2560, enemies: ['drone'], platforms: [
-                // Entry platform
+                // Entry platform (main route — walk along the floor)
                 { x: 2660, y: 580, w: 200, h: 20 },
-                // Shaft — two facing walls (260px gap, wall jumpable)
-                { x: 2800, y: 380, w: 40, h: 380 },
-                { x: 3100, y: 380, w: 40, h: 380 },
-                // Mid-shelf (resting point during wall jump)
+                // Shaft — two facing walls (wall jumpable, but OPTIONAL)
+                { x: 2800, y: 380, w: 40, h: 280 },  // shorter walls — player can walk under
+                { x: 3100, y: 380, w: 40, h: 280 },
+                // Mid-shelf (resting point during wall jump — optional)
                 { x: 2950, y: 320, w: 100, h: 16 },
-                // Top ledge (wall jump reward)
+                // Top ledge (wall jump reward — optional secret)
                 { x: 2950, y: 200, w: 120, h: 16 },
-                // Hidden platform (requires double jump from top ledge)
+                // Hidden platform (requires double jump from top ledge — optional)
                 { x: 2750, y: 100, w: 80, h: 16 },
-                // Exit (right side, upper level)
+                // MAIN ROUTE exit (lower level — no wallJump needed)
+                { x: 3300, y: 580, w: 200, h: 20 },
+                { x: 3540, y: 540, w: 140, h: 20 },
+                // Upper exit (optional — for those who wall-jumped up)
                 { x: 3300, y: 380, w: 140, h: 20 },
-                { x: 3540, y: 300, w: 140, h: 20 },
-                // Lower exit (if player falls past spikes)
-                { x: 3300, y: 580, w: 160, h: 20 },
               ], hazards: [
+                // Spike pit ONLY at the bottom of the shaft (not blocking main route)
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 30 },
               ], loreObjects: [
                 { id: 'lore_s3_echo', type: 'echo', x: 2780, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
@@ -135,7 +137,7 @@ export const ACTS: ActData[] = [
                 { id: 'grapple_s3_1', x: 2950, y: 60 },
                 { id: 'grapple_s3_2', x: 3400, y: 220 },
               ], collectibles: [
-                // Skill point at the top of the shaft (requires wall jump or grapple)
+                // Skill point at the top of the shaft (OPTIONAL — requires wall jump or grapple)
                 { id: 'col_s3_skill', type: 'skill_point', x: 2760, y: 50, requiredAbility: 'wallJump' },
               ]},
 

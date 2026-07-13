@@ -871,3 +871,26 @@ Stage Summary:
 - Collectibles persist across deaths/reloads (collectedCollectibles in save data).
 - Shortcuts persist and stay open forever once activated (openedShortcuts in save data).
 - This is the first real Metroidvania structure — player now has reasons to backtrack, explore, and use abilities to reach hidden rewards.
+
+---
+Task ID: bugfix-round-1
+Agent: main
+Task: Fix 6 critical bugs found during end-to-end playtest trace.
+
+Work Log:
+- FIX Bug 1 (physics bodies on doors): EMP doors + shortcut doors were purely visual containers with no physics body — player could walk through them. Added `physics.addStaticRect()` in createEmpDoor() + createShortcut() to create blocking physics bodies. Updated openShortcut() + onEmpPulse() to remove the physics body (via `matter.world.remove()`) when the door opens. Updated AreaLoader.unload() to clean up physics bodies (not auto-destroyed by container.destroy()). Added preOpenShortcuts() in buildPlay to silently open shortcuts that were already opened in save data (remove physics + hide visual).
+
+- FIX Bug 2 (hack requires input): tryHack() had an empty `if (!input.heldJump && !input.interactPressed)` block — hack started automatically without player input. Added `heldInteract` field to InputState (set from kbHeld.interact || gamepad button 1). Updated tryHack() to require `input.heldInteract` to start + continue hack. If player releases interact, hack cancels. This is the correct UX — hack is an active choice, not automatic.
+
+- FIX Bug 3 (EMP_HIT listener missing): EMP_HIT event was emitted by PlayerEntity.tryEMP() but no listener existed — EMP didn't actually stun enemies. Added `forceStagger()` public method to EnemyEntity (wraps private startStagger()). Added onEmpHit listener in GameScene that calls `enemy.forceStagger()` for the matching enemy ID. Registered + cleaned up in create() + shutdown().
+
+- FIX Bug 4 (collected items reappear): When player died + retried, collectibles that were already collected would reappear visually but couldn't be picked up (guard `if (!isNew) return`). Added hidePreCollectedItems() in buildPlay that checks SaveSystem.isCollectibleCollected(id) for each collectible and hides + deactivates it if already collected. Now the world correctly reflects collected state on reload.
+
+- FIX Bug 5 (requiredAbility not enforced): The `requiredAbility` field on CollectibleData existed but was never checked in code — player could pick up collectibles without the required ability. Updated createCollectible() to store `requiredAbility` on the container. Updated checkCollectiblePickups() to check `this.player.hasAbility(requiredAbility)` before allowing pickup. If player lacks the ability, shows a throttled "🔒 REQUIRES [ABILITY]" toast. Player must actually unlock the ability to get the reward.
+
+- FIX Bug 6 (S3 wallJump soft-lock): S3 was designed as a vertical shaft that "must wall jump to escape" — but wallJump is only unlocked by defeating the mini-boss in S4 (after S3). This was a design contradiction. Redesigned S3: walls are shorter (280px instead of 380px) so player can walk under them on the main route. Main exit is now the lower floor path (no wallJump needed). The shaft is now an OPTIONAL SECRET — players who have wallJump (or grapple) can climb up for a skill point + lore. Updated design comments to reflect this. No more soft-lock.
+
+Stage Summary:
+- Files modified: AreaLoader.ts (physics bodies + cleanup + requiredAbility), GameScene.ts (6 fix methods + hidePreCollectedItems + preOpenShortcuts + onEmpHit + checkCollectiblePickups), InputSystem.ts (heldInteract field), PlayerEntity.ts (tryHack requires heldInteract), EnemyEntity.ts (forceStagger public method), acts.ts (S3 redesign).
+- TypeScript: clean. Next.js build: success.
+- All 6 critical bugs fixed: doors now block, hack requires input, EMP stuns, collected items stay hidden, ability-gated collectibles are actually gated, S3 is no longer a soft-lock.

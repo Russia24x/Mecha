@@ -114,6 +114,8 @@ export class GameScene extends Phaser.Scene {
   private npcInteractionPrompt: Phaser.GameObjects.Container | null = null;
   // Phase 3: Death penalty tracking
   private lastLostXp = 0;
+  // ── FIX Bug 5: Throttle for locked collectible toast ──
+  private _lastLockedToastAt = 0;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -182,6 +184,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('ABILITY_UNLOCKED', () => { this.player?.refreshStats(); });
     // ── Ability events ──
     EventBus.on('EMP_PULSE', this.onEmpPulse, this);
+    EventBus.on('EMP_HIT', this.onEmpHit, this);
     EventBus.on('HACK_COMPLETE', this.onHackComplete, this);
 
     this.setState('menu');
@@ -666,6 +669,11 @@ export class GameScene extends Phaser.Scene {
     this.areaLoader = new AreaLoader(this, this.physicsSys);
     this.loadedArea = this.areaLoader.load(area);
 
+    // ── FIX Bug 4: Hide collectibles that were already collected (persisted) ──
+    this.hidePreCollectedItems();
+    // ── FIX Bug 1: Pre-open shortcuts that were already opened (persisted) ──
+    this.preOpenShortcuts();
+
     // Render system (darkness + lights)
     this.render = new RenderSystem(this);
 
@@ -725,6 +733,41 @@ export class GameScene extends Phaser.Scene {
 
   // ================ METROIDVANIA: COLLECTIBLES + SHORTCUTS ================
 
+  /** ── FIX Bug 4: Hide collectibles that were already collected (persisted). ── */
+  private hidePreCollectedItems(): void {
+    if (!this.loadedArea) return;
+    for (const col of this.loadedArea.collectibles) {
+      if (!col || !col.active) continue;
+      const id = col.getData('collectibleId') as string;
+      if (SaveSystem.isCollectibleCollected(id)) {
+        col.setData('collected', true);
+        col.setVisible(false);
+        col.setActive(false);
+      }
+    }
+  }
+
+  /** ── FIX Bug 1: Pre-open shortcuts that were already opened (persisted). ── */
+  private preOpenShortcuts(): void {
+    if (!this.loadedArea) return;
+    for (const sc of this.loadedArea.shortcuts) {
+      if (!sc || !sc.active) continue;
+      const id = sc.getData('shortcutId') as string;
+      if (SaveSystem.isShortcutOpened(id)) {
+        // Silently open (remove physics + hide visual) without toast
+        sc.setData('shortcutOpen', true);
+        const physicsBody = sc.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+        if (physicsBody && physicsBody.active) {
+          try { this.matter.world.remove(physicsBody.body as MatterJS.Body); } catch { /* */ }
+          physicsBody.destroy();
+        }
+        sc.setAlpha(0.3);
+        sc.setScale(1, 0);
+        sc.setVisible(false);
+      }
+    }
+  }
+
   /** Check if player is near any collectible → pick it up. */
   private checkCollectiblePickups(): void {
     if (!this.loadedArea || !this.player?.sprite?.active) return;
@@ -737,6 +780,19 @@ export class GameScene extends Phaser.Scene {
       const cy = col.y;
       const dist = Phaser.Math.Distance.Between(px, py, cx, cy);
       if (dist < 35) {
+        // ── FIX Bug 5: Check requiredAbility before allowing pickup ──
+        const requiredAbility = col.getData('requiredAbility') as string | null;
+        if (requiredAbility && !this.player.hasAbility(requiredAbility)) {
+          // Player doesn't have the required ability — show locked toast (throttled)
+          if (this.time.now - (this._lastLockedToastAt || 0) > 1000) {
+            this._lastLockedToastAt = this.time.now;
+            const abilityName = getLocale() === 'fa' ? requiredAbility : requiredAbility.toUpperCase();
+            this.hud?.toast(getLocale() === 'fa'
+              ? `🔒 نیاز به ${abilityName}`
+              : `🔒 REQUIRES ${abilityName}`);
+          }
+          continue;  // skip pickup
+        }
         this.pickupCollectible(col);
       }
     }
@@ -830,10 +886,16 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Open a shortcut door — visual animation + persist. */
+  /** Open a shortcut door — visual animation + persist + remove physics body. */
   private openShortcut(sc: Phaser.GameObjects.Container, id: string, withToast: boolean): void {
     sc.setData('shortcutOpen', true);
     SaveSystem.markShortcutOpened(id);
+    // ── FIX Bug 1: Remove the physics body so player can pass through ──
+    const physicsBody = sc.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+    if (physicsBody && physicsBody.active) {
+      this.matter.world.remove(physicsBody.body as MatterJS.Body);
+      physicsBody.destroy();
+    }
     // Visual: door slides open
     this.tweens.add({
       targets: sc, alpha: { from: 1, to: 0.3 }, scaleY: 0, duration: 500, ease: 'Cubic.out',
@@ -1434,6 +1496,12 @@ export class GameScene extends Phaser.Scene {
       if (dist < data.radius) {
         // Open the door
         door.setData('empDoorOpen', true);
+        // ── FIX Bug 1: Remove the physics body so player can pass through ──
+        const physicsBody = door.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+        if (physicsBody && physicsBody.active) {
+          this.matter.world.remove(physicsBody.body as MatterJS.Body);
+          physicsBody.destroy();
+        }
         this.tweens.add({
           targets: door, alpha: 0, scaleY: 0, duration: 400, ease: 'Cubic.out',
           onComplete: () => { door.setVisible(false); },
@@ -1446,13 +1514,24 @@ export class GameScene extends Phaser.Scene {
     }
   };
 
+  /** ── FIX Bug 3: EMP_HIT listener — force-stagger enemies hit by EMP ── */
+  private onEmpHit = (payload: unknown): void => {
+    const data = payload as { enemyId: string; x: number; y: number };
+    for (const enemy of this.enemies) {
+      if (enemy.id === data.enemyId) {
+        enemy.forceStagger();
+        break;
+      }
+    }
+  };
+
   /** Hack complete — convert enemy to friendly (disable hostile AI). */
   private onHackComplete = (payload: unknown): void => {
     const data = payload as { enemyId: string };
     for (const enemy of this.enemies) {
       if (enemy.id === data.enemyId) {
         // Mark as hacked — enemy stops attacking player
-        (enemy as unknown as { hacked?: boolean }).hacked = true;
+        enemy.hacked = true;
         this.hud?.toast(getLocale() === 'fa' ? '◆ دشمن هک شد' : '◆ ENEMY HACKED');
         // Visual: green tint (will be handled in enemy updateFlash)
         this.particles.sparks(enemy.position.x, enemy.position.y, 0x40ff80, 10);
@@ -1682,6 +1761,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.off('SKILL_UNLOCKED');
     EventBus.off('ABILITY_UNLOCKED');
     EventBus.off('EMP_PULSE', this.onEmpPulse, this);
+    EventBus.off('EMP_HIT', this.onEmpHit, this);
     EventBus.off('HACK_COMPLETE', this.onHackComplete, this);
     OverlayManager.destroy();
     InputSystem.destroy();

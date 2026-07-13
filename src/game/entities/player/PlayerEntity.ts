@@ -809,8 +809,9 @@ export class PlayerEntity {
   }
 
   /**
-   * HACK — hold interact near a hackable enemy to convert it to friendly.
+   * HACK — hold interact (E / B / Circle) near a hackable enemy to convert it to friendly.
    * Progress bar fills over 1.5s. On success, enemy fights for player.
+   * ── FIX Bug 2: Now requires heldInteract to start + continue hack ──
    */
   private tryHack(deltaMs: number): void {
     if (!this.alive || !this.sprite || !this.sprite.active) return;
@@ -833,20 +834,20 @@ export class PlayerEntity {
       }
     }
 
+    // No hackable enemy nearby → cancel any in-progress hack
     if (!nearestHackable) {
       this.cancelHack();
       return;
     }
 
-    // Must be holding interact
-    if (!input.heldJump && !input.interactPressed) {
-      // Use interactPressed for edge, but also allow held — let's check held via a workaround
-      // Actually interactPressed is edge. For hack we want HOLD. Let's use the InputSystem kbHeld.
-      // Since we can't access kbHeld directly, we'll use the edge + a timeout approach.
-      // Simpler: require interactPressed to START hack, then it continues if player stays near.
+    // ── FIX Bug 2: Require held interact to start + continue hack ──
+    if (!input.heldInteract) {
+      // Player not holding interact → cancel any in-progress hack
+      this.cancelHack();
+      return;
     }
 
-    // Start or continue hack
+    // Player is holding interact + near a hackable enemy → start or continue hack
     if (!this.hackTarget || this.hackTarget !== nearestHackable) {
       this.hackTarget = nearestHackable;
       this.hackProgress = 0;

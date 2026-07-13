@@ -220,6 +220,11 @@ export class AreaLoader {
     container.setData('isEmpDoor', true);
     container.setData('empDoorOpen', false);
     container.setSize(door.w, door.h);
+    // ── FIX Bug 1: Add physics body so the door actually blocks the player ──
+    const physicsBody = this.physics.addStaticRect(door.x, door.y, door.w, door.h);
+    physicsBody.setData('isEmpDoorBody', true);
+    physicsBody.setData('empDoorId', door.id);
+    container.setData('physicsBody', physicsBody);
     return container;
   }
 
@@ -257,11 +262,16 @@ export class AreaLoader {
     container.setData('opensFrom', sc.opensFrom);
     container.setData('toSection', sc.toSection);
     container.setSize(sc.w, sc.h);
+    // ── FIX Bug 1: Add physics body so the shortcut door actually blocks the player ──
+    const physicsBody = this.physics.addStaticRect(sc.x, sc.y, sc.w, sc.h);
+    physicsBody.setData('isShortcutBody', true);
+    physicsBody.setData('shortcutId', sc.id);
+    container.setData('physicsBody', physicsBody);
     return container;
   }
 
   /** Create a collectible pickup — glowing orb that grants a reward. */
-  private createCollectible(col: { id: string; type: string; x: number; y: number }): Phaser.GameObjects.Container {
+  private createCollectible(col: { id: string; type: string; x: number; y: number; requiredAbility?: string }): Phaser.GameObjects.Container {
     const container = this.scene.add.container(col.x, col.y);
     // Color per type
     const colors: Record<string, number> = {
@@ -322,6 +332,7 @@ export class AreaLoader {
     container.setData('isCollectible', true);
     container.setData('collectibleType', col.type);
     container.setData('collected', false);
+    container.setData('requiredAbility', col.requiredAbility || null);  // ── FIX Bug 5 ──
     container.setSize(20, 20);
     container.setInteractive({ useHandCursor: false });
     return container;
@@ -1032,8 +1043,25 @@ export class AreaLoader {
     loaded.loreObjects.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.landmarks.forEach(l => { if (l && l.active) l.destroy(); });
     loaded.grappleAnchors.forEach(a => { if (a && a.active) a.destroy(); });
-    loaded.empDoors.forEach(d => { if (d && d.active) d.destroy(); });
-    loaded.shortcuts.forEach(s => { if (s && s.active) s.destroy(); });
+    // ── FIX Bug 1: Clean up physics bodies from EMP doors + shortcuts (not auto-destroyed) ──
+    loaded.empDoors.forEach(d => {
+      if (!d) return;
+      const pb = d.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+      if (pb && pb.active) {
+        try { this.scene.matter.world.remove(pb.body as MatterJS.Body); } catch { /* */ }
+        pb.destroy();
+      }
+      if (d.active) d.destroy();
+    });
+    loaded.shortcuts.forEach(s => {
+      if (!s) return;
+      const pb = s.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+      if (pb && pb.active) {
+        try { this.scene.matter.world.remove(pb.body as MatterJS.Body); } catch { /* */ }
+        pb.destroy();
+      }
+      if (s.active) s.destroy();
+    });
     loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
     loaded.solids = [];
     loaded.sectionTriggers = [];

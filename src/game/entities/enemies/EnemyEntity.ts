@@ -145,6 +145,12 @@ export class EnemyEntity {
     this.updatePostureBar();
   }
 
+  /** ── FIX Bug 3: Public method for EMP to force-stagger an enemy ── */
+  public forceStagger(): void {
+    if (!this.alive || !this.sprite || !this.sprite.active) return;
+    this.startStagger();
+  }
+
   /** Phase 3: Create/Update the posture bar above the enemy. */
   private updatePostureBar(): void {
     if (!this.sprite || !this.sprite.active) return;
