@@ -1,13 +1,15 @@
 /**
  * MECHA: LAST PROTOCOL — Projectile Entity
  * Data-driven: uses WeaponData for all stats.
- * Overlap-based hit detection against scene children.
+ * Hit detection uses TargetRegistry (O(m)) when available, falls back to
+ * scene.children.list scan (O(n²)) otherwise.
  */
 import Phaser from 'phaser';
 import type { WeaponData } from '../../data/types';
 import type { PhysicsSystem } from '../../systems/PhysicsSystem';
 import { ParticleSystem } from '../../systems/ParticleSystem';
 import { COLORS } from '../../shared/Constants';
+import type { TargetRegistry } from './TargetRegistry';
 
 export interface ProjectileOptions {
   speed: number;
@@ -25,6 +27,10 @@ interface Damageable {
   takeDamage(amount: number): boolean;
 }
 
+interface HasTargetRegistry {
+  targetRegistry?: TargetRegistry;
+}
+
 export class Projectile {
   public sprite: Phaser.Physics.Matter.Image;
   public damage: number;
@@ -40,6 +46,7 @@ export class Projectile {
   private weapon: WeaponData | undefined;
   private explosive: boolean;
   private explosionRadius: number;
+  private registry: TargetRegistry | null;
 
   constructor(scene: Phaser.Scene, physics: PhysicsSystem, particles: ParticleSystem, pos: Phaser.Math.Vector2, dir: Phaser.Math.Vector2, opts: ProjectileOptions) {
     this.scene = scene;
@@ -51,6 +58,9 @@ export class Projectile {
     this.weapon = opts.weapon;
     this.explosive = !!opts.explosive;
     this.explosionRadius = opts.explosionRadius ?? 0;
+    // Resolve TargetRegistry from scene if attached (GameScene owns one).
+    // Falls back to null → legacy scene.children scan path.
+    this.registry = (scene as unknown as HasTargetRegistry).targetRegistry ?? null;
 
     const category = opts.owner === 'player' ? 0x0010 : 0x0020;
     const mask = opts.owner === 'player' ? 0x0001 | 0x0004 | 0x0008 : 0x0001 | 0x0002;
@@ -109,6 +119,79 @@ export class Projectile {
   private checkOverlaps(): void {
     const px = this.sprite.x;
     const py = this.sprite.y;
+
+    // ── Solid collision via Matter spatial query (O(log n)) ──
+    // Projectiles are sensors, so Matter won't fire collisionstart for them.
+    // We query bodies overlapping the projectile's position directly.
+    // This also fixes a latent bug: the legacy scene-children scan had
+    // `if (!type) return;` which filtered out solids (they have no entityType),
+    // so projectiles used to fly through walls.
+    const bodies = this.physics.bodiesAtPoint(px, py);
+    for (const body of bodies) {
+      if (body === this.sprite.body) continue;
+      if (body.label.startsWith('solid')) {
+        if (this.explosive) { this.explode(); return; }
+        this.kill();
+        return;
+      }
+    }
+
+    // ── Damageable targets via registry (O(m), m = enemies count) ──
+    if (this.registry) {
+      this.checkOverlapsRegistry(px, py);
+    } else {
+      this.checkOverlapsLegacy(px, py);
+    }
+  }
+
+  /** Registry-based hit detection — O(m) where m is the number of relevant targets. */
+  private checkOverlapsRegistry(px: number, py: number): void {
+    if (!this.registry) return;
+    if (this.owner === 'player') {
+      // Player projectiles hit boss + enemies
+      if (this.registry.boss) {
+        this.tryHitEntity(px, py, this.registry.boss.sprite, this.registry.boss, 0xff8040);
+        if (!this.alive) return;
+      }
+      for (const enemy of this.registry.enemies) {
+        if (!this.alive) break;
+        this.tryHitEntity(px, py, enemy.sprite, enemy, 0xff8040);
+      }
+    } else {
+      // Enemy projectiles hit player
+      if (this.registry.player) {
+        this.tryHitEntity(px, py, this.registry.player.sprite, this.registry.player, 0xff4040);
+      }
+    }
+  }
+
+  /** Attempt to hit a single damageable target. */
+  private tryHitEntity(
+    px: number, py: number,
+    sprite: Phaser.Physics.Matter.Image | null,
+    entity: Damageable,
+    sparkColor: number,
+  ): void {
+    if (!this.alive) return;
+    if (!sprite || !sprite.active) return;
+    const dx = sprite.x - px;
+    const dy = sprite.y - py;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const displayW = (sprite as unknown as { displayWidth?: number }).displayWidth || 20;
+    const displayH = (sprite as unknown as { displayHeight?: number }).displayHeight || 20;
+    const hitRadius = Math.max(displayW, displayH) / 2 + 18;
+    if (dist > hitRadius) return;
+
+    if (entity.takeDamage) {
+      entity.takeDamage(this.damage);
+      this.particles.sparks(px, py, sparkColor, 4);
+    }
+    if (this.explosive) this.explode();
+    else this.kill();
+  }
+
+  /** Legacy scan path — used when no TargetRegistry is attached to the scene. */
+  private checkOverlapsLegacy(px: number, py: number): void {
     this.scene.children.list.forEach((go: Phaser.GameObjects.GameObject) => {
       if (!this.alive) return;
       const type = go.getData('entityType') as string | undefined;
@@ -126,11 +209,6 @@ export class Projectile {
       const hitRadius = Math.max(displayW, displayH) / 2 + 18;
       if (dist > hitRadius) return;
 
-      if (type === 'solid' || (sprite as unknown as { body?: { label?: string } }).body?.label?.startsWith('solid')) {
-        if (this.explosive) this.explode();
-        else this.kill();
-        return;
-      }
       if (this.owner === 'player' && (type === 'enemy' || type === 'boss')) {
         const entity = go.getData('entity') as Damageable | undefined;
         if (entity?.takeDamage) {
