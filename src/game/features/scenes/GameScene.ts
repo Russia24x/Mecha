@@ -494,21 +494,44 @@ export class GameScene extends Phaser.Scene {
     bg.setDepth(0);
     c.add(bg);
 
-    // === Top bar: Title + Player stats ===
-    c.add(this.add.text(30, 20, isFa ? 'انتخاب ماموریت' : 'MISSION SELECT', fixTextStyle({
-      fontFamily: 'monospace', fontSize: '18px', color: '#39d0d8',
-    })).setDepth(1));
+    // === Top bar: Title + Player stats (improved UI) ===
+    const headerBg = this.add.rectangle(w / 2, 30, w - 40, 44, 0x0a0d14, 0.8);
+    headerBg.setStrokeStyle(1, 0x1a3040, 0.5);
+    headerBg.setDepth(1);
+    c.add(headerBg);
 
+    // Title with accent bracket
+    const titleText = isFa ? 'انتخاب ماموریت' : 'MISSION SELECT';
+    c.add(this.add.text(40, 30, `▸ ${titleText}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', letterSpacing: 2,
+    })).setOrigin(0, 0.5).setDepth(2));
+
+    // Player stats (right side) — level + XP bar + skill points
     const save = SaveSystem.getPlayer();
     const xpNeeded = ExperienceSystem.xpForLevel(save.level);
-    const statsLine = isFa
-      ? `سطح ${save.level}  |  ${save.xp}/${xpNeeded} XP  |  مهارت: ${save.skillPoints}  |  کشتار: ${save.totalKills}`
-      : `LV.${save.level}  ${save.xp}/${xpNeeded} XP  |  SP: ${save.skillPoints}  |  Kills: ${save.totalKills}`;
-    c.add(this.add.text(w - 30, 20, statsLine, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
-    })).setOrigin(1, 0).setDepth(1));
-
-    c.add(this.add.rectangle(w / 2, 50, w - 60, 1, 0x1a2030, 0.6).setDepth(1));
+    const xpPct = Math.min(1, save.xp / xpNeeded);
+    // Level badge
+    c.add(this.add.text(w - 280, 20, isFa ? `سطح ${save.level}` : `LV.${save.level}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '13px', color: '#40ff80', stroke: '#000', strokeThickness: 2,
+    })).setOrigin(0, 0.5).setDepth(2));
+    // XP bar background
+    c.add(this.add.rectangle(w - 200, 26, 100, 6, 0x05080c, 1).setStrokeStyle(1, 0x1a3040, 0.6).setOrigin(0, 0.5).setDepth(2));
+    // XP bar fill
+    c.add(this.add.rectangle(w - 199, 26, 98 * xpPct, 4, 0xffc040, 1).setOrigin(0, 0.5).setDepth(2));
+    // XP text
+    c.add(this.add.text(w - 200, 36, `${save.xp}/${xpNeeded}`, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '8px', color: '#5a6470',
+    })).setOrigin(0, 0.5).setDepth(2));
+    // Skill points badge
+    const spLabel = isFa ? `◆ ${save.skillPoints}` : `◆${save.skillPoints}`;
+    c.add(this.add.text(w - 90, 30, spLabel, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '13px', color: save.skillPoints > 0 ? '#ffc040' : '#3a4350', stroke: '#000', strokeThickness: 2,
+    })).setOrigin(0.5).setDepth(2));
+    // Kills
+    const killsLabel = isFa ? `☠ ${save.totalKills}` : `☠${save.totalKills}`;
+    c.add(this.add.text(w - 45, 30, killsLabel, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '13px', color: '#5a6470', stroke: '#000', strokeThickness: 2,
+    })).setOrigin(0.5).setDepth(2));
 
     // === Area cards ===
     const tree = WorldMapSystem.getMapTree();
@@ -529,94 +552,128 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    const cardW = 280;
-    const cardH = 200;
-    const cardGap = 30;
+    // ── Hub card layout (improved UI/UX) ──
+    const cardW = 300;
+    const cardH = 260;
+    const cardGap = 28;
     const totalW = areas.length * cardW + (areas.length - 1) * cardGap;
     const startX = (w - totalW) / 2 + cardW / 2;
-    const cardY = h * 0.42;
+    const cardY = h * 0.40;
+    const previewH = 130;  // taller preview for better image visibility
 
     areas.forEach((area, i) => {
       const x = startX + i * (cardW + cardGap);
-      const cardBg = this.add.rectangle(x, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.9);
+      const cardTop = cardY - cardH / 2;
+      const previewTop = cardTop + 14;
+      const previewY = previewTop + previewH / 2;
+
+      // Card background
+      const cardBg = this.add.rectangle(x, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.92);
       cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
       cardBg.setDepth(2);
       c.add(cardBg);
 
-      // ── Preview: use the factory_bg_2 image as the map preview thumbnail ──
-      const previewW = cardW - 20;
-      const previewH = 100;
-      const previewX = x;
-      const previewY = cardY - 30;
-      // Background frame
-      const previewFrame = this.add.rectangle(previewX, previewY, previewW, previewH, 0x05080c, 1);
-      previewFrame.setStrokeStyle(1, 0x0a1018, 0.5);
-      previewFrame.setDepth(2);
+      // ── Preview image area (top portion of card) ──
+      const previewW = cardW - 16;
+      // Background frame (dark)
+      const previewFrame = this.add.rectangle(x, previewY, previewW, previewH, 0x05080c, 1);
+      previewFrame.setDepth(2.5);
       c.add(previewFrame);
-      // Image preview (if texture exists)
+
+      // Image preview with proper mask
       if (this.textures.exists('factory_bg_2')) {
-        const previewImg = this.add.image(previewX, previewY, 'factory_bg_2');
-        previewImg.setDepth(2.5);
-        // Crop/mask to fit the preview frame
+        const previewImg = this.add.image(x, previewY, 'factory_bg_2');
+        previewImg.setDepth(2.6);
         const tex = this.textures.get('factory_bg_2').getSourceImage();
         const imgAR = tex.width / tex.height;
         const frameAR = previewW / previewH;
+        // Cover fit: scale so image fills the frame, crop overflow
+        let displayW: number, displayH: number;
         if (imgAR > frameAR) {
-          // Image is wider — fit height, crop width
-          previewImg.setDisplaySize(tex.height * frameAR, previewH);
+          // Image wider — fit height, overflow width
+          displayH = previewH;
+          displayW = previewH * imgAR;
         } else {
-          // Image is taller — fit width, crop height
-          previewImg.setDisplaySize(previewW, tex.width / frameAR);
+          // Image taller — fit width, overflow height
+          displayW = previewW;
+          displayH = previewW / imgAR;
         }
-        // Set as mask via crop (simpler: just set displaySize + use a crop rect)
-        previewImg.setCrop(
-          (tex.width - Math.min(tex.width, tex.height * frameAR)) / 2,
-          (tex.height - Math.min(tex.height, tex.width / frameAR)) / 2,
-          Math.min(tex.width, tex.height * frameAR),
-          Math.min(tex.height, tex.width / frameAR)
-        );
+        previewImg.setDisplaySize(displayW, displayH);
+        // Mask the image to the preview frame rectangle
+        const maskShape = this.make.graphics({}, false);
+        maskShape.fillStyle(0xffffff);
+        maskShape.fillRect(x - previewW / 2, previewY - previewH / 2, previewW, previewH);
+        const mask = maskShape.createGeometryMask();
+        previewImg.setMask(mask);
         c.add(previewImg);
+
         // Darken if locked
         if (!area.unlocked) {
-          previewImg.setAlpha(0.3);
-          previewImg.setTint(0x404040);
+          previewImg.setAlpha(0.25);
+          previewImg.setTint(0x303030);
         } else if (area.isCurrent) {
-          previewImg.setTint(0x88ddff);
+          previewImg.setTint(0x99ddff);
         }
+        // Overlay gradient at bottom of preview for text legibility
+        const gradient = this.add.rectangle(x, previewY + previewH / 2 - 12, previewW, 24, 0x05080c, 0.7);
+        gradient.setDepth(2.7);
+        c.add(gradient);
       }
 
-      const nameText = this.add.text(x, cardY + 40, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
-        fontFamily: 'monospace', fontSize: '14px',
+      // Preview border (on top of image)
+      const previewBorder = this.add.rectangle(x, previewY, previewW, previewH, 0x000000, 0);
+      previewBorder.setStrokeStyle(1, 0x1a3040, 0.8);
+      previewBorder.setDepth(2.8);
+      c.add(previewBorder);
+
+      // Area name (below preview)
+      const nameY = previewY + previewH / 2 + 22;
+      const nameText = this.add.text(x, nameY, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
+        fontFamily: 'monospace', fontSize: '15px',
         color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#cfd6e0' : '#2a3040',
+        stroke: '#000', strokeThickness: 2,
       })).setOrigin(0.5).setDepth(3);
       c.add(nameText);
 
+      // Status text (below name)
       let status = '';
-      if (area.isCurrent) status = '◆ ' + L('CURRENT', 'فعلی');
-      else if (area.bossDefeated) status = '★ ' + L('CLEARED', 'تکمیل شده');
-      else if (area.hasBoss && area.unlocked) status = '⚔ ' + L('BOSS', 'باس');
-      c.add(this.add.text(x, cardY + 62, status, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '10px', color: '#3a4350',
+      let statusColor = '#3a4350';
+      if (area.isCurrent) { status = '◆ ' + L('CURRENT', 'فعلی'); statusColor = '#39d0d8'; }
+      else if (area.bossDefeated) { status = '★ ' + L('CLEARED', 'تکمیل شده'); statusColor = '#ffc040'; }
+      else if (area.hasBoss && area.unlocked) { status = '⚔ ' + L('BOSS', 'باس'); statusColor = '#ff6060'; }
+      c.add(this.add.text(x, nameY + 22, status, fixTextStyle({
+        fontFamily: 'monospace', fontSize: '10px', color: statusColor, letterSpacing: 1,
       })).setOrigin(0.5).setDepth(3));
 
-      // Enter button — registered as focusable for gamepad nav
+      // Enter button (at bottom of card)
       if (area.unlocked) {
-        this.makeHubCardBtn(x, cardY + 82, '▶ ' + L('ENTER', 'ورود'), () => {
+        this.makeHubCardBtn(x, nameY + 48, '▶ ' + L('ENTER', 'ورود'), () => {
           AudioSystem.play('uiClick');
           if (area.areaId !== WorldSystem.getCurrent().areaId) {
             WorldSystem.travelTo(area.areaId, 1);
           }
           this.setState('play');
         });
+      } else {
+        // Show lock requirement
+        const lockText = this.add.text(x, nameY + 48, L('LOCKED', 'قفل'), fixTextStyle({
+          fontFamily: 'monospace', fontSize: '11px', color: '#2a3040', letterSpacing: 1,
+        })).setOrigin(0.5).setDepth(3);
+        c.add(lockText);
       }
     });
 
-    // === Bottom bar: Navigation icons (focusable for gamepad) ===
-    const navY = h - 60;
+    // === Bottom bar: Navigation icons (improved UI) ===
+    const navBarBg = this.add.rectangle(w / 2, h - 55, w - 80, 56, 0x0a0d14, 0.85);
+    navBarBg.setStrokeStyle(1, 0x1a3040, 0.5);
+    navBarBg.setDepth(1.5);
+    c.add(navBarBg);
+
+    const navY = h - 55;
     const navItems: { icon: string; label: string; action: () => void }[] = [
       { icon: '⚔', label: L('SKILLS', 'مهارت‌ها'), action: () => this.openOverlay('skills') },
-      { icon: '🎒', label: L('INVENTORY', 'کیف'), action: () => this.openOverlay('inventory') },
-      { icon: '📜', label: L('QUESTS', 'ماموریت‌ها'), action: () => this.openOverlay('quests') },
+      { icon: '◈', label: L('INVENTORY', 'کیف'), action: () => this.openOverlay('inventory') },
+      { icon: '▤', label: L('QUESTS', 'ماموریت‌ها'), action: () => this.openOverlay('quests') },
       { icon: '⚙', label: t('menu.settings'), action: () => this.openOverlay('settings') },
       { icon: '←', label: t('menu.back'), action: () => this.setState('menu') },
     ];
@@ -1722,18 +1779,24 @@ export class GameScene extends Phaser.Scene {
 
   /** Create a hub bottom-nav icon button (circle, focusable + clickable). */
   private makeHubNavBtn(x: number, y: number, icon: string, label: string, onClick: () => void): void {
-    const bg = this.add.circle(x, y, 22, 0x0a1018, 0.9);
-    bg.setStrokeStyle(1, 0x1a3040, 0.6);
+    const radius = 26;
+    const bg = this.add.circle(x, y, radius, 0x0a1018, 0.95);
+    bg.setStrokeStyle(1, 0x1a3040, 0.7);
     bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
-    bg.on('pointerout', () => this.updateMenuFocus());
+    bg.on('pointerover', () => {
+      this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg);
+      this.updateMenuFocus();
+      AudioSystem.play('uiHover');
+      bg.setScale(1.1);
+    });
+    bg.on('pointerout', () => { this.updateMenuFocus(); bg.setScale(1); });
     bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const iconText = this.add.text(x, y, icon, {
-      fontFamily: 'monospace', fontSize: '16px', color: '#5a6470',
-    }).setOrigin(0.5);
-    const labelText = this.add.text(x, y + 32, label, {
-      fontFamily: 'monospace', fontSize: '9px', color: '#3a4350',
-    }).setOrigin(0.5);
+    const iconText = this.add.text(x, y - 2, icon, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '18px', color: '#5a6470',
+    })).setOrigin(0.5);
+    const labelText = this.add.text(x, y + 34, label, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
+    })).setOrigin(0.5);
     this.stateContainer!.add([bg, iconText, labelText]);
     this.menuButtons.push({ bg, text: iconText, onSelect: onClick });
   }
