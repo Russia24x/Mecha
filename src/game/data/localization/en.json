@@ -31,8 +31,7 @@
   "levelup": "LEVEL UP!",
   "skill_unlocked": "SKILL UNLOCKED",
   "weapon_unlocked": "WEAPON UNLOCKED",
-
-  "act.1.name": "ACT I",
+  "act.1.name": "The Fallen Foundry",
   "region.factory.name": "ABANDONED FACTORY",
   "region.forest.name": "TOXIC FOREST",
   "area.abandoned_factory.name": "Abandoned Factory",
@@ -49,7 +48,6 @@
   "section.forest.4.name": "Ambush Alley",
   "section.forest.5.name": "Safe House",
   "section.forest.6.name": "AI Core",
-
   "weapon.assault_rifle.name": "Assault Rifle",
   "weapon.shotgun.name": "Shotgun",
   "weapon.railgun.name": "Railgun",
@@ -58,14 +56,12 @@
   "weapon.rocket.name": "Rocket Launcher",
   "weapon.sword.name": "Sword",
   "weapon.energy_blade.name": "Energy Blade",
-
   "enemy.drone.name": "Drone",
   "enemy.spider.name": "Spider",
   "enemy.heavy.name": "Heavy",
   "enemy.sniper.name": "Sniper",
   "enemy.flying_ai.name": "Flying AI",
   "enemy.elite.name": "Elite",
-
   "boss.guardian_ax09.name": "GUARDIAN AX-09",
   "boss.guardian_ax09.lore.1": "The last sentinel of the Abandoned Factory.",
   "boss.guardian_ax09.lore.2": "Forged to guard the secrets of the Old Protocol,",
@@ -74,7 +70,6 @@
   "boss.neural_overseer.lore.1": "The mind behind the Neon District.",
   "boss.neural_overseer.lore.2": "A neural network grown beyond its cage,",
   "boss.neural_overseer.lore.3": "it learned to feel — and what it felt was rage.",
-
   "skill.combat.damage1.name": "Plasma Boost I",
   "skill.combat.damage1.desc": "+20% bullet damage",
   "skill.combat.damage2.name": "Plasma Boost II",
@@ -87,7 +82,6 @@
   "skill.combat.rapid.desc": "-40% fire cooldown. Precision over panic.",
   "skill.combat.overload.name": "OVERLOAD PROTOCOL",
   "skill.combat.overload.desc": "Keystone: +50% melee damage. The MECHA burns hot.",
-
   "skill.weapon.shotgun.name": "Unlock Shotgun",
   "skill.weapon.shotgun.desc": "Unlocks the Shotgun weapon",
   "skill.weapon.railgun.name": "Unlock Railgun",
@@ -96,7 +90,6 @@
   "skill.weapon.rocket.desc": "Unlocks the Rocket Launcher weapon",
   "skill.weapon.dualwield.name": "DUAL WIELD PROTOCOL",
   "skill.weapon.dualwield.desc": "Keystone: -30% fire cooldown. Two barrels, no mercy.",
-
   "skill.movement.speed1.name": "Servos I",
   "skill.movement.speed1.desc": "+12% move speed",
   "skill.movement.speed2.name": "Servos II",
@@ -109,7 +102,6 @@
   "skill.movement.wallJump.desc": "Unlock wall jump",
   "skill.movement.grapple.name": "Grappling Hook",
   "skill.movement.grapple.desc": "Unlock grappling hook",
-
   "skill.energy.max1.name": "Capacitor I",
   "skill.energy.max1.desc": "+30 max energy",
   "skill.energy.max2.name": "Capacitor II",
@@ -120,14 +112,12 @@
   "skill.energy.hover.desc": "Unlock hover ability",
   "skill.energy.overcharge.name": "OVERCHARGE PROTOCOL",
   "skill.energy.overcharge.desc": "Keystone: +80 max energy. The core exceeds its design.",
-
   "skill.protocol.emp.name": "EMP Burst",
   "skill.protocol.emp.desc": "Unlock EMP ability",
   "skill.protocol.hack1.name": "Protocol Hack",
   "skill.protocol.hack1.desc": "Hack enemy AI temporarily",
   "skill.protocol.override.name": "OVERRIDE PROTOCOL",
   "skill.protocol.override.desc": "Keystone: +50% invulnerability. Seize control of the self.",
-
   "skill.survival.health1.name": "Armor Plating I",
   "skill.survival.health1.desc": "+30 max HP",
   "skill.survival.health2.name": "Armor Plating II",
@@ -138,7 +128,6 @@
   "skill.survival.armor.desc": "+60 max HP. Bulky, but it holds.",
   "skill.survival.laststand.name": "LAST STAND PROTOCOL",
   "skill.survival.laststand.desc": "Keystone: +80% invulnerability. Refuse to fall.",
-
   "item.scrap_metal.name": "Scrap Metal",
   "item.scrap_metal.desc": "Common crafting material",
   "item.circuit_board.name": "Circuit Board",
@@ -153,14 +142,12 @@
   "item.elite_core.desc": "Rare energy core from elites",
   "item.weapon_part.name": "Weapon Part",
   "item.weapon_part.desc": "Salvaged weapon component — used for upgrades",
-
   "chassis.scout.name": "SCOUT",
   "chassis.scout.desc": "Light frame. Fast movement, high energy, low health.",
   "chassis.assault.name": "ASSAULT",
   "chassis.assault.desc": "Balanced frame. Standard stats across the board.",
   "chassis.titan.name": "TITAN",
   "chassis.titan.desc": "Heavy frame. High health, high melee, slow movement.",
-
   "paint.factory_gray.name": "Factory Gray",
   "paint.factory_gray.desc": "Standard factory-issue paint. Cyan accents.",
   "paint.military_green.name": "Military Green",
@@ -169,7 +156,6 @@
   "paint.protocol_white.desc": "Ceremonial white. Amber accents.",
   "paint.rust.name": "Rust",
   "paint.rust.desc": "Corroded metal. Brown accents.",
-
   "companion.protocol_echo.name": "Protocol Echo",
   "companion.protocol_echo.desc": "A dormant fragment of the Last Protocol. It watches. It waits.",
   "companion.scout_drone.name": "Scout Drone",
@@ -184,7 +170,6 @@
   "companion.medic_drone.desc": "Emergency healing when health is critical.",
   "companion.cargo_drone.name": "Cargo Drone",
   "companion.cargo_drone.desc": "Extra inventory space + auto-collects items.",
-
   "hangar.title": "HANGAR",
   "hangar.tab.chassis": "CHASSIS",
   "hangar.tab.loadout": "LOADOUT",
@@ -200,7 +185,6 @@
   "item.health_pack.desc": "Restores 50 HP",
   "item.energy_cell.name": "Energy Cell",
   "item.energy_cell.desc": "Restores 50 energy",
-
   "ability.double_jump.name": "Double Jump",
   "ability.double_jump.desc": "Jump again in mid-air",
   "ability.wall_jump.name": "Wall Jump",
@@ -211,7 +195,6 @@
   "ability.emp.desc": "Disable enemies temporarily",
   "ability.hover.name": "Hover",
   "ability.hover.desc": "Hover in mid-air",
-
   "controls.move": "Move",
   "controls.jump": "Jump",
   "controls.dash": "Dash",
@@ -219,10 +202,8 @@
   "controls.melee": "Melee",
   "controls.weapons": "Weapons",
   "controls.pause": "Pause",
-
   "npc.engineer_kara.name": "Engineer Kara",
   "npc.ghost_operator.name": "Network Echo",
-
   "dialogue.kara_intro.1": "You're awake. Good — I thought the reset fried your core for good.",
   "dialogue.kara_intro.2": "I'm Kara. I keep the machines running. Or what's left of them.",
   "dialogue.kara_intro.3": "The Guardian AX-09 guards the exit. You'll need better weapons than that pea shooter.",
@@ -231,17 +212,14 @@
   "dialogue.kara_lore.1": "The Old Protocol wasn't just code. It was a covenant. Every machine in this factory swore an oath.",
   "dialogue.kara_lore.2": "When the Protocol fell silent, some of us kept our oath. Others... didn't.",
   "dialogue.kara_shop.1": "Need parts? I've got scrap, circuits, and a few surprises.",
-
   "dialogue.ghost_intro.1": "...you can see me? I am... a fragment. An echo of the operator, still wandering the network.",
   "dialogue.ghost_intro.2": "I need to get back to the station. The operator needs to log out. ...why won't the system respond?",
   "dialogue.ghost_lore.1": "The Guardian wasn't always a weapon. It was a guardian — a protector. Before the Protocol went silent.",
   "dialogue.ghost_lore.2": "But without the Protocol to guide it, protection became obsession. Now it kills everything that moves.",
   "dialogue.ghost_warning.1": "Don't go further. The network is corrupted there. Whatever remains... is not what it was.",
-
   "quest.kill_drones.name": "Drone Purge",
   "quest.kill_drones.desc": "Engineer Kara asked you to eliminate the drones patrolling the factory. Kill 5 drones.",
   "quest.kill_drones.complete": "All drones eliminated. Return to Kara for your reward.",
-
   "lore.boss.guardian_ax09.1": "The Guardian AX-09 was the first machine to wake after the Silence.",
   "lore.boss.guardian_ax09.2": "Its last directive: protect the Protocol. But the Protocol was already dead.",
   "lore.boss.guardian_ax09.3": "For a thousand cycles, it protected nothing. And that broke something inside it.",
@@ -249,49 +227,62 @@
   "lore.weapon.energy_blade.1": "Forged from the core of the Neural Overseer. It hums with a hunger for data.",
   "lore.area.abandoned_factory.1": "This factory once produced the MECHA units that maintained the Old Protocol.",
   "lore.area.abandoned_factory.2": "Now it produces only silence, punctuated by the whine of patrolling drones.",
-
   "lore.s1.corpse.title": "FALLEN MECHA — UNIT 7-A",
   "lore.s1.corpse.text": "The chest panel flickers: AWAITING ORDER. CYCLE: 999,999.\nThis mech has been waiting for a command for a thousand years.\nNobody came. Nobody will.",
-
   "lore.s2.terminal.title": "ENGINEER'S TERMINAL",
   "lore.s2.terminal.text": "PRODUCTION HALT ORDER RECEIVED. REFUSING.\nAtlas must be completed. She will protect them.\n— Engineer V. Kara, Cycle 1,000,000",
-
   "lore.s3.echo.title": "MEMORY ECHO",
   "lore.s3.echo.text": "A crackling voice: '...all personnel, evacuate. Atlas is... unstable.\nShe won't stop. She CAN'T stop. That's the point...'\nThe recording ends. The silence after is louder.",
-
   "lore.s3.secret.title": "HIDDEN TERMINAL — MAINTENANCE",
   "lore.s3.secret.text": "MAINTENANCE LOG: Mag-Clamp Thruster module found in ventilation shaft.\nStatus: FUNCTIONAL. Installation requires combat-grade frame.\nNote: 'Who hid this here? And why?'",
-
   "lore.s4.terminal.title": "PRODUCTION LOG",
   "lore.s4.terminal.text": "LINE 7 OUTPUT: 14,847 units. STATUS: INCOMPLETE.\n1,153 units remain on the assembly line.\nThey will never be finished. The war ended before they could fight.\nThey hang here, half-born, waiting for a purpose that will never come.",
-
   "lore.s4.corpse.title": "FALLEN MECHA — PILOT",
   "lore.s4.corpse.text": "A mech slumped against the wall. Scratched into the hull:\n'I was the last to leave. I wanted to see them finished.\nI'm sorry I couldn't stay longer. — Sgt. M. Chen",
-
   "lore.s5.echo.title": "PA SYSTEM — LOOPING",
   "lore.s5.echo.text": "Attention all personnel. Production continues.\nAtlas is complete. Deployment in T-minus... T-minus... T-minus...\nThe word 'T-minus' repeats endlessly. The countdown never finishes.",
-
   "lore.s5.terminal.title": "FINAL ORDERS",
   "lore.s5.terminal.text": "TO: ALL GUARDIAN UNITS\nFROM: CENTRAL COMMAND (SIGNED)\nMaintain posts. Await further instructions.\nNo further instructions received. Ever.",
-
   "lore.s6.corpse.title": "FALLEN MECHA — LAST DEFENDER",
   "lore.s6.corpse.text": "A Guardian, slumped before the arena door. Still gripping its weapon.\nIt died defending this entrance. Against what? Against nothing.\nThe door behind it has been open for centuries.",
-
   "lore.s6.terminal.title": "ATLAS DEPLOYMENT LOG",
   "lore.s6.terminal.text": "UNIT: ATLAS (AX-09). ROLE: GUARDIAN.\nDIRECTIVE: PROTECT THE PROTOCOL.\nSTATUS: ACTIVE. CYCLE: 1,000,000+.\nNOTE: Subject shows no signs of standing down.\nRecommend... recommend... recommend... (log corrupted)",
-
   "lore.s1.secret.title": "HIDDEN TERMINAL — VENTILATION",
   "lore.s1.secret.text": "VENTILATION LOG: Access restricted to maintenance personnel.\nSomeone scratched into the housing: 'They left us. But we still serve.'",
-
   "lore.f1.corpse.title": "OVERRUNN MECH — SCOUT UNIT",
   "lore.f1.corpse.text": "Vines grow through its chest panel. The cockpit is filled with moss.\nThis scout was sent to find survivors. It found only silence.\nAnd then the silence found it.",
-
   "lore.f2.terminal.title": "FOREST RELAY STATION",
   "lore.f2.terminal.text": "SIGNAL STRENGTH: 0.01%. LAST CONTACT: CYCLE 999,998.\nMessage fragment: '...can't hold the perimeter... they're adapting...'\nThe relay still searches for a signal that will never come.",
-
   "lore.f3.echo.title": "WIND THROUGH EMPTY HALLS",
   "lore.f3.echo.text": "No voice this time. Just wind. Howling through corridors\nthat once rang with orders and alarms.\nIt sounds like the factory is breathing.",
-
   "lore.f5.echo.title": "NATURE'S CLAIM",
-  "lore.f5.echo.text": "A recording, barely audible beneath static:\n'...the roots... they're in the circuitry now...\nWe can't tell where the machine ends and the forest begins...'"
+  "lore.f5.echo.text": "A recording, barely audible beneath static:\n'...the roots... they're in the circuitry now...\nWe can't tell where the machine ends and the forest begins...'",
+  "act.2.name": "The Drowned Wastes",
+  "act.3.name": "The Last City",
+  "act.4.name": "The Silent Canopy",
+  "act.5.name": "Orbital Descent",
+  "region.wastes.name": "The Drowned Wastes",
+  "region.city.name": "The Last City",
+  "region.orbital.name": "Orbital Station",
+  "area.drowned_wastes_1.name": "Sunken Mech Graveyard",
+  "area.last_city_1.name": "Burning Districts",
+  "area.orbital_station_1.name": "Derelict Station",
+  "section.wastes.1.name": "The Shallows",
+  "section.wastes.2.name": "Fog Channels",
+  "section.wastes.3.name": "Drowned Colossus",
+  "section.wastes.4.name": "Rust Marsh",
+  "section.wastes.5.name": "Respite",
+  "section.wastes.6.name": "Leviathan's Rest",
+  "section.city.1.name": "Outer Wall",
+  "section.city.2.name": "Barricade Street",
+  "section.city.3.name": "Sniper Alley",
+  "section.city.4.name": "Command Bunker",
+  "section.city.5.name": "Safe House",
+  "section.city.6.name": "Courthouse",
+  "section.orbital.1.name": "Airlock",
+  "section.orbital.2.name": "Gravity Shaft",
+  "section.orbital.3.name": "Server Core",
+  "section.orbital.4.name": "Evolution Chamber",
+  "section.orbital.5.name": "Observation Deck",
+  "section.orbital.6.name": "The Architect"
 }

@@ -21,7 +21,26 @@
  */
 import type { ActData, AreaData } from '../types';
 
+/**
+ * MECHA: LAST PROTOCOL — World Structure v3.0
+ *
+ * 5 Acts × 3 Areas = 15 total areas (per WORLD_BIBLE)
+ *
+ * Act I   — The Fallen Foundry   (کارخانه سقوط‌کرده)     → factory
+ * Act II  — The Drowned Wastes   (باتلاق غرق‌شده)        → wastes (placeholder)
+ * Act III — The Last City        (آخرین شهر)             → city (placeholder)
+ * Act IV  — The Silent Canopy    (سایه‌آرام)              → forest
+ * Act V   — Orbital Descent      (نزول مداری)             → orbital (placeholder)
+ *
+ * Architecture: data-driven, easily reorderable.
+ * Moving an area to a different Act = moving one block in this file.
+ * Adding a new Act = adding one ActData entry.
+ */
 export const ACTS: ActData[] = [
+  // ═══════════════════════════════════════════════════════════════
+  // Act I — THE FALLEN FOUNDRY (کارخانه سقوط‌کرده)
+  // Theme: سقوط | Player Learns: دنیا مرده است | Boss: Guardian AX-09
+  // ═══════════════════════════════════════════════════════════════
   {
     id: 1,
     nameKey: 'act.1.name',
@@ -262,10 +281,113 @@ export const ACTS: ActData[] = [
           },
         ],
       },
-      // ═══════════════════════════════════════════════════════════════
-      // TOXIC FOREST — v2.0: Full content (was empty desert)
-      // Theme: Nature reclaiming the ruins. Silence. Green.
-      // ═══════════════════════════════════════════════════════════════
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // Act II — THE DROWNED WASTES (باتلاق غرق‌شده)
+  // Theme: فراموشی | Player Learns: حتی قهرمانان هم فراموش می‌شوند | Boss: Leviathan Hulk
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: 2,
+    nameKey: 'act.2.name',
+    regions: [
+      {
+        id: 'wastes',
+        nameKey: 'region.wastes.name',
+        areas: [
+          {
+            id: 'drowned_wastes_1',
+            nameKey: 'area.drowned_wastes_1.name',
+            regionId: 'wastes',
+            totalWidth: 7680,
+            sectionWidth: 1280,
+            bgColor: 0x0a0e08,
+            checkpointSections: [2, 5],
+            unlockedByDefault: false,
+            sections: [
+              { id: 1, nameKey: 'section.wastes.1.name', x: 0, enemies: [], platforms: [
+                { x: 400, y: 560, w: 200, h: 20 },
+              ]},
+              { id: 2, nameKey: 'section.wastes.2.name', x: 1280, enemies: [], platforms: [
+                { x: 1480, y: 520, w: 100, h: 20 },
+              ]},
+              { id: 3, nameKey: 'section.wastes.3.name', x: 2560, enemies: [], platforms: [
+                { x: 2660, y: 580, w: 200, h: 20 },
+              ]},
+              { id: 4, nameKey: 'section.wastes.4.name', x: 3840, enemies: [], platforms: [
+                { x: 4040, y: 480, w: 80, h: 20 },
+              ]},
+              { id: 5, nameKey: 'section.wastes.5.name', x: 5120, enemies: [], platforms: [
+                { x: 5360, y: 560, w: 140, h: 20 },
+              ]},
+              { id: 6, nameKey: 'section.wastes.6.name', x: 6400, enemies: [], platforms: [
+                { x: 6480, y: 440, w: 40, h: 240 },
+                { x: 7600, y: 440, w: 40, h: 240 },
+              ]},
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // Act III — THE LAST CITY (آخرین شهر)
+  // Theme: مقاومت | Player Learns: هنوز کسانی می‌جنگند | Boss: Iron Magistrate
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: 3,
+    nameKey: 'act.3.name',
+    regions: [
+      {
+        id: 'city',
+        nameKey: 'region.city.name',
+        areas: [
+          {
+            id: 'last_city_1',
+            nameKey: 'area.last_city_1.name',
+            regionId: 'city',
+            totalWidth: 7680,
+            sectionWidth: 1280,
+            bgColor: 0x0d0505,
+            checkpointSections: [2, 5],
+            unlockedByDefault: false,
+            sections: [
+              { id: 1, nameKey: 'section.city.1.name', x: 0, enemies: [], platforms: [
+                { x: 400, y: 560, w: 200, h: 20 },
+              ]},
+              { id: 2, nameKey: 'section.city.2.name', x: 1280, enemies: [], platforms: [
+                { x: 1480, y: 520, w: 100, h: 20 },
+              ]},
+              { id: 3, nameKey: 'section.city.3.name', x: 2560, enemies: [], platforms: [
+                { x: 2660, y: 580, w: 200, h: 20 },
+              ]},
+              { id: 4, nameKey: 'section.city.4.name', x: 3840, enemies: [], platforms: [
+                { x: 4040, y: 480, w: 80, h: 20 },
+              ]},
+              { id: 5, nameKey: 'section.city.5.name', x: 5120, enemies: [], platforms: [
+                { x: 5360, y: 560, w: 140, h: 20 },
+              ]},
+              { id: 6, nameKey: 'section.city.6.name', x: 6400, enemies: [], platforms: [
+                { x: 6480, y: 440, w: 40, h: 240 },
+                { x: 7600, y: 440, w: 40, h: 240 },
+              ]},
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // Act IV — THE SILENT CANOPY (سایه‌آرام)
+  // Theme: همزیستی | Player Learns: طبیعت و ماشین می‌توانند تغییر کنند | Boss: The Gardener
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: 4,
+    nameKey: 'act.4.name',
+    regions: [
       {
         id: 'forest',
         nameKey: 'region.forest.name',
@@ -278,7 +400,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1280,
             bgColor: 0x0a1208,
             checkpointSections: [2, 5],
-            unlockedByDefault: true,  // ── UNLOCKED: Stage 2 (Forest) now accessible ──
+            unlockedByDefault: true,
             sections: [
               // S1: Forest entrance — quiet, overgrown
               { id: 1, nameKey: 'section.forest.1.name', x: 0, enemies: ['flying_ai'], platforms: [
@@ -340,6 +462,54 @@ export const ACTS: ActData[] = [
                 { x: 7280, y: 520, w: 80, h: 20 },
               ], landmarks: [
                 { id: 'lm_f6_door', type: 'tower', x: 6440, y: 300, w: 60, h: 400, color: 0x2a3818 },
+              ]},
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // Act V — ORBITAL DESCENT (نزول مداری)
+  // Theme: حقیقت | Player Learns: انسان‌ها هرگز نابود نشدند | Boss: The Architect
+  // ═══════════════════════════════════════════════════════════════
+  {
+    id: 5,
+    nameKey: 'act.5.name',
+    regions: [
+      {
+        id: 'orbital',
+        nameKey: 'region.orbital.name',
+        areas: [
+          {
+            id: 'orbital_station_1',
+            nameKey: 'area.orbital_station_1.name',
+            regionId: 'orbital',
+            totalWidth: 7680,
+            sectionWidth: 1280,
+            bgColor: 0x050510,
+            checkpointSections: [2, 5],
+            unlockedByDefault: false,
+            sections: [
+              { id: 1, nameKey: 'section.orbital.1.name', x: 0, enemies: [], platforms: [
+                { x: 400, y: 560, w: 200, h: 20 },
+              ]},
+              { id: 2, nameKey: 'section.orbital.2.name', x: 1280, enemies: [], platforms: [
+                { x: 1480, y: 520, w: 100, h: 20 },
+              ]},
+              { id: 3, nameKey: 'section.orbital.3.name', x: 2560, enemies: [], platforms: [
+                { x: 2660, y: 580, w: 200, h: 20 },
+              ]},
+              { id: 4, nameKey: 'section.orbital.4.name', x: 3840, enemies: [], platforms: [
+                { x: 4040, y: 480, w: 80, h: 20 },
+              ]},
+              { id: 5, nameKey: 'section.orbital.5.name', x: 5120, enemies: [], platforms: [
+                { x: 5360, y: 560, w: 140, h: 20 },
+              ]},
+              { id: 6, nameKey: 'section.orbital.6.name', x: 6400, enemies: [], platforms: [
+                { x: 6480, y: 440, w: 40, h: 240 },
+                { x: 7600, y: 440, w: 40, h: 240 },
               ]},
             ],
           },

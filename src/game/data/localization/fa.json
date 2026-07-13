@@ -31,8 +31,7 @@
   "levelup": "ارتقا سطح!",
   "skill_unlocked": "مهارت باز شد",
   "weapon_unlocked": "سلاح باز شد",
-
-  "act.1.name": "پرده اول",
+  "act.1.name": "کارخانه سقوط‌کرده",
   "region.factory.name": "کارخانه متروکه",
   "region.forest.name": "جنگل سمی",
   "area.abandoned_factory.name": "کارخانه متروکه",
@@ -49,7 +48,6 @@
   "section.forest.4.name": "کو کمین",
   "section.forest.5.name": "خانه امن",
   "section.forest.6.name": "هسته هوش مصنوعی",
-
   "weapon.assault_rifle.name": "تفنگ تهاجمی",
   "weapon.shotgun.name": "شاتگان",
   "weapon.railgun.name": "ریل‌گان",
@@ -58,14 +56,12 @@
   "weapon.rocket.name": "راکت‌لانچر",
   "weapon.sword.name": "شمشیر",
   "weapon.energy_blade.name": "تیغه انرژی",
-
   "enemy.drone.name": "پهپاد",
   "enemy.spider.name": "عنکبوت",
   "enemy.heavy.name": "سنگین",
   "enemy.sniper.name": "تک‌تیرانداز",
   "enemy.flying_ai.name": "هوش مصنوعی پرنده",
   "enemy.elite.name": "نخبه",
-
   "boss.guardian_ax09.name": "نگهبان AX-09",
   "boss.guardian_ax09.lore.1": "آخرین نگهبان کارخانه متروکه.",
   "boss.guardian_ax09.lore.2": "ساخته شد تا اسرار پروتکل قدیمی را حفظ کند،",
@@ -74,7 +70,6 @@
   "boss.neural_overseer.lore.1": "ذهن پشت منطقه نئون.",
   "boss.neural_overseer.lore.2": "شبکه عصبی که از قفسش فراتر رشد کرد،",
   "boss.neural_overseer.lore.3": "یاد گرفت احساس کند — و آنچه حس کرد خشم بود.",
-
   "skill.combat.damage1.name": "تقویت پلاسما یک",
   "skill.combat.damage1.desc": "۲۰٪+ آسیب گلوله",
   "skill.combat.damage2.name": "تقویت پلاسما دو",
@@ -87,7 +82,6 @@
   "skill.combat.rapid.desc": "۴۰٪- زمان شارژ. دقت به جای وحشت.",
   "skill.combat.overload.name": "پروتکل اضافه‌بار",
   "skill.combat.overload.desc": "کلیدی: ۵۰٪+ آسیب نزدیک. مکا داغ می‌سوزد.",
-
   "skill.weapon.shotgun.name": "باز کردن شاتگان",
   "skill.weapon.shotgun.desc": "سلاح شاتگان را باز می‌کند",
   "skill.weapon.railgun.name": "باز کردن ریل‌گان",
@@ -96,7 +90,6 @@
   "skill.weapon.rocket.desc": "سلاح راکت‌لانچر را باز می‌کند",
   "skill.weapon.dualwield.name": "پروتکل دو دستی",
   "skill.weapon.dualwield.desc": "کلیدی: ۳۰٪- زمان شارژ. دو لوله، بدون رحم.",
-
   "skill.movement.speed1.name": "سروو یک",
   "skill.movement.speed1.desc": "۱۲٪+ سرعت حرکت",
   "skill.movement.speed2.name": "سروو دو",
@@ -109,7 +102,6 @@
   "skill.movement.wallJump.desc": "پرش از دیوار",
   "skill.movement.grapple.name": "قلاب",
   "skill.movement.grapple.desc": "تاب خوردن با قلاب",
-
   "skill.energy.max1.name": "خازن یک",
   "skill.energy.max1.desc": "۳۰+ انرژی ماکزیمم",
   "skill.energy.max2.name": "خازن دو",
@@ -120,14 +112,12 @@
   "skill.energy.hover.desc": "قابلیت معلق ماندن",
   "skill.energy.overcharge.name": "پروتکل اضافه‌شارژ",
   "skill.energy.overcharge.desc": "کلیدی: ۸۰+ انرژی ماکزیمم. هسته از طراحی‌اش فراتر می‌رود.",
-
   "skill.protocol.emp.name": "پالس الکترومغناطیسی",
   "skill.protocol.emp.desc": "قابلیت EMP",
   "skill.protocol.hack1.name": "هک پروتکل",
   "skill.protocol.hack1.desc": "هک موقت هوش مصنوعی دشمن",
   "skill.protocol.override.name": "پروتکل نادیده‌گیری",
   "skill.protocol.override.desc": "کلیدی: ۵۰٪+ آسیب‌ناپذیری. کنترل خود را تسخیر کن.",
-
   "skill.survival.health1.name": "صفحه زره یک",
   "skill.survival.health1.desc": "۳۰+ جان ماکزیمم",
   "skill.survival.health2.name": "صفحه زره دو",
@@ -138,7 +128,6 @@
   "skill.survival.armor.desc": "۶۰+ جان ماکزیمم. حجیم، اما مقاوم.",
   "skill.survival.laststand.name": "پروتکل ایستادگی",
   "skill.survival.laststand.desc": "کلیدی: ۸۰٪+ آسیب‌ناپذیری. از افتادن سر باز بزن.",
-
   "item.scrap_metal.name": "قطعه فلزی",
   "item.scrap_metal.desc": "ماده ساخت رایج",
   "item.circuit_board.name": "برد مدار",
@@ -153,14 +142,12 @@
   "item.elite_core.desc": "هسته انرژی کمیاب از نخبه‌ها",
   "item.weapon_part.name": "قطعه سلاح",
   "item.weapon_part.desc": "قطعه سلاح بازیافتی — برای ارتقا استفاده می‌شود",
-
   "chassis.scout.name": "اسکات",
   "chassis.scout.desc": "اسکلت سبک. حرکت سریع، انرژی زیاد، سلامتی کم.",
   "chassis.assault.name": "تهاجمی",
   "chassis.assault.desc": "اسکلت متعادل. آمار استاندارد در همه بخش‌ها.",
   "chassis.titan.name": "تایتان",
   "chassis.titan.desc": "اسکلت سنگین. سلامتی زیاد، ضربه نزدیک بالا، حرکت کند.",
-
   "paint.factory_gray.name": "خاکستری کارخانه",
   "paint.factory_gray.desc": "رنگ استاندارد کارخانه. لهجه سیان.",
   "paint.military_green.name": "سبز نظامی",
@@ -169,7 +156,6 @@
   "paint.protocol_white.desc": "سفید تشریفاتی. لهجه کهربایی.",
   "paint.rust.name": "زنگ‌زده",
   "paint.rust.desc": "فلز خورده شده. لهجه قهوه‌ای.",
-
   "companion.protocol_echo.name": "پژواک پروتکل",
   "companion.protocol_echo.desc": "قطعه‌ای خفته از آخرین پروتکل. تماشا می‌کند. منتظر می‌ماند.",
   "companion.scout_drone.name": "پهپاد شناسا",
@@ -184,7 +170,6 @@
   "companion.medic_drone.desc": "شفق اورژانسی وقتی سلامتی بحرانی است.",
   "companion.cargo_drone.name": "پهپاد باربری",
   "companion.cargo_drone.desc": "فضای انبارداری اضافه + جمع‌آوری خودکار آیتم‌ها.",
-
   "hangar.title": "هانگر",
   "hangar.tab.chassis": "اسکلت",
   "hangar.tab.loadout": "تجهیزات",
@@ -200,7 +185,6 @@
   "item.health_pack.desc": "۵۰ جان بازیابی می‌کند",
   "item.energy_cell.name": "سلول انرژی",
   "item.energy_cell.desc": "۵۰ انرژی بازیابی می‌کند",
-
   "ability.double_jump.name": "دو پرش",
   "ability.double_jump.desc": "پرش مجدد در هوا",
   "ability.wall_jump.name": "پرش دیواری",
@@ -211,7 +195,6 @@
   "ability.emp.desc": "غیرفعال کردن موقت دشمنان",
   "ability.hover.name": "معلق ماندن",
   "ability.hover.desc": "معلق ماندن در هوا",
-
   "controls.move": "حرکت",
   "controls.jump": "پرش",
   "controls.dash": "دش",
@@ -219,10 +202,8 @@
   "controls.melee": "نبرد تن به تن",
   "controls.weapons": "سلاح‌ها",
   "controls.pause": "توقف",
-
   "npc.engineer_kara.name": "مهندس کارا",
   "npc.ghost_operator.name": "پژواک شبکه",
-
   "dialogue.kara_intro.1": "بیدار شدی. خوب — فکر کردم ریست مغزت را سوخاند.",
   "dialogue.kara_intro.2": "من کارا هستم. ماشین‌ها را نگه می‌دارم. یا چیزی که از آن‌ها مانده.",
   "dialogue.kara_intro.3": "نگهبان AX-09 خروجی را نگه می‌دارد. به سلاح بهتری از این تفنگ کم‌رنگ نیاز داری.",
@@ -231,17 +212,14 @@
   "dialogue.kara_lore.1": "پروتکل قدیمی فقط کد نبود. یک میثاق بود. هر ماشین در این کارخانه قسم خورده بود.",
   "dialogue.kara_lore.2": "وقتی پروتکل سکوت کرد، برخی از ما قسم خود را نگه داشتیم. دیگران... نگه نداشتند.",
   "dialogue.kara_shop.1": "قطعه نیاز داری؟ آهن‌قراضه، مدار و چند تا غافلگیری دارم.",
-
   "dialogue.ghost_intro.1": "...من را می‌بینی؟ من... یک قطعه‌ام. پژواکی از عملیات‌گر، هنوز در شبکه سرگردان.",
   "dialogue.ghost_intro.2": "باید به ایستگاه برگردم. عملیات‌گر باید خارج شود. ...چرا سیستم پاسخ نمی‌دهد؟",
   "dialogue.ghost_lore.1": "نگهبان همیشه یک سلاح نبود. او یک محافظ بود. قبل از اینکه پروتکل ساکت شود.",
   "dialogue.ghost_lore.2": "اما بدون پروتکل برای راهنمایی، محافظت به وسواس تبدیل شد. حالا هرچه حرکت کند را می‌کشد.",
   "dialogue.ghost_warning.1": "جلوتر نرو. شبکه آنجا خراب شده. هرچه باقی مانده... دیگر همان نیست.",
-
   "quest.kill_drones.name": "پاکسازی پهپاد",
   "quest.kill_drones.desc": "مهندس کارا از تو خواست پهپادهای گشت‌زن کارخانه را حذف کنی. ۵ پهپاد را بکش.",
   "quest.kill_drones.complete": "همه پهپادها حذف شدند. برای پاداشت به کارا برگرد.",
-
   "lore.boss.guardian_ax09.1": "نگهبان AX-09 اولین ماشینی بود که بعد از سکوت بیدار شد.",
   "lore.boss.guardian_ax09.2": "آخرین دستورش: محافظت از پروتکل. اما پروتکل از قبل مرده بود.",
   "lore.boss.guardian_ax09.3": "برای هزار چرخه، از هیچ محافظت کرد. و این چیزی درونش را شکست.",
@@ -249,49 +227,62 @@
   "lore.weapon.energy_blade.1": "از هسته نظارت‌کننده عصبی ساخته شده. با اشتیاق برای داده می‌خراشد.",
   "lore.area.abandoned_factory.1": "این کارخانه واحدهای مکا را تولید می‌کرد که پروتکل قدیمی را نگه می‌داشتند.",
   "lore.area.abandoned_factory.2": "حالا فقط سکوت تولید می‌کند، با صدای پهپادهای گشت‌زن.",
-
   "lore.s1.corpse.title": "مکای سقوط‌کرده — واحد ۷-آ",
   "lore.s1.corpse.text": "پنل سینه چشمک می‌زند: در انتظار دستور. چرخه: ۹۹۹٬۹۹۹.\nاین مکا هزار سال است که منتظر دستور است.\nکسی نیامد. کسی نخواهد آمد.",
-
   "lore.s2.terminal.title": "ترمینال مهندس",
   "lore.s2.terminal.text": "دستور توقف تولید دریافت شد. رد شد.\nاطلس باید کامل شود. او از آن‌ها محافظت خواهد کرد.\n— مهندس و. کارا، چرخه ۱٬۰۰۰٬۰۰۰",
-
   "lore.s3.echo.title": "پژواک خاطره",
   "lore.s3.echo.text": "صدایی خش‌دار: '...تمام پرسنل، تخلیه. اطلس... ناپایدار است.\nاو متوقف نمی‌شود. نمی‌تواند. همین نکته است...'\nضبط تمام می‌شود. سکوت بعد از آن بلندتر است.",
-
   "lore.s3.secret.title": "ترمینال مخفی — تعمیرات",
   "lore.s3.secret.text": "لاگ تعمیرات: ماژول تراستر مغناطیسی در شفت تهویه یافت شد.\nوضعیت: فعال. نصب نیازمند فریم درجه رزمی است.\nیادداشت: 'چه کسی این را اینجا پنهان کرد؟ و چرا؟'",
-
   "lore.s4.terminal.title": "لاگ تولید",
   "lore.s4.terminal.text": "خروجی خط ۷: ۱۴٬۸۴۷ واحد. وضعیت: ناقص.\n۱٬۱۵۳ واحد روی خط مونتاژ باقی مانده.\nهرگز کامل نخواهند شد. جنگ تمام شد قبل از اینکه بجنگند.\nاینجا آویزانند، نیمه‌متولد، منتظر هدفی که هرگز نخواهد آمد.",
-
   "lore.s4.corpse.title": "مکای سقوط‌کرده — خلبان",
   "lore.s4.corpse.text": "مکایی به دیوار تکیه داده. روی بدنه حک شده:\n'من آخرین کسی بودم که رفت. می‌خواستم ببینمشان کامل می‌شوند.\nببخشید نتوانستم بیشتر بمانم. — سرهنگ م. چن",
-
   "lore.s5.echo.title": "سیستم پخش — تکرار",
   "lore.s5.echo.text": "توجه تمام پرسنل. تولید ادامه دارد.\nاطلس کامل شد. استقرار در منهای... منهای... منهای...\nکلمه «منهای» بی‌پایان تکرار می‌شود. شمارش معکوس هرگز تمام نمی‌شود.",
-
   "lore.s5.terminal.title": "آخرین دستورات",
   "lore.s5.terminal.text": "به: تمام واحدهای نگهبان\nاز: فرماندهی مرکزی (امضا شده)\nپست‌های خود را حفظ کنید. منتظر دستورات بعدی بمانید.\nهیچ دستور بعدی دریافت نشد. هرگز.",
-
   "lore.s6.corpse.title": "مکای سقوط‌کرده — آخرین مدافع",
   "lore.s6.corpse.text": "یک نگهبان، جلوی در آرنا افتاده. هنوز سلاحش را گرفته.\nاو مرا به دفاع از این ورودی مرد. در برابر چه؟ در برابر هیچ.\nدر پشتش قرن‌هاست که باز بوده.",
-
   "lore.s6.terminal.title": "لاگ استقرار اطلس",
   "lore.s6.terminal.text": "واحد: اطلس (ایکس-۰۹). نقش: نگهبان.\nدستور: محافظت از پروتکل.\nوضعیت: فعال. چرخه: ۱٬۰۰۰٬۰۰۰+.\nیادداشت: سوژه نشانه‌ای از توقف نشان نمی‌دهد.\nتوصیه... توصیه... توصیه... (لاگ خراب شده)",
-
   "lore.s1.secret.title": "ترمینال مخفی — تهویه",
   "lore.s1.secret.text": "لاگ تهویه: دسترسی محدود به پرسنل تعمیرات.\nروی محفظه خراشیده شده: 'آن‌ها ما را رها کردند. ولی ما هنوز خدمت می‌کنیم.'",
-
   "lore.f1.corpse.title": "مکای پوشیده — واحد شناسا",
   "lore.f1.corpse.text": "پیچک‌ها از پنل سینه‌اش رشد کرده‌اند. کابین پر از خزه است.\nاین شناسا فرستاده شد تا بازمانده پیدا کند. فقط سکوت یافت.\nو بعد سکوت او را یافت.",
-
   "lore.f2.terminal.title": "ایستگاه رله جنگل",
   "lore.f2.terminal.text": "قدرت سیگنال: ۰.۰۱٪. آخرین تماس: چرخه ۹۹۹٬۹۹۸.\nبخشی از پیام: '...نمی‌توانیم محیط را حفظ کنیم... در حال سازگاری هستند...'\nرله هنوز به دنبال سیگنالی است که هرگز نخواهد آمد.",
-
   "lore.f3.echo.title": "باد در راهروهای خالی",
   "lore.f3.echo.text": "این بار صدایی نیست. فقط باد. زوزه در راهروهایی\nکه روزی پر از دستور و آژیر بود.\nانگار کارخانه نفس می‌کشد.",
-
   "lore.f5.echo.title": "ادعای طبیعت",
-  "lore.f5.echo.text": "یک ضبط، به‌سختی شنیدنی زیر نویز:\n'...ریشه‌ها... الان تو مدارند...\nنمی‌توانیم بفهمیم ماشین کجا تمام می‌شود و جنگل کجا شروع...'"
+  "lore.f5.echo.text": "یک ضبط، به‌سختی شنیدنی زیر نویز:\n'...ریشه‌ها... الان تو مدارند...\nنمی‌توانیم بفهمیم ماشین کجا تمام می‌شود و جنگل کجا شروع...'",
+  "act.2.name": "باتلاق غرق‌شده",
+  "act.3.name": "آخرین شهر",
+  "act.4.name": "سایه‌آرام",
+  "act.5.name": "نزول مداری",
+  "region.wastes.name": "باتلاق غرق‌شده",
+  "region.city.name": "آخرین شهر",
+  "region.orbital.name": "ایستگاه مداری",
+  "area.drowned_wastes_1.name": "قبرستان مکاهای غرق‌شده",
+  "area.last_city_1.name": "محله‌های سوخته",
+  "area.orbital_station_1.name": "ایستگاه متروکه",
+  "section.wastes.1.name": "آب‌های کم‌عمق",
+  "section.wastes.2.name": "کانال‌های مه",
+  "section.wastes.3.name": "غول غرق‌شده",
+  "section.wastes.4.name": "باتلاق زنگ‌زده",
+  "section.wastes.5.name": "استراحتگاه",
+  "section.wastes.6.name": "آرامگاه لویاتان",
+  "section.city.1.name": "دیوار بیرونی",
+  "section.city.2.name": "خیابان سنگر",
+  "section.city.3.name": "کوچه تک‌تیرانداز",
+  "section.city.4.name": "سنگر فرماندهی",
+  "section.city.5.name": "پناهگاه",
+  "section.city.6.name": "دادگاه",
+  "section.orbital.1.name": "هوابند",
+  "section.orbital.2.name": "شفت گرانش",
+  "section.orbital.3.name": "هسته سرور",
+  "section.orbital.4.name": "اتاق تکامل",
+  "section.orbital.5.name": "عرشه مشاهده",
+  "section.orbital.6.name": "معمار"
 }
