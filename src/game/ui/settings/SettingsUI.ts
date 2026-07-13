@@ -291,6 +291,7 @@ export class SettingsUI extends NavigableOverlay {
       onToggle(state);
     });
     this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
+    this.container.add(objects);
   }
 
   /** Selector (dropdown-like, cycles through options on click). */
@@ -322,6 +323,7 @@ export class SettingsUI extends NavigableOverlay {
       onSelect(idx);
     });
     this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
+    this.container.add(objects);
   }
 
   private makeLanguageToggle(x: number, y: number): void {
