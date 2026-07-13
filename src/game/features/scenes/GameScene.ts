@@ -54,6 +54,7 @@ import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } fr
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
+import { ForestEnvironmentSystem } from '../../world/atmosphere/ForestEnvironmentSystem';
 import { MechaSpriteFactory, type MechVisualHandle } from '../../entities/sprites/MechaSpriteFactory';
 import { CompanionEntity } from '../../entities/companion/CompanionEntity';
 import { GamepadManager } from '../../shared/GamepadManager';
@@ -120,6 +121,8 @@ export class GameScene extends Phaser.Scene {
   private _lastLockedToastAt = 0;
   // Companion entity (Protocol Echo — follows player)
   private companion: CompanionEntity | null = null;
+  // Forest environment (grass/trees/vines/water/rain — forest region only)
+  private forestEnv: ForestEnvironmentSystem | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -566,7 +569,8 @@ export class GameScene extends Phaser.Scene {
     const totalW = areas.length * cardW + (areas.length - 1) * cardGap;
     const startX = (w - totalW) / 2 + cardW / 2;
     const cardY = h * 0.40;
-    const previewH = 130;  // taller preview for better image visibility
+    const previewH = 120;  // fixed height
+    const previewW = cardW - 24;  // fixed width (was cardW - 16)
 
     areas.forEach((area, i) => {
       const x = startX + i * (cardW + cardGap);
@@ -581,7 +585,6 @@ export class GameScene extends Phaser.Scene {
       c.add(cardBg);
 
       // ── Preview image area (top portion of card) ──
-      const previewW = cardW - 16;
       // Background frame (dark)
       const previewFrame = this.add.rectangle(x, previewY, previewW, previewH, 0x05080c, 1);
       previewFrame.setDepth(2.5);
@@ -765,6 +768,12 @@ export class GameScene extends Phaser.Scene {
     // ── Atmosphere system (Phase 2: fog, god rays, particles) ──
     this.atmosphere = new AtmosphereSystem(this, theme as 'factory' | 'forest', area.totalWidth);
     this.atmosphere.build();
+
+    // ── Forest environment system (grass, trees, vines, water, rain) ──
+    if (theme === 'forest') {
+      this.forestEnv = new ForestEnvironmentSystem(this, area.totalWidth);
+      this.forestEnv.build();
+    }
 
     // Build world from data
     this.areaLoader = new AreaLoader(this, this.physicsSys);
@@ -1368,6 +1377,8 @@ export class GameScene extends Phaser.Scene {
     this.checkShortcutActivations();
     // ── Companion update — follows player ──
     this.companion?.update(deltaMs, this.player.position);
+    // ── Forest environment update (grass, trees, vines, water, rain) ──
+    this.forestEnv?.update(deltaMs, this.player.sprite.x, this.player.sprite.y);
     // Ambient dust motes — atmospheric particles around player (per particles skill)
     if (this.time.now % 200 < 16) {
       this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);
@@ -1442,6 +1453,9 @@ export class GameScene extends Phaser.Scene {
     // Destroy companion
     this.companion?.destroy();
     this.companion = null;
+    // Destroy forest environment
+    this.forestEnv?.destroy();
+    this.forestEnv = null;
     this.tweens.killAll();
     this.sequenceTimers.forEach(t => t.remove());
     this.sequenceTimers = [];
