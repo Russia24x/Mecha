@@ -278,7 +278,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1280,
             bgColor: 0x0a1208,
             checkpointSections: [2, 5],
-            unlockedByDefault: false,
+            unlockedByDefault: true,  // ── UNLOCKED: Stage 2 (Forest) now accessible ──
             sections: [
               // S1: Forest entrance — quiet, overgrown
               { id: 1, nameKey: 'section.forest.1.name', x: 0, enemies: ['flying_ai'], platforms: [

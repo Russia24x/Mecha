@@ -587,9 +587,9 @@ export class GameScene extends Phaser.Scene {
       previewFrame.setDepth(2.5);
       c.add(previewFrame);
 
-      // Image preview with proper mask
+      // Image preview with proper clipping
       if (this.textures.exists('factory_bg_2')) {
-        // ── FIX: Use a container + bitmap mask for reliable clipping ──
+        // ── FIX: Container at frame position + mask in WORLD coords at same position ──
         const imgContainer = this.add.container(x, previewY);
         imgContainer.setDepth(2.6);
         const previewImg = this.add.image(0, 0, 'factory_bg_2');
@@ -599,14 +599,14 @@ export class GameScene extends Phaser.Scene {
         // Cover fit: scale image so it covers the frame
         let scale: number;
         if (imgAR > frameAR) {
-          scale = previewH / tex.height;  // fit height, overflow width
+          scale = previewH / tex.height;
         } else {
-          scale = previewW / tex.width;   // fit width, overflow height
+          scale = previewW / tex.width;
         }
         previewImg.setScale(scale);
         imgContainer.add(previewImg);
-        // Clip with a graphics mask drawn in container-local coordinates
-        const maskGfx = this.make.graphics({ x: 0, y: 0 }, false);
+        // ── FIX: Geometry mask must be drawn in WORLD coordinates matching the container position ──
+        const maskGfx = this.make.graphics({ x: x, y: previewY }, false);
         maskGfx.fillStyle(0xffffff, 1);
         maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
         const mask = maskGfx.createGeometryMask();

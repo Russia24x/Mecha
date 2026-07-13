@@ -209,54 +209,87 @@ export class MechaSpriteFactory {
     }
     parts.push(torso);
 
-    // ── Core reactor (glowing amber, pulsing) ──
-    const coreGlow = scene.add.circle(0, -4, 14, 0xffc040, 0.15);
+    // ── Core reactor (glowing, pulsing) — size varies by chassis ──
+    const coreSize = ct === 'titan' ? 6 : ct === 'scout' ? 3 : 4;
+    const coreGlowSize = ct === 'titan' ? 18 : ct === 'scout' ? 10 : 14;
+    const coreGlow = scene.add.circle(0, -4, coreGlowSize, 0xffc040, 0.15);
     coreGlow.setBlendMode(Phaser.BlendModes.ADD); coreGlow.setDepth(6);
     parts.push(coreGlow);
-    const core = scene.add.circle(0, -4, 4, 0xfff0a0, 0.95);
+    const core = scene.add.circle(0, -4, coreSize, 0xfff0a0, 0.95);
     core.setBlendMode(Phaser.BlendModes.ADD); core.setDepth(7);
     parts.push(core);
-    const coreRing = scene.add.circle(0, -4, 6, 0xffc040, 0);
+    const coreRing = scene.add.circle(0, -4, coreSize + 2, 0xffc040, 0);
     coreRing.setStrokeStyle(1, 0xffc040, 0.8); coreRing.setDepth(7);
     parts.push(coreRing);
 
-    // ── Head/cockpit (with cyan visor) ──
+    // ── Head/cockpit — shape varies by chassis ──
     const head = scene.add.graphics();
     head.setDepth(8);
-    head.fillStyle(config.bodyColor, 1); head.fillRoundedRect(-7, -28, 14, 14, 3);
-    head.fillStyle(0x1a2030, 1); head.fillRoundedRect(-5, -26, 10, 4, 1);
-    head.lineStyle(1, config.accentColor, 0.7); head.strokeRoundedRect(-7, -28, 14, 14, 3);
-    head.lineStyle(1, config.accentColor, 0.6); head.beginPath();
-    head.moveTo(5, -28); head.lineTo(7, -34); head.strokePath();
-    head.fillStyle(0xffc040, 0.9); head.fillCircle(7, -34, 1.2);
+    if (ct === 'scout') {
+      // Scout: narrow, swept-back head (agile, aerodynamic)
+      head.fillStyle(config.bodyColor, 1); head.fillRoundedRect(-6, -26, 12, 12, 3);
+      head.fillStyle(0x1a2030, 1); head.fillRoundedRect(-4, -24, 8, 3, 1);
+      head.lineStyle(1, config.accentColor, 0.7); head.strokeRoundedRect(-6, -26, 12, 12, 3);
+      // Swept-back antenna
+      head.lineStyle(1, config.accentColor, 0.6); head.beginPath();
+      head.moveTo(4, -26); head.lineTo(8, -32); head.strokePath();
+      head.fillStyle(0xffc040, 0.9); head.fillCircle(8, -32, 1);
+    } else if (ct === 'titan') {
+      // Titan: wide, reinforced head with crest (heavy, imposing)
+      head.fillStyle(config.bodyColor, 1); head.fillRoundedRect(-9, -30, 18, 14, 3);
+      head.fillStyle(0x1a2030, 1); head.fillRoundedRect(-7, -28, 14, 4, 1);
+      head.lineStyle(1, config.accentColor, 0.7); head.strokeRoundedRect(-9, -30, 18, 14, 3);
+      // Crest fin on top
+      head.fillStyle(config.accentColor, 0.5); head.fillTriangle(-3, -30, 3, -30, 0, -36);
+      // Side antennas
+      head.lineStyle(1, config.accentColor, 0.5); head.beginPath();
+      head.moveTo(-9, -28); head.lineTo(-12, -34); head.strokePath();
+      head.beginPath();
+      head.moveTo(9, -28); head.lineTo(12, -34); head.strokePath();
+    } else {
+      // Assault: standard head
+      head.fillStyle(config.bodyColor, 1); head.fillRoundedRect(-7, -28, 14, 14, 3);
+      head.fillStyle(0x1a2030, 1); head.fillRoundedRect(-5, -26, 10, 4, 1);
+      head.lineStyle(1, config.accentColor, 0.7); head.strokeRoundedRect(-7, -28, 14, 14, 3);
+      head.lineStyle(1, config.accentColor, 0.6); head.beginPath();
+      head.moveTo(5, -28); head.lineTo(7, -34); head.strokePath();
+      head.fillStyle(0xffc040, 0.9); head.fillCircle(7, -34, 1.2);
+    }
     parts.push(head);
 
-    // ── Visor (cyan glow, the "eyes") ──
-    const visor = scene.add.rectangle(0, -24, 8, 2, config.accentColor, 0.95);
+    // ── Visor — width varies by chassis ──
+    const visorW = ct === 'titan' ? 12 : ct === 'scout' ? 6 : 8;
+    const visorY = ct === 'titan' ? -25 : ct === 'scout' ? -23 : -24;
+    const visor = scene.add.rectangle(0, visorY, visorW, 2, config.accentColor, 0.95);
     visor.setBlendMode(Phaser.BlendModes.ADD);
-    visor.setBlendMode(Phaser.BlendModes.ADD); visor.setDepth(9);
+    visor.setDepth(9);
     parts.push(visor);
 
-    // ── Right arm — rifle (extended from origin) ──
+    // ── Right arm — rifle (length + style varies by chassis) ──
     const gunArm = scene.add.container(0, -6);
     gunArm.setDepth(10);
     const gunGfx = scene.add.graphics();
-    gunGfx.fillStyle(0x1a2030, 1); gunGfx.fillRect(0, -3, 26, 6);
-    gunGfx.fillStyle(config.bodyColor, 1); gunGfx.fillRect(20, -4, 8, 8);
-    gunGfx.fillStyle(config.accentColor, 0.5); gunGfx.fillRect(2, -2, 18, 1);
-    gunGfx.lineStyle(1, config.accentColor, 0.6); gunGfx.strokeRect(0, -3, 26, 6);
+    const gunLen = ct === 'titan' ? 32 : ct === 'scout' ? 22 : 26;
+    const gunThick = ct === 'titan' ? 8 : ct === 'scout' ? 4 : 6;
+    gunGfx.fillStyle(0x1a2030, 1); gunGfx.fillRect(0, -gunThick / 2, gunLen, gunThick);
+    gunGfx.fillStyle(config.bodyColor, 1); gunGfx.fillRect(gunLen - 6, -gunThick / 2 - 1, 8, gunThick + 2);
+    gunGfx.fillStyle(config.accentColor, 0.5); gunGfx.fillRect(2, -gunThick / 2 + 1, gunLen - 4, 1);
+    gunGfx.lineStyle(1, config.accentColor, 0.6); gunGfx.strokeRect(0, -gunThick / 2, gunLen, gunThick);
     gunArm.add(gunGfx);
-    const muzzle = scene.add.circle(28, 0, 3, 0xfff04a, 0);
+    const muzzle = scene.add.circle(gunLen + 2, 0, 3, 0xfff04a, 0);
     muzzle.setBlendMode(Phaser.BlendModes.ADD);
     gunArm.add(muzzle);
     parts.push(gunArm);
 
-    // ── Left arm — armored (with pauldron) ──
+    // ── Left arm — armored (size varies by chassis) ──
     const leftArm = scene.add.graphics();
     leftArm.setDepth(4);
-    leftArm.fillStyle(config.bodyColor, 1); leftArm.fillRoundedRect(-22, -10, 8, 18, 2);
-    leftArm.fillStyle(config.accentColor, 0.5); leftArm.fillRect(-21, -8, 6, 1);
-    leftArm.lineStyle(1, config.accentColor, 0.4); leftArm.strokeRoundedRect(-22, -10, 8, 18, 2);
+    const armW = ct === 'titan' ? 12 : ct === 'scout' ? 6 : 8;
+    const armH = ct === 'titan' ? 22 : ct === 'scout' ? 16 : 18;
+    const armX = ct === 'titan' ? -26 : ct === 'scout' ? -20 : -22;
+    leftArm.fillStyle(config.bodyColor, 1); leftArm.fillRoundedRect(armX, -10, armW, armH, 2);
+    leftArm.fillStyle(config.accentColor, 0.5); leftArm.fillRect(armX + 1, -8, armW - 2, 1);
+    leftArm.lineStyle(1, config.accentColor, 0.4); leftArm.strokeRoundedRect(armX, -10, armW, armH, 2);
     parts.push(leftArm);
 
     container.add(parts);

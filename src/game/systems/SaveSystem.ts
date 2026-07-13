@@ -47,7 +47,7 @@ const DEFAULT_SAVE: SaveData = {
   settings: { ...DEFAULT_SETTINGS },
   questFlags: {},
   npcFlags: {},
-  unlockedAreas: ['abandoned_factory'],
+  unlockedAreas: ['abandoned_factory', 'toxic_forest'],
   discoveredAreas: [],
 };
 
@@ -85,7 +85,7 @@ export class SaveSystem {
     if (!migrated.bestBossTimes) migrated.bestBossTimes = {};
     if (!migrated.questFlags) migrated.questFlags = {};
     if (!migrated.npcFlags) migrated.npcFlags = {};
-    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['abandoned_factory'];
+    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['abandoned_factory', 'toxic_forest'];
     if (!migrated.discoveredAreas) migrated.discoveredAreas = [];
     if (!migrated.player.inventory) migrated.player.inventory = [];
     if (!migrated.player.abilities) migrated.player.abilities = [];
