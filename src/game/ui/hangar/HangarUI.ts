@@ -41,8 +41,10 @@ export class HangarUI implements OverlayUI {
   private onBackCallback: () => void;
   private visible = false;
   private ctrl: UIController;
-  // Persistent tab buttons (for highlight updates)
+  // Persistent button references (NOT in contentContainer — survive tab switches)
   private tabButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; tab: HangarTab }[] = [];
+  private exitBg!: Phaser.GameObjects.Rectangle;
+  private exitText!: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     this.scene = scene;
@@ -85,20 +87,18 @@ export class HangarUI implements OverlayUI {
       fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 3, letterSpacing: 4,
     })).setOrigin(0.5).setScrollFactor(0));
 
-    // Exit button (top right) — persistent
-    const exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
-    exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
-    exitBg.setScrollFactor(0);
-    const exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
+    // Exit button (top right) — persistent, stored as field
+    this.exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
+    this.exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    this.exitBg.setScrollFactor(0);
+    this.exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5).setScrollFactor(0);
-    this.container.add([exitBg, exitText]);
-    exitBg.setInteractive({ useHandCursor: true });
-    exitBg.on('pointerover', () => { exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-    exitBg.on('pointerout', () => { exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
-    exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
-    // Register EXIT as first nav button
-    this.ctrl.addButton(w - 100, 42, exitBg, () => { this.hide(); this.onBackCallback(); }, { text: exitText });
+    this.container.add([this.exitBg, this.exitText]);
+    this.exitBg.setInteractive({ useHandCursor: true });
+    this.exitBg.on('pointerover', () => { this.exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+    this.exitBg.on('pointerout', () => { this.exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+    this.exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
 
     // Tab buttons — persistent
     const tabY = 85;
@@ -151,42 +151,28 @@ export class HangarUI implements OverlayUI {
         tb.text.setColor(THEME.TEXT_MED);
       }
     });
-    // Sync UIController tab index
     this.ctrl.setCurrentTab(this.tabButtons.findIndex(tb => tb.tab === tab));
-    // Clear content + nav focusables (keep EXIT + tabs registered)
+    // Clear content container
     if (this.contentContainer) {
       this.contentContainer.destroy(true);
       this.contentContainer = null;
     }
-    // Clear focusables except first (EXIT) and tab buttons
-    // UIController keeps EXIT (index 0) + tabs (index 1-4)
-    // We need to clear content-specific focusables — but UIController.clearFocusables
-    // clears ALL. So we need to re-register EXIT + tabs after clearing.
-    // Better approach: don't clear, just remove content-specific ones.
-    // Simplest: clear all, re-register EXIT + tabs, then render content.
+    // Clear all focusables and re-register persistent buttons
     this.ctrl.clearFocusables();
-    // Re-register EXIT
-    // Find EXIT bg by position
-    const w = GAME.WIDTH;
-    const exitBg = this.container.list.find(c =>
-      (c as Phaser.GameObjects.Rectangle).x === w - 100 && (c as Phaser.GameObjects.Rectangle).y === 42
-    ) as Phaser.GameObjects.Rectangle;
-    const exitText = this.container.list.find(c =>
-      (c as Phaser.GameObjects.Text).y === 42 && (c as Phaser.GameObjects.Text).text.includes('خروج') || (c as Phaser.GameObjects.Text).text.includes('EXIT')
-    ) as Phaser.GameObjects.Text;
-    if (exitBg) {
-      this.ctrl.addButton(w - 100, 42, exitBg, () => { this.hide(); this.onBackCallback(); }, { text: exitText });
-    }
-    // Re-register tabs
+    // Re-register EXIT (using stored field references — no list.find hack)
+    this.ctrl.addButton(this.exitBg.x, this.exitBg.y, this.exitBg,
+      () => { this.hide(); this.onBackCallback(); }, { text: this.exitText });
+    // Re-register tab buttons
     this.tabButtons.forEach(tb => {
-      this.ctrl.addButton(tb.bg.x, tb.bg.y, tb.bg, () => { this.showTab(tb.tab); }, { text: tb.text });
+      this.ctrl.addButton(tb.bg.x, tb.bg.y, tb.bg,
+        () => { this.showTab(tb.tab); }, { text: tb.text });
     });
-    // Re-add tab switching
+    // Re-register tabs for L1/R1 switching
     this.ctrl.addTabs(this.tabButtons.map(tb => ({
       id: tb.tab, label: tb.text.text,
       onSelect: () => { this.showTab(tb.tab); },
     })));
-    // Build content
+    // Build content (registers content-specific buttons)
     this.contentContainer = this.scene.add.container(0, 0);
     this.contentContainer.scrollFactorX = 0;
     this.contentContainer.scrollFactorY = 0;

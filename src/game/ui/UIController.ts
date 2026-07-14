@@ -148,13 +148,19 @@ export class UIController {
   // ================ Cursor ================
 
   show(minDepth: number = 40): void {
-    this.cursorVisible = true;
     this.minHitDepth = minDepth;
-    this.cursorContainer.setVisible(true);
+    // Cursor starts HIDDEN — only appears when right stick is moved
+    this.cursorVisible = false;
+    this.cursorContainer.setVisible(false);
     this.cursorX = GAME.WIDTH / 2;
     this.cursorY = GAME.HEIGHT / 2;
     this.cursorContainer.setPosition(this.cursorX, this.cursorY);
     this.lastHovered = null;
+    // Focus first button
+    if (this.focusables.length > 0) {
+      this.focusIndex = 0;
+      this.updateFocusVisual();
+    }
   }
 
   hide(): void {
@@ -182,11 +188,32 @@ export class UIController {
     this.navCooldown -= 16;
     this.clickCooldown -= 16;
 
-    // ── Virtual cursor movement (right stick) ──
+    // ── Detect input mode: right stick = cursor mode, D-pad/stick left = focus mode ──
+    const rightStickActive = Math.abs(input.rightStickX) > 0.05 || Math.abs(input.rightStickY) > 0.05;
+    const dpadActive = input.heldUp || input.heldDown || input.heldLeft || input.heldRight
+      || Math.abs(input.leftStickX) > 0.3 || Math.abs(input.leftStickY) > 0.3;
+
+    // Right stick → enter cursor mode (show cursor)
+    if (rightStickActive && !this.cursorVisible) {
+      this.cursorVisible = true;
+      this.cursorContainer.setVisible(true);
+      // Clear focus highlight when entering cursor mode
+      this.clearFocusVisual();
+    }
+
+    // D-pad/stick left → exit cursor mode (hide cursor, use focus)
+    if (dpadActive && this.cursorVisible) {
+      this.cursorVisible = false;
+      this.cursorContainer.setVisible(false);
+      this.clearHover();
+      // Restore focus visual on current focused button
+      this.updateFocusVisual();
+    }
+
+    // ── Cursor mode: move + hover + click ──
     if (this.cursorVisible) {
       const speed = 7;
-      const moved = Math.abs(input.rightStickX) > 0.05 || Math.abs(input.rightStickY) > 0.05;
-      if (moved) {
+      if (rightStickActive) {
         this.cursorX = Phaser.Math.Clamp(this.cursorX + input.rightStickX * speed, 5, GAME.WIDTH - 5);
         this.cursorY = Phaser.Math.Clamp(this.cursorY + input.rightStickY * speed, 5, GAME.HEIGHT - 5);
         this.cursorContainer.setPosition(this.cursorX, this.cursorY);
@@ -201,11 +228,14 @@ export class UIController {
           this.navCooldown = 300;
         }
       }
+      // In cursor mode, don't process focus nav
+      return;
     }
 
+    // ── Focus mode: D-pad/stick + A button ──
     if (this.navCooldown > 0) return;
 
-    // ── Tab switching (L1/R1, Q/E, stick left/right) ──
+    // Tab switching (L1/R1, stick left/right)
     if (this.tabs.length > 0) {
       if (input.weaponPrevPressed || input.leftStickX < -0.3) {
         this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
@@ -223,7 +253,7 @@ export class UIController {
       }
     }
 
-    // ── Item navigation (D-pad/stick up/down) ──
+    // Item navigation (D-pad/stick up/down)
     const up = input.leftStickY < -0.3 || input.heldUp;
     const down = input.leftStickY > 0.3 || input.heldDown;
     if (up || down) {
@@ -233,24 +263,30 @@ export class UIController {
         this.updateFocusVisual();
         AudioSystem.play('uiHover');
         this.navCooldown = 120;
-        // Sync cursor to focused button
-        const f = this.focusables[this.focusIndex];
-        if (f) this.setPosition(f.x, f.y);
       }
     }
 
-    // ── Activate (A button / Enter / fire) — only if cursor not hovering ──
+    // Activate (A button / Enter / fire)
     if (input.jumpPressed || input.firePressed) {
-      // If cursor is hovering, cursor already handled the click above
-      if (!(this.cursorVisible && this.lastHovered)) {
-        const f = this.focusables[this.focusIndex];
-        if (f && !f.disabled) {
-          AudioSystem.play('uiClick');
-          f.onSelect();
-          this.navCooldown = 300;
-        }
+      const f = this.focusables[this.focusIndex];
+      if (f && !f.disabled) {
+        AudioSystem.play('uiClick');
+        f.onSelect();
+        this.navCooldown = 300;
       }
     }
+  }
+
+  /** Clear focus highlight on all buttons (when entering cursor mode). */
+  private clearFocusVisual(): void {
+    this.focusables.forEach(f => {
+      if (!f.bg || !f.bg.active) return;
+      try {
+        f.bg.setStrokeStyle(1, f.normalColor ?? 0x1a3040, 0.7);
+        f.bg.setScale(1);
+        if (f.text) f.text.setColor('#cfd6e0');
+      } catch { /* */ }
+    });
   }
 
   // ================ Internal: spatial navigation ================
