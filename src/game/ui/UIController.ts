@@ -449,11 +449,20 @@ export class UIController {
     if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
     this.keyHandler = (e: KeyboardEvent) => {
       if (this.focusables.length === 0) return;
-      // Enter/Space handled by update() via jumpPressed/firePressed — NOT here
-      // (would double-fire: keyHandler + update() both activate)
-      if (e.code === 'Enter' || e.code === 'Space') return;
+      // Enter/Space = activate focused button
+      // NOTE: Space also sets jumpPressed in InputSystem (via kbEdge.jump).
+      // To prevent double-fire (keyHandler + update()), we set navCooldown
+      // so update() skips activation for this frame.
+      if (e.code === 'Enter' || e.code === 'Space') {
+        const f = this.focusables[this.focusIndex];
+        if (f && !f.disabled) {
+          AudioSystem.play('uiClick');
+          f.onSelect();
+          this.navCooldown = 300;  // prevent update() from also activating
+        }
+        return;
+      }
       // Arrow/WASD navigation — gated by navCooldown to prevent double-step
-      // (keyHandler fires on keydown, update() fires next tick via heldUp/heldDown)
       if (this.navCooldown > 0) return;
       let moved = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') {

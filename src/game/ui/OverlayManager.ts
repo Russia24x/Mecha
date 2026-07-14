@@ -156,8 +156,6 @@ export class OverlayManager {
       this.sharedController.destroy();
     }
     this.sharedController = new UIController(scene, container);
-    this.sharedController.setupKeyboard();
-    this.sharedController.show(40);
     return this.sharedController;
   }
 

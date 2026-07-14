@@ -277,6 +277,10 @@ export class GameScene extends Phaser.Scene {
     }
     // setScrollFactor(0,0,true) AFTER all children are added by build* methods
     this.stateContainer.setScrollFactor(0, 0, true);
+    // NOW show the shared controller — buttons are registered, keyboard can be set up
+    if (next !== 'play') {
+      OverlayManager.getSharedController()?.show(40);
+    }
   }
 
   private cleanupState(): void {
