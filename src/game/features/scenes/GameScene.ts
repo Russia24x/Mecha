@@ -425,97 +425,41 @@ export class GameScene extends Phaser.Scene {
   // ================ PLAY ================
 
   private buildPlay(): void {
-    const area = WorldSystem.getCurrentArea();
-    if (!area) return;
-    AudioSystem.resume();
-    AudioSystem.startAmbient('factory');
-    this.cameras.main.setBackgroundColor(area.bgColor);
-    // Phaser 4 camera fade in
-    this.cameras.main.fadeIn(600, 5, 7, 13);
-    // Note: vignette removed per user feedback — was over-darkening the world.
-    // Atmosphere is now provided by ParallaxBackground + AtmosphereSystem only.
-    this.physicsSys.setWorldBounds(area.totalWidth, GAME.HEIGHT);
-    this.physicsSys.setGravity(0, 0.9);
-    this.projectiles = [];
-    this.enemies = [];
-    this.boss = null;
+    // Delegate construction to PlayController.build()
+    // Collision route registration stays here (handlers are in GameScene)
+    const state = PlayController.build(this, this.physicsSys, this.particles, this.camera, {
+      onToast: (msg: string) => this.hud?.toast(msg),
+      isMiniBossSpawned: () => this.miniBossSpawned,
+      setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
+      setExternalRefs: (enemies, anchors) => this.player?.setExternalRefs(enemies, anchors),
+    });
+    if (!state) return;
+    // Assign built state to GameScene fields
+    this.parallax = state.parallax;
+    this.atmosphere = state.atmosphere;
+    this.forestEnv = state.forestEnv;
+    this.areaLoader = state.areaLoader;
+    this.loadedArea = state.loadedArea;
+    this.metroidvania = state.metroidvania;
+    this.render = state.render;
+    this.combat = state.combat;
+    this.player = state.player;
+    this.companion = state.companion;
+    this.hud = state.hud;
+    this.npcInteraction = state.npcInteraction;
+    this.loreController = state.loreController;
+    this.controlHints = state.controlHints;
+    this.enemies = state.enemies;
+    this.projectiles = state.projectiles;
+    this.currentSection = state.currentSection;
+    this.stageStartTime = state.stageStartTime;
     this.bossArenaActive = false;
     this.miniBossSpawned = false;
     this.sequenceTimers = [];
-    resetEnemyIds();
-    this.stageStartTime = this.time.now;
-    // Reset target registry for fresh play session
-    this.targetRegistry.clear();
-
-    // ── Parallax background (themed per region) ──
-    const theme = (area.regionId === 'forest') ? 'forest' : 'factory';
-    this.parallax = new ParallaxBackground(this, theme as 'factory' | 'forest', area.totalWidth);
-    this.parallax.build();
-
-    // ── Atmosphere system (Phase 2: fog, god rays, particles) ──
-    this.atmosphere = new AtmosphereSystem(this, theme as 'factory' | 'forest', area.totalWidth);
-    this.atmosphere.build();
-
-    // ── Forest environment system (grass, trees, vines, water, rain) ──
-    if (theme === 'forest') {
-      this.forestEnv = new ForestEnvironmentSystem(this, area.totalWidth);
-      this.forestEnv.build();
-    }
-
-    // Build world from data
-    this.areaLoader = new AreaLoader(this, this.physicsSys);
-    this.loadedArea = this.areaLoader.load(area);
-
-    // Metroidvania controller (collectibles + shortcuts)
-    this.metroidvania = new MetroidvaniaController(this, this.particles);
-    // ── FIX Bug 4: Hide collectibles that were already collected (persisted) ──
-    this.metroidvania.hidePreCollectedItems(this.loadedArea);
-    // ── FIX Bug 1: Pre-open shortcuts that were already opened (persisted) ──
-    this.metroidvania.preOpenShortcuts(this.loadedArea);
-
-    // Render system (darkness + lights)
-    this.render = new RenderSystem(this);
-
-    // Combat system
-    this.combat = new CombatSystem(this);
-
-    // Create player
-    const cp = CheckpointSystem.getRespawnPosition(area.id);
-    const startX = cp.x;
-    const startY = cp.y;
-    this.currentSection = cp.section;
-    this.player = new PlayerEntity(this, this.physicsSys, this.particles, this.combat, startX, startY, this.projectiles);
+    // Register player in target registry
     this.targetRegistry.registerPlayer(this.player);
 
-    this.camera.follow(this.player.sprite, 0.1);
-    this.camera.setDeadzone(160, 100);
-    this.camera.setBounds(0, 0, area.totalWidth, GAME.HEIGHT);
-
-    // Note: circle light around player removed per user feedback — was making
-    // the player look like a walking lamp. Player visibility is now provided
-    // by the mech's own core reactor + visor glow.
-
-    // HUD (only in play — NOT in hub)
-    this.hud = new HUDUI(this, this.player);
-
-    // ── Spawn NPC sprites + interaction prompts (previously invisible!) ──
-    this.npcInteraction = new NpcInteractionController(this);
-    this.npcInteraction.spawnNPCs(area.id);
-
-    // ── Lore controller (manages lore panel UI — terminal/corpse/echo examination) ──
-    this.loreController = new LoreController(this);
-
-    // ── Control hints (gamepad-aware) — only visible on section 1 ──
-    this.controlHints = new ControlHintsUI(this);
-    // Only show on section 1, hide on all other sections
-    if (this.currentSection !== 1) {
-      this.controlHints.setVisible(false);
-    }
-
-    // ── Spawn companion (Protocol Echo) — follows player ──
-    this.companion = new CompanionEntity(this, startX + 30, startY - 40);
-
-    // ── Collision dispatch router (delegates to handlers below) ──
+    // ── Collision dispatch router (handlers are in GameScene) ──
     this.collision = new CollisionController(this);
     this.collision.routes = {
       onSection: (sectionId: number) => this.enterSection(sectionId),
@@ -527,69 +471,17 @@ export class GameScene extends Phaser.Scene {
     };
     this.collision.enter();
 
-    // Spawn enemies for current section
-    this.spawnEnemiesForSection(this.currentSection);
-
-    // ── Set player external refs (enemies + grapple anchor positions) for abilities ──
-    this.updatePlayerExternalRefs();
-
     // Emit section info
-    const sec = area.sections.find(s => s.id === this.currentSection);
-    if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
-  }
-
-  /** Update player's external references — enemies array + grapple anchor positions. */
-  private updatePlayerExternalRefs(): void {
-    if (!this.player || !this.loadedArea) return;
-    // Extract grapple anchor positions from loaded area containers
-    const anchorPositions: Phaser.Math.Vector2[] = [];
-    for (const anchor of this.loadedArea.grappleAnchors) {
-      if (anchor && anchor.active) {
-        anchorPositions.push(new Phaser.Math.Vector2(anchor.x, anchor.y));
-      }
-    }
-    this.player.setExternalRefs(this.enemies, anchorPositions);
-  }
-
-  // ================ METROIDVANIA: COLLECTIBLES + SHORTCUTS ================
-  // Extracted to MetroidvaniaController — see src/game/world/MetroidvaniaController.ts
-  // GameScene delegates via this.metroidvania.checkCollectiblePickups(...) etc.
-
-  // ================ NPC INTERACTION ================
-  // Extracted to NpcInteractionController — see src/game/world/NpcInteractionController.ts
-  // GameScene delegates via this.npcInteraction.spawnNPCs(...) etc.
-
-  private spawnEnemiesForSection(sectionId: number): void {
     const area = WorldSystem.getCurrentArea();
-    if (!area) return;
-    const section = area.sections.find(s => s.id === sectionId);
-    if (!section) return;
-    const enemyCount = section.enemies.length;
-    for (let i = 0; i < enemyCount; i++) {
-      const type = section.enemies[i];
-      if (type === 'boss' || type.startsWith('boss')) continue;
-      const et = type as EnemyTypeId;
-      const y = et === 'drone' || et === 'flying_ai' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
-      // Distribute enemies across the section width with spacing
-      const sectionWidth = area.sectionWidth;
-      const startX = section.x + 300;
-      const spacing = (sectionWidth - 600) / Math.max(enemyCount, 1);
-      const x = startX + i * spacing + (Math.random() - 0.5) * 80;
-      const e = new EnemyEntity(this, this.physicsSys, this.particles, x, y, et, this.projectiles);
-      this.enemies.push(e);
-      this.targetRegistry.registerEnemy(e);
-    }
-    // Mini Boss: spawn an elite in Section 4 as a tougher challenge
-    if (sectionId === 4 && !this.miniBossSpawned) {
-      this.miniBossSpawned = true;
-      const mbX = section.x + area.sectionWidth - 300;
-      const mbY = GAME.HEIGHT - 200;
-      const miniBoss = new EnemyEntity(this, this.physicsSys, this.particles, mbX, mbY, 'elite', this.projectiles);
-      this.enemies.push(miniBoss);
-      this.targetRegistry.registerEnemy(miniBoss);
-      this.hud?.toast('⚠ ELITE DETECTED');
+    if (area) {
+      const sec = area.sections.find(s => s.id === this.currentSection);
+      if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
     }
   }
+
+  // ================ PLAY HELPERS ================
+  // buildPlay, spawnEnemiesForSection, updatePlayerExternalRefs extracted to
+  // PlayController — see src/game/controllers/PlayController.ts
 
   // ================ COLLISION DISPATCH ================
   // Extracted to CollisionController — see src/game/controllers/CollisionController.ts
@@ -626,9 +518,27 @@ export class GameScene extends Phaser.Scene {
     if (id === this.currentSection) return;
     this.currentSection = id;
     WorldSystem.setSection(id);
-    this.spawnEnemiesForSection(id);
+    // Delegate enemy spawn to PlayController (static method)
+    PlayController.spawnEnemiesForSection(
+      this, this.physicsSys, this.particles, this.projectiles,
+      this.enemies, this.targetRegistry, id,
+      {
+        onToast: (msg: string) => this.hud?.toast(msg),
+        isMiniBossSpawned: () => this.miniBossSpawned,
+        setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
+        setExternalRefs: () => {},
+      },
+    );
     // Refresh player external refs (new enemies spawned)
-    this.updatePlayerExternalRefs();
+    if (this.player && this.loadedArea) {
+      const anchorPositions: Phaser.Math.Vector2[] = [];
+      for (const anchor of this.loadedArea.grappleAnchors) {
+        if (anchor && anchor.active) {
+          anchorPositions.push(new Phaser.Math.Vector2(anchor.x, anchor.y));
+        }
+      }
+      this.player.setExternalRefs(this.enemies, anchorPositions);
+    }
     // ── Hide control hints after leaving section 1 ──
     if (id !== 1 && this.controlHints) {
       this.controlHints.setVisible(false);
