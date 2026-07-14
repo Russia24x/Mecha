@@ -471,6 +471,19 @@ export class HangarUI implements OverlayUI {
 
   // ================ OverlayUI interface ================
 
+  /**
+   * Gamepad/keyboard navigation. Virtual cursor (right stick) is the primary
+   * navigation method, handled by OverlayManager → VirtualCursor.update().
+   *
+   * This method handles LEFT stick / D-pad for tab switching + A button for
+   * activating the currently hovered item (if any).
+   */
+  handleNavigation(): void {
+    // Virtual cursor handles all navigation via hitTest + pointerdown.
+    // No linear nav needed — just let the cursor do its job.
+    // This method exists so OverlayManager.handleInput() doesn't skip Hangar.
+  }
+
   show(): void {
     this.visible = true;
     this.container.setVisible(true);
