@@ -25,6 +25,7 @@
 import type Phaser from 'phaser';
 import { InputSystem } from '../systems/InputSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import { VirtualCursor } from './VirtualCursor';
 
 export type OverlayId = 'settings' | 'skills' | 'inventory' | 'quests' | 'map' | 'dialogue' | 'hangar';
 
@@ -47,11 +48,13 @@ interface OpenOverlay {
 export class OverlayManager {
   private static scene: Phaser.Scene | null = null;
   private static stack: OpenOverlay[] = [];
+  private static cursor: VirtualCursor | null = null;
 
   /** Bind to the active GameScene. Called in create(). */
   static bind(scene: Phaser.Scene): void {
     this.scene = scene;
     this.stack = [];
+    this.cursor = new VirtualCursor(scene);
   }
 
   /**
@@ -65,6 +68,7 @@ export class OverlayManager {
     if (this.stack.length > 0 && this.stack[this.stack.length - 1].id === id) return;
     this.stack.push({ id, ui, parent });
     ui.show();
+    this.cursor?.show();
     AudioSystem.play('uiClick');
   }
 
@@ -80,6 +84,7 @@ export class OverlayManager {
     }
     top.ui.hide();
     top.ui.destroy();
+    if (this.stack.length === 0) this.cursor?.hide();
     AudioSystem.play('uiClick');
     onClose?.(top.parent);
   }
@@ -91,6 +96,7 @@ export class OverlayManager {
       top.ui.hide();
       top.ui.destroy();
     }
+    this.cursor?.hide();
   }
 
   /** Get the current top overlay, or null. */
@@ -120,13 +126,18 @@ export class OverlayManager {
       return;
     }
 
-    // Delegate to overlay's own navigation (gamepad D-pad, stick, A to confirm)
+    // Virtual cursor (right analog stick) — works with any overlay UI
+    this.cursor?.update();
+
+    // Delegate to overlay's own navigation (left stick / D-pad / A to confirm)
     top.ui.handleNavigation?.();
   }
 
   /** Destroy all overlays and unbind. Called in scene shutdown. */
   static destroy(): void {
     this.closeAll();
+    this.cursor?.destroy();
+    this.cursor = null;
     this.scene = null;
   }
 }
