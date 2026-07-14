@@ -29,6 +29,7 @@ import { MetroidvaniaController } from '../world/MetroidvaniaController';
 import { NpcInteractionController } from '../world/NpcInteractionController';
 import { LoreController } from '../ui/lore/LoreController';
 import { ControlHintsUI } from '../ui/controls/ControlHintsUI';
+import { BossHealthBarUI } from '../ui/boss/BossHealthBarUI';
 import { CompanionEntity } from '../entities/companion/CompanionEntity';
 import { RenderSystem } from '../systems/RenderSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -76,6 +77,33 @@ export interface PlayCallbacks {
   isMiniBossSpawned: () => boolean;
   setMiniBossSpawned: (v: boolean) => void;
   setExternalRefs: (enemies: EnemyEntity[], anchors: Phaser.Math.Vector2[]) => void;
+}
+
+/**
+ * References needed for per-frame update loop.
+ * Passed to static update() — all live fields from GameScene.
+ */
+export interface PlayUpdateRefs {
+  scene: Phaser.Scene;
+  player: PlayerEntity;
+  render: RenderSystem | null;
+  hud: HUDUI | null;
+  controlHints: ControlHintsUI | null;
+  atmosphere: AtmosphereSystem | null;
+  npcInteraction: NpcInteractionController | null;
+  metroidvania: MetroidvaniaController | null;
+  loadedArea: LoadedArea | null;
+  companion: CompanionEntity | null;
+  forestEnv: ForestEnvironmentSystem | null;
+  particles: ParticleSystem;
+  projectiles: Projectile[];
+  enemies: EnemyEntity[];
+  targetRegistry: TargetRegistry;
+  boss: BossEntity | null;
+  bossHealthBar: BossHealthBarUI | null;
+  bossArenaActive: boolean;
+  currentSection: number;
+  camera: CameraSystem;
 }
 
 /**
@@ -263,6 +291,101 @@ export class PlayController {
       enemies.push(miniBoss);
       targetRegistry.registerEnemy(miniBoss);
       callbacks.onToast('⚠ ELITE DETECTED');
+    }
+  }
+
+  /**
+   * Per-frame update for the play state. Phase 9 Step 4a: only the update
+   * loop body is extracted — handler methods (enterSection, handleEnemyContact,
+   * etc.) remain in GameScene for Step 4b.
+   *
+   * This is a pure delegation method — calls .update() on existing systems.
+   * No new logic, just moved the call site from GameScene.updatePlay() to here.
+   */
+  static update(deltaMs: number, r: PlayUpdateRefs): void {
+    if (!r.player) return;
+
+    // ── Core entity updates ──
+    r.player.update(deltaMs);
+    r.render?.update(r.scene.time.now);
+    r.hud?.update();
+    r.controlHints?.update();
+
+    // ── Atmosphere (fog, particles, god rays) ──
+    r.atmosphere?.update(deltaMs);
+
+    // ── NPC interaction prompt + label follow ──
+    r.npcInteraction?.updatePrompt(r.player, r.loadedArea);
+    r.npcInteraction?.updateLabels();
+
+    // ── Metroidvania: collectible pickups + shortcut activations ──
+    if (r.metroidvania && r.loadedArea) {
+      r.metroidvania.checkCollectiblePickups(r.loadedArea, r.player, r.hud);
+      r.metroidvania.checkShortcutActivations(r.loadedArea, r.player, r.hud);
+    }
+
+    // ── Companion update — follows player ──
+    r.companion?.update(deltaMs, r.player.position);
+
+    // ── Forest environment update (grass, trees, vines, water, rain) ──
+    r.forestEnv?.update(deltaMs, r.player.sprite.x, r.player.sprite.y);
+
+    // ── Ambient dust motes ──
+    if (r.scene.time.now % 200 < 16) {
+      r.particles.ambientDust(r.player.sprite.x, r.player.sprite.y - 40, 2);
+    }
+
+    // ── Projectiles ──
+    for (let i = r.projectiles.length - 1; i >= 0; i--) {
+      r.projectiles[i].update();
+      if (!r.projectiles[i].isAlive) r.projectiles.splice(i, 1);
+    }
+
+    // ── Enemies ──
+    const playerPos = r.player.position;
+    for (let i = r.enemies.length - 1; i >= 0; i--) {
+      const e = r.enemies[i];
+      if (!e.isAlive || !e.sprite || !e.sprite.active) {
+        r.targetRegistry.unregisterEnemy(e);
+        r.enemies.splice(i, 1);
+        continue;
+      }
+      try { e.update(deltaMs, playerPos); } catch {
+        r.targetRegistry.unregisterEnemy(e);
+        r.enemies.splice(i, 1);
+        continue;
+      }
+    }
+
+    // ── Boss ──
+    if (r.boss && r.boss.isAlive && r.boss.sprite && r.boss.sprite.active) {
+      try { r.boss.update(deltaMs); } catch { /* */ }
+      r.bossHealthBar?.update(r.boss);
+    } else if (r.boss && (!r.boss.isAlive || !r.boss.sprite || !r.boss.sprite.active)) {
+      r.targetRegistry.unregisterBoss();
+    }
+
+    // ── Out of bounds ──
+    if (r.player.sprite.y > GAME.HEIGHT + 80) {
+      r.player.takeDamage(25);
+      const area = WorldSystem.getCurrentArea();
+      if (area) {
+        const sec = area.sections.find(s => s.id === r.currentSection);
+        if (sec) {
+          r.player.sprite.setPosition(sec.x + 200, GAME.HEIGHT - 300);
+          r.player.sprite.setVelocity(0, 0);
+        }
+      }
+    }
+
+    // ── Boss arena zoom ──
+    const cam = r.scene.cameras.main;
+    if (r.bossArenaActive && r.boss && r.boss.isAlive) {
+      if (cam.zoom > 0.86) {
+        cam.zoomTo(0.85, 800, 'Sine.easeOut');
+      }
+    } else if (!r.bossArenaActive && cam.zoom < 0.99) {
+      cam.zoomTo(1.0, 600, 'Sine.easeOut');
     }
   }
 

@@ -635,76 +635,31 @@ export class GameScene extends Phaser.Scene {
   // GameScene delegates via this.loreController.open(...) / .close() / .isOpen
 
   private updatePlay(deltaMs: number): void {
-    if (!this.player) return;
-    this.player.update(deltaMs);
-    this.render.update(this.time.now);
-    this.hud?.update();
-    this.controlHints?.update();
-    // Atmosphere (Phase 2: fog drift, particle motion, god ray breathing)
-    this.atmosphere?.update(deltaMs);
-    // NPC interaction prompt + label follow
-    this.npcInteraction?.updatePrompt(this.player, this.loadedArea);
-    this.npcInteraction?.updateLabels();
-    // ── Metroidvania: check collectible pickups + shortcut activations ──
-    if (this.metroidvania && this.loadedArea) {
-      this.metroidvania.checkCollectiblePickups(this.loadedArea, this.player, this.hud);
-      this.metroidvania.checkShortcutActivations(this.loadedArea, this.player, this.hud);
-    }
-    // ── Companion update — follows player ──
-    this.companion?.update(deltaMs, this.player.position);
-    // ── Forest environment update (grass, trees, vines, water, rain) ──
-    this.forestEnv?.update(deltaMs, this.player.sprite.x, this.player.sprite.y);
-    // Ambient dust motes — atmospheric particles around player (per particles skill)
-    if (this.time.now % 200 < 16) {
-      this.particles.ambientDust(this.player.sprite.x, this.player.sprite.y - 40, 2);
-    }
-    // Projectiles
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      this.projectiles[i].update();
-      if (!this.projectiles[i].isAlive) this.projectiles.splice(i, 1);
-    }
-    // Enemies
-    const playerPos = this.player.position;
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const e = this.enemies[i];
-      if (!e.isAlive || !e.sprite || !e.sprite.active) {
-        this.targetRegistry.unregisterEnemy(e);
-        this.enemies.splice(i, 1);
-        continue;
-      }
-      try { e.update(deltaMs, playerPos); } catch {
-        this.targetRegistry.unregisterEnemy(e);
-        this.enemies.splice(i, 1);
-        continue;
-      }
-    }
-    // Boss
-    if (this.boss && this.boss.isAlive && this.boss.sprite && this.boss.sprite.active) {
-      try { this.boss.update(deltaMs); } catch { /* */ }
-      this.updateBossHealthBar();
-    } else if (this.boss && (!this.boss.isAlive || !this.boss.sprite || !this.boss.sprite.active)) {
-      this.targetRegistry.unregisterBoss();
-    }
-    // Out of bounds
-    if (this.player.sprite.y > GAME.HEIGHT + 80) {
-      this.player.takeDamage(25);
-      const area = WorldSystem.getCurrentArea();
-      if (area) {
-        const sec = area.sections.find(s => s.id === this.currentSection);
-        if (sec) {
-          this.player.sprite.setPosition(sec.x + 200, GAME.HEIGHT - 300);
-          this.player.sprite.setVelocity(0, 0);
-        }
-      }
-    }
-    // Boss arena zoom — smooth zoom using Phaser 4 zoomTo (per cameras skill)
-    if (this.bossArenaActive && this.boss && this.boss.isAlive) {
-      if (this.cameras.main.zoom > 0.86) {
-        this.cameras.main.zoomTo(0.85, 800, 'Sine.easeOut');
-      }
-    } else if (!this.bossArenaActive && this.cameras.main.zoom < 0.99) {
-      this.cameras.main.zoomTo(1.0, 600, 'Sine.easeOut');
-    }
+    // Delegate to PlayController.update() — see src/game/controllers/PlayController.ts
+    // Only the update loop body is extracted; handler methods (enterSection,
+    // handleEnemyContact, etc.) remain in GameScene for Step 4b.
+    PlayController.update(deltaMs, {
+      scene: this,
+      player: this.player,
+      render: this.render,
+      hud: this.hud,
+      controlHints: this.controlHints,
+      atmosphere: this.atmosphere,
+      npcInteraction: this.npcInteraction,
+      metroidvania: this.metroidvania,
+      loadedArea: this.loadedArea,
+      companion: this.companion,
+      forestEnv: this.forestEnv,
+      particles: this.particles,
+      projectiles: this.projectiles,
+      enemies: this.enemies,
+      targetRegistry: this.targetRegistry,
+      boss: this.boss,
+      bossHealthBar: this.bossHealthBar,
+      bossArenaActive: this.bossArenaActive,
+      currentSection: this.currentSection,
+      camera: this.camera,
+    });
   }
 
   private cleanupPlay(): void {
