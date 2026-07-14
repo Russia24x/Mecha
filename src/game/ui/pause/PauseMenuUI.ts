@@ -103,15 +103,11 @@ export class PauseMenuUI {
       const tex = scene.textures.get(previewTex).getSourceImage();
       const imgAR = tex.width / tex.height;
       const frameAR = previewW / previewH;
+      // "Contain" scaling: image fits entirely within frame (no overflow, no mask needed)
+      // Phaser 4 WebGL doesn't support setMask() — using contain avoids the need
       let sc: number;
-      if (imgAR > frameAR) { sc = previewH / tex.height; } else { sc = previewW / tex.width; }
+      if (imgAR > frameAR) { sc = previewW / tex.width; } else { sc = previewH / tex.height; }
       pvImg.setScale(sc);
-      // Mask
-      const pvMask = scene.make.graphics({ x: previewX, y: previewY }, false);
-      pvMask.fillStyle(0xffffff, 1);
-      pvMask.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
-      const pvMaskObj = pvMask.createGeometryMask();
-      pvImg.setMask(pvMaskObj);
       pvImg.setAlpha(0.5);
       pvImg.setDepth(2);
       this.container.add(pvImg);

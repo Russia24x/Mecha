@@ -176,26 +176,21 @@ export class HubBuilder {
         // Preview image
         const previewTexture = area.regionId === 'forest' ? 'factory_bg_1' : 'factory_bg_2';
         if (this.scene.textures.exists(previewTexture)) {
-          const imgContainer = this.scene.add.container(actX, previewY);
-          imgContainer.setDepth(2.6);
-          const previewImg = this.scene.add.image(0, 0, previewTexture);
+          const previewImg = this.scene.add.image(actX, previewY, previewTexture);
+          previewImg.setDepth(2.6);
           const tex = this.scene.textures.get(previewTexture).getSourceImage();
           const imgAR = tex.width / tex.height;
           const frameAR = previewW / previewH;
+          // "Contain" scaling: image fits entirely within frame (no overflow, no mask needed)
+          // Phaser 4 WebGL doesn't support setMask() — using contain avoids the need
           let scale: number;
           if (imgAR > frameAR) {
-            scale = previewH / tex.height;
+            scale = previewW / tex.width;   // fit by width → height has padding
           } else {
-            scale = previewW / tex.width;
+            scale = previewH / tex.height;  // fit by height → width has padding
           }
           previewImg.setScale(scale);
-          imgContainer.add(previewImg);
-          const maskGfx = this.scene.make.graphics({ x: actX, y: previewY }, false);
-          maskGfx.fillStyle(0xffffff, 1);
-          maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
-          const mask = maskGfx.createGeometryMask();
-          imgContainer.setMask(mask);
-          c.add(imgContainer);
+          c.add(previewImg);
           if (!area.unlocked) {
             previewImg.setAlpha(0.2);
             previewImg.setTint(0x303030);
