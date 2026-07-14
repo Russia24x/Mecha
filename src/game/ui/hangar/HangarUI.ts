@@ -132,6 +132,8 @@ export class HangarUI implements OverlayUI {
   // ================ TAB SWITCHING ================
 
   private showTab(tab: HangarTab): void {
+    // Guard against re-entrant calls (rapid L1/R1 switching)
+    if (this.currentTab === tab && this.contentContainer) return;
     this.currentTab = tab;
     // Update tab highlights
     this.tabButtons.forEach(tb => {

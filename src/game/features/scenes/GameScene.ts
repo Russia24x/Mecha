@@ -376,6 +376,7 @@ export class GameScene extends Phaser.Scene {
 
     // *** Overlay input has highest priority — B/ESC closes, gamepad navigates ***
     if (OverlayManager.hasOpen) {
+      InputSystem.setGameplayBlocked(true);  // Block gameplay callbacks during overlay
       OverlayManager.handleInput((parent) => {
         if (parent === 'play') {
           this.pauseMenuUI.show();
@@ -387,20 +388,17 @@ export class GameScene extends Phaser.Scene {
 
     if (this.state === 'play') {
       // ── Lore controller input handling (closes panel on interact/back/ESC) ──
-      // Capture open state BEFORE handleInput so ESC closes lore without
-      // also triggering pause in the same frame.
       const loreWasOpen = this.loreController?.isOpen ?? false;
       this.loreController?.handleInput(input);
       // ESC / Start = toggle pause — ONLY if lore was NOT open this frame
-      // (prevents ESC from both closing lore AND opening pause menu simultaneously)
       if (input.pausePressed && !loreWasOpen) {
         this.togglePause();
       }
+      // Block gameplay callbacks when paused
+      InputSystem.setGameplayBlocked(this.paused);
       if (!this.paused) {
+        InputSystem.setGameplayBlocked(false);  // Gameplay active
         // ── tryInteract only if lore was NOT open this frame ──
-        // Without this guard, pressing E to close the lore panel would
-        // immediately re-open it in the same frame (double-trigger bug).
-        // Also guards the open path: if lore just closed, don't re-interact.
         if (input.interactPressed && !loreWasOpen) this.tryInteract();
         // Freeze game while lore panel is open (gating behavior preserved)
         if (!this.loreController?.isOpen) {
@@ -411,6 +409,7 @@ export class GameScene extends Phaser.Scene {
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
+      InputSystem.setGameplayBlocked(true);  // Block gameplay in menu states
       // UIController handles cursor + input (D-pad, tabs, click)
       // MenuNavHelper handles button focus + spatial nav (uses same UIController cursor)
       OverlayManager.getSharedController()?.update();

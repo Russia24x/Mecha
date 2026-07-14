@@ -263,6 +263,14 @@ export class InputSystem {
     this.callbacks = {};
   }
 
+  /** When true, gameplay callbacks (jump/fire/melee/dash/etc.) are NOT fired.
+   *  Set by GameScene when paused or overlay is open. UI input still works. */
+  private static gameplayBlocked = false;
+
+  static setGameplayBlocked(blocked: boolean): void {
+    this.gameplayBlocked = blocked;
+  }
+
   /**
    * Merge keyboard edges + poll gamepad. Call every frame.
    * Keyboard edges survive from when they were pressed until this method runs.
@@ -290,22 +298,22 @@ export class InputSystem {
         const edge = (i: number) => btns[i] && !this.prevButtons[i];
         const held = (i: number) => btns[i];
 
-        if (edge(0)) { gpJump = true; this.callbacks.jump?.(); }
-        if (edge(2) || edge(7)) { gpFire = true; this.callbacks.fire?.(); }
-        if (edge(3)) { gpMelee = true; this.callbacks.melee?.(); }
+        if (edge(0)) { gpJump = true; if (!this.gameplayBlocked) this.callbacks.jump?.(); }
+        if (edge(2) || edge(7)) { gpFire = true; if (!this.gameplayBlocked) this.callbacks.fire?.(); }
+        if (edge(3)) { gpMelee = true; if (!this.gameplayBlocked) this.callbacks.melee?.(); }
         // Interact = B/Circle (button 1) — also serves as Back in menus
-        if (edge(1)) { gpInteract = true; gpBack = true; this.callbacks.interact?.(); }
+        if (edge(1)) { gpInteract = true; gpBack = true; if (!this.gameplayBlocked) this.callbacks.interact?.(); }
         // Dash = LT/L2 (button 6) — trigger, not face button
         if (edge(6)) {
           gpDash = true;
-          this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right');
+          if (!this.gameplayBlocked) this.callbacks.dash?.(this.state.leftStickX < -0.2 ? 'left' : this.state.leftStickX > 0.2 ? 'right' : 'right');
         }
-        if (edge(5)) { gpWeaponNext = true; this.callbacks.weaponNext?.(); }
-        if (edge(4)) { gpWeaponPrev = true; this.callbacks.weaponPrev?.(); }
-        if (edge(9)) { gpPause = true; this.callbacks.pause?.(); }
+        if (edge(5)) { gpWeaponNext = true; if (!this.gameplayBlocked) this.callbacks.weaponNext?.(); }
+        if (edge(4)) { gpWeaponPrev = true; if (!this.gameplayBlocked) this.callbacks.weaponPrev?.(); }
+        if (edge(9)) { gpPause = true; if (!this.gameplayBlocked) this.callbacks.pause?.(); }
         // Grapple = D-pad Up (button 12), EMP = D-pad Down (button 13)
-        if (edge(12)) { this.kbEdge.grapple = true; this.callbacks.grapple?.(); }
-        if (edge(13)) { this.kbEdge.emp = true; this.callbacks.emp?.(); }
+        if (edge(12)) { this.kbEdge.grapple = true; if (!this.gameplayBlocked) this.callbacks.grapple?.(); }
+        if (edge(13)) { this.kbEdge.emp = true; if (!this.gameplayBlocked) this.callbacks.emp?.(); }
 
         // D-pad Left/Right overrides left stick for movement (Up/Down reserved for abilities)
         if (held(14)) this.state.leftStickX = -1;
