@@ -412,25 +412,10 @@ export class InventoryUI extends NavigableOverlay {
     };
     this.itemSlots.push(visual);
 
-    // Interactive
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => {
-      this.navFocusIdx = this.navElements.findIndex(e => e.bg === bg);
-      if (this.navFocusIdx < 0) this.navFocusIdx = 0;
-      this.focusedSlotIdx = index;
-      this.updateNavFocus();
-      this.updateDetailPanel(slot);
-      AudioSystem.play('uiHover');
-    });
-    bg.on('pointerout', () => this.updateNavFocus());
-    bg.on('pointerdown', () => { this.activateSlot(slot); });
-
-    // Insert before back button
+    // Register via registerNav (handles setInteractive + ctrl.addButton)
     const backIdx = this.navElements.length - 1;
-    this.navElements.splice(backIdx, 0, {
-      bg: bg as unknown as Phaser.GameObjects.Shape,
-      text: icon,
-      onSelect: () => this.activateSlot(slot),
+    this.registerNav(bg as unknown as Phaser.GameObjects.Shape, icon, () => this.activateSlot(slot), {
+      insertAt: backIdx,
       focusColor: THEME.AMBER,
       normalColor: THEME.STROKE_DIM,
     });

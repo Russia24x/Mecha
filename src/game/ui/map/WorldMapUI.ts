@@ -305,22 +305,10 @@ export class WorldMapUI extends NavigableOverlay {
           this.onTravel(node.area.id);
         }
       };
-      hex.setInteractive({ useHandCursor: true });
-      hex.on('pointerover', () => {
-        this.navFocusIdx = this.navElements.findIndex(e => e.bg === hex);
-        if (this.navFocusIdx < 0) this.navFocusIdx = 0;
-        this.updateNavFocus();
-        AudioSystem.play('uiHover');
-      });
-      hex.on('pointerout', () => this.updateNavFocus());
-      hex.on('pointerdown', () => { travelAction(); });
-
-      // Insert before back button
+      // Register via registerNav (handles setInteractive + ctrl.addButton)
       const backIdx = this.navElements.length - 1;
-      this.navElements.splice(backIdx, 0, {
-        bg: hex as unknown as Phaser.GameObjects.Shape,
-        text: icon,
-        onSelect: travelAction,
+      this.registerNav(hex as unknown as Phaser.GameObjects.Shape, icon, travelAction, {
+        insertAt: backIdx,
         focusColor: THEME.CYAN,
         normalColor: strokeColor,
       });

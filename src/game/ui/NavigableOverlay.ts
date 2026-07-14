@@ -54,11 +54,12 @@ export abstract class NavigableOverlay implements OverlayUI {
     bg: Phaser.GameObjects.Shape,
     text: Phaser.GameObjects.Text,
     onSelect: () => void,
-    opts?: { focusColor?: number; normalColor?: number },
+    opts?: { focusColor?: number; normalColor?: number; insertAt?: number },
   ): void {
     bg.setScrollFactor(0);
     text.setScrollFactor(0);
-    // Register with UIController — it handles all input
+    // Register with UIController — it handles all input (setInteractive, pointerover, etc.)
+    // No manual setInteractive needed — addButton does it.
     this.ctrl.addButton(
       (bg as unknown as { x: number }).x,
       (bg as unknown as { y: number }).y,
@@ -66,11 +67,16 @@ export abstract class NavigableOverlay implements OverlayUI {
       { text, focusColor: opts?.focusColor, normalColor: opts?.normalColor },
     );
     // Also keep in navElements for backward compat (subclasses read it)
-    this.navElements.push({
+    const entry: NavElement = {
       bg, text, onSelect,
       focusColor: opts?.focusColor ?? 0x39d0d8,
       normalColor: opts?.normalColor ?? 0x1a3040,
-    });
+    };
+    if (opts?.insertAt !== undefined) {
+      this.navElements.splice(opts.insertAt, 0, entry);
+    } else {
+      this.navElements.push(entry);
+    }
   }
 
   protected clearNavElements(): void {
@@ -88,22 +94,8 @@ export abstract class NavigableOverlay implements OverlayUI {
   protected onNavRight(): void { /* override in subclass */ }
 
   protected updateNavFocus(): void {
-    // UIController handles focus visual now — this is a no-op for backward compat
-    // But we still update navFocusIdx for subclasses that read it
-    this.navElements.forEach((el, i) => {
-      if (!el.bg || !el.bg.active) return;
-      try {
-        if (i === this.navFocusIdx) {
-          el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
-          el.bg.setScale(1.03);
-          if (el.text) el.text.setColor('#66f0ff');
-        } else {
-          el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
-          el.bg.setScale(1);
-          if (el.text) el.text.setColor('#cfd6e0');
-        }
-      } catch { /* canvas not ready */ }
-    });
+    // No-op: UIController manages all focus visual now.
+    // Subclasses that call updateNavFocus() are safe — it does nothing.
   }
 
   show(): void {

@@ -421,22 +421,10 @@ export class SkillTreeUI extends NavigableOverlay {
           this.refreshTree();
         }
       };
-      diamond.setInteractive({ useHandCursor: true });
-      diamond.on('pointerover', () => {
-        this.navFocusIdx = this.navElements.findIndex(e => e.bg === diamond);
-        if (this.navFocusIdx < 0) this.navFocusIdx = 0;
-        this.updateNavFocus();
-        this.updateDetailPanel(node, skill);
-        AudioSystem.play('uiHover');
-      });
-      diamond.on('pointerout', () => this.updateNavFocus());
-      diamond.on('pointerdown', () => { unlockAction(); });
-
+      // Register via registerNav (handles setInteractive + ctrl.addButton)
       const backIdx = this.navElements.length - 1;
-      this.navElements.splice(backIdx, 0, {
-        bg: diamond,
-        text: icon,
-        onSelect: unlockAction,
+      this.registerNav(diamond, icon, unlockAction, {
+        insertAt: backIdx,
         focusColor: treeColor,
         normalColor: this.getNodeStroke(node),
       });

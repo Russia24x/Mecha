@@ -142,11 +142,9 @@ export class QuestUI extends NavigableOverlay {
     this.container.add(entry);
     this.questEntries.push(entry);
 
-    bg.setInteractive({ useHandCursor: true });
+    // Register via registerNav (handles setInteractive + ctrl.addButton)
     const backIdx = this.navElements.length - 1;
-    this.navElements.splice(backIdx, 0, {
-      bg, text: nameText, onSelect: () => { /* view only */ },
-    });
+    this.registerNav(bg, nameText, () => { /* view only */ }, { insertAt: backIdx });
 
     return y + cardH + 8;
   }
