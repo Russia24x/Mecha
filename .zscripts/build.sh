@@ -62,6 +62,10 @@ echo "📦 收集构建产物到 $BUILD_DIR..."
 if [ -d ".next/standalone" ]; then
     echo "  - 复制 .next/standalone"
     cp -r .next/standalone "$BUILD_DIR/next-service-dist/"
+    # 覆盖 .env 中的绝对路径为相对路径，避免生产环境找不到数据库
+    # (start.sh 会通过环境变量设置正确的 DATABASE_URL，但 .env 仍会被 Next.js 读取)
+    echo "  - 修正 .env 为相对路径"
+    echo "DATABASE_URL=file:./db/custom.db" > "$BUILD_DIR/next-service-dist/.env"
 fi
 
 # 复制 Next.js 静态文件

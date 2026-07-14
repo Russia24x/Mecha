@@ -1,0 +1,10 @@
+[install]
+# Allow these packages to run postinstall scripts (needed for native binaries)
+# Without this, bun blocks postinstalls and @swc/core (Next.js compiler)
+# doesn't get its native bindings, causing build failures.
+trustedDependencies = [
+  "@swc/core",
+  "@parcel/watcher",
+  "unrs-resolver",
+  "es5-ext",
+]
