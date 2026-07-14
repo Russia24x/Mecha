@@ -151,6 +151,11 @@ export class MenuNavHelper {
 
   /** Register keyboard navigation listener (all 4 arrow keys + WASD + Enter/Space). */
   setupNav(): void {
+    // Remove any previous handler first (safety — prevents duplicate listeners
+    // if setupNav is called twice on the same instance)
+    if (this.navHandler) {
+      window.removeEventListener('keydown', this.navHandler);
+    }
     this.navHandler = (e: KeyboardEvent) => {
       if (this.buttons.length === 0) return;
       let moved = false;
