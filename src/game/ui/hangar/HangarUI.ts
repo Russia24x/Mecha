@@ -25,6 +25,7 @@ import { getAllChassis } from '../../data/chassis/chassis';
 import { getAllPaints } from '../../data/paints/paints';
 import { getAllCompanions } from '../../data/companions/companions';
 import { SaveSystem } from '../../systems/SaveSystem';
+import { InputSystem } from '../../systems/InputSystem';
 import type { OverlayUI, OverlayParent } from '../OverlayManager';
 
 type HangarTab = 'chassis' | 'loadout' | 'companion' | 'paint';
@@ -472,16 +473,26 @@ export class HangarUI implements OverlayUI {
   // ================ OverlayUI interface ================
 
   /**
-   * Gamepad/keyboard navigation. Virtual cursor (right stick) is the primary
-   * navigation method, handled by OverlayManager → VirtualCursor.update().
-   *
-   * This method handles LEFT stick / D-pad for tab switching + A button for
-   * activating the currently hovered item (if any).
+   * Gamepad/keyboard navigation.
+   * - L1/R1 (shoulder buttons) = switch tabs
+   * - Left stick Left/Right = switch tabs
+   * - Virtual cursor (right stick) = primary pointing device
+   * - A button = click (handled by virtual cursor)
    */
   handleNavigation(): void {
-    // Virtual cursor handles all navigation via hitTest + pointerdown.
-    // No linear nav needed — just let the cursor do its job.
-    // This method exists so OverlayManager.handleInput() doesn't skip Hangar.
+    const input = InputSystem.getState();
+    // L1/R1 + left stick left/right for tab switching
+    const tabs: HangarTab[] = ['chassis', 'loadout', 'companion', 'paint'];
+    const idx = tabs.indexOf(this.currentTab);
+    if (input.weaponPrevPressed || input.leftStickX < -0.3) {
+      const next = tabs[(idx - 1 + tabs.length) % tabs.length];
+      this.showTab(next);
+      AudioSystem.play('uiClick');
+    } else if (input.weaponNextPressed || input.leftStickX > 0.3) {
+      const next = tabs[(idx + 1) % tabs.length];
+      this.showTab(next);
+      AudioSystem.play('uiClick');
+    }
   }
 
   show(): void {

@@ -89,7 +89,10 @@ export class OverlayManager {
     }
     top.ui.hide();
     top.ui.destroy();
-    if (this.stack.length === 0) this.cursor?.hide();
+    // NOTE: Do NOT hide cursor here — let the onClose callback decide.
+    // If returning to hub/menu, callback will show(40). If returning to play,
+    // callback will show(280) for pause or not show at all.
+    // This prevents cursor flicker (hide → show in same frame).
     AudioSystem.play('uiClick');
     onClose?.(top.parent);
   }

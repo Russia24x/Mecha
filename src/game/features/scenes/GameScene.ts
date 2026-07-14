@@ -357,8 +357,10 @@ export class GameScene extends Phaser.Scene {
       } else if (parent === 'hub' || parent === 'menu') {
         // Restore cursor for menu/hub buttons (lower depth)
         OverlayManager.getCursor()?.show(40);
+      } else {
+        // Unknown parent — hide cursor as safety
+        OverlayManager.getCursor()?.hide();
       }
-      // If parent === 'hub', hub is still visible underneath — nothing to do
     });
   }
 

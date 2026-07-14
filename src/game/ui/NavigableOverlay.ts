@@ -93,12 +93,26 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.navCooldown -= 16;
     if (this.navCooldown > 0) return;
 
+    // ── L1/R1 (shoulder buttons) for tab switching ──
+    // weaponPrevPressed = L1/LB, weaponNextPressed = R1/RB
+    // These call onNavLeft/onNavRight which subclasses override for tab cycling
+    if (input.weaponPrevPressed) {
+      this.onNavLeft();
+      this.navCooldown = 200;
+      return;
+    }
+    if (input.weaponNextPressed) {
+      this.onNavRight();
+      this.navCooldown = 200;
+      return;
+    }
+
     // Vertical navigation (up/down)
     if (input.leftStickY < -0.3 || input.heldUp) {
       this.navFocusIdx = (this.navFocusIdx - 1 + this.navElements.length) % this.navElements.length;
       this.updateNavFocus();
       AudioSystem.play('uiHover');
-      this.navCooldown = 120;  // freer — was 180
+      this.navCooldown = 120;
     } else if (input.leftStickY > 0.3 || input.heldDown) {
       this.navFocusIdx = (this.navFocusIdx + 1) % this.navElements.length;
       this.updateNavFocus();
