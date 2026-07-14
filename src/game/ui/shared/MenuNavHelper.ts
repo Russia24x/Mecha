@@ -44,16 +44,12 @@ export class MenuNavHelper {
   makeMenuBtn(x: number, y: number, label: string, onClick: () => void, disabled: boolean = false, width: number = 240): void {
     const bg = this.scene.add.rectangle(x, y, width, 38, disabled ? 0x05080c : 0x0a1018, 0.9);
     bg.setStrokeStyle(1, disabled ? 0x05080c : 0x1a3040, 0.8);
-    if (!disabled) {
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => { AudioSystem.play('uiHover'); });
-      bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    }
     const textEl = this.scene.add.text(x, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '15px', color: disabled ? '#0a1018' : '#5a6470',
     })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     if (!disabled) {
+      // UIController.addButton handles setInteractive + pointerover + pointerdown
       this.addButton(bg, textEl, onClick, x, y);
     }
   }
@@ -61,13 +57,11 @@ export class MenuNavHelper {
   makeHubCardBtn(x: number, y: number, label: string, onClick: () => void): void {
     const bg = this.scene.add.rectangle(x, y, 100, 28, 0x0a1018, 0.9);
     bg.setStrokeStyle(1, 0x1a3040, 0.8);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => { AudioSystem.play('uiHover'); });
-    bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
     const textEl = this.scene.add.text(x, y, label, fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
     })).setOrigin(0.5);
     this.container.add([bg, textEl]);
+    // UIController.addButton handles all input
     this.addButton(bg, textEl, onClick, x, y);
   }
 
@@ -75,10 +69,6 @@ export class MenuNavHelper {
     const radius = 26;
     const bg = this.scene.add.circle(x, y, radius, 0x0a1018, 0.95);
     bg.setStrokeStyle(1, 0x1a3040, 0.7);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => { AudioSystem.play('uiHover'); bg.setScale(1.1); });
-    bg.on('pointerout', () => { bg.setScale(1); });
-    bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
     const iconText = this.scene.add.text(x, y - 2, icon, fixTextStyle({
       fontFamily: 'monospace', fontSize: '18px', color: '#5a6470',
     })).setOrigin(0.5);
@@ -86,6 +76,7 @@ export class MenuNavHelper {
       fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
     })).setOrigin(0.5);
     this.container.add([bg, iconText, labelText]);
+    // UIController.addButton handles all input
     this.addButton(bg, iconText, onClick, x, y);
   }
 

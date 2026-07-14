@@ -121,7 +121,7 @@ export class PauseMenuUI {
 
   show(): void {
     this.container.setVisible(true);
-    this.ctrl.show(280); // overlay depth
+    this.ctrl.show(280);
     if (!this.scene.input.enabled) this.scene.input.enabled = true;
   }
 
@@ -130,14 +130,17 @@ export class PauseMenuUI {
     this.ctrl.hide();
   }
 
+  getController(): UIController { return this.ctrl; }
+
   /** Called by GameScene when paused — delegates to UIController. */
   handleNavigation(): void {
     const input = InputSystem.getState();
-    // B button / ESC = resume (first button)
+    // B button / ESC = resume (first button = RESUME)
     if (input.backPressed) {
       AudioSystem.play('uiClick');
-      // buttons[0] is RESUME — trigger it via controller's first focusable
-      this.ctrl.update(); // let controller process the frame
+      // Trigger first focusable (RESUME button)
+      const f = this.ctrl['focusables' as keyof UIController] as unknown as { onSelect?: () => void }[];
+      if (f && f[0] && f[0].onSelect) f[0].onSelect();
       return;
     }
     this.ctrl.update();

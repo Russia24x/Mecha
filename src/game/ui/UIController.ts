@@ -156,6 +156,8 @@ export class UIController {
     this.cursorY = GAME.HEIGHT / 2;
     this.cursorContainer.setPosition(this.cursorX, this.cursorY);
     this.lastHovered = null;
+    // Re-attach keyboard listener (hide() removes it)
+    if (!this.keyHandler) this.setupKeyboard();
     // Focus first button
     if (this.focusables.length > 0) {
       this.focusIndex = 0;
@@ -170,6 +172,12 @@ export class UIController {
       this.lastHovered.emit('pointerout');
     }
     this.lastHovered = null;
+    // Remove keyboard listener to prevent double-input when another
+    // UIController is active (e.g., overlay over pause menu)
+    if (this.keyHandler) {
+      window.removeEventListener('keydown', this.keyHandler);
+      this.keyHandler = null;
+    }
   }
 
   get isVisible(): boolean { return this.cursorVisible; }

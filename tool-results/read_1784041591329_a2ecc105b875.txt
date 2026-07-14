@@ -1,0 +1,607 @@
+     1→/**
+     2→ * MECHA: LAST PROTOCOL — Skill Tree UI v7.0
+     3→ *
+     4→ * REDESIGNED: Minimal diamond-node layout (PCB style, not hex).
+     5→ * Inspired by Blasphemous (dark minimalism) + Armored Core 6 (clean circuit).
+     6→ *
+     7→ * Design:
+     8→ *   - Diamond-shaped nodes (rotated squares) — clean, unique, readable
+     9→ *   - Circuit traces: right-angled L-lines with via dots
+    10→ *   - Three node sizes: small (minor), medium (notable), large (core)
+    11→ *   - Node states: dim (locked), glow (ready), bright (unlocked)
+    12→ *   - Connection lines: dim (locked), amber (unlocked path)
+    13→ *   - No hexagons — diamonds are cleaner and more readable
+    14→ */
+    15→import Phaser from 'phaser';
+    16→import { GAME } from '../../shared/Constants';
+    17→import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
+    18→import { SkillTreeSystem, type SkillNode } from '../../systems/SkillTreeSystem';
+    19→import { ExperienceSystem } from '../../systems/ExperienceSystem';
+    20→import { AudioSystem } from '../../systems/AudioSystem';
+    21→import { NavigableOverlay } from '../NavigableOverlay';
+    22→import { getSkill } from '../../data/skills/skills';
+    23→import { THEME, addCornerBrackets, addScanlines } from '../Theme';
+    24→import type { SkillTree, SkillData } from '../../data/types';
+    25→
+    26→const TREE_ICONS: Record<SkillTree, string> = {
+    27→  combat: '†', weapon: '▣', movement: '➤', energy: '⚡', protocol: '◈', survival: '♥',
+    28→};
+    29→const TREE_NAMES: Record<SkillTree, { en: string; fa: string }> = {
+    30→  combat: { en: 'COMBAT', fa: 'رزم' },
+    31→  weapon: { en: 'WEAPON', fa: 'سلاح' },
+    32→  movement: { en: 'MOVEMENT', fa: 'حرکت' },
+    33→  energy: { en: 'ENERGY', fa: 'انرژی' },
+    34→  protocol: { en: 'PROTOCOL', fa: 'پروتکل' },
+    35→  survival: { en: 'SURVIVAL', fa: 'بقا' },
+    36→};
+    37→const TREE_SUBTITLES: Record<SkillTree, { en: string; fa: string }> = {
+    38→  combat: { en: 'OFFENSIVE SYSTEMS', fa: 'سیستم‌های تهاجمی' },
+    39→  weapon: { en: 'ARSENAL MODULES', fa: 'ماژول‌های تسلیحات' },
+    40→  movement: { en: 'LOCOMOTION CORE', fa: 'هسته حرکت' },
+    41→  energy: { en: 'POWER GRID', fa: 'شبکه قدرت' },
+    42→  protocol: { en: 'AI COUNTERMEASURES', fa: 'ضداقدام هوش مصنوعی' },
+    43→  survival: { en: 'DEFENSE MATRIX', fa: 'ماتریس دفاع' },
+    44→};
+    45→const TREE_COLORS: Record<SkillTree, number> = {
+    46→  combat: 0xff6030, weapon: 0xffc040, movement: 0x40c0ff,
+    47→  energy: 0x40ffe0, protocol: 0xc060ff, survival: 0x60ff80,
+    48→};
+    49→const TIER_LABELS: Record<number, { en: string; fa: string }> = {
+    50→  0: { en: 'TERMINAL', fa: 'ترمینال' },
+    51→  1: { en: 'SUBROUTINE', fa: 'زیرروتین' },
+    52→  2: { en: 'CORE', fa: 'هسته' },
+    53→};
+    54→
+    55→const LEFT_PANEL_W = 200;
+    56→const TREE_AREA = { x: LEFT_PANEL_W + 30, y: 120, w: 580, h: 460 };
+    57→const GRID_SIZE = 110;
+    58→const DETAIL_PANEL = { x: GAME.WIDTH - 160, y: 340, w: 250, h: 340 };
+    59→
+    60→function safeSetColor(text: Phaser.GameObjects.Text | undefined, color: string): void {
+    61→  if (!text || !text.active) return;
+    62→  const tObj = text as unknown as { canvas?: HTMLCanvasElement | null };
+    63→  if (tObj.canvas === null) return;
+    64→  try { text.setColor(color); } catch { /* canvas not ready */ }
+    65→}
+    66→
+    67→interface TreeNode {
+    68→  skillId: string;
+    69→  skillData: SkillData;
+    70→  node: SkillNode;
+    71→  screenX: number;
+    72→  screenY: number;
+    73→  diamond: Phaser.GameObjects.Rectangle;  // rotated square
+    74→  glow: Phaser.GameObjects.Arc;
+    75→  icon: Phaser.GameObjects.Text;
+    76→  costLabel: Phaser.GameObjects.Text;
+    77→  allTexts: Phaser.GameObjects.Text[];
+    78→  allShapes: Phaser.GameObjects.Shape[];
+    79→}
+    80→
+    81→export class SkillTreeUI extends NavigableOverlay {
+    82→  private treeTabs: { bg: Phaser.GameObjects.Rectangle; icon: Phaser.GameObjects.Text; label: Phaser.GameObjects.Text; sub: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Rectangle }[] = [];
+    83→  private selectedTree: SkillTree = 'combat';
+    84→  private trees: SkillTree[] = ['combat', 'weapon', 'movement', 'energy', 'protocol', 'survival'];
+    85→  private treeNodes: TreeNode[] = [];
+    86→  private connectionGraphics?: Phaser.GameObjects.Graphics;
+    87→  private bgGraphics?: Phaser.GameObjects.Graphics;
+    88→  private headerText?: Phaser.GameObjects.Text;
+    89→  private spValueText?: Phaser.GameObjects.Text;
+    90→
+    91→  private detail: {
+    92→    name: Phaser.GameObjects.Text;
+    93→    tier: Phaser.GameObjects.Text;
+    94→    desc: Phaser.GameObjects.Text;
+    95→    effect: Phaser.GameObjects.Text;
+    96→    cost: Phaser.GameObjects.Text;
+    97→    status: Phaser.GameObjects.Text;
+    98→  } | null = null;
+    99→
+   100→  constructor(scene: Phaser.Scene, onBack: () => void) {
+   101→    super(scene);
+   102→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   103→    const isFa = getLocale() === 'fa';
+   104→
+   105→    // Background
+   106→    const overlay = scene.add.rectangle(w / 2, h / 2, w, h, THEME.BG_VOID, 0.96);
+   107→    this.container.add(overlay);
+   108→    this.container.add(addScanlines(scene, w, h, 0.02));
+   109→
+   110→    // Starfield
+   111→    for (let i = 0; i < 40; i++) {
+   112→      const sx = Math.random() * w;
+   113→      const sy = Math.random() * h;
+   114→      const star = scene.add.circle(sx, sy, Math.random() * 1 + 0.3, 0x40c0ff, Math.random() * 0.2 + 0.05);
+   115→      this.container.add(star);
+   116→    }
+   117→
+   118→    // Title
+   119→    this.container.add(scene.add.text(w / 2, 28, isFa ? 'قشر عصبی' : 'NEURAL CORTEX', fixTextStyle({
+   120→      fontFamily: 'monospace', fontSize: '22px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 5, letterSpacing: 3,
+   121→    })).setOrigin(0.5));
+   122→    this.container.add(scene.add.text(w / 2, 52, isFa ? 'پروتکل‌ها را بکوب' : 'FORGE NEW PROTOCOLS', fixTextStyle({
+   123→      fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 4,
+   124→    })).setOrigin(0.5));
+   125→
+   126→    // Header
+   127→    this.headerText = scene.add.text(TREE_AREA.x + TREE_AREA.w / 2, 82, '', fixTextStyle({
+   128→      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3, letterSpacing: 1,
+   129→    })).setOrigin(0.5);
+   130→    this.container.add(this.headerText);
+   131→
+   132→    // SP badge
+   133→    const spX = w - 85, spY = 38;
+   134→    const spBg = scene.add.rectangle(spX, spY, 140, 42, THEME.BG_PANEL, 0.9);
+   135→    spBg.setStrokeStyle(1, THEME.AMBER, 0.5);
+   136→    this.container.add(spBg);
+   137→    this.container.add(addCornerBrackets(scene, spX, spY, 140, 42, THEME.AMBER, 6, 0.5));
+   138→    this.container.add(scene.add.text(spX - 48, spY, '◆', fixTextStyle({
+   139→      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER,
+   140→    })).setOrigin(0.5));
+   141→    this.container.add(scene.add.text(spX - 28, spY - 9, 'PROTOCOL SP', fixTextStyle({
+   142→      fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM, letterSpacing: 1,
+   143→    })).setOrigin(0, 0.5));
+   144→    this.spValueText = scene.add.text(spX - 28, spY + 7, '0', fixTextStyle({
+   145→      fontFamily: 'monospace', fontSize: '15px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
+   146→    })).setOrigin(0, 0.5);
+   147→    this.container.add(this.spValueText);
+   148→
+   149→    // Left panel: tree tabs
+   150→    this.buildTreeTabs(scene);
+   151→
+   152→    // Detail panel
+   153→    this.buildDetailPanel(scene);
+   154→
+   155→    // Back button
+   156→    const bg = scene.add.rectangle(w / 2, h - 28, 200, 36, THEME.BG_PANEL, 0.95);
+   157→    bg.setStrokeStyle(1, THEME.CYAN, 0.5);
+   158→    this.container.add(addCornerBrackets(scene, w / 2, h - 28, 200, 36, THEME.CYAN, 6, 0.5));
+   159→    const backText = scene.add.text(w / 2, h - 28, isFa ? '▲ خروج' : '▲ DISENGAGE', fixTextStyle({
+   160→      fontFamily: 'monospace', fontSize: '13px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
+   161→    })).setOrigin(0.5);
+   162→    this.container.add([bg, backText]);
+   163→    this.registerNav(bg, backText, () => { AudioSystem.play('uiClick'); onBack(); });
+   164→
+   165→    this.refreshTree();
+   166→    this.container.setScrollFactor(0, 0, true);
+   167→  }
+   168→
+   169→  private buildTreeTabs(scene: Phaser.Scene): void {
+   170→    const tabW = LEFT_PANEL_W - 20, tabH = 62, gap = 4;
+   171→    const startY = 110;
+   172→    const isFa = getLocale() === 'fa';
+   173→    this.trees.forEach((tree) => {
+   174→      const i = this.trees.indexOf(tree);
+   175→      const y = startY + i * (tabH + gap);
+   176→      const x = 10 + tabW / 2;
+   177→      const color = TREE_COLORS[tree];
+   178→      const bg = scene.add.rectangle(x, y, tabW, tabH, THEME.BG_PANEL, 0.92);
+   179→      bg.setStrokeStyle(1, color, 0.25);
+   180→      const bar = scene.add.rectangle(x - tabW / 2 + 3, y, 3, tabH - 10, color, 0.4);
+   181→      const icon = scene.add.text(x - tabW / 2 + 22, y, TREE_ICONS[tree], fixTextStyle({
+   182→        fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_MED,
+   183→      })).setOrigin(0.5);
+   184→      const label = scene.add.text(x + 15, y - 10, isFa ? TREE_NAMES[tree].fa : TREE_NAMES[tree].en, fixTextStyle({
+   185→        fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_MED, letterSpacing: 1,
+   186→      })).setOrigin(0.5);
+   187→      const sub = scene.add.text(x + 15, y + 8, isFa ? TREE_SUBTITLES[tree].fa : TREE_SUBTITLES[tree].en, fixTextStyle({
+   188→        fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM,
+   189→      })).setOrigin(0.5);
+   190→      const count = SkillTreeSystem.getTree(tree).filter(n => n.unlocked).length;
+   191→      const total = SkillTreeSystem.getTree(tree).length;
+   192→      const countText = scene.add.text(x + 15, y + 18, `${count}/${total}`, fixTextStyle({
+   193→        fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
+   194→      })).setOrigin(0.5);
+   195→      this.container.add([bg, bar, icon, label, sub, countText]);
+   196→      this.treeTabs.push({ bg, icon, label, sub, bar });
+   197→      this.registerNav(bg, label, () => { this.selectedTree = tree; this.refreshTree(); AudioSystem.play('uiClick'); });
+   198→    });
+   199→  }
+   200→
+   201→  private buildDetailPanel(scene: Phaser.Scene): void {
+   202→    const { x, y, w, h } = DETAIL_PANEL;
+   203→    const isFa = getLocale() === 'fa';
+   204→    const bg = scene.add.rectangle(x, y, w, h, THEME.BG_PANEL, 0.92);
+   205→    bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
+   206→    this.container.add(bg);
+   207→    this.container.add(addCornerBrackets(scene, x, y, w, h, THEME.AMBER, 6, 0.5));
+   208→    const titleBar = scene.add.rectangle(x, y - h / 2 + 14, w - 8, 24, THEME.BG_PANEL_HI, 0.9);
+   209→    this.container.add(titleBar);
+   210→    this.container.add(scene.add.text(x, y - h / 2 + 14, isFa ? 'گره هدف' : 'TARGET NODE', fixTextStyle({
+   211→      fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_AMBER, letterSpacing: 2,
+   212→    })).setOrigin(0.5));
+   213→    const tier = scene.add.text(x, y - h / 2 + 45, '', fixTextStyle({
+   214→      fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_MED, letterSpacing: 2,
+   215→    })).setOrigin(0.5);
+   216→    const name = scene.add.text(x, y - h / 2 + 75, '', fixTextStyle({
+   217→      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, stroke: '#000', strokeThickness: 3,
+   218→      wordWrap: { width: w - 20 }, align: 'center',
+   219→    })).setOrigin(0.5);
+   220→    this.container.add(scene.add.rectangle(x, y - 25, w - 30, 1, THEME.STROKE_MED, 0.7));
+   221→    const desc = scene.add.text(x, y + 5, '', fixTextStyle({
+   222→      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED,
+   223→      wordWrap: { width: w - 20 }, align: 'center', lineSpacing: 3,
+   224→    })).setOrigin(0.5);
+   225→    const effect = scene.add.text(x, y + 55, '', fixTextStyle({
+   226→      fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_ACCENT,
+   227→      wordWrap: { width: w - 20 }, align: 'center',
+   228→    })).setOrigin(0.5);
+   229→    const cost = scene.add.text(x, y + 95, '', fixTextStyle({
+   230→      fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER, stroke: '#000', strokeThickness: 3,
+   231→    })).setOrigin(0.5);
+   232→    const status = scene.add.text(x, y + 125, '', fixTextStyle({
+   233→      fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
+   234→    })).setOrigin(0.5);
+   235→    this.container.add([tier, name, desc, effect, cost, status]);
+   236→    this.detail = { name, tier, desc, effect, cost, status };
+   237→  }
+   238→
+   239→  private gridToScreen(gridX: number, gridY: number): { x: number; y: number } {
+   240→    const cx = TREE_AREA.x + TREE_AREA.w / 2;
+   241→    const cy = TREE_AREA.y + TREE_AREA.h - 60;
+   242→    return { x: cx + gridX * GRID_SIZE, y: cy - gridY * GRID_SIZE };
+   243→  }
+   244→
+   245→  private refreshTree(): void {
+   246→    // Cleanup
+   247→    const oldSet = new Set(this.treeNodes.map(n => n.diamond));
+   248→    this.navElements = this.navElements.filter(el => !oldSet.has(el.bg as unknown as Phaser.GameObjects.Rectangle));
+   249→    this.treeNodes.forEach(n => {
+   250→      n.allShapes.forEach(s => { if (s && s.active) s.destroy(); });
+   251→      n.allTexts.forEach(t => { if (t && t.active) t.destroy(); });
+   252→    });
+   253→    this.treeNodes = [];
+   254→    if (this.connectionGraphics) { this.connectionGraphics.destroy(); this.connectionGraphics = undefined; }
+   255→    if (this.bgGraphics) { this.bgGraphics.destroy(); this.bgGraphics = undefined; }
+   256→    this.scene.tweens.killAll();
+   257→
+   258→    // SP
+   259→    if (this.spValueText) {
+   260→      const sp = ExperienceSystem.getSkillPoints();
+   261→      this.spValueText.setText(String(sp));
+   262→      safeSetColor(this.spValueText, sp > 0 ? THEME.TEXT_AMBER : THEME.TEXT_DIM);
+   263→    }
+   264→
+   265→    // Tabs
+   266→    this.trees.forEach((tree, i) => {
+   267→      if (!this.treeTabs[i]) return;
+   268→      const tab = this.treeTabs[i];
+   269→      const isSelected = tree === this.selectedTree;
+   270→      const color = TREE_COLORS[tree];
+   271→      tab.bg.setFillStyle(isSelected ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.92);
+   272→      tab.bg.setStrokeStyle(isSelected ? 2 : 1, color, isSelected ? 0.8 : 0.25);
+   273→      tab.bar.setFillStyle(color, isSelected ? 1 : 0.3);
+   274→      safeSetColor(tab.icon, isSelected ? '#ffe080' : THEME.TEXT_MED);
+   275→      safeSetColor(tab.label, isSelected ? '#ffe080' : THEME.TEXT_MED);
+   276→      safeSetColor(tab.sub, isSelected ? THEME.TEXT_MED : THEME.TEXT_DIM);
+   277→    });
+   278→
+   279→    // Header
+   280→    const isFa = getLocale() === 'fa';
+   281→    const treeName = isFa ? TREE_NAMES[this.selectedTree].fa : TREE_NAMES[this.selectedTree].en;
+   282→    const treeSub = isFa ? TREE_SUBTITLES[this.selectedTree].fa : TREE_SUBTITLES[this.selectedTree].en;
+   283→    const unlockedCount = SkillTreeSystem.getTree(this.selectedTree).filter(n => n.unlocked).length;
+   284→    const totalCount = SkillTreeSystem.getTree(this.selectedTree).length;
+   285→    if (this.headerText) {
+   286→      this.headerText.setText(`${TREE_ICONS[this.selectedTree]}  ${treeName}  ·  ${treeSub}  ·  ${unlockedCount}/${totalCount}`);
+   287→      safeSetColor(this.headerText, THEME.TEXT_BRIGHT);
+   288→    }
+   289→
+   290→    // Tree area background
+   291→    this.bgGraphics = this.scene.add.graphics();
+   292→    this.bgGraphics.fillStyle(THEME.BG_PANEL, 0.3);
+   293→    this.bgGraphics.fillRoundedRect(TREE_AREA.x - 8, TREE_AREA.y - 8, TREE_AREA.w + 16, TREE_AREA.h + 16, 8);
+   294→    // Corner brackets
+   295→    const bx = TREE_AREA.x - 8, by = TREE_AREA.y - 8, bw = TREE_AREA.w + 16, bh = TREE_AREA.h + 16;
+   296→    this.bgGraphics.lineStyle(2, TREE_COLORS[this.selectedTree], 0.4);
+   297→    this.bgGraphics.beginPath();
+   298→    this.bgGraphics.moveTo(bx, by + 20); this.bgGraphics.lineTo(bx, by); this.bgGraphics.lineTo(bx + 20, by);
+   299→    this.bgGraphics.moveTo(bx + bw - 20, by); this.bgGraphics.lineTo(bx + bw, by); this.bgGraphics.lineTo(bx + bw, by + 20);
+   300→    this.bgGraphics.moveTo(bx, by + bh - 20); this.bgGraphics.lineTo(bx, by + bh); this.bgGraphics.lineTo(bx + 20, by + bh);
+   301→    this.bgGraphics.moveTo(bx + bw - 20, by + bh); this.bgGraphics.lineTo(bx + bw, by + bh); this.bgGraphics.lineTo(bx + bw, by + bh - 20);
+   302→    this.bgGraphics.strokePath();
+   303→    this.container.add(this.bgGraphics);
+   304→
+   305→    // Get nodes
+   306→    const nodes = SkillTreeSystem.getTree(this.selectedTree);
+   307→    if (nodes.length === 0) return;
+   308→
+   309→    // Draw connections
+   310→    const treeColor = TREE_COLORS[this.selectedTree];
+   311→    const gfx = this.scene.add.graphics();
+   312→    gfx.setDepth(1);
+   313→    nodes.forEach(node => {
+   314→      const skill = getSkill(node.skill.id);
+   315→      if (!skill || !skill.requires) return;
+   316→      const parent = nodes.find(n => n.skill.id === skill.requires);
+   317→      if (!parent) return;
+   318→      const parentSkill = getSkill(parent.skill.id);
+   319→      if (!parentSkill) return;
+   320→      const childPos = this.gridToScreen(skill.pos?.x ?? 0, skill.pos?.y ?? 0);
+   321→      const parentPos = this.gridToScreen(parentSkill.pos?.x ?? 0, parentSkill.pos?.y ?? 0);
+   322→      const parentUnlocked = parent.unlocked;
+   323→      const childRadius = this.getNodeSize(skill);
+   324→      const parentRadius = this.getNodeSize(parentSkill);
+   325→      const traceColor = parentUnlocked ? treeColor : THEME.STROKE_DIM;
+   326→      const traceAlpha = parentUnlocked ? 0.8 : 0.3;
+   327→      const traceWidth = parentUnlocked ? 2.5 : 1.5;
+   328→      gfx.lineStyle(traceWidth, traceColor, traceAlpha);
+   329→      gfx.beginPath();
+   330→      gfx.moveTo(parentPos.x, parentPos.y - parentRadius);
+   331→      const midY = (parentPos.y + childPos.y) / 2;
+   332→      gfx.lineTo(parentPos.x, midY);
+   333→      gfx.strokePath();
+   334→      gfx.fillStyle(traceColor, traceAlpha);
+   335→      gfx.fillCircle(parentPos.x, midY, 2.5);
+   336→      gfx.lineStyle(traceWidth, traceColor, traceAlpha);
+   337→      gfx.beginPath();
+   338→      gfx.moveTo(parentPos.x, midY);
+   339→      gfx.lineTo(childPos.x, midY);
+   340→      gfx.strokePath();
+   341→      gfx.beginPath();
+   342→      gfx.moveTo(childPos.x, midY);
+   343→      gfx.lineTo(childPos.x, childPos.y + childRadius);
+   344→      gfx.strokePath();
+   345→    });
+   346→    this.connectionGraphics = gfx;
+   347→    this.container.add(gfx);
+   348→
+   349→    // Build nodes — DIAMOND shape (rotated square)
+   350→    nodes.forEach((node) => {
+   351→      const skill = getSkill(node.skill.id);
+   352→      if (!skill) return;
+   353→      const pos = this.gridToScreen(skill.pos?.x ?? 0, skill.pos?.y ?? 0);
+   354→      const tier = skill.tier ?? 0;
+   355→      const size = this.getNodeSize(skill);  // half-width of the diamond
+   356→      const allShapes: Phaser.GameObjects.Shape[] = [];
+   357→      const allTexts: Phaser.GameObjects.Text[] = [];
+   358→
+   359→      // Glow
+   360→      const glow = this.scene.add.circle(pos.x, pos.y, size + 12, treeColor, 0);
+   361→      glow.setStrokeStyle(2, treeColor, node.canUnlock ? 0.5 : 0);
+   362→      glow.setBlendMode(Phaser.BlendModes.ADD);
+   363→      glow.setDepth(1);
+   364→      if (node.canUnlock) {
+   365→        this.scene.tweens.add({
+   366→          targets: glow, alpha: { from: 0.3, to: 0.7 }, scale: { from: 1, to: 1.15 },
+   367→          duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+   368→        });
+   369→      }
+   370→      allShapes.push(glow);
+   371→
+   372→      // Diamond = rotated square
+   373→      const diamondSize = size * 2;
+   374→      const diamond = this.scene.add.rectangle(pos.x, pos.y, diamondSize, diamondSize, this.getNodeFill(node), 0.95);
+   375→      diamond.setAngle(45);
+   376→      const strokeW = tier === 2 ? 4 : tier === 1 ? 3 : 2;
+   377→      diamond.setStrokeStyle(strokeW, this.getNodeStroke(node), this.getNodeStrokeAlpha(node));
+   378→      diamond.setDepth(2);
+   379→      allShapes.push(diamond);
+   380→
+   381→      // Inner dot for CORE/SUBROUTINE (smaller diamond inside)
+   382→      if (tier >= 1) {
+   383→        const innerSize = size * 0.8;
+   384→        const inner = this.scene.add.rectangle(pos.x, pos.y, innerSize, innerSize, this.getNodeStroke(node), 0.3);
+   385→        inner.setAngle(45);
+   386→        inner.setDepth(3);
+   387→        allShapes.push(inner);
+   388→      }
+   389→
+   390→      // Icon
+   391→      const iconChar = this.getSkillIcon(skill);
+   392→      const iconSize = tier === 2 ? 20 : tier === 1 ? 17 : 15;
+   393→      const icon = this.scene.add.text(pos.x, pos.y, iconChar, fixTextStyle({
+   394→        fontFamily: 'monospace', fontSize: `${iconSize}px`,
+   395→        color: this.getNodeIconColor(node),
+   396→      })).setOrigin(0.5).setDepth(4);
+   397→      allTexts.push(icon);
+   398→
+   399→      // Cost label
+   400→      const costLabel = this.scene.add.text(pos.x, pos.y + size + 16, `${skill.cost} SP`, fixTextStyle({
+   401→        fontFamily: 'monospace', fontSize: '10px',
+   402→        color: node.unlocked ? THEME.TEXT_GREEN : node.canUnlock ? THEME.TEXT_AMBER : THEME.TEXT_DIM,
+   403→        stroke: '#000', strokeThickness: 2,
+   404→      })).setOrigin(0.5).setDepth(3);
+   405→      allTexts.push(costLabel);
+   406→
+   407→      this.container.add([...allShapes, ...allTexts]);
+   408→
+   409→      const treeNode: TreeNode = {
+   410→        skillId: skill.id, skillData: skill, node,
+   411→        screenX: pos.x, screenY: pos.y,
+   412→        diamond, glow, icon, costLabel, allTexts, allShapes,
+   413→      };
+   414→      this.treeNodes.push(treeNode);
+   415→
+   416→      // Nav
+   417→      const unlockAction = () => {
+   418→        if (node.canUnlock && SkillTreeSystem.unlock(skill.id)) {
+   419→          AudioSystem.play('skillUnlock');
+   420→          this.spawnUnlockEffect(pos.x, pos.y, treeColor, tier);
+   421→          this.refreshTree();
+   422→        }
+   423→      };
+   424→      diamond.setInteractive({ useHandCursor: true });
+   425→      diamond.on('pointerover', () => {
+   426→        this.navFocusIdx = this.navElements.findIndex(e => e.bg === diamond);
+   427→        if (this.navFocusIdx < 0) this.navFocusIdx = 0;
+   428→        this.updateNavFocus();
+   429→        this.updateDetailPanel(node, skill);
+   430→        AudioSystem.play('uiHover');
+   431→      });
+   432→      diamond.on('pointerout', () => this.updateNavFocus());
+   433→      diamond.on('pointerdown', () => { unlockAction(); });
+   434→
+   435→      const backIdx = this.navElements.length - 1;
+   436→      this.navElements.splice(backIdx, 0, {
+   437→        bg: diamond,
+   438→        text: icon,
+   439→        onSelect: unlockAction,
+   440→        focusColor: treeColor,
+   441→        normalColor: this.getNodeStroke(node),
+   442→      });
+   443→    });
+   444→
+   445→    this.navFocusIdx = Math.min(this.navFocusIdx, this.navElements.length - 1);
+   446→    if (this.treeNodes.length > 0) {
+   447→      const idx = Math.min(this.navFocusIdx, this.treeNodes.length - 1);
+   448→      if (idx >= 0 && this.treeNodes[idx]) {
+   449→        this.updateDetailPanel(this.treeNodes[idx].node, this.treeNodes[idx].skillData);
+   450→      }
+   451→    }
+   452→    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+   453→  }
+   454→
+   455→  private getNodeSize(skill: SkillData): number {
+   456→    const tier = skill.tier ?? 0;
+   457→    if (tier === 2) return 34;
+   458→    if (tier === 1) return 26;
+   459→    return 20;
+   460→  }
+   461→
+   462→  private getNodeFill(node: SkillNode): number {
+   463→    if (node.unlocked) return TREE_COLORS[this.selectedTree];
+   464→    if (node.canUnlock) return THEME.BG_PANEL_HI;
+   465→    if (!node.prereqMet) return THEME.BG_DARK;
+   466→    return THEME.BG_PANEL;
+   467→  }
+   468→  private getNodeStroke(node: SkillNode): number {
+   469→    if (node.unlocked) return 0xffffff;
+   470→    if (node.canUnlock) return TREE_COLORS[this.selectedTree];
+   471→    return THEME.STROKE_DIM;
+   472→  }
+   473→  private getNodeStrokeAlpha(node: SkillNode): number {
+   474→    if (node.unlocked) return 1;
+   475→    if (node.canUnlock) return 0.9;
+   476→    if (!node.prereqMet) return 0.25;
+   477→    return 0.5;
+   478→  }
+   479→  private getNodeIconColor(node: SkillNode): string {
+   480→    if (node.unlocked) return '#ffffff';
+   481→    if (node.canUnlock) return THEME.TEXT_BRIGHT;
+   482→    if (!node.prereqMet) return THEME.TEXT_DIM;
+   483→    return THEME.TEXT_MED;
+   484→  }
+   485→  private getSkillIcon(skill: SkillData): string {
+   486→    if (skill.category === 'unlock' && skill.effect.unlock) {
+   487→      const u = skill.effect.unlock;
+   488→      if (u === 'shotgun') return '▣';
+   489→      if (u === 'railgun') return '━';
+   490→      if (u === 'rocket') return '◈';
+   491→      if (u === 'doubleJump') return '↑↑';
+   492→      if (u === 'wallJump') return '⇅';
+   493→      if (u === 'grapple') return '⋙';
+   494→      if (u === 'hover') return '≡';
+   495→      if (u === 'emp') return '⚡';
+   496→      if (u === 'hack') return '⌬';
+   497→    }
+   498→    if (skill.category === 'damage') return '†';
+   499→    if (skill.category === 'speed') return '➤';
+   500→    if (skill.category === 'defense') return '♥';
+   501→    if (skill.category === 'ability') return '◈';
+   502→    if (skill.category === 'utility') return '◆';
+   503→    return '◆';
+   504→  }
+   505→
+   506→  private updateDetailPanel(node: SkillNode, skill: SkillData): void {
+   507→    if (!this.detail) return;
+   508→    const isFa = getLocale() === 'fa';
+   509→    const tier = skill.tier ?? 0;
+   510→    const tierLabel = isFa ? TIER_LABELS[tier]?.fa : TIER_LABELS[tier]?.en;
+   511→    safeSetColor(this.detail.name, node.unlocked ? THEME.TEXT_GREEN : node.canUnlock ? THEME.TEXT_BRIGHT : THEME.TEXT_MED);
+   512→    this.detail.name.setText(node.name);
+   513→    this.detail.tier.setText(`[ ${tierLabel} ]`);
+   514→    safeSetColor(this.detail.tier, tier === 2 ? THEME.TEXT_AMBER : tier === 1 ? THEME.TEXT_ACCENT : THEME.TEXT_MED);
+   515→    this.detail.desc.setText(node.description);
+   516→    const eff = skill.effect;
+   517→    let effectText = '';
+   518→    if (eff.multiplier) {
+   519→      const pct = Math.round((eff.multiplier - 1) * 100);
+   520→      effectText = `${pct > 0 ? '+' : ''}${pct}% ${this.statName(eff.stat, isFa)}`;
+   521→    } else if (eff.additive) {
+   522→      effectText = `+${eff.additive} ${this.statName(eff.stat, isFa)}`;
+   523→    } else if (eff.unlock) {
+   524→      effectText = isFa ? `قابلیت: ${eff.unlock}` : `ABILITY: ${eff.unlock.toUpperCase()}`;
+   525→    }
+   526→    this.detail.effect.setText(effectText);
+   527→    this.detail.cost.setText(node.unlocked ? '✓ INTEGRATED' : `◆ ${skill.cost} SP`);
+   528→    safeSetColor(this.detail.cost, node.unlocked ? THEME.TEXT_GREEN : THEME.TEXT_AMBER);
+   529→    let statusText = '';
+   530→    if (node.unlocked) statusText = isFa ? '✓ فعال' : 'ONLINE';
+   531→    else if (!node.prereqMet) statusText = isFa ? '🔒 قفل' : 'OFFLINE';
+   532→    else if (!node.hasSkillPoints) statusText = isFa ? '◆ SP ناکافی' : 'INSUFFICIENT SP';
+   533→    else statusText = isFa ? '▶ آماده' : 'READY';
+   534→    this.detail.status.setText(statusText);
+   535→    safeSetColor(this.detail.status, node.unlocked ? THEME.TEXT_GREEN : node.canUnlock ? THEME.TEXT_AMBER : THEME.TEXT_DIM);
+   536→  }
+   537→
+   538→  private statName(stat: string, isFa: boolean): string {
+   539→    const names: Record<string, { en: string; fa: string }> = {
+   540→      maxHealth: { en: 'Max HP', fa: 'جان ماکزیمم' },
+   541→      maxEnergy: { en: 'Max Energy', fa: 'انرژی ماکزیمم' },
+   542→      energyRegen: { en: 'Energy Regen', fa: 'بازسازی انرژی' },
+   543→      moveSpeed: { en: 'Move Speed', fa: 'سرعت حرکت' },
+   544→      meleeDamage: { en: 'Melee Damage', fa: 'آسیب نزدیک' },
+   545→      fireCooldownMs: { en: 'Fire Rate', fa: 'نرخ شلیک' },
+   546→      dashCooldownMs: { en: 'Dash Cooldown', fa: 'دش' },
+   547→      invulnMs: { en: 'Invuln', fa: 'آسیب‌ناپذیری' },
+   548→    };
+   549→    const n = names[stat];
+   550→    return n ? (isFa ? n.fa : n.en) : stat;
+   551→  }
+   552→
+   553→  private spawnUnlockEffect(x: number, y: number, color: number, tier: number): void {
+   554→    const particleCount = tier === 2 ? 20 : tier === 1 ? 16 : 12;
+   555→    const ring = this.scene.add.circle(x, y, 10, color, 0.8);
+   556→    ring.setBlendMode(Phaser.BlendModes.ADD);
+   557→    ring.setDepth(10);
+   558→    this.container.add(ring);
+   559→    this.scene.tweens.add({
+   560→      targets: ring, scale: { from: 1, to: 5 }, alpha: { from: 0.8, to: 0 },
+   561→      duration: 700, ease: 'Cubic.out', onComplete: () => ring.destroy(),
+   562→    });
+   563→    const ring2 = this.scene.add.circle(x, y, 10, color, 0.5);
+   564→    ring2.setBlendMode(Phaser.BlendModes.ADD);
+   565→    ring2.setDepth(10);
+   566→    this.container.add(ring2);
+   567→    this.scene.tweens.add({
+   568→      targets: ring2, scale: { from: 1, to: 3 }, alpha: { from: 0.5, to: 0 },
+   569→      duration: 500, delay: 150, ease: 'Cubic.out', onComplete: () => ring2.destroy(),
+   570→    });
+   571→    for (let i = 0; i < particleCount; i++) {
+   572→      const angle = (i / particleCount) * Math.PI * 2;
+   573→      const spark = this.scene.add.circle(x, y, 2.5, color, 0.9);
+   574→      spark.setBlendMode(Phaser.BlendModes.ADD);
+   575→      spark.setDepth(10);
+   576→      this.container.add(spark);
+   577→      const dist = 55 + Math.random() * 40;
+   578→      this.scene.tweens.add({
+   579→        targets: spark,
+   580→        x: x + Math.cos(angle) * dist, y: y + Math.sin(angle) * dist,
+   581→        alpha: 0, scale: 0.2,
+   582→        duration: 600 + Math.random() * 300, ease: 'Cubic.out',
+   583→        onComplete: () => spark.destroy(),
+   584→      });
+   585→    }
+   586→  }
+   587→
+   588→  protected onNavLeft(): void {
+   589→    const idx = this.trees.indexOf(this.selectedTree);
+   590→    this.selectedTree = this.trees[(idx - 1 + this.trees.length) % this.trees.length];
+   591→    this.refreshTree();
+   592→    AudioSystem.play('uiClick');
+   593→    this.navFocusIdx = 0;
+   594→    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+   595→  }
+   596→  protected onNavRight(): void {
+   597→    const idx = this.trees.indexOf(this.selectedTree);
+   598→    this.selectedTree = this.trees[(idx + 1) % this.trees.length];
+   599→    this.refreshTree();
+   600→    AudioSystem.play('uiClick');
+   601→    this.navFocusIdx = 0;
+   602→    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
+   603→  }
+   604→}
+   605→
+   606→export default SkillTreeUI;
+   607→

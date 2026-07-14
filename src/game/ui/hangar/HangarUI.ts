@@ -95,10 +95,7 @@ export class HangarUI implements OverlayUI {
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5).setScrollFactor(0);
     this.container.add([this.exitBg, this.exitText]);
-    this.exitBg.setInteractive({ useHandCursor: true });
-    this.exitBg.on('pointerover', () => { this.exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-    this.exitBg.on('pointerout', () => { this.exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
-    this.exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    // No manual setInteractive — ctrl.addButton() in showTab() handles all input
 
     // Tab buttons — persistent
     const tabY = 85;
@@ -117,15 +114,12 @@ export class HangarUI implements OverlayUI {
       const bg = scene.add.rectangle(x, tabY, tabW, 32, THEME.BG_PANEL, 0.9);
       bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
       bg.setScrollFactor(0);
-      bg.setInteractive({ useHandCursor: true });
       const textEl = scene.add.text(x, tabY, tab.label, fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, letterSpacing: 2,
       })).setOrigin(0.5).setScrollFactor(0);
       this.container.add([bg, textEl]);
       this.tabButtons.push({ bg, text: textEl, tab: tab.id });
-      bg.on('pointerover', () => { if (this.currentTab !== tab.id) { bg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); } });
-      bg.on('pointerout', () => { if (this.currentTab !== tab.id) bg.setFillStyle(THEME.BG_PANEL, 0.9); });
-      bg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
+      // No manual setInteractive — ctrl.addButton() in showTab() handles all input
     });
 
     // Register tabs in UIController for L1/R1 switching
@@ -439,11 +433,13 @@ export class HangarUI implements OverlayUI {
     this.visible = true;
     this.container.setVisible(true);
     this.showTab('chassis');
+    this.ctrl.show(280);
   }
 
   hide(): void {
     this.visible = false;
     this.container.setVisible(false);
+    this.ctrl.hide();
   }
 
   get isVisible(): boolean { return this.visible; }
