@@ -35,6 +35,8 @@ export class VirtualCursor {
   private lastHovered: Phaser.GameObjects.GameObject | null = null;
   private visible = false;
   private clickCooldown = 0;
+  /** Minimum depth for hit-testing. Set by show() based on context. */
+  private minHitDepth = 280;
 
   constructor(private scene: Phaser.Scene) {
     this.x = GAME.WIDTH / 2;
@@ -67,9 +69,15 @@ export class VirtualCursor {
     });
   }
 
-  /** Show the cursor (called when an overlay opens). */
-  show(): void {
+  /**
+   * Show the cursor.
+   * @param minDepth Minimum depth for hit-testing (default 280 for overlays).
+   *   - Overlays (skills/hangar/inventory/etc.): 280 (overlay depth range)
+   *   - Menu/hub/gameover/victory: 40 (stateContainer depth is 50)
+   */
+  show(minDepth: number = 280): void {
     this.visible = true;
+    this.minHitDepth = minDepth;
     this.cursor.setVisible(true);
     // Reset to center
     this.x = GAME.WIDTH / 2;
@@ -135,8 +143,12 @@ export class VirtualCursor {
   /**
    * Find the topmost interactive object under the cursor position.
    * Uses Phaser's InputManager.hitTest with a mock pointer.
-   * Filters to overlay-depth objects (depth >= 280) to avoid hitting
-   * play-state objects behind the overlay.
+   *
+   * Depth filtering:
+   *   - Overlay state (cursor shown by OverlayManager): depth >= 280
+   *     (overlays = 300, dialogue = 290, lore = 285)
+   *   - Menu/hub/gameover/victory state (cursor shown by GameScene):
+   *     depth >= 40 (stateContainer = 50, so all menu buttons qualify)
    *
    * Prefers "button" objects (those with pointerover/pointerdown handlers)
    * over full-screen background blockers (which are just click-swallowers).
@@ -150,7 +162,14 @@ export class VirtualCursor {
       };
     };
 
-    // Filter to overlay-depth interactive objects
+    // Determine minimum depth based on context:
+    // - If in play state (paused or overlay open), only hit overlay-depth objects
+    //   to avoid hitting play-state objects behind the overlay
+    // - If in menu/hub/gameover/victory, hit anything at stateContainer depth (50+)
+    //   or higher
+    const minDepth = this.minHitDepth;
+
+    // Filter to interactive objects at or above minDepth
     const candidates = inputPlugin._list.filter(go => {
       const goInput = go as unknown as { input?: { enabled?: boolean } };
       if (!goInput.input || !goInput.input.enabled) return false;
@@ -161,8 +180,7 @@ export class VirtualCursor {
         if (components.visible === false) return false;
         obj = components.parentContainer ?? null;
       }
-      // Check if in overlay depth range (overlays = 300, dialogue = 290, lore = 285)
-      return this.getDepth(go) >= 280;
+      return this.getDepth(go) >= minDepth;
     });
 
     if (candidates.length === 0) return null;

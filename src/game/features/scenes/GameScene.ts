@@ -237,6 +237,10 @@ export class GameScene extends Phaser.Scene {
     }
     // setScrollFactor(0,0,true) AFTER all children are added by build* methods
     this.stateContainer.setScrollFactor(0, 0, true);
+    // Show virtual cursor for menu-like states (not play — play has no cursor)
+    if (next === 'menu' || next === 'hub' || next === 'gameover' || next === 'victory') {
+      OverlayManager.getCursor()?.show(40);  // stateContainer depth = 50, so min 40
+    }
   }
 
   private cleanupState(): void {
@@ -312,8 +316,12 @@ export class GameScene extends Phaser.Scene {
   private closeOverlay(): void {
     OverlayManager.close((parent) => {
       if (parent === 'play') {
-        // Reopen pause menu
+        // Reopen pause menu + cursor for pause
         this.pauseMenuUI.show();
+        OverlayManager.getCursor()?.show(280);  // overlay depth
+      } else if (parent === 'hub' || parent === 'menu') {
+        // Restore cursor for menu/hub buttons (lower depth)
+        OverlayManager.getCursor()?.show(40);
       }
       // If parent === 'hub', hub is still visible underneath — nothing to do
     });
@@ -370,6 +378,8 @@ export class GameScene extends Phaser.Scene {
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
+      // Virtual cursor (right analog stick) — works with menu/hub buttons
+      OverlayManager.getCursor()?.update();
       // Gamepad + keyboard navigation (delegated to MenuNavHelper)
       this.menuNav?.handleGamepadNav(input);
       // ESC in hub = back to menu
