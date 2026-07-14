@@ -56,6 +56,7 @@ import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
+import { LoreController } from '../../ui/lore/LoreController';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
@@ -111,7 +112,7 @@ export class GameScene extends Phaser.Scene {
   private dialogueUI!: DialogueUI;
   private pauseMenuUI!: PauseMenuUI;
   private controlHints: ControlHintsUI | null = null;
-  private lorePanel: Phaser.GameObjects.Container | null = null;
+  private loreController: LoreController | null = null;
   private bossHealthBar: BossHealthBarUI | null = null;
 
   // Atmosphere + Parallax + NPCs (PLAY-only — never leak to hub/menu)
@@ -335,14 +336,17 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.state === 'play') {
-      // ESC / Start = toggle pause
-      if (input.pausePressed) {
+      // ── Lore controller input handling (closes panel on interact/back/ESC) ──
+      // Must run BEFORE pause toggle so ESC closes lore panel first.
+      this.loreController?.handleInput(input);
+      // ESC / Start = toggle pause (only if lore panel not open)
+      if (input.pausePressed && !this.loreController?.isOpen) {
         this.togglePause();
       }
       if (!this.paused) {
         if (input.interactPressed) this.tryInteract();
-        // Freeze game while lore panel is open
-        if (!this.lorePanel) {
+        // Freeze game while lore panel is open (gating behavior preserved)
+        if (!this.loreController?.isOpen) {
           this.updatePlay(deltaMs);
         }
       } else {
@@ -876,6 +880,9 @@ export class GameScene extends Phaser.Scene {
     this.npcInteraction = new NpcInteractionController(this);
     this.npcInteraction.spawnNPCs(area.id);
 
+    // ── Lore controller (manages lore panel UI — terminal/corpse/echo examination) ──
+    this.loreController = new LoreController(this);
+
     // ── Control hints (gamepad-aware) — only visible on section 1 ──
     this.controlHints = new ControlHintsUI(this);
     // Only show on section 1, hide on all other sections
@@ -1061,14 +1068,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private tryInteract(): void {
-    // Close lore panel if open
-    if (this.lorePanel) {
-      this.lorePanel.destroy();
-      this.lorePanel = null;
+    // Close lore panel if open (delegates to LoreController)
+    if (this.loreController?.isOpen) {
+      this.loreController.close();
       return;
     }
     const area = WorldSystem.getCurrentArea();
     if (!area) return;
+    // ── Wire: NPC interaction ──
     const npcs = NPCSystem.getNPCsInArea(area.id);
     for (const npc of npcs) {
       const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
@@ -1080,61 +1087,25 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
-    // Check nearby Lore Objects
-    if (this.loadedArea) {
+    // ── Wire: Lore object interaction (delegates to LoreController) ──
+    if (this.loadedArea && this.loreController) {
       for (const loreObj of this.loadedArea.loreObjects) {
         if (!loreObj || !loreObj.active) continue;
         const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, loreObj.x, loreObj.y);
         if (dist < 70) {
-          this.showLorePanel(loreObj.getData('loreTitle') as string, loreObj.getData('loreText') as string);
+          this.loreController.open(
+            loreObj.getData('loreTitle') as string,
+            loreObj.getData('loreText') as string,
+          );
           return;
         }
       }
     }
   }
 
-  private showLorePanel(titleKey: string, textKey: string): void {
-    if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
-    const w = GAME.WIDTH, h = GAME.HEIGHT;
-    // Depth 285 — above atmosphere (95) + HUD (200), below dialogue (290)
-    const panel = this.add.container(0, 0).setDepth(285).setScrollFactor(0);
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.9);
-    overlay.setInteractive();
-    panel.add(overlay);
-    const px = w / 2, py = h / 2;
-    const pw = 600, ph = 300;
-    const bg = this.add.rectangle(px, py, pw, ph, 0x0a0d14, 0.97);
-    bg.setStrokeStyle(2, 0xffc040, 0.7);
-    panel.add(bg);
-    // Corner accents
-    const cs = 12;
-    panel.add(this.add.polygon(px - pw / 2, py - ph / 2, [0, 0, cs, 0, 0, cs], 0xffc040, 0.7));
-    panel.add(this.add.polygon(px + pw / 2, py - ph / 2, [0, 0, -cs, 0, 0, cs], 0xffc040, 0.7));
-    panel.add(this.add.polygon(px - pw / 2, py + ph / 2, [0, 0, cs, 0, 0, -cs], 0xffc040, 0.7));
-    panel.add(this.add.polygon(px + pw / 2, py + ph / 2, [0, 0, -cs, 0, 0, -cs], 0xffc040, 0.7));
-    // Title — Persian-aware (fixTextStyle forces letterSpacing 0 + DejaVu Sans for fa)
-    panel.add(this.add.text(px, py - ph / 2 + 30, t(titleKey), fixTextStyle({
-      fontFamily: 'monospace', fontSize: '16px', color: '#ffc040', stroke: '#000', strokeThickness: 4, letterSpacing: 2,
-    })).setOrigin(0.5));
-    panel.add(this.add.rectangle(px, py - ph / 2 + 55, pw - 40, 1, 0x3a3040, 0.7));
-    // Body text — Persian-aware
-    panel.add(this.add.text(px, py + 10, t(textKey), fixTextStyle({
-      fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', lineSpacing: 6,
-      wordWrap: { width: pw - 60 }, align: 'center',
-    })).setOrigin(0.5));
-    // Close hint — Persian-aware
-    const closeHint = getLocale() === 'fa' ? '▲ برای بستن E یا کلیک کنید' : '▲ PRESS E OR CLICK TO CLOSE';
-    panel.add(this.add.text(px, py + ph / 2 - 25, closeHint, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 2,
-    })).setOrigin(0.5));
-    const closePanel = () => {
-      if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
-    };
-    overlay.on('pointerdown', closePanel);
-    this.time.delayedCall(10000, closePanel);
-    this.lorePanel = panel;
-    AudioSystem.play('uiClick');
-  }
+  // ================ LORE PANEL ================
+  // Extracted to LoreController — see src/game/ui/lore/LoreController.ts
+  // GameScene delegates via this.loreController.open(...) / .close() / .isOpen
 
   private updatePlay(deltaMs: number): void {
     if (!this.player) return;
@@ -1211,7 +1182,9 @@ export class GameScene extends Phaser.Scene {
 
   private cleanupPlay(): void {
     this.matter.world.off('collisionstart', this.onCollisionStart, this);
-    if (this.lorePanel) { this.lorePanel.destroy(); this.lorePanel = null; }
+    // Destroy lore controller (closes panel if open)
+    this.loreController?.destroy();
+    this.loreController = null;
     this.destroyBossHealthBar();
     AudioSystem.stopAmbient();
     this.projectiles.forEach(p => p.kill());
