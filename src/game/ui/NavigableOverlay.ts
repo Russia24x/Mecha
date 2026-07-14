@@ -178,6 +178,16 @@ export abstract class NavigableOverlay implements OverlayUI {
 
   get isVisible(): boolean { return this.visible; }
 
+  /**
+   * Clear all registered nav elements (e.g., when switching tabs).
+   * Does NOT destroy the objects — just removes them from the nav list.
+   * Call this before rebuilding tab content to avoid stale references.
+   */
+  protected clearNavElements(): void {
+    this.navElements = [];
+    this.navFocusIdx = 0;
+  }
+
   destroy(): void {
     this.container.destroy();
     this.navElements = [];

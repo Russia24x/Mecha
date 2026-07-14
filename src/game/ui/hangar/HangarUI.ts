@@ -41,6 +41,9 @@ export class HangarUI extends NavigableOverlay {
   private tabButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; tab: HangarTab }[] = [];
   private onBackCallback: () => void;
   private selectedIndex = 0;
+  // Exit button refs (persist across tabs — re-registered on each showTab)
+  private exitBg!: Phaser.GameObjects.Rectangle;
+  private exitText!: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     super(scene);
@@ -67,18 +70,17 @@ export class HangarUI extends NavigableOverlay {
       fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 3, letterSpacing: 4,
     })).setOrigin(0.5));
 
-    // Exit button (top right)
-    const exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
-    exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
-    const exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
+    // Exit button (top right) — stored as fields for re-registration
+    this.exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
+    this.exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    this.exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5);
-    this.container.add([ exitBg, exitText ]);
-    exitBg.setInteractive({ useHandCursor: true });
-    exitBg.on('pointerover', () => { exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-    exitBg.on('pointerout', () => { exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
-    exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
-    this.registerNav(exitBg, exitText, () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    this.container.add([ this.exitBg, this.exitText ]);
+    this.exitBg.setInteractive({ useHandCursor: true });
+    this.exitBg.on('pointerover', () => { this.exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+    this.exitBg.on('pointerout', () => { this.exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+    this.exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
 
     this.buildTabs();
     this.showTab('chassis');
@@ -111,7 +113,8 @@ export class HangarUI extends NavigableOverlay {
       bg.on('pointerover', () => { if (this.currentTab !== tab.id) { bg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); } });
       bg.on('pointerout', () => { if (this.currentTab !== tab.id) bg.setFillStyle(THEME.BG_PANEL, 0.9); });
       bg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
-      this.registerNav(bg, textEl, () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
+      // Note: registerNav is called in showTab(), not here — because showTab
+      // clears nav elements on each tab switch and re-registers everything.
     });
   }
 
@@ -135,6 +138,17 @@ export class HangarUI extends NavigableOverlay {
       this.contentContainer.destroy(true);
       this.contentContainer = null;
     }
+    // ── FIX: Clear nav elements before rebuilding tab content ──
+    // Without this, navElements[] accumulates stale references to destroyed
+    // objects from previous tab. This caused gamepad nav to break after
+    // selecting a chassis (old chassis buttons + new ones both in the list).
+    this.clearNavElements();
+    // Re-register persistent buttons (exit + tabs) — they're NOT in contentContainer
+    this.registerNav(this.exitBg, this.exitText, () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    this.tabButtons.forEach(tb => {
+      this.registerNav(tb.bg, tb.text, () => { AudioSystem.play('uiClick'); this.showTab(tb.tab); });
+    });
+    // Build tab content (will register content-specific buttons)
     this.contentContainer = this.scene.add.container(0, 0);
     this.container.add(this.contentContainer);
     switch (tab) {
