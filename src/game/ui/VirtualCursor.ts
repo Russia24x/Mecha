@@ -137,6 +137,9 @@ export class VirtualCursor {
    * Uses Phaser's InputManager.hitTest with a mock pointer.
    * Filters to overlay-depth objects (depth >= 280) to avoid hitting
    * play-state objects behind the overlay.
+   *
+   * Prefers "button" objects (those with pointerover/pointerdown handlers)
+   * over full-screen background blockers (which are just click-swallowers).
    */
   private findObjectUnderCursor(): Phaser.GameObjects.GameObject | null {
     // Access the internal list of interactive game objects
@@ -170,9 +173,27 @@ export class VirtualCursor {
     const hits = inputPlugin.manager.hitTest(mockPointer as Phaser.Input.Pointer, candidates, camera);
     if (!hits || hits.length === 0) return null;
 
-    // Sort by depth (highest = topmost first)
-    hits.sort((a, b) => this.getDepth(b) - this.getDepth(a));
+    // Sort by depth (highest = topmost first), then prefer buttons over backgrounds
+    hits.sort((a, b) => {
+      const depthDiff = this.getDepth(b) - this.getDepth(a);
+      if (depthDiff !== 0) return depthDiff;
+      // Same depth — prefer objects with pointerover/pointerdown handlers (buttons)
+      // over plain click-swallowers (background overlays)
+      const aIsButton = this.hasPointerHandlers(a) ? 1 : 0;
+      const bIsButton = this.hasPointerHandlers(b) ? 1 : 0;
+      return bIsButton - aIsButton;
+    });
     return hits[0];
+  }
+
+  /**
+   * Check if a game object has pointerover or pointerdown event handlers.
+   * Used to distinguish real buttons from full-screen click-swallowing backgrounds.
+   */
+  private hasPointerHandlers(go: Phaser.GameObjects.GameObject): boolean {
+    const events = (go as unknown as { _events?: Record<string, unknown> })._events;
+    if (!events) return false;
+    return 'pointerover' in events || 'pointerdown' in events;
   }
 
   /** Get the effective depth of a game object (max of own depth + parent containers). */

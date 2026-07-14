@@ -54,6 +54,7 @@ import { QuestUI } from '../../ui/quest/QuestUI';
 import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
+import { VirtualCursor } from '../../ui/VirtualCursor';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
 import { LoreController } from '../../ui/lore/LoreController';
@@ -257,8 +258,9 @@ export class GameScene extends Phaser.Scene {
       this.stateContainer.destroy(true);
       this.stateContainer = null;
     }
-    // Hide pause menu if visible
+    // Hide pause menu + virtual cursor if visible
     if (this.pauseMenuUI?.isVisible) this.pauseMenuUI.hide();
+    OverlayManager.getCursor()?.hide();
     this.paused = false;
   }
 
@@ -363,7 +365,8 @@ export class GameScene extends Phaser.Scene {
           this.updatePlay(deltaMs);
         }
       } else {
-        // Paused — handle pause menu navigation
+        // Paused — handle pause menu navigation + virtual cursor
+        OverlayManager.getCursor()?.update();
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
@@ -733,12 +736,14 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
+      OverlayManager.getCursor()?.hide();
       // Phaser 4 camera fade — smooth resume transition (per cameras skill)
       this.cameras.main.fadeIn(300, 5, 7, 13);
       AudioSystem.play('uiClick');
     } else {
       this.paused = true;
       this.pauseMenuUI.show();
+      OverlayManager.getCursor()?.show();
       this.input.enabled = true;
       AudioSystem.play('uiClick');
     }

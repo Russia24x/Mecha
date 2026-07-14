@@ -50,6 +50,11 @@ export class OverlayManager {
   private static stack: OpenOverlay[] = [];
   private static cursor: VirtualCursor | null = null;
 
+  /** Get the virtual cursor (for manual show/hide outside overlay stack). */
+  static getCursor(): VirtualCursor | null {
+    return this.cursor;
+  }
+
   /** Bind to the active GameScene. Called in create(). */
   static bind(scene: Phaser.Scene): void {
     this.scene = scene;
