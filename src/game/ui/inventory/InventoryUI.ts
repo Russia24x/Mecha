@@ -495,19 +495,8 @@ export class InventoryUI extends NavigableOverlay {
     safeSetColor(this.detail.status, THEME.TEXT_GREEN);
   }
 
-  // ── L1/R1 (shoulder buttons) + left/right stick for tab switching ──
-  protected onNavLeft(): void {
-    const idx = this.tabs.indexOf(this.selectedTab);
-    this.selectedTab = this.tabs[(idx - 1 + this.tabs.length) % this.tabs.length];
-    this.refresh();
-    AudioSystem.play('uiClick');
-  }
-  protected onNavRight(): void {
-    const idx = this.tabs.indexOf(this.selectedTab);
-    this.selectedTab = this.tabs[(idx + 1) % this.tabs.length];
-    this.refresh();
-    AudioSystem.play('uiClick');
-  }
+  // onNavLeft/onNavRight removed — UIController handles L1/R1 tab switching
+  // via ctrl.addTabs() registered in constructor
 }
 
 export default InventoryUI;

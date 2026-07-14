@@ -412,45 +412,8 @@ export class SettingsUI extends NavigableOverlay {
     this.optionElements.push({ objects, bg: enBg, text: enText, onSelect: () => {} });
   }
 
-  protected onNavLeft(): void {
-    const el = this.navElements[this.navFocusIdx];
-    // Find slider by checking if its bg is a slider hit area
-    for (const opt of this.optionElements) {
-      if (opt.bg === el?.bg && opt.objects.length > 4) {
-        // It's a slider (has track, fill, handle, valueText)
-        const handle = opt.objects[3] as Phaser.GameObjects.Arc;
-        const fill = opt.objects[2] as Phaser.GameObjects.Rectangle;
-        const valueText = opt.objects[4] as Phaser.GameObjects.Text;
-        const trackX = (opt.objects[1] as Phaser.GameObjects.Rectangle).x;
-        let value = parseFloat(valueText.text) / 100;
-        value = Math.max(0, value - 0.05);
-        handle.x = trackX - 150 + 300 * value;
-        fill.setDisplaySize(300 * value, 8);
-        valueText.setText(`${Math.round(value * 100)}%`);
-        AudioSystem.play('uiHover');
-        return;
-      }
-    }
-  }
-
-  protected onNavRight(): void {
-    const el = this.navElements[this.navFocusIdx];
-    for (const opt of this.optionElements) {
-      if (opt.bg === el?.bg && opt.objects.length > 4) {
-        const handle = opt.objects[3] as Phaser.GameObjects.Arc;
-        const fill = opt.objects[2] as Phaser.GameObjects.Rectangle;
-        const valueText = opt.objects[4] as Phaser.GameObjects.Text;
-        const trackX = (opt.objects[1] as Phaser.GameObjects.Rectangle).x;
-        let value = parseFloat(valueText.text) / 100;
-        value = Math.min(1, value + 0.05);
-        handle.x = trackX - 150 + 300 * value;
-        fill.setDisplaySize(300 * value, 8);
-        valueText.setText(`${Math.round(value * 100)}%`);
-        AudioSystem.play('uiHover');
-        return;
-      }
-    }
-  }
+  // onNavLeft/onNavRight removed — UIController handles L1/R1 tab switching
+  // and slider nudge via addButton onSelect (A button = nudge 5%)
 }
 
 export default SettingsUI;

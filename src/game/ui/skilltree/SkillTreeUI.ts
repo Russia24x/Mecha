@@ -582,22 +582,8 @@ export class SkillTreeUI extends NavigableOverlay {
     }
   }
 
-  protected onNavLeft(): void {
-    const idx = this.trees.indexOf(this.selectedTree);
-    this.selectedTree = this.trees[(idx - 1 + this.trees.length) % this.trees.length];
-    this.refreshTree();
-    AudioSystem.play('uiClick');
-    this.navFocusIdx = 0;
-    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
-  }
-  protected onNavRight(): void {
-    const idx = this.trees.indexOf(this.selectedTree);
-    this.selectedTree = this.trees[(idx + 1) % this.trees.length];
-    this.refreshTree();
-    AudioSystem.play('uiClick');
-    this.navFocusIdx = 0;
-    this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });
-  }
+  // onNavLeft/onNavRight removed — UIController handles L1/R1 tree switching
+  // via ctrl.addTabs() registered in buildTreeTabs()
 }
 
 export default SkillTreeUI;
