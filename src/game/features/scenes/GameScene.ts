@@ -426,13 +426,18 @@ export class GameScene extends Phaser.Scene {
 
   private buildPlay(): void {
     // Delegate construction to PlayController.build()
+    // Pass this.targetRegistry so Projectile can find it via (scene as HasTargetRegistry).targetRegistry
     // Collision route registration stays here (handlers are in GameScene)
-    const state = PlayController.build(this, this.physicsSys, this.particles, this.camera, {
-      onToast: (msg: string) => this.hud?.toast(msg),
-      isMiniBossSpawned: () => this.miniBossSpawned,
-      setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
-      setExternalRefs: (enemies, anchors) => this.player?.setExternalRefs(enemies, anchors),
-    });
+    const state = PlayController.build(
+      this, this.physicsSys, this.particles, this.camera,
+      this.targetRegistry,
+      {
+        onToast: (msg: string) => this.hud?.toast(msg),
+        isMiniBossSpawned: () => this.miniBossSpawned,
+        setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
+        setExternalRefs: (enemies, anchors) => this.player?.setExternalRefs(enemies, anchors),
+      },
+    );
     if (!state) return;
     // Assign built state to GameScene fields
     this.parallax = state.parallax;
@@ -456,8 +461,8 @@ export class GameScene extends Phaser.Scene {
     this.bossArenaActive = false;
     this.miniBossSpawned = false;
     this.sequenceTimers = [];
-    // Register player in target registry
-    this.targetRegistry.registerPlayer(this.player);
+    // Note: targetRegistry already cleared + player registered by PlayController.build()
+    // No need to call registerPlayer again here.
 
     // ── Collision dispatch router (handlers are in GameScene) ──
     this.collision = new CollisionController(this);

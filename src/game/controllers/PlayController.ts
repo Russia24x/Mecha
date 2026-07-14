@@ -121,6 +121,7 @@ export class PlayController {
     physicsSys: PhysicsSystem,
     particles: ParticleSystem,
     camera: CameraSystem,
+    targetRegistry: TargetRegistry,
     callbacks: PlayCallbacks,
   ): PlayBuildResult | null {
     const area = WorldSystem.getCurrentArea();
@@ -188,9 +189,11 @@ export class PlayController {
     // ── Companion ──
     const companion = new CompanionEntity(scene, cp.x + 30, cp.y - 40);
 
-    // ── Target registry: register player ──
-    // (enemies registered via spawnEnemiesForSection below)
-    const targetRegistry = new TargetRegistry();
+    // ── Target registry: use the EXISTING GameScene.targetRegistry ──
+    // Projectile reads targetRegistry from scene via (scene as HasTargetRegistry).targetRegistry
+    // So we MUST use the same instance — not create a new one.
+    // Clear it first (in case of retry/respawn), then register player.
+    targetRegistry.clear();
     targetRegistry.registerPlayer(player);
 
     // ── Spawn enemies for initial section ──
