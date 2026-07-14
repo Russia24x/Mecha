@@ -196,6 +196,12 @@ export class SkillTreeUI extends NavigableOverlay {
       this.treeTabs.push({ bg, icon, label, sub, bar });
       this.registerNav(bg, label, () => { this.selectedTree = tree; this.refreshTree(); AudioSystem.play('uiClick'); });
     });
+
+    // Register tabs for L1/R1 switching
+    this.getController()?.addTabs(this.trees.map(t => ({
+      id: t, label: t,
+      onSelect: () => { this.selectedTree = t; this.refreshTree(); AudioSystem.play('uiClick'); },
+    })));
   }
 
   private buildDetailPanel(scene: Phaser.Scene): void {
@@ -243,6 +249,9 @@ export class SkillTreeUI extends NavigableOverlay {
   }
 
   private refreshTree(): void {
+    // Sync UIController tab index
+    const treeIdx = this.trees.indexOf(this.selectedTree);
+    this.getController()?.setCurrentTab(treeIdx >= 0 ? treeIdx : 0);
     // Cleanup
     const oldSet = new Set(this.treeNodes.map(n => n.diamond));
     this.navElements = this.navElements.filter(el => !oldSet.has(el.bg as unknown as Phaser.GameObjects.Rectangle));

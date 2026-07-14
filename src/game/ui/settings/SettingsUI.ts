@@ -91,6 +91,12 @@ export class SettingsUI extends NavigableOverlay {
       });
     });
 
+    // Register categories as tabs for L1/R1 switching
+    this.getController()?.addTabs(CATEGORIES.map(cat => ({
+      id: cat.id, label: cat.en,
+      onSelect: () => { this.selectedCategory = cat.id; this.refreshOptions(); AudioSystem.play('uiClick'); },
+    })));
+
     // Right panel: options
     const rightX = 590, rightY = 280, rightW = 580, rightH = 360;
     const rightBg = scene.add.rectangle(rightX, rightY, rightW, rightH, THEME.BG_PANEL, 0.6);
@@ -127,6 +133,9 @@ export class SettingsUI extends NavigableOverlay {
   }
 
   private refreshOptions(): void {
+    // Sync UIController tab index
+    const catIdx = CATEGORIES.findIndex(c => c.id === this.selectedCategory);
+    this.getController()?.setCurrentTab(catIdx >= 0 ? catIdx : 0);
     this.refreshCategories();
     // *** FIX: destroy ALL option objects (was only destroying bg + text)
     this.optionElements.forEach(e => {

@@ -188,6 +188,12 @@ export class InventoryUI extends NavigableOverlay {
       this.registerNav(bg, textEl, () => { this.selectedTab = tab; this.refresh(); AudioSystem.play('uiClick'); });
     });
 
+    // Register tabs for L1/R1 switching
+    this.getController()?.addTabs(this.tabs.map(t => ({
+      id: t, label: t,
+      onSelect: () => { this.selectedTab = t; this.refresh(); AudioSystem.play('uiClick'); },
+    })));
+
     // Grid background panel
     const gridPanelW = this.GRID_COLS * (this.SLOT_SIZE + this.SLOT_GAP) + this.SLOT_GAP + 20;
     const gridPanelH = 400;
@@ -283,6 +289,9 @@ export class InventoryUI extends NavigableOverlay {
 
   // ─── Refresh grid ──────────────────────────────────────────────────────
   private refresh(): void {
+    // Sync UIController tab index
+    const tabIdx = this.tabs.indexOf(this.selectedTab);
+    this.getController()?.setCurrentTab(tabIdx >= 0 ? tabIdx : 0);
     // Cleanup old slots
     const oldBgSet = new Set(this.itemSlots.map(s => s.bg));
     this.navElements = this.navElements.filter(el => !oldBgSet.has(el.bg as unknown as Phaser.GameObjects.Rectangle));
