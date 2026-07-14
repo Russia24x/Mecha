@@ -139,8 +139,20 @@ export class UIController {
     this.currentTabIndex = index;
   }
 
-  /** Clear all focusables (call before rebuilding tab content). */
+  /** Clear all focusables (call before rebuilding tab content).
+   *  Removes event listeners from bg objects to prevent accumulation. */
   clearFocusables(): void {
+    // Remove event listeners + disable interactive on all registered bgs
+    for (const f of this.focusables) {
+      if (f.bg && f.bg.active) {
+        try {
+          f.bg.off('pointerover');
+          f.bg.off('pointerout');
+          f.bg.off('pointerdown');
+          f.bg.removeInteractive();
+        } catch { /* bg already destroyed */ }
+      }
+    }
     this.focusables = [];
     this.focusIndex = -1;
   }
@@ -242,7 +254,7 @@ export class UIController {
       // Cursor click (A button / fire)
       if ((input.jumpPressed || input.firePressed) && this.clickCooldown <= 0) {
         if (this.lastHovered && this.lastHovered.active) {
-          AudioSystem.play('uiClick');
+          // emit('pointerdown') fires addButton's handler which plays uiClick
           this.lastHovered.emit('pointerdown');
           this.clickCooldown = 200;
           this.navCooldown = 300;
@@ -437,6 +449,12 @@ export class UIController {
     if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
     this.keyHandler = (e: KeyboardEvent) => {
       if (this.focusables.length === 0) return;
+      // Enter/Space handled by update() via jumpPressed/firePressed — NOT here
+      // (would double-fire: keyHandler + update() both activate)
+      if (e.code === 'Enter' || e.code === 'Space') return;
+      // Arrow/WASD navigation — gated by navCooldown to prevent double-step
+      // (keyHandler fires on keydown, update() fires next tick via heldUp/heldDown)
+      if (this.navCooldown > 0) return;
       let moved = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') {
         this.focusIndex = this.findNearest('up'); moved = true;
@@ -446,18 +464,18 @@ export class UIController {
         if (this.tabs.length > 0) {
           this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
           this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
+          this.navCooldown = 200;
         }
       } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
         if (this.tabs.length > 0) {
           this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
           this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
+          this.navCooldown = 200;
         }
-      } else if (e.code === 'Enter' || e.code === 'Space') {
-        const f = this.focusables[this.focusIndex];
-        if (f && !f.disabled) { AudioSystem.play('uiClick'); f.onSelect(); }
       }
       if (moved) {
         this.updateFocusVisual(); AudioSystem.play('uiHover');
+        this.navCooldown = 120;
         const f = this.focusables[this.focusIndex];
         if (f) this.setPosition(f.x, f.y);
       }

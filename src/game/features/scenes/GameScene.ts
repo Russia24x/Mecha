@@ -410,10 +410,7 @@ export class GameScene extends Phaser.Scene {
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
       InputSystem.setGameplayBlocked(true);  // Block gameplay in menu states
-      // UIController handles cursor + input (D-pad, tabs, click)
-      // MenuNavHelper handles button focus + spatial nav (uses same UIController cursor)
       OverlayManager.getSharedController()?.update();
-      this.menuNav?.handleGamepadNav(input);
       // ESC in hub = back to menu
       if (this.state === 'hub' && input.pausePressed) {
         this.setState('menu');
@@ -1000,7 +997,7 @@ export class GameScene extends Phaser.Scene {
       AudioSystem.play('uiClick');
       this.setState('menu');
     });
-    this.menuNav!.setupNav();
+    // setupNav removed — UIController handles keyboard
   }
 
   private buildVictory(): void {
@@ -1041,7 +1038,7 @@ export class GameScene extends Phaser.Scene {
       AudioSystem.play('uiClick');
       this.setState('hub');
     });
-    this.menuNav!.setupNav();
+    // setupNav removed — UIController handles keyboard
   }
 
   // ================ HELPERS ================

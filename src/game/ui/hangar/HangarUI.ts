@@ -121,12 +121,6 @@ export class HangarUI implements OverlayUI {
       this.tabButtons.push({ bg, text: textEl, tab: tab.id });
       // No manual setInteractive — ctrl.addButton() in showTab() handles all input
     });
-
-    // Register tabs in UIController for L1/R1 switching
-    this.ctrl.addTabs(tabs.map(t => ({
-      id: t.id, label: t.label,
-      onSelect: () => { this.showTab(t.id); },
-    })));
   }
 
   // ================ TAB SWITCHING ================

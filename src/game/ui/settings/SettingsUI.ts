@@ -251,8 +251,10 @@ export class SettingsUI extends NavigableOverlay {
 
     this.container.add(objects);
 
-    // Register sliderBg via registerNav (handles setInteractive + ctrl.addButton)
-    // onSelect = click-to-jump (same as pointerdown behavior)
+    // Slider: register with UIController for D-pad focus + A button nudge.
+    // registerNav wires setInteractive + pointerover + pointerdown (plays uiClick + onSelect).
+    // For mouse click, we need click-to-jump (localX) — so we override pointerdown
+    // AFTER registerNav to replace the generic onSelect with click-to-jump.
     const backIdx = this.navElements.length - 1;
     this.registerNav(sliderBg, labelEl, () => {
       // A button on slider = nudge by 5%
@@ -263,8 +265,10 @@ export class SettingsUI extends NavigableOverlay {
       valueText.setText(`${Math.round(v * 100)}%`);
       onChange(v);
     }, { insertAt: backIdx });
-    // Add click-to-jump on sliderBg (complements registerNav's pointerdown)
-    sliderBg.on('pointerdown', (_p: Phaser.Input.Pointer, localX: number) => {
+    // Override pointerdown: replace registerNav's generic handler with click-to-jump
+    sliderBg.off('pointerdown');
+    sliderBg.on('pointerdown', (p: Phaser.Input.Pointer, localX: number) => {
+      AudioSystem.play('uiClick');
       const v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
       handle.x = x - 150 + 300 * v;
       fill.setDisplaySize(300 * v, 8);

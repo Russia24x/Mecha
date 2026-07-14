@@ -262,7 +262,7 @@ export class SkillTreeUI extends NavigableOverlay {
     this.treeNodes = [];
     if (this.connectionGraphics) { this.connectionGraphics.destroy(); this.connectionGraphics = undefined; }
     if (this.bgGraphics) { this.bgGraphics.destroy(); this.bgGraphics = undefined; }
-    this.scene.tweens.killAll();
+    this.scene.tweens.killTweensOf(this.container);
 
     // SP
     if (this.spValueText) {
