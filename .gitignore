@@ -50,7 +50,5 @@ test
 prompt
 
 server.log
-# System skill files — not part of this project
-skills/
-upload/
-prisma/db/
+# Skills directory
+/skills/
