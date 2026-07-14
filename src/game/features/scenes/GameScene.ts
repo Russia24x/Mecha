@@ -57,6 +57,9 @@ import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } fr
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
 import { LoreController } from '../../ui/lore/LoreController';
+import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
+import { MenuBuilder } from '../../ui/menu/MenuBuilder';
+import { HubBuilder } from '../../ui/hub/HubBuilder';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
@@ -69,19 +72,14 @@ import type { EnemyTypeId } from '../../data/types';
 
 type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
 
-/** A focusable button for gamepad/keyboard navigation. */
-interface Focusable {
-  bg: Phaser.GameObjects.Shape;   // Rectangle or Arc
-  text: Phaser.GameObjects.Text;
-  onSelect: () => void;
-}
-
 export class GameScene extends Phaser.Scene {
   private state: GameState = 'menu';
   private stateContainer: Phaser.GameObjects.Container | null = null;
-  private menuButtons: Focusable[] = [];
-  private menuFocusIndex = 0;
-  private menuNavHandler: ((e: KeyboardEvent) => void) | null = null;
+  // Shared menu navigation helper (used by menu, hub, gameover, victory)
+  private menuNav: MenuNavHelper | null = null;
+  // Builders for menu + hub (gameover/victory still inline — smaller, rarely change)
+  private menuBuilder: MenuBuilder | null = null;
+  private hubBuilder: HubBuilder | null = null;
 
   // Systems (physicsSys — NOT 'physics', which conflicts with Phaser.Scene.physics)
   private physicsSys!: PhysicsSystem;
@@ -222,9 +220,9 @@ export class GameScene extends Phaser.Scene {
     // Cleanup previous state
     this.cleanupState();
     this.state = next;
-    this.menuButtons = [];
-    this.menuFocusIndex = 0;
+    // Create fresh MenuNavHelper for this state (shared by menu/hub/gameover/victory)
     this.stateContainer = this.add.container(0, 0).setDepth(50);
+    this.menuNav = new MenuNavHelper(this, this.stateContainer);
     switch (next) {
       case 'menu': this.buildMenu(); break;
       case 'hub': this.buildHub(); break;
@@ -243,10 +241,14 @@ export class GameScene extends Phaser.Scene {
     if (this.state === 'play') {
       this.cleanupPlay();
     }
-    if (this.menuNavHandler) {
-      window.removeEventListener('keydown', this.menuNavHandler);
-      this.menuNavHandler = null;
-    }
+    // Cleanup builders
+    this.menuBuilder?.destroy();
+    this.menuBuilder = null;
+    this.hubBuilder?.destroy();
+    this.hubBuilder = null;
+    // Cleanup menu nav helper (removes keyboard listener + clears buttons)
+    this.menuNav?.destroy();
+    this.menuNav = null;
     if (this.stateContainer) {
       this.stateContainer.destroy(true);
       this.stateContainer = null;
@@ -361,8 +363,8 @@ export class GameScene extends Phaser.Scene {
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
-      // Gamepad + keyboard navigation
-      this.handleMenuGamepadNav(input);
+      // Gamepad + keyboard navigation (delegated to MenuNavHelper)
+      this.menuNav?.handleGamepadNav(input);
       // ESC in hub = back to menu
       if (this.state === 'hub' && input.pausePressed) {
         this.setState('menu');
@@ -383,429 +385,38 @@ export class GameScene extends Phaser.Scene {
   // ================ MENU ================
 
   private buildMenu(): void {
-    const c = this.stateContainer!;
-    const w = GAME.WIDTH, h = GAME.HEIGHT;
-
-    // === Background: starry night sky ===
-    const bg = this.add.graphics();
-    bg.setDepth(0);
-    bg.fillStyle(0x040814, 1);
-    bg.fillRect(0, 0, w, h);
-    for (let r = 500; r > 0; r -= 30) {
-      bg.fillStyle(0x0a1228, 0.02);
-      bg.fillCircle(w / 2, h * 0.35, r);
-    }
-    c.add(bg);
-
-    // Stars — 120 twinkling, drifting dots
-    for (let i = 0; i < 120; i++) {
-      const sx = Math.random() * w;
-      const sy = Math.random() * h * 0.75;
-      const size = 0.5 + Math.random() * 2;
-      const brightness = 0.2 + Math.random() * 0.8;
-      const starColor = Math.random() < 0.15 ? 0xffe0a0 : Math.random() < 0.3 ? 0xa0c0ff : 0xc0e0ff;
-      const star = this.add.circle(sx, sy, size, starColor, brightness);
-      star.setDepth(1);
-      c.add(star);
-      this.tweens.add({
-        targets: star,
-        alpha: { from: brightness * 0.1, to: brightness },
-        scale: { from: size * 0.5, to: size * 1.2 },
-        duration: 600 + Math.random() * 2500,
-        yoyo: true, repeat: -1,
-        delay: Math.random() * 3000,
-        ease: 'Sine.inOut',
-      });
-      this.tweens.add({
-        targets: star,
-        x: sx + (Math.random() - 0.5) * 30,
-        y: sy + (Math.random() - 0.5) * 20,
-        duration: 5000 + Math.random() * 8000,
-        yoyo: true, repeat: -1,
-        ease: 'Sine.inOut',
-      });
-    }
-
-    // Shooting stars
-    const shootingStarFunc = () => {
-      const ss = this.add.rectangle(0, 0, 40 + Math.random() * 30, 1.5, 0xffffff, 0.9);
-      ss.setBlendMode(Phaser.BlendModes.ADD);
-      ss.setDepth(1);
-      ss.setOrigin(0, 0.5);
-      ss.setRotation(0.3 + Math.random() * 0.2);
-      c.add(ss);
-      const startX = Math.random() * w * 0.7;
-      const startY = Math.random() * h * 0.3;
-      const endX = startX + 300 + Math.random() * 200;
-      const endY = startY + 120 + Math.random() * 80;
-      this.tweens.add({
-        targets: ss,
-        x: endX, y: endY,
-        alpha: { from: 0.9, to: 0 },
-        duration: 600 + Math.random() * 400,
-        onComplete: () => ss.destroy(),
-      });
-    };
-    this.time.addEvent({
-      delay: 3000, loop: true,
-      callback: () => { if (Math.random() < 0.4) shootingStarFunc(); },
+    // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
+    this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
+      onStart: () => this.setState('hub'),
+      onContinue: () => {
+        if (CheckpointSystem.hasCheckpoint()) {
+          CheckpointSystem.init();
+          WorldSystem.initFromSave();
+          this.setState('hub');
+        }
+      },
+      onOpenSettings: () => this.openOverlay('settings'),
     });
-
-    // Brighter "beacon" stars with pulsing glow
-    for (let i = 0; i < 8; i++) {
-      const bx = Math.random() * w;
-      const by = Math.random() * h * 0.55;
-      const beaconColor = [0xffffff, 0x80a0ff, 0xffd0a0, 0xa0ffff][Math.floor(Math.random() * 4)];
-      const beacon = this.add.circle(bx, by, 2 + Math.random(), beaconColor, 1);
-      beacon.setDepth(1); beacon.setBlendMode(Phaser.BlendModes.ADD);
-      c.add(beacon);
-      const beaconGlow = this.add.circle(bx, by, 10 + Math.random() * 6, beaconColor, 0.12);
-      beaconGlow.setDepth(1); beaconGlow.setBlendMode(Phaser.BlendModes.ADD);
-      c.add(beaconGlow);
-      this.tweens.add({
-        targets: beaconGlow,
-        alpha: { from: 0.05, to: 0.25 },
-        scale: { from: 0.7, to: 1.3 },
-        duration: 1200 + Math.random() * 2000,
-        yoyo: true, repeat: -1, ease: 'Sine.inOut',
-      });
-      this.tweens.add({
-        targets: beacon,
-        alpha: { from: 0.6, to: 1 },
-        duration: 800 + Math.random() * 1200,
-        yoyo: true, repeat: -1,
-      });
-    }
-
-    // === Title: MECHA (very large) ===
-    const titleY = h * 0.3;
-    const glow = this.add.circle(w / 2, titleY, 250, 0x39d0d8, 0.05);
-    glow.setBlendMode(Phaser.BlendModes.ADD); glow.setDepth(2);
-    c.add(glow);
-    this.tweens.add({ targets: glow, alpha: { from: 0.03, to: 0.08 }, duration: 3000, yoyo: true, repeat: -1 });
-
-    const mechaText = this.add.text(w / 2, titleY, 'MECHA', {
-      fontFamily: 'monospace', fontSize: '96px', color: '#39d0d8',
-      stroke: '#000', strokeThickness: 8,
-    }).setOrigin(0.5).setDepth(3);
-    c.add(mechaText);
-
-    const protocolText = this.add.text(w / 2, titleY + 65, 'LAST PROTOCOL', {
-      fontFamily: 'monospace', fontSize: '22px', color: '#e0e8f0',
-      stroke: '#000', strokeThickness: 3, letterSpacing: 4,
-    }).setOrigin(0.5).setDepth(3);
-    c.add(protocolText);
-    this.tweens.add({ targets: protocolText, alpha: { from: 0.6, to: 1 }, duration: 2500, yoyo: true, repeat: -1 });
-
-    // === Small minimal buttons ===
-    const btnY = h * 0.6;
-    const btnGap = 48;
-    this.makeMenuBtn(w / 2, btnY, t('menu.start'), () => { AudioSystem.play('uiClick'); this.setState('hub'); });
-    this.makeMenuBtn(w / 2, btnY + btnGap, t('menu.continue'), () => {
-      AudioSystem.play('uiClick');
-      if (CheckpointSystem.hasCheckpoint()) {
-        CheckpointSystem.init();
-        WorldSystem.initFromSave();
-        this.setState('hub');
-      }
-    }, !SaveSystem.hasCheckpoint());
-    this.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.openOverlay('settings'); });
-    this.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
-
-    // === Footer ===
-    c.add(this.add.text(w / 2, h - 25, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
-      fontFamily: 'monospace', fontSize: '9px', color: '#0a1220',
-    }).setOrigin(0.5).setDepth(3));
-
-    this.setupMenuNav();
+    this.menuBuilder.build();
   }
 
   // ================ HUB (World Map + Menu Access) ================
 
   private buildHub(): void {
-    const c = this.stateContainer!;
-    const w = GAME.WIDTH, h = GAME.HEIGHT;
-    const isFa = getLocale() === 'fa';
-    const L = (en: string, fa: string) => isFa ? fa : en;
-
-    // Background
-    const bg = this.add.graphics();
-    bg.fillStyle(0x0a0e1a, 1);
-    bg.fillRect(0, 0, w, h);
-    for (let r = 400; r > 0; r -= 25) {
-      bg.fillStyle(0x101828, 0.025);
-      bg.fillCircle(w / 2, h * 0.45, r);
-    }
-    bg.setDepth(0);
-    c.add(bg);
-
-    // === Top bar: Title + Player stats (improved UI) ===
-    const headerBg = this.add.rectangle(w / 2, 30, w - 40, 44, 0x0a0d14, 0.8);
-    headerBg.setStrokeStyle(1, 0x1a3040, 0.5);
-    headerBg.setDepth(1);
-    c.add(headerBg);
-
-    // Title with accent bracket
-    const titleText = isFa ? 'انتخاب ماموریت' : 'MISSION SELECT';
-    c.add(this.add.text(40, 30, `▸ ${titleText}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', letterSpacing: 2,
-    })).setOrigin(0, 0.5).setDepth(2));
-
-    // Player stats (right side) — level + XP bar + skill points
-    const save = SaveSystem.getPlayer();
-    const xpNeeded = ExperienceSystem.xpForLevel(save.level);
-    const xpPct = Math.min(1, save.xp / xpNeeded);
-    // Level badge
-    c.add(this.add.text(w - 280, 20, isFa ? `سطح ${save.level}` : `LV.${save.level}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '13px', color: '#40ff80', stroke: '#000', strokeThickness: 2,
-    })).setOrigin(0, 0.5).setDepth(2));
-    // XP bar background
-    c.add(this.add.rectangle(w - 200, 26, 100, 6, 0x05080c, 1).setStrokeStyle(1, 0x1a3040, 0.6).setOrigin(0, 0.5).setDepth(2));
-    // XP bar fill
-    c.add(this.add.rectangle(w - 199, 26, 98 * xpPct, 4, 0xffc040, 1).setOrigin(0, 0.5).setDepth(2));
-    // XP text
-    c.add(this.add.text(w - 200, 36, `${save.xp}/${xpNeeded}`, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '8px', color: '#5a6470',
-    })).setOrigin(0, 0.5).setDepth(2));
-    // Skill points badge
-    const spLabel = isFa ? `◆ ${save.skillPoints}` : `◆${save.skillPoints}`;
-    c.add(this.add.text(w - 90, 30, spLabel, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '13px', color: save.skillPoints > 0 ? '#ffc040' : '#3a4350', stroke: '#000', strokeThickness: 2,
-    })).setOrigin(0.5).setDepth(2));
-    // Kills
-    const killsLabel = isFa ? `☠ ${save.totalKills}` : `☠${save.totalKills}`;
-    c.add(this.add.text(w - 45, 30, killsLabel, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '13px', color: '#5a6470', stroke: '#000', strokeThickness: 2,
-    })).setOrigin(0.5).setDepth(2));
-
-    // === Act-based world map ===
-    // Layout: horizontal scrollable columns, one per Act.
-    // Each Act column has: Act title + 3 area cards stacked vertically.
-    const tree = WorldMapSystem.getMapTree();
-
-    // ── Collect all acts with their areas ──
-    const actData: {
-      actId: number;
-      actName: string;
-      areas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[];
-    }[] = [];
-    for (const act of tree) {
-      const actAreas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[] = [];
-      for (const regionData of act.regions) {
-        for (const node of regionData.nodes) {
-          actAreas.push({
-            areaId: node.area.id,
-            nameKey: node.area.nameKey,
-            unlocked: node.unlocked,
-            isCurrent: node.isCurrent,
-            bossDefeated: node.bossDefeated,
-            hasBoss: node.hasBoss,
-            regionId: node.area.regionId,
-          });
+    // Delegate to HubBuilder — see src/game/ui/hub/HubBuilder.ts
+    this.hubBuilder = new HubBuilder(this, this.stateContainer!, this.menuNav!, {
+      onEnterArea: (areaId: string) => {
+        if (areaId !== WorldSystem.getCurrent().areaId) {
+          WorldSystem.travelTo(areaId, 1);
         }
-      }
-      actData.push({
-        actId: act.act.id,
-        actName: t(act.act.nameKey),
-        areas: actAreas,
-      });
-    }
-
-    // ── Layout: Act columns side by side ──
-    const cardW = 200;
-    const cardH = 180;
-    const cardGap = 12;
-    const actGap = 28;
-    const actTitleH = 36;
-    const actsToShow = actData.filter(a => a.areas.length > 0);
-    const totalW = actsToShow.length * cardW + (actsToShow.length - 1) * actGap;
-    const startX = (w - totalW) / 2 + cardW / 2;
-    const baseY = 110;
-
-    actsToShow.forEach((act, actIdx) => {
-      const actX = startX + actIdx * (cardW + actGap);
-      const hasUnlocked = act.areas.some(a => a.unlocked);
-
-      // ── Act title bar ──
-      const actTitleH2 = 44;
-      const actTitleBg = this.add.rectangle(actX, baseY, cardW, actTitleH2, hasUnlocked ? 0x0d1820 : 0x05080c, 0.95);
-      actTitleBg.setStrokeStyle(2, hasUnlocked ? 0x39d0d8 : 0x1a3040, hasUnlocked ? 0.8 : 0.4);
-      actTitleBg.setDepth(2);
-      c.add(actTitleBg);
-      const romanNum = ['I', 'II', 'III', 'IV', 'V'][act.actId - 1] || String(act.actId);
-      // ACT number — bigger + brighter
-      c.add(this.add.text(actX, baseY - 8, `ACT ${romanNum}`, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '14px', color: hasUnlocked ? '#66f0ff' : '#3a4350',
-        stroke: '#000', strokeThickness: 3, letterSpacing: 3,
-      })).setOrigin(0.5).setDepth(3));
-      // Act name — bigger + brighter
-      c.add(this.add.text(actX, baseY + 10, act.actName, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '10px',
-        color: hasUnlocked ? '#cfd6e0' : '#2a3040',
-        stroke: '#000', strokeThickness: 2,
-        wordWrap: { width: cardW - 16 }, align: 'center',
-      })).setOrigin(0.5).setDepth(3));
-
-      // ── Area cards inside this Act (stacked vertically) ──
-      act.areas.forEach((area, areaIdx) => {
-        const cardY = baseY + actTitleH + 20 + areaIdx * (cardH + cardGap) + cardH / 2;
-        const previewH = 80;
-        const previewW = cardW - 16;
-        const previewY = cardY - cardH / 2 + 14 + previewH / 2;
-
-        // Card background
-        const cardBg = this.add.rectangle(actX, cardY, cardW, cardH, area.unlocked ? 0x0a1018 : 0x05080c, 0.92);
-        cardBg.setStrokeStyle(1, area.isCurrent ? 0x39d0d8 : area.unlocked ? 0x1a3040 : 0x0a1018, area.isCurrent ? 0.9 : 0.5);
-        cardBg.setDepth(2);
-        c.add(cardBg);
-
-        // Preview frame
-        const previewFrame = this.add.rectangle(actX, previewY, previewW, previewH, 0x05080c, 1);
-        previewFrame.setDepth(2.5);
-        c.add(previewFrame);
-
-        // Preview image — use factory_bg_2 for factory, different for forest
-        const previewTexture = area.regionId === 'forest' ? 'factory_bg_1' : 'factory_bg_2';
-        if (this.textures.exists(previewTexture)) {
-          const imgContainer = this.add.container(actX, previewY);
-          imgContainer.setDepth(2.6);
-          const previewImg = this.add.image(0, 0, previewTexture);
-          const tex = this.textures.get(previewTexture).getSourceImage();
-          const imgAR = tex.width / tex.height;
-          const frameAR = previewW / previewH;
-          let scale: number;
-          if (imgAR > frameAR) {
-            scale = previewH / tex.height;
-          } else {
-            scale = previewW / tex.width;
-          }
-          previewImg.setScale(scale);
-          imgContainer.add(previewImg);
-          const maskGfx = this.make.graphics({ x: actX, y: previewY }, false);
-          maskGfx.fillStyle(0xffffff, 1);
-          maskGfx.fillRect(-previewW / 2, -previewH / 2, previewW, previewH);
-          const mask = maskGfx.createGeometryMask();
-          imgContainer.setMask(mask);
-          c.add(imgContainer);
-          if (!area.unlocked) {
-            previewImg.setAlpha(0.2);
-            previewImg.setTint(0x303030);
-          } else if (area.isCurrent) {
-            previewImg.setTint(0x99ddff);
-          }
-          // Gradient overlay
-          const gradient = this.add.rectangle(actX, previewY + previewH / 2 - 10, previewW, 20, 0x05080c, 0.7);
-          gradient.setDepth(2.7);
-          c.add(gradient);
-        }
-
-        // Preview border
-        const previewBorder = this.add.rectangle(actX, previewY, previewW, previewH, 0x000000, 0);
-        previewBorder.setStrokeStyle(1, 0x1a3040, 0.8);
-        previewBorder.setDepth(2.8);
-        c.add(previewBorder);
-
-        // Area name
-        const nameY = previewY + previewH / 2 + 18;
-        c.add(this.add.text(actX, nameY, area.unlocked ? t(area.nameKey) : '🔒 ' + L('LOCKED', 'قفل'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '12px',
-          color: area.isCurrent ? '#66f0ff' : area.unlocked ? '#e0e8f0' : '#3a4350',
-          stroke: '#000', strokeThickness: 3, wordWrap: { width: cardW - 10 }, align: 'center', letterSpacing: 1,
-        })).setOrigin(0.5).setDepth(3));
-
-        // Status
-        let status = '';
-        let statusColor = '#3a4350';
-        if (area.isCurrent) { status = '◆ ' + L('CURRENT', 'فعلی'); statusColor = '#39d0d8'; }
-        else if (area.bossDefeated) { status = '★ ' + L('CLEARED', 'تکمیل'); statusColor = '#ffc040'; }
-        else if (area.hasBoss && area.unlocked) { status = '⚔ ' + L('BOSS', 'باس'); statusColor = '#ff6060'; }
-        c.add(this.add.text(actX, nameY + 18, status, fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: statusColor, letterSpacing: 1,
-        })).setOrigin(0.5).setDepth(3));
-
-        // Enter / locked
-        if (area.unlocked) {
-          const enterAction = () => {
-            AudioSystem.play('uiClick');
-            if (area.areaId !== WorldSystem.getCurrent().areaId) {
-              WorldSystem.travelTo(area.areaId, 1);
-            }
-            this.setState('play');
-          };
-          // ── FIX: Register as focusable button for keyboard/gamepad nav ──
-          this.makeHubCardBtn(actX, nameY + 38, '▶ ' + L('ENTER', 'ورود'), enterAction);
-        } else {
-          c.add(this.add.text(actX, nameY + 38, L('LOCKED', 'قفل'), fixTextStyle({
-            fontFamily: 'monospace', fontSize: '9px', color: '#2a3040',
-          })).setOrigin(0.5).setDepth(3));
-        }
-      });
+        this.setState('play');
+      },
+      onOpenOverlay: (overlayId: string) => this.openOverlay(overlayId as OverlayId),
+      onBackToMenu: () => this.setState('menu'),
     });
-
-    // === Bottom bar: Navigation icons (improved UI) ===
-    const navBarBg = this.add.rectangle(w / 2, h - 55, w - 80, 56, 0x0a0d14, 0.85);
-    navBarBg.setStrokeStyle(1, 0x1a3040, 0.5);
-    navBarBg.setDepth(1.5);
-    c.add(navBarBg);
-
-    const navY = h - 55;
-    const navItems: { icon: string; label: string; action: () => void }[] = [
-      { icon: '⚙', label: L('HANGAR', 'هانگر'), action: () => this.openOverlay('hangar') },
-      { icon: '⚔', label: L('SKILLS', 'مهارت‌ها'), action: () => this.openOverlay('skills') },
-      { icon: '◈', label: L('INVENTORY', 'کیف'), action: () => this.openOverlay('inventory') },
-      { icon: '▤', label: L('QUESTS', 'ماموریت‌ها'), action: () => this.openOverlay('quests') },
-      { icon: '⌂', label: L('SETTINGS', 'تنظیمات'), action: () => this.openOverlay('settings') },
-      { icon: '←', label: t('menu.back'), action: () => this.setState('menu') },
-    ];
-    const navGap = 115;
-    const navStartX = w / 2 - (navItems.length - 1) * navGap / 2;
-
-    navItems.forEach((item) => {
-      const nx = navStartX + navItems.indexOf(item) * navGap;
-      this.makeHubNavBtn(nx, navY, item.icon, item.label, item.action);
-    });
-
-    this.setupMenuNav();
+    this.hubBuilder.build();
   }
 
-  private showHowToPlay(): void {
-    const c = this.stateContainer!;
-    const w = GAME.WIDTH, h = GAME.HEIGHT;
-    c.removeAll(true);
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.92).setDepth(250);
-    c.add(overlay);
-
-    // Dynamic: pull labels from InputSchemeManager (auto-adapts to KB / Xbox / PS)
-    const scheme = InputSchemeManager.getActiveScheme();
-    const schemeName = scheme === 'keyboard' ? 'KEYBOARD'
-      : scheme === 'playstation' ? 'PLAYSTATION'
-      : scheme === 'xbox' ? 'XBOX'
-      : 'GAMEPAD';
-    const L = (a: 'move'|'jump'|'dash'|'fire'|'melee'|'interact'|'pause'|'back'|'weaponNext'|'weaponPrev') => InputSchemeManager.getLabel(a);
-
-    const lines = [
-      `HOW TO PLAY  ·  ${schemeName}`, '',
-      `${L('move').padEnd(16)} →   MOVE`,
-      `${L('jump').padEnd(16)} →   JUMP`,
-      `${L('dash').padEnd(16)} →   DASH`,
-      `${L('fire').padEnd(16)} →   FIRE`,
-      `${L('melee').padEnd(16)} →   MELEE`,
-      `${L('weaponPrev')} / ${L('weaponNext').padEnd(10)} →   SWITCH WEAPONS`,
-      `${L('interact').padEnd(16)} →   INTERACT`,
-      `${L('pause').padEnd(16)} →   PAUSE`,
-      '', `Press ${L('jump')} to go back`,
-    ];
-
-    c.add(this.add.text(w / 2, h / 2 - 24, lines, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', align: 'center', lineSpacing: 6,
-    })).setOrigin(0.5).setDepth(251));
-    c.add(this.add.text(w / 2, h * 0.18, 'Switch input device — button labels update automatically', {
-      fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 1,
-    }).setOrigin(0.5).setDepth(251));
-
-    const backHandler = () => { this.setState('menu'); window.removeEventListener('keydown', backHandler); };
-    setTimeout(() => window.addEventListener('keydown', backHandler), 100);
-  }
 
   // ================ PLAY ================
 
@@ -1469,17 +1080,17 @@ export class GameScene extends Phaser.Scene {
       })).setOrigin(0.5).setDepth(201));
     }
     // Retry button — restarts the stage
-    this.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
+    this.menuNav!.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
       AudioSystem.play('uiClick');
       CheckpointSystem.clear();
       this.setState('play');
     });
     // Quit button — back to main menu (user: "if defeated → game over with retry/restart")
-    this.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
+    this.menuNav!.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
       AudioSystem.play('uiClick');
       this.setState('menu');
     });
-    this.setupMenuNav();
+    this.menuNav!.setupNav();
   }
 
   private buildVictory(): void {
@@ -1516,136 +1127,11 @@ export class GameScene extends Phaser.Scene {
     })).setOrigin(0.5).setDepth(1));
     // ── Return to HUB (not menu) — per user: after victory, go to hub to prepare for next stage ──
     const returnLabel = getLocale() === 'fa' ? 'بازگشت به هاب' : t('victory.return');
-    this.makeMenuBtn(w / 2, h * 0.82, returnLabel, () => {
+    this.menuNav!.makeMenuBtn(w / 2, h * 0.82, returnLabel, () => {
       AudioSystem.play('uiClick');
       this.setState('hub');
     });
-    this.setupMenuNav();
-  }
-
-  // ================ GAMEPAD / KEYBOARD NAVIGATION ================
-
-  private menuNavCooldown = 0;
-
-  /** Gamepad + keyboard navigation for menu/hub/gameover/victory. */
-  private handleMenuGamepadNav(input: import('../../systems/InputSystem').InputState): void {
-    if (this.menuButtons.length === 0) return;
-    this.menuNavCooldown -= 16;
-    if (this.menuNavCooldown > 0) return;
-
-    if (input.leftStickY < -0.3 || input.heldUp) {
-      this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
-      this.updateMenuFocus(); AudioSystem.play('uiHover');
-      this.menuNavCooldown = 110;  // freer — was 180
-    } else if (input.leftStickY > 0.3 || input.heldDown) {
-      this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
-      this.updateMenuFocus(); AudioSystem.play('uiHover');
-      this.menuNavCooldown = 110;
-    }
-    if (input.jumpPressed || input.firePressed) {
-      AudioSystem.play('uiClick');
-      const btn = this.menuButtons[this.menuFocusIndex];
-      if (btn) btn.onSelect();
-      this.menuNavCooldown = 300;
-    }
-  }
-
-  // ================ MENU HELPERS ================
-
-  /** Create a standard rectangular menu button (focusable + clickable). */
-  private makeMenuBtn(x: number, y: number, label: string, onClick: () => void, disabled: boolean = false, width: number = 240): void {
-    const bg = this.add.rectangle(x, y, width, 38, disabled ? 0x05080c : 0x0a1018, 0.9);
-    bg.setStrokeStyle(1, disabled ? 0x05080c : 0x1a3040, 0.8);
-    if (!disabled) {
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
-      bg.on('pointerout', () => this.updateMenuFocus());
-      bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    }
-    const textEl = this.add.text(x, y, label, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '15px', color: disabled ? '#0a1018' : '#5a6470',
-    })).setOrigin(0.5);
-    this.stateContainer!.add([bg, textEl]);
-    if (!disabled) {
-      this.menuButtons.push({ bg, text: textEl, onSelect: onClick });
-    }
-  }
-
-  /** Create a hub area-card enter button (smaller, focusable + clickable). */
-  private makeHubCardBtn(x: number, y: number, label: string, onClick: () => void): void {
-    const bg = this.add.rectangle(x, y, 100, 28, 0x0a1018, 0.9);
-    bg.setStrokeStyle(1, 0x1a3040, 0.8);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => { this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg); this.updateMenuFocus(); AudioSystem.play('uiHover'); });
-    bg.on('pointerout', () => this.updateMenuFocus());
-    bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const textEl = this.add.text(x, y, label, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
-    })).setOrigin(0.5);
-    this.stateContainer!.add([bg, textEl]);
-    this.menuButtons.push({ bg, text: textEl, onSelect: onClick });
-  }
-
-  /** Create a hub bottom-nav icon button (circle, focusable + clickable). */
-  private makeHubNavBtn(x: number, y: number, icon: string, label: string, onClick: () => void): void {
-    const radius = 26;
-    const bg = this.add.circle(x, y, radius, 0x0a1018, 0.95);
-    bg.setStrokeStyle(1, 0x1a3040, 0.7);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => {
-      this.menuFocusIndex = this.menuButtons.findIndex(b => b.bg === bg);
-      this.updateMenuFocus();
-      AudioSystem.play('uiHover');
-      bg.setScale(1.1);
-    });
-    bg.on('pointerout', () => { this.updateMenuFocus(); bg.setScale(1); });
-    bg.on('pointerdown', () => { AudioSystem.play('uiClick'); onClick(); });
-    const iconText = this.add.text(x, y - 2, icon, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '18px', color: '#5a6470',
-    })).setOrigin(0.5);
-    const labelText = this.add.text(x, y + 34, label, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
-    })).setOrigin(0.5);
-    this.stateContainer!.add([bg, iconText, labelText]);
-    this.menuButtons.push({ bg, text: iconText, onSelect: onClick });
-  }
-
-  private setupMenuNav(): void {
-    this.menuNavHandler = (e: KeyboardEvent) => {
-      if (this.menuButtons.length === 0) return;
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') {
-        this.menuFocusIndex = (this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
-        this.updateMenuFocus(); AudioSystem.play('uiHover');
-      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-        this.menuFocusIndex = (this.menuFocusIndex + 1) % this.menuButtons.length;
-        this.updateMenuFocus(); AudioSystem.play('uiHover');
-      } else if (e.code === 'Enter' || e.code === 'Space') {
-        AudioSystem.play('uiClick');
-        this.menuButtons[this.menuFocusIndex]?.onSelect();
-      }
-    };
-    window.addEventListener('keydown', this.menuNavHandler);
-    this.updateMenuFocus();
-  }
-
-  private updateMenuFocus(): void {
-    this.menuButtons.forEach((btn, i) => {
-      // Guard against destroyed objects (prevents drawImage null crash)
-      if (!btn.bg || !btn.bg.active || !btn.text || !btn.text.active) return;
-      try {
-        if (i === this.menuFocusIndex) {
-          btn.bg.setFillStyle(0x0d1820, 1);
-          btn.bg.setStrokeStyle(2, 0x39d0d8, 0.9);
-          btn.bg.setScale(1.05);
-          btn.text.setColor('#66f0ff');
-        } else {
-          btn.bg.setFillStyle(0x0a1018, 0.9);
-          btn.bg.setStrokeStyle(1, 0x1a3040, 0.8);
-          btn.bg.setScale(1);
-          btn.text.setColor('#5a6470');
-        }
-      } catch { /* text canvas not ready — skip */ }
-    });
+    this.menuNav!.setupNav();
   }
 
   // ================ HELPERS ================
