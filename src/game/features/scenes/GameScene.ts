@@ -347,7 +347,11 @@ export class GameScene extends Phaser.Scene {
         this.togglePause();
       }
       if (!this.paused) {
-        if (input.interactPressed) this.tryInteract();
+        // ── tryInteract only if lore was NOT open this frame ──
+        // Without this guard, pressing E to close the lore panel would
+        // immediately re-open it in the same frame (double-trigger bug).
+        // Also guards the open path: if lore just closed, don't re-interact.
+        if (input.interactPressed && !loreWasOpen) this.tryInteract();
         // Freeze game while lore panel is open (gating behavior preserved)
         if (!this.loreController?.isOpen) {
           this.updatePlay(deltaMs);
