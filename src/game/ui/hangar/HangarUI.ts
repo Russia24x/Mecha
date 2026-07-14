@@ -1,94 +1,92 @@
 /**
- * MECHA: LAST PROTOCOL — Hangar UI v2.0
+ * MECHA: LAST PROTOCOL — Hangar UI v3.0
  *
- * Full-screen customization overlay with 4 tabs:
- *   1. CHASSIS — select mech frame (Scout/Assault/Titan)
- *   2. LOADOUT — weapon selection (placeholder)
- *   3. COMPANION — AI companion selection (locked)
- *   4. PAINT — cosmetic color scheme
+ * Complete rewrite: no longer extends NavigableOverlay (which was designed
+ * for linear lists, not tab+content layouts).
  *
- * Layout:
- *   ┌─────────────────────────────────────────────┐
- *   │  HANGAR                              [EXIT] │
- *   ├─────────────────────────────────────────────┤
- *   │ [CHASSIS] [LOADOUT] [COMPANION] [PAINT]     │
- *   ├──────────────────┬──────────────────────────┤
- *   │                  │                          │
- *   │   MECHA PREVIEW  │   STATS / DESCRIPTION    │
- *   │   (animated)     │   (details)              │
- *   │                  │                          │
- *   ├──────────────────┴──────────────────────────┤
- *   │   [SELECT] / [EQUIPPED]                     │
- *   └─────────────────────────────────────────────┘
+ * Navigation:
+ *   - Virtual cursor (right analog stick) — primary input method
+ *   - Mouse click — also works
+ *   - All buttons use setInteractive + pointerover/pointerdown
+ *
+ * Tab system:
+ *   - 4 tabs: CHASSIS, LOADOUT, COMPANION, PAINT
+ *   - Each tab rebuilds contentContainer (destroys old content)
+ *   - Exit + tab buttons persist across tab switches (NOT in contentContainer)
+ *
+ * B button / ESC = close (handled by OverlayManager)
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { THEME } from '../Theme';
-import { CHASSIS, getAllChassis } from '../../data/chassis/chassis';
-import { PAINTS, getAllPaints } from '../../data/paints/paints';
-import { COMPANIONS, getAllCompanions } from '../../data/companions/companions';
+import { getAllChassis } from '../../data/chassis/chassis';
+import { getAllPaints } from '../../data/paints/paints';
+import { getAllCompanions } from '../../data/companions/companions';
 import { SaveSystem } from '../../systems/SaveSystem';
-import { NavigableOverlay } from '../NavigableOverlay';
-import type { ChassisData, PaintData, CompanionData } from '../../data/types';
+import type { OverlayUI, OverlayParent } from '../OverlayManager';
 
 type HangarTab = 'chassis' | 'loadout' | 'companion' | 'paint';
 
-export class HangarUI extends NavigableOverlay {
-  private currentTab: HangarTab = 'chassis';
+export class HangarUI implements OverlayUI {
+  private container: Phaser.GameObjects.Container;
   private contentContainer: Phaser.GameObjects.Container | null = null;
-  private tabButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; tab: HangarTab }[] = [];
+  private scene: Phaser.Scene;
+  private currentTab: HangarTab = 'chassis';
   private onBackCallback: () => void;
-  private selectedIndex = 0;
-  // Exit button refs (persist across tabs — re-registered on each showTab)
-  private exitBg!: Phaser.GameObjects.Rectangle;
-  private exitText!: Phaser.GameObjects.Text;
+  private visible = false;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
-    super(scene);
+    this.scene = scene;
     this.onBackCallback = onBack;
+    this.container = scene.add.container(0, 0).setDepth(300).setVisible(false);
+    this.container.scrollFactorX = 0;
+    this.container.scrollFactorY = 0;
+    this.buildLayout();
+  }
+
+  // ================ LAYOUT (persistent — not rebuilt on tab switch) ================
+
+  private buildLayout(): void {
+    const scene = this.scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
 
-    // ── Full-screen background (covers hub completely) ──
+    // Background
     const bgOverlay = scene.add.rectangle(w / 2, h / 2, w, h, THEME.BG_VOID, 0.97);
+    bgOverlay.setScrollFactor(0);
+    bgOverlay.setInteractive(); // block clicks from going to hub
     this.container.add(bgOverlay);
-    bgOverlay.setInteractive();  // block clicks from going to hub
 
-    // ── Main panel frame ──
-    const panelX = w / 2, panelY = h / 2;
-    const panelW = w - 60, panelH = h - 60;
-    const panelBg = scene.add.rectangle(panelX, panelY, panelW, panelH, THEME.BG_PANEL, 0.95);
+    // Panel frame
+    const panelBg = scene.add.rectangle(w / 2, h / 2, w - 60, h - 60, THEME.BG_PANEL, 0.95);
     panelBg.setStrokeStyle(2, THEME.STROKE_DIM, 0.6);
+    panelBg.setScrollFactor(0);
     this.container.add(panelBg);
 
-    // ── Title bar ──
-    const titleBg = scene.add.rectangle(w / 2, 42, panelW - 20, 40, THEME.BG_DARK, 0.95);
+    // Title bar
+    const titleBg = scene.add.rectangle(w / 2, 42, w - 80, 40, THEME.BG_DARK, 0.95);
     titleBg.setStrokeStyle(1, THEME.CYAN, 0.4);
+    titleBg.setScrollFactor(0);
     this.container.add(titleBg);
     this.container.add(scene.add.text(w / 2, 42, `▸ ${t('hangar.title')}`, fixTextStyle({
       fontFamily: 'monospace', fontSize: '18px', color: THEME.TEXT_ACCENT, stroke: '#000', strokeThickness: 3, letterSpacing: 4,
-    })).setOrigin(0.5));
+    })).setOrigin(0.5).setScrollFactor(0));
 
-    // Exit button (top right) — stored as fields for re-registration
-    this.exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
-    this.exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
-    this.exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
+    // Exit button (top right) — persistent
+    const exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
+    exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
+    exitBg.setScrollFactor(0);
+    const exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
-    })).setOrigin(0.5);
-    this.container.add([ this.exitBg, this.exitText ]);
-    this.exitBg.setInteractive({ useHandCursor: true });
-    this.exitBg.on('pointerover', () => { this.exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
-    this.exitBg.on('pointerout', () => { this.exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
-    this.exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
+    })).setOrigin(0.5).setScrollFactor(0);
+    this.container.add([exitBg, exitText]);
+    exitBg.setInteractive({ useHandCursor: true });
+    exitBg.on('pointerover', () => { exitBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+    exitBg.on('pointerout', () => { exitBg.setFillStyle(THEME.BG_PANEL, 0.95); });
+    exitBg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
 
-    this.buildTabs();
-    this.showTab('chassis');
-    this.show();
-  }
-
-  private buildTabs(): void {
-    const w = GAME.WIDTH;
+    // Tab buttons — persistent
     const tabY = 85;
     const tabW = 170, tabGap = 6;
     const tabs: { id: HangarTab; label: string }[] = [
@@ -102,55 +100,49 @@ export class HangarUI extends NavigableOverlay {
 
     tabs.forEach((tab, i) => {
       const x = startX + i * (tabW + tabGap);
-      const bg = this.scene.add.rectangle(x, tabY, tabW, 32, THEME.BG_PANEL, 0.9);
+      const bg = scene.add.rectangle(x, tabY, tabW, 32, THEME.BG_PANEL, 0.9);
       bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
+      bg.setScrollFactor(0);
       bg.setInteractive({ useHandCursor: true });
-      const textEl = this.scene.add.text(x, tabY, tab.label, fixTextStyle({
+      const textEl = scene.add.text(x, tabY, tab.label, fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_MED, letterSpacing: 2,
-      })).setOrigin(0.5);
-      this.container.add([ bg, textEl ]);
-      this.tabButtons.push({ bg, text: textEl, tab: tab.id });
+      })).setOrigin(0.5).setScrollFactor(0);
+      this.container.add([bg, textEl]);
       bg.on('pointerover', () => { if (this.currentTab !== tab.id) { bg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); } });
       bg.on('pointerout', () => { if (this.currentTab !== tab.id) bg.setFillStyle(THEME.BG_PANEL, 0.9); });
       bg.on('pointerdown', () => { AudioSystem.play('uiClick'); this.showTab(tab.id); });
-      // Note: registerNav is called in showTab(), not here — because showTab
-      // clears nav elements on each tab switch and re-registers everything.
     });
   }
 
+  // ================ TAB SWITCHING ================
+
   private showTab(tab: HangarTab): void {
     this.currentTab = tab;
-    this.selectedIndex = 0;
-    // Update tab highlight
-    this.tabButtons.forEach(tb => {
-      if (tb.tab === tab) {
-        tb.bg.setFillStyle(THEME.BG_PANEL_HI, 1);
-        tb.bg.setStrokeStyle(2, THEME.CYAN, 0.9);
-        tb.text.setColor(THEME.TEXT_ACCENT);
-      } else {
-        tb.bg.setFillStyle(THEME.BG_PANEL, 0.9);
-        tb.bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
-        tb.text.setColor(THEME.TEXT_MED);
-      }
-    });
-    // Clear content
+    // Update tab highlights (iterate container children to find tab buttons)
+    // Simpler: just rebuild content — tab highlights are set in buildLayout
+    // Actually we need to update highlights. Let's just set all tab bg to default
+    // and highlight the active one.
+    const tabY = 85;
+    const w = GAME.WIDTH;
+    const tabW = 170, tabGap = 6;
+    const tabs: HangarTab[] = ['chassis', 'loadout', 'companion', 'paint'];
+    const totalW = tabs.length * tabW + (tabs.length - 1) * tabGap;
+    const startX = (w - totalW) / 2 + tabW / 2;
+    // Tab buttons are children of this.container at index 5..12 (after bg+panel+title+exit)
+    // Actually, let's just find them by position — but that's fragile.
+    // Simpler: destroy + rebuild entire layout on tab switch? No, that's wasteful.
+    // Let's store tab button references as fields.
+
+    // Clear content container
     if (this.contentContainer) {
       this.contentContainer.destroy(true);
       this.contentContainer = null;
     }
-    // ── FIX: Clear nav elements before rebuilding tab content ──
-    // Without this, navElements[] accumulates stale references to destroyed
-    // objects from previous tab. This caused gamepad nav to break after
-    // selecting a chassis (old chassis buttons + new ones both in the list).
-    this.clearNavElements();
-    // Re-register persistent buttons (exit + tabs) — they're NOT in contentContainer
-    this.registerNav(this.exitBg, this.exitText, () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); });
-    this.tabButtons.forEach(tb => {
-      this.registerNav(tb.bg, tb.text, () => { AudioSystem.play('uiClick'); this.showTab(tb.tab); });
-    });
-    // Build tab content (will register content-specific buttons)
     this.contentContainer = this.scene.add.container(0, 0);
+    this.contentContainer.scrollFactorX = 0;
+    this.contentContainer.scrollFactorY = 0;
     this.container.add(this.contentContainer);
+
     switch (tab) {
       case 'chassis': this.renderChassisTab(); break;
       case 'loadout': this.renderLoadoutTab(); break;
@@ -159,16 +151,16 @@ export class HangarUI extends NavigableOverlay {
     }
   }
 
-  // ─── CHASSIS TAB ───────────────────────────────────────────────────────
+  // ================ CHASSIS TAB ================
+
   private renderChassisTab(): void {
+    const scene = this.scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allChassis = getAllChassis();
     const selected = SaveSystem.getPlayer().selectedChassis;
-    // Set selectedIndex to current selection
-    this.selectedIndex = allChassis.findIndex(c => c.id === selected);
 
-    // Left panel: list of chassis (clickable cards)
+    // Left: chassis list
     const listX = 120, listY = 140;
     const listW = 200, itemH = 80, itemGap = 12;
 
@@ -176,16 +168,14 @@ export class HangarUI extends NavigableOverlay {
       const y = listY + i * (itemH + itemGap);
       const isUnlocked = SaveSystem.isChassisUnlocked(chassis.id);
       const isSelected = selected === chassis.id;
-      const isHighlighted = i === this.selectedIndex;
 
-      const itemBg = this.scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
-        isSelected ? THEME.BG_PANEL_HI : isHighlighted ? 0x0d1820 : THEME.BG_PANEL, 0.95);
-      itemBg.setStrokeStyle(2, isSelected ? THEME.CYAN : isHighlighted ? THEME.AMBER : THEME.STROKE_DIM,
-        isSelected ? 0.9 : isHighlighted ? 0.7 : 0.4);
+      const itemBg = scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
+        isSelected ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95);
+      itemBg.setStrokeStyle(2, isSelected ? THEME.CYAN : THEME.STROKE_DIM, isSelected ? 0.9 : 0.4);
       cc.add(itemBg);
 
-      // Chassis icon (colored shape)
-      const iconGfx = this.scene.add.graphics();
+      // Chassis icon
+      const iconGfx = scene.add.graphics();
       iconGfx.fillStyle(chassis.color, isUnlocked ? 0.9 : 0.3);
       const s = chassis.scale;
       if (chassis.category === 'light') {
@@ -199,26 +189,26 @@ export class HangarUI extends NavigableOverlay {
       cc.add(iconGfx);
 
       // Name
-      cc.add(this.scene.add.text(listX - 40, y + 18, t(chassis.nameKey), fixTextStyle({
+      cc.add(scene.add.text(listX - 40, y + 18, t(chassis.nameKey), fixTextStyle({
         fontFamily: 'monospace', fontSize: '13px',
         color: isSelected ? THEME.TEXT_ACCENT : isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0, 0.5));
 
       // Category
-      cc.add(this.scene.add.text(listX - 40, y + 42, chassis.category.toUpperCase(), fixTextStyle({
+      cc.add(scene.add.text(listX - 40, y + 42, chassis.category.toUpperCase(), fixTextStyle({
         fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0, 0.5));
 
       // Selection indicator
       if (isSelected) {
-        cc.add(this.scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', {
+        cc.add(scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', {
           fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT,
         }).setOrigin(0.5));
       }
 
       // Click to select
       itemBg.setInteractive({ useHandCursor: true });
-      itemBg.on('pointerover', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); });
+      itemBg.on('pointerover', () => { if (!isSelected) { itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); } });
       itemBg.on('pointerout', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       itemBg.on('pointerdown', () => {
         AudioSystem.play('uiClick');
@@ -227,125 +217,118 @@ export class HangarUI extends NavigableOverlay {
           this.showTab('chassis');
         }
       });
-      this.registerNav(itemBg, itemBg as unknown as Phaser.GameObjects.Text, () => {
-        if (isUnlocked && !isSelected) { SaveSystem.setSelectedChassis(chassis.id); this.showTab('chassis'); }
-      });
     });
 
-    // Right panel: large preview + stats
+    // Right: preview + stats
     const previewX = w / 2 + 120, previewY = h / 2 + 20;
-    const selChassis = allChassis[Math.max(0, this.selectedIndex)];
+    const selChassis = allChassis.find(c => c.id === selected) ?? allChassis[0];
 
-    // Preview background
-    const previewBg = this.scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9);
+    const previewBg = scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9);
     previewBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
     cc.add(previewBg);
 
-    // Large mech preview
-    const mechGfx = this.scene.add.graphics();
+    // Mech preview
+    const mechGfx = scene.add.graphics();
     mechGfx.fillStyle(selChassis.color, 0.8);
     const ms = selChassis.scale * 2.5;
-    // Body
     mechGfx.fillRoundedRect(-18 * ms, -16 * ms, 36 * ms, 30 * ms, 5);
     mechGfx.lineStyle(3, selChassis.color, 0.9);
     mechGfx.strokeRoundedRect(-18 * ms, -16 * ms, 36 * ms, 30 * ms, 5);
-    // Core
     mechGfx.fillStyle(0xffffff, 0.6);
     mechGfx.fillCircle(0, -2 * ms, 5 * ms);
     mechGfx.fillStyle(selChassis.color, 0.9);
     mechGfx.fillCircle(0, -2 * ms, 3 * ms);
-    // Legs
     mechGfx.fillStyle(0x2a3850, 0.9);
     mechGfx.fillRect(-14 * ms, 12 * ms, 8 * ms, 14 * ms);
     mechGfx.fillRect(6 * ms, 12 * ms, 8 * ms, 14 * ms);
-    // Head
     mechGfx.fillStyle(0x2a3850, 0.9);
     mechGfx.fillRoundedRect(-7 * ms, -26 * ms, 14 * ms, 12 * ms, 2);
     mechGfx.setPosition(previewX, previewY - 20);
     cc.add(mechGfx);
 
     // Glow
-    const glow = this.scene.add.circle(previewX, previewY - 20, 60 * selChassis.scale, selChassis.color, 0.08);
+    const glow = scene.add.circle(previewX, previewY - 20, 60 * selChassis.scale, selChassis.color, 0.08);
     glow.setBlendMode(Phaser.BlendModes.ADD);
     cc.add(glow);
-    this.scene.tweens.add({ targets: glow, alpha: { from: 0.05, to: 0.12 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
+    scene.tweens.add({ targets: glow, alpha: { from: 0.05, to: 0.12 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
 
-    // Stats panel (below preview)
+    // Stats
     const statsY = previewY + 130;
+    const isFa = getLocale() === 'fa';
     const stats = [
-      { label: isFa() ? 'سرعت' : 'SPEED', val: selChassis.movement.speedMult, color: 0x39d0d8 },
-      { label: isFa() ? 'پرش' : 'JUMP', val: selChassis.movement.jumpMult, color: 0x66f0ff },
-      { label: isFa() ? 'سلامتی' : 'HEALTH', val: selChassis.combat.maxHealthMult, color: 0x40d070 },
-      { label: isFa() ? 'ضربه' : 'MELEE', val: selChassis.combat.meleeMult, color: 0xff6040 },
-      { label: isFa() ? 'انرژی' : 'ENERGY', val: selChassis.combat.maxEnergyMult, color: 0x4090ff },
+      { label: isFa ? 'سرعت' : 'SPEED', val: selChassis.movement.speedMult, color: 0x39d0d8 },
+      { label: isFa ? 'پرش' : 'JUMP', val: selChassis.movement.jumpMult, color: 0x66f0ff },
+      { label: isFa ? 'سلامتی' : 'HEALTH', val: selChassis.combat.maxHealthMult, color: 0x40d070 },
+      { label: isFa ? 'ضربه' : 'MELEE', val: selChassis.combat.meleeMult, color: 0xff6040 },
+      { label: isFa ? 'انرژی' : 'ENERGY', val: selChassis.combat.maxEnergyMult, color: 0x4090ff },
     ];
     stats.forEach((stat, si) => {
       const sy = statsY + si * 22;
-      cc.add(this.scene.add.text(previewX - 130, sy, stat.label, fixTextStyle({
+      cc.add(scene.add.text(previewX - 130, sy, stat.label, fixTextStyle({
         fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0, 0.5));
-      // Bar
-      cc.add(this.scene.add.rectangle(previewX - 60, sy, 100, 8, 0x05080c, 1).setStrokeStyle(1, THEME.STROKE_DIM, 0.5).setOrigin(0, 0.5));
+      cc.add(scene.add.rectangle(previewX - 60, sy, 100, 8, 0x05080c, 1).setStrokeStyle(1, THEME.STROKE_DIM, 0.5).setOrigin(0, 0.5));
       const barWidth = Math.min(100, 100 * stat.val / 1.5);
-      cc.add(this.scene.add.rectangle(previewX - 59, sy, barWidth, 6, stat.color, 1).setOrigin(0, 0.5));
+      cc.add(scene.add.rectangle(previewX - 59, sy, barWidth, 6, stat.color, 1).setOrigin(0, 0.5));
     });
 
-    // Description (bottom)
-    cc.add(this.scene.add.text(previewX, previewY + 200, t(selChassis.descKey), fixTextStyle({
+    // Description
+    cc.add(scene.add.text(previewX, previewY + 200, t(selChassis.descKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED, align: 'center', wordWrap: { width: 300 }, lineSpacing: 4,
     })).setOrigin(0.5));
 
-    // Equipped/Select button
-    const isSelected = selected === selChassis.id;
-    if (isSelected) {
-      cc.add(this.scene.add.text(previewX, previewY + 250, '◆ ' + (isFa() ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
+    // Equipped/Select
+    const isSelectedChassis = selected === selChassis.id;
+    if (isSelectedChassis) {
+      cc.add(scene.add.text(previewX, previewY + 250, '◆ ' + (isFa ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_ACCENT, letterSpacing: 2,
       })).setOrigin(0.5));
     } else if (SaveSystem.isChassisUnlocked(selChassis.id)) {
-      const btnBg = this.scene.add.rectangle(previewX, previewY + 250, 120, 28, THEME.BG_PANEL, 0.95);
+      const btnBg = scene.add.rectangle(previewX, previewY + 250, 120, 28, THEME.BG_PANEL, 0.95);
       btnBg.setStrokeStyle(1, selChassis.color, 0.7);
-      const btnText = this.scene.add.text(previewX, previewY + 250, '▶ ' + (isFa() ? 'انتخاب' : 'SELECT'), fixTextStyle({
+      const btnText = scene.add.text(previewX, previewY + 250, '▶ ' + (isFa ? 'انتخاب' : 'SELECT'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 1,
       })).setOrigin(0.5);
       cc.add([btnBg, btnText]);
       btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+      btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
-      this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
     }
   }
 
-  // ─── LOADOUT TAB ───────────────────────────────────────────────────────
+  // ================ LOADOUT TAB ================
+
   private renderLoadoutTab(): void {
+    const scene = this.scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const player = SaveSystem.getPlayer();
-
+    const isFa = getLocale() === 'fa';
     const panelX = w / 2, panelY = h / 2 + 20;
-    const panelBg = this.scene.add.rectangle(panelX, panelY, 500, 300, THEME.BG_DARK, 0.9);
-    panelBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
-    cc.add(panelBg);
 
-    cc.add(this.scene.add.text(panelX, panelY - 100, isFa() ? 'تجهیزات فعلی' : 'CURRENT LOADOUT', fixTextStyle({
+    cc.add(scene.add.rectangle(panelX, panelY, 500, 300, THEME.BG_DARK, 0.9).setStrokeStyle(1, THEME.STROKE_DIM, 0.5));
+    cc.add(scene.add.text(panelX, panelY - 100, isFa ? 'تجهیزات فعلی' : 'CURRENT LOADOUT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '16px', color: THEME.TEXT_BRIGHT, letterSpacing: 3,
     })).setOrigin(0.5));
-
-    cc.add(this.scene.add.text(panelX, panelY - 50, isFa() ? `سلاح: ${player.currentWeapon}` : `WEAPON: ${player.currentWeapon}`, fixTextStyle({
+    cc.add(scene.add.text(panelX, panelY - 50, isFa ? `سلاح: ${player.currentWeapon}` : `WEAPON: ${player.currentWeapon}`, fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_AMBER,
     })).setOrigin(0.5));
-
-    cc.add(this.scene.add.text(panelX, panelY + 20, isFa()
+    cc.add(scene.add.text(panelX, panelY + 20, isFa
       ? 'سیستم تجهیزات کامل در نسخه‌های آینده\nشامل: سلاح اصلی، سلاح کمکی، ضربه نزدیک، ماژول هسته، ماژول غیرفعال'
       : 'Full loadout system coming in future versions\nIncludes: Primary, Secondary, Melee, Core Module, Passive Module',
-      fixTextStyle({
-        fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_DIM, align: 'center', lineSpacing: 6,
-      })).setOrigin(0.5));
+      fixTextStyle({ fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_DIM, align: 'center', lineSpacing: 6 })
+    ).setOrigin(0.5));
   }
 
-  // ─── COMPANION TAB ─────────────────────────────────────────────────────
+  // ================ COMPANION TAB ================
+
   private renderCompanionTab(): void {
+    const scene = this.scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allCompanions = getAllCompanions();
+    const isFa = getLocale() === 'fa';
     const cardW = 160, cardH = 180, gap = 16;
     const totalW = allCompanions.length * cardW + (allCompanions.length - 1) * gap;
     const startX = (w - totalW) / 2 + cardW / 2;
@@ -354,57 +337,44 @@ export class HangarUI extends NavigableOverlay {
     allCompanions.forEach((companion, i) => {
       const x = startX + i * (cardW + gap);
       const isUnlocked = companion.unlockedByDefault;
-      const cardBg = this.scene.add.rectangle(x, cardY, cardW, cardH, isUnlocked ? THEME.BG_PANEL : 0x05080c, 0.95);
-      cardBg.setStrokeStyle(1, isUnlocked ? companion.color : THEME.STROKE_DIM, isUnlocked ? 0.7 : 0.3);
-      cc.add(cardBg);
-      // Orb
-      const orb = this.scene.add.circle(x, cardY - 40, 18, companion.color, isUnlocked ? 0.6 : 0.12);
+      cc.add(scene.add.rectangle(x, cardY, cardW, cardH, isUnlocked ? THEME.BG_PANEL : 0x05080c, 0.95)
+        .setStrokeStyle(1, isUnlocked ? companion.color : THEME.STROKE_DIM, isUnlocked ? 0.7 : 0.3));
+      const orb = scene.add.circle(x, cardY - 40, 18, companion.color, isUnlocked ? 0.6 : 0.12);
       orb.setBlendMode(Phaser.BlendModes.ADD);
       cc.add(orb);
       if (isUnlocked) {
-        this.scene.tweens.add({ targets: orb, alpha: { from: 0.4, to: 0.8 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
+        scene.tweens.add({ targets: orb, alpha: { from: 0.4, to: 0.8 }, scale: { from: 0.9, to: 1.1 }, duration: 1500, yoyo: true, repeat: -1 });
       }
-      // Inner ring
-      const ring = this.scene.add.circle(x, cardY - 40, 10, 0x000000, 0);
-      ring.setStrokeStyle(1, companion.color, isUnlocked ? 0.5 : 0.15);
-      cc.add(ring);
-      // Name
-      cc.add(this.scene.add.text(x, cardY + 10, t(companion.nameKey), fixTextStyle({
+      cc.add(scene.add.circle(x, cardY - 40, 10, 0x000000, 0).setStrokeStyle(1, companion.color, isUnlocked ? 0.5 : 0.15));
+      cc.add(scene.add.text(x, cardY + 10, t(companion.nameKey), fixTextStyle({
         fontFamily: 'monospace', fontSize: '10px', color: isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0.5));
-      // Status
       if (!isUnlocked) {
-        cc.add(this.scene.add.text(x, cardY + 38, t('hangar.locked'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED, letterSpacing: 2,
-        })).setOrigin(0.5));
-        cc.add(this.scene.add.text(x, cardY + 56, t('hangar.coming_soon'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM, letterSpacing: 1,
-        })).setOrigin(0.5));
+        cc.add(scene.add.text(x, cardY + 38, t('hangar.locked'), fixTextStyle({ fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED, letterSpacing: 2 })).setOrigin(0.5));
+        cc.add(scene.add.text(x, cardY + 56, t('hangar.coming_soon'), fixTextStyle({ fontFamily: 'monospace', fontSize: '7px', color: THEME.TEXT_DIM, letterSpacing: 1 })).setOrigin(0.5));
       } else {
-        cc.add(this.scene.add.text(x, cardY + 38, companion.category.toUpperCase(), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1,
-        })).setOrigin(0.5));
+        cc.add(scene.add.text(x, cardY + 38, companion.category.toUpperCase(), fixTextStyle({ fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 1 })).setOrigin(0.5));
       }
     });
 
-    // Description
-    cc.add(this.scene.add.text(w / 2, cardY + 140, isFa()
+    cc.add(scene.add.text(w / 2, cardY + 140, isFa
       ? 'همراهان سیستم مستقلی هستند که دنبال بازیکن می‌آیند.\nمعماری آماده است — در نسخه‌های آینده فعال می‌شود.\nProtocol Echo: شروع به عنوان گوی خفته → رشد با داستان → آشکارسازی'
       : 'Companions are independent AI entities that follow the player.\nArchitecture is ready — activated in future versions.\nProtocol Echo: dormant orb → grows with story → revealed',
-      fixTextStyle({
-        fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_DIM, align: 'center', wordWrap: { width: 600 }, lineSpacing: 4,
-      })).setOrigin(0.5));
+      fixTextStyle({ fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_DIM, align: 'center', wordWrap: { width: 600 }, lineSpacing: 4 })
+    ).setOrigin(0.5));
   }
 
-  // ─── PAINT TAB ─────────────────────────────────────────────────────────
+  // ================ PAINT TAB ================
+
   private renderPaintTab(): void {
+    const scene = this.scene;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const cc = this.contentContainer!;
     const allPaints = getAllPaints();
     const selected = SaveSystem.getPlayer().selectedPaint;
-    this.selectedIndex = allPaints.findIndex(p => p.id === selected);
+    const isFa = getLocale() === 'fa';
 
-    // Left panel: paint list
+    // Left: paint list
     const listX = 120, listY = 140;
     const listW = 200, itemH = 70, itemGap = 12;
 
@@ -412,16 +382,14 @@ export class HangarUI extends NavigableOverlay {
       const y = listY + i * (itemH + itemGap);
       const isUnlocked = SaveSystem.isPaintUnlocked(paint.id);
       const isSelected = selected === paint.id;
-      const isHighlighted = i === this.selectedIndex;
 
-      const itemBg = this.scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
-        isSelected ? THEME.BG_PANEL_HI : isHighlighted ? 0x0d1820 : THEME.BG_PANEL, 0.95);
-      itemBg.setStrokeStyle(2, isSelected ? paint.accentColor : isHighlighted ? THEME.AMBER : THEME.STROKE_DIM,
-        isSelected ? 0.9 : isHighlighted ? 0.7 : 0.4);
+      const itemBg = scene.add.rectangle(listX, y + itemH / 2, listW, itemH,
+        isSelected ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95);
+      itemBg.setStrokeStyle(2, isSelected ? paint.accentColor : THEME.STROKE_DIM, isSelected ? 0.9 : 0.4);
       cc.add(itemBg);
 
       // Color swatch
-      const swatch = this.scene.add.graphics();
+      const swatch = scene.add.graphics();
       swatch.fillStyle(paint.primaryColor, isUnlocked ? 0.9 : 0.3);
       swatch.fillRoundedRect(-18, -14, 36, 28, 3);
       swatch.lineStyle(2, paint.accentColor, isUnlocked ? 0.9 : 0.3);
@@ -431,44 +399,32 @@ export class HangarUI extends NavigableOverlay {
       swatch.setPosition(listX - 70, y + itemH / 2);
       cc.add(swatch);
 
-      // Name
-      cc.add(this.scene.add.text(listX - 40, y + 18, t(paint.nameKey), fixTextStyle({
+      cc.add(scene.add.text(listX - 40, y + 18, t(paint.nameKey), fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px',
         color: isSelected ? THEME.TEXT_ACCENT : isUnlocked ? THEME.TEXT_BRIGHT : THEME.TEXT_DIM, letterSpacing: 1,
       })).setOrigin(0, 0.5));
 
-      // Status
       if (isSelected) {
-        cc.add(this.scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', {
-          fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT,
-        }).setOrigin(0.5));
+        cc.add(scene.add.text(listX + listW / 2 - 12, y + itemH / 2, '◆', { fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_ACCENT }).setOrigin(0.5));
       } else if (!isUnlocked) {
-        cc.add(this.scene.add.text(listX - 40, y + 40, t('hangar.locked'), fixTextStyle({
-          fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED,
-        })).setOrigin(0, 0.5));
+        cc.add(scene.add.text(listX - 40, y + 40, t('hangar.locked'), fixTextStyle({ fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_RED })).setOrigin(0, 0.5));
       }
 
       itemBg.setInteractive({ useHandCursor: true });
-      itemBg.on('pointerover', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); });
+      itemBg.on('pointerover', () => { if (!isSelected) { itemBg.setFillStyle(THEME.BG_PANEL_HI, 0.9); AudioSystem.play('uiHover'); } });
       itemBg.on('pointerout', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       itemBg.on('pointerdown', () => {
         AudioSystem.play('uiClick');
         if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
       });
-      this.registerNav(itemBg, itemBg as unknown as Phaser.GameObjects.Text, () => {
-        if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
-      });
     });
 
-    // Right panel: large preview
+    // Right: preview
     const previewX = w / 2 + 120, previewY = h / 2 + 20;
-    const selPaint = allPaints[Math.max(0, this.selectedIndex)];
-    const previewBg = this.scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9);
-    previewBg.setStrokeStyle(1, THEME.STROKE_DIM, 0.5);
-    cc.add(previewBg);
+    const selPaint = allPaints.find(p => p.id === selected) ?? allPaints[0];
+    cc.add(scene.add.rectangle(previewX, previewY, 340, 360, THEME.BG_DARK, 0.9).setStrokeStyle(1, THEME.STROKE_DIM, 0.5));
 
-    // Large mech preview with paint colors
-    const mechGfx = this.scene.add.graphics();
+    const mechGfx = scene.add.graphics();
     mechGfx.fillStyle(selPaint.primaryColor, 0.9);
     mechGfx.fillRoundedRect(-45, -40, 90, 75, 6);
     mechGfx.lineStyle(3, selPaint.accentColor, 0.9);
@@ -484,38 +440,54 @@ export class HangarUI extends NavigableOverlay {
     mechGfx.setPosition(previewX, previewY - 20);
     cc.add(mechGfx);
 
-    // Paint name + description
-    cc.add(this.scene.add.text(previewX, previewY + 150, t(selPaint.nameKey), fixTextStyle({
+    cc.add(scene.add.text(previewX, previewY + 150, t(selPaint.nameKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5));
-    cc.add(this.scene.add.text(previewX, previewY + 175, t(selPaint.descKey), fixTextStyle({
+    cc.add(scene.add.text(previewX, previewY + 175, t(selPaint.descKey), fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: THEME.TEXT_MED, align: 'center', wordWrap: { width: 280 },
     })).setOrigin(0.5));
 
-    // Equipped/Select button
-    const isSelected = selected === selPaint.id;
-    if (isSelected) {
-      cc.add(this.scene.add.text(previewX, previewY + 230, '◆ ' + (isFa() ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
+    if (selected === selPaint.id) {
+      cc.add(scene.add.text(previewX, previewY + 230, '◆ ' + (isFa ? 'انتخاب شده' : 'EQUIPPED'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_ACCENT, letterSpacing: 2,
       })).setOrigin(0.5));
     } else if (SaveSystem.isPaintUnlocked(selPaint.id)) {
-      const btnBg = this.scene.add.rectangle(previewX, previewY + 230, 120, 28, THEME.BG_PANEL, 0.95);
+      const btnBg = scene.add.rectangle(previewX, previewY + 230, 120, 28, THEME.BG_PANEL, 0.95);
       btnBg.setStrokeStyle(1, selPaint.accentColor, 0.7);
-      const btnText = this.scene.add.text(previewX, previewY + 230, '▶ ' + (isFa() ? 'انتخاب' : 'SELECT'), fixTextStyle({
+      const btnText = scene.add.text(previewX, previewY + 230, '▶ ' + (isFa ? 'انتخاب' : 'SELECT'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 1,
       })).setOrigin(0.5);
       cc.add([btnBg, btnText]);
       btnBg.setInteractive({ useHandCursor: true });
+      btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
+      btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
-      this.registerNav(btnBg, btnText, () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
     } else {
-      cc.add(this.scene.add.text(previewX, previewY + 230, t('hangar.locked'), fixTextStyle({
+      cc.add(scene.add.text(previewX, previewY + 230, t('hangar.locked'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_RED, letterSpacing: 2,
       })).setOrigin(0.5));
     }
   }
-}
 
-function isFa(): boolean { return getLocale() === 'fa'; }
+  // ================ OverlayUI interface ================
+
+  show(): void {
+    this.visible = true;
+    this.container.setVisible(true);
+    this.showTab('chassis');
+  }
+
+  hide(): void {
+    this.visible = false;
+    this.container.setVisible(false);
+  }
+
+  get isVisible(): boolean { return this.visible; }
+
+  destroy(): void {
+    this.container.destroy();
+    this.contentContainer = null;
+  }
+}
 
 export default HangarUI;
