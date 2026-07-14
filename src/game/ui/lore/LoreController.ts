@@ -29,7 +29,6 @@ import type { InputState } from '../../systems/InputSystem';
 
 export class LoreController {
   private panel: Phaser.GameObjects.Container | null = null;
-  private closeTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor(private scene: Phaser.Scene) {}
 
@@ -41,13 +40,14 @@ export class LoreController {
    * Open the lore panel with localized title + body text.
    * Keys are resolved via LocalizationSystem.t().
    * If already open, does nothing (guard against re-open).
+   *
+   * No auto-close timer — player closes manually via interact/ESC/click.
+   * This gives players unlimited reading time (lore text can be long).
    */
   open(titleKey: string, textKey: string): void {
     if (this.panel) return;  // guard against re-open
     this.panel = this.buildPanel(titleKey, textKey);
     AudioSystem.play('uiClick');
-    // Auto-close after 10 seconds (matches old behavior)
-    this.closeTimer = this.scene.time.delayedCall(10000, () => this.close());
   }
 
   /**
@@ -63,10 +63,6 @@ export class LoreController {
 
   /** Close the lore panel and clean up. */
   close(): void {
-    if (this.closeTimer) {
-      this.closeTimer.remove();
-      this.closeTimer = null;
-    }
     if (this.panel) {
       this.panel.destroy();
       this.panel = null;

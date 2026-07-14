@@ -337,10 +337,13 @@ export class GameScene extends Phaser.Scene {
 
     if (this.state === 'play') {
       // ── Lore controller input handling (closes panel on interact/back/ESC) ──
-      // Must run BEFORE pause toggle so ESC closes lore panel first.
+      // Capture open state BEFORE handleInput so ESC closes lore without
+      // also triggering pause in the same frame.
+      const loreWasOpen = this.loreController?.isOpen ?? false;
       this.loreController?.handleInput(input);
-      // ESC / Start = toggle pause (only if lore panel not open)
-      if (input.pausePressed && !this.loreController?.isOpen) {
+      // ESC / Start = toggle pause — ONLY if lore was NOT open this frame
+      // (prevents ESC from both closing lore AND opening pause menu simultaneously)
+      if (input.pausePressed && !loreWasOpen) {
         this.togglePause();
       }
       if (!this.paused) {
