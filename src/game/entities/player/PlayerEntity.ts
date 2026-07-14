@@ -17,7 +17,8 @@ import { SaveSystem } from '../../systems/SaveSystem';
 import { getWeapon } from '../../data/weapons/weapons';
 import { getSkill } from '../../data/skills/skills';
 import { SKILLS } from '../../data/skills/skills';
-import type { WeaponId, WeaponData, PlayerStats, Direction } from '../../data/types';
+import { getChassis } from '../../data/chassis/chassis';
+import type { WeaponId, WeaponData, PlayerStats, Direction, ChassisId } from '../../data/types';
 import { Projectile } from '../combat/Projectile';
 import { MechaSpriteFactory, type MechVisualHandle } from '../sprites/MechaSpriteFactory';
 import { getPaint } from '../../data/paints/paints';
@@ -214,7 +215,7 @@ export class PlayerEntity {
       invulnMs: PLAYER.INVULN_MS,
     };
 
-    // Apply each unlocked skill's effect
+    // Apply each unlocked skill's effect (existing logic — unchanged)
     for (const skillId of unlockedSkills) {
       const skill = getSkill(skillId);
       if (!skill) continue;
@@ -227,6 +228,25 @@ export class PlayerEntity {
         (base[statKey] as number) += eff.additive;
       }
     }
+
+    // ── Apply chassis multipliers (multiplicative layer — order doesn't matter) ──
+    // All multipliers are applied after skill effects, so they stack multiplicatively:
+    //   final = base × skillMult × chassisMult
+    const chassis = getChassis(SaveSystem.getPlayer().selectedChassis as ChassisId);
+    const m = chassis.movement;
+    const c = chassis.combat;
+    base.moveSpeed      *= m.speedMult;
+    base.jumpVelocity   *= m.jumpMult;
+    base.dashSpeed      *= m.dashMult;
+    base.dashCooldownMs *= m.dashCooldownMult;
+    base.meleeDamage    *= c.meleeMult;
+    base.maxHealth      *= c.maxHealthMult;
+    base.maxEnergy      *= c.maxEnergyMult;
+    // fireRateMult is "fire rate" (shots per second), so higher = faster firing.
+    // fireCooldownMs is the inverse (time between shots), so we divide:
+    //   Titan fireRateMult=0.90 → cooldown / 0.90 = longer cooldown = slower firing ✓
+    //   Scout fireRateMult=1.10 → cooldown / 1.10 = shorter cooldown = faster firing ✓
+    base.fireCooldownMs /= c.fireRateMult;
 
     return base;
   }
