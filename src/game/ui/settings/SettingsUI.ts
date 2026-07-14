@@ -228,6 +228,7 @@ export class SettingsUI extends NavigableOverlay {
     const sliderBg = this.scene.add.rectangle(x, y, 320, 24, 0x000000, 0);
     objects.push(sliderBg);
 
+    // Handle: draggable (manual — slider-specific behavior)
     handle.setInteractive({ useHandCursor: true });
     this.scene.input.setDraggable(handle);
     handle.on('drag', (_p: Phaser.Input.Pointer, dragX: number) => {
@@ -238,23 +239,28 @@ export class SettingsUI extends NavigableOverlay {
       valueText.setText(`${Math.round(v * 100)}%`);
       onChange(v);
     });
-    sliderBg.setInteractive({ useHandCursor: true });
+
+    this.container.add(objects);
+
+    // Register sliderBg via registerNav (handles setInteractive + ctrl.addButton)
+    // onSelect = click-to-jump (same as pointerdown behavior)
+    const backIdx = this.navElements.length - 1;
+    this.registerNav(sliderBg, labelEl, () => {
+      // A button on slider = nudge by 5%
+      let v = parseFloat(valueText.text) / 100;
+      v = Math.min(1, v + 0.05);
+      handle.x = x - 150 + 300 * v;
+      fill.setDisplaySize(300 * v, 8);
+      valueText.setText(`${Math.round(v * 100)}%`);
+      onChange(v);
+    }, { insertAt: backIdx });
+    // Add click-to-jump on sliderBg (complements registerNav's pointerdown)
     sliderBg.on('pointerdown', (_p: Phaser.Input.Pointer, localX: number) => {
       const v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
       handle.x = x - 150 + 300 * v;
       fill.setDisplaySize(300 * v, 8);
       valueText.setText(`${Math.round(v * 100)}%`);
       onChange(v);
-    });
-
-    this.container.add(objects);
-
-    // Insert before back button
-    const backIdx = this.navElements.length - 1;
-    this.navElements.splice(backIdx, 0, {
-      bg: sliderBg,
-      text: labelEl,
-      onSelect: () => { /* use L/R */ },
     });
     this.optionElements.push({ objects, bg: sliderBg, text: labelEl, onSelect: () => {} });
   }
@@ -295,7 +301,6 @@ export class SettingsUI extends NavigableOverlay {
     let state = isOn;
     const bg = this.scene.add.rectangle(x + 100, y, 60, 24, state ? 0x0d2818 : 0x280d0d, 0.95);
     bg.setStrokeStyle(1, state ? 0x40d070 : 0xff4040, 0.8);
-    bg.setInteractive({ useHandCursor: true });
     objects.push(bg);
     const knob = this.scene.add.circle(x + 100 + (state ? 18 : -18), y, 8, state ? 0x40d070 : 0xff4040);
     objects.push(knob);
@@ -316,7 +321,8 @@ export class SettingsUI extends NavigableOverlay {
       stateText.setColor(state ? '#40d070' : '#ff4040');
     };
 
-    bg.on('pointerdown', () => {
+    // Register via registerNav (handles setInteractive + ctrl.addButton)
+    this.registerNav(bg, labelEl, () => {
       setVisualState(!state);
       onToggle(state);
     });
@@ -335,7 +341,6 @@ export class SettingsUI extends NavigableOverlay {
     let idx = currentIdx;
     const bg = this.scene.add.rectangle(x + 100, y, 120, 24, 0x0a1018, 0.95);
     bg.setStrokeStyle(1, 0x1a3040, 0.7);
-    bg.setInteractive({ useHandCursor: true });
     objects.push(bg);
     const valueText = this.scene.add.text(x + 100, y, options[idx] || '--', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_AMBER,
@@ -348,7 +353,8 @@ export class SettingsUI extends NavigableOverlay {
       fontFamily: 'monospace', fontSize: '8px', color: '#3a4350',
     }).setOrigin(0.5);
     objects.push(arrowL, arrowR);
-    bg.on('pointerdown', () => {
+    // Register via registerNav (handles setInteractive + ctrl.addButton)
+    this.registerNav(bg, labelEl, () => {
       idx = (idx + 1) % options.length;
       valueText.setText(options[idx]);
       onSelect(idx);
@@ -368,16 +374,14 @@ export class SettingsUI extends NavigableOverlay {
     objects.push(labelEl);
 
     const enBg = this.scene.add.rectangle(x - 60, y, 120, 36, currentLang === 'en' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
-      .setStrokeStyle(1, currentLang === 'en' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'en' ? 0.9 : 0.5)
-      .setInteractive({ useHandCursor: true });
+      .setStrokeStyle(1, currentLang === 'en' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'en' ? 0.9 : 0.5);
     objects.push(enBg);
     const enText = this.scene.add.text(x - 60, y, 'EN', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'en' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
     })).setOrigin(0.5);
     objects.push(enText);
     const faBg = this.scene.add.rectangle(x + 80, y, 120, 36, currentLang === 'fa' ? THEME.BG_PANEL_HI : THEME.BG_PANEL, 0.95)
-      .setStrokeStyle(1, currentLang === 'fa' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'fa' ? 0.9 : 0.5)
-      .setInteractive({ useHandCursor: true });
+      .setStrokeStyle(1, currentLang === 'fa' ? THEME.AMBER : THEME.STROKE_DIM, currentLang === 'fa' ? 0.9 : 0.5);
     objects.push(faBg);
     const faText = this.scene.add.text(x + 80, y, 'فارسی', fixTextStyle({
       fontFamily: 'monospace', fontSize: '14px', color: currentLang === 'fa' ? THEME.TEXT_AMBER : THEME.TEXT_MED,
@@ -392,12 +396,10 @@ export class SettingsUI extends NavigableOverlay {
       AudioSystem.play('uiClick');
       this.scene.scene.restart();
     };
-    // ── FIX: Mouse click handlers on both language buttons ──
-    enBg.on('pointerdown', () => { if (currentLang !== 'en') switchLang('en'); });
-    faBg.on('pointerdown', () => { if (currentLang !== 'fa') switchLang('fa'); });
+    // Register via registerNav (handles setInteractive + ctrl.addButton)
     const backIdx = this.navElements.length - 1;
-    this.navElements.splice(backIdx, 0, { bg: enBg, text: enText, onSelect: () => switchLang('en') });
-    this.navElements.splice(backIdx, 0, { bg: faBg, text: faText, onSelect: () => switchLang('fa') });
+    this.registerNav(enBg, enText, () => { if (currentLang !== 'en') switchLang('en'); }, { insertAt: backIdx });
+    this.registerNav(faBg, faText, () => { if (currentLang !== 'fa') switchLang('fa'); }, { insertAt: backIdx });
     this.optionElements.push({ objects, bg: enBg, text: enText, onSelect: () => {} });
   }
 
