@@ -25,6 +25,7 @@ import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t, fixTextStyle, getLocale } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
+import { InputSchemeManager } from '../../systems/InputSchemeManager';
 import type { InputState } from '../../systems/InputSystem';
 
 export class LoreController {
@@ -51,12 +52,16 @@ export class LoreController {
   }
 
   /**
-   * Handle input — close on interact press, back press, or ESC.
+   * Handle input — close on interact/back/ESC/jump(A/Cross).
    * Called from GameScene's input handling chain.
+   *
+   * Why jump? On gamepad, A/Cross (button 0) is the most natural "confirm"
+   * button for closing modal panels. B/Circle (button 1) also closes (back).
+   * Both are accepted for player comfort.
    */
   handleInput(input: InputState): void {
     if (!this.isOpen) return;
-    if (input.interactPressed || input.backPressed || input.pausePressed) {
+    if (input.interactPressed || input.backPressed || input.pausePressed || input.jumpPressed) {
       this.close();
     }
   }
@@ -117,8 +122,21 @@ export class LoreController {
       wordWrap: { width: pw - 60 }, align: 'center',
     })).setOrigin(0.5));
 
-    // Close hint — Persian-aware
-    const closeHint = getLocale() === 'fa' ? '▲ برای بستن E یا کلیک کنید' : '▲ PRESS E OR CLICK TO CLOSE';
+    // Close hint — scheme-aware (keyboard: E/ESC, gamepad: A/B)
+    // Shows the appropriate button label based on active input scheme.
+    const scheme = InputSchemeManager.getActiveScheme();
+    const isFa = getLocale() === 'fa';
+    let closeHint: string;
+    if (scheme === 'keyboard') {
+      closeHint = isFa ? '▲ برای بستن E / ESC یا کلیک کنید' : '▲ PRESS E / ESC OR CLICK TO CLOSE';
+    } else {
+      // Gamepad: A (confirm) or B (back) or Start (pause)
+      const aLabel = InputSchemeManager.getLabel('jump');    // A/Cross
+      const bLabel = InputSchemeManager.getLabel('interact'); // B/Circle
+      closeHint = isFa
+        ? `▲ برای بستن ${aLabel} / ${bLabel} یا کلیک کنید`
+        : `▲ PRESS ${aLabel} / ${bLabel} OR CLICK TO CLOSE`;
+    }
     panel.add(scene.add.text(px, py + ph / 2 - 25, closeHint, fixTextStyle({
       fontFamily: 'monospace', fontSize: '10px', color: '#5a6470', letterSpacing: 2,
     })).setOrigin(0.5));
