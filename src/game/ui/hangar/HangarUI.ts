@@ -26,9 +26,16 @@ import { getAllPaints } from '../../data/paints/paints';
 import { getAllCompanions } from '../../data/companions/companions';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { InputSystem } from '../../systems/InputSystem';
+import { OverlayManager } from '../OverlayManager';
 import type { OverlayUI, OverlayParent } from '../OverlayManager';
 
 type HangarTab = 'chassis' | 'loadout' | 'companion' | 'paint';
+
+interface NavItem {
+  x: number;
+  y: number;
+  onSelect: () => void;
+}
 
 export class HangarUI implements OverlayUI {
   private container: Phaser.GameObjects.Container;
@@ -37,6 +44,13 @@ export class HangarUI implements OverlayUI {
   private currentTab: HangarTab = 'chassis';
   private onBackCallback: () => void;
   private visible = false;
+  // Navigation items for current tab (rebuilt on showTab)
+  private navItems: NavItem[] = [];
+  private navFocusIdx = 0;
+  private navCooldown = 0;
+  // Exit button position (for nav)
+  private exitX = 0;
+  private exitY = 0;
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     this.scene = scene;
@@ -78,6 +92,8 @@ export class HangarUI implements OverlayUI {
     const exitBg = scene.add.rectangle(w - 100, 42, 100, 32, THEME.BG_PANEL, 0.95);
     exitBg.setStrokeStyle(1, THEME.CYAN, 0.5);
     exitBg.setScrollFactor(0);
+    this.exitX = w - 100;
+    this.exitY = 42;
     const exitText = scene.add.text(w - 100, 42, getLocale() === 'fa' ? '▲ خروج' : '▲ EXIT', fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: THEME.TEXT_BRIGHT, letterSpacing: 2,
     })).setOrigin(0.5).setScrollFactor(0);
@@ -119,37 +135,34 @@ export class HangarUI implements OverlayUI {
 
   private showTab(tab: HangarTab): void {
     this.currentTab = tab;
-    // Update tab highlights (iterate container children to find tab buttons)
-    // Simpler: just rebuild content — tab highlights are set in buildLayout
-    // Actually we need to update highlights. Let's just set all tab bg to default
-    // and highlight the active one.
-    const tabY = 85;
-    const w = GAME.WIDTH;
-    const tabW = 170, tabGap = 6;
-    const tabs: HangarTab[] = ['chassis', 'loadout', 'companion', 'paint'];
-    const totalW = tabs.length * tabW + (tabs.length - 1) * tabGap;
-    const startX = (w - totalW) / 2 + tabW / 2;
-    // Tab buttons are children of this.container at index 5..12 (after bg+panel+title+exit)
-    // Actually, let's just find them by position — but that's fragile.
-    // Simpler: destroy + rebuild entire layout on tab switch? No, that's wasteful.
-    // Let's store tab button references as fields.
-
     // Clear content container
     if (this.contentContainer) {
       this.contentContainer.destroy(true);
       this.contentContainer = null;
     }
+    // Clear nav items — will be rebuilt by render functions
+    this.navItems = [];
+    this.navFocusIdx = 0;
     this.contentContainer = this.scene.add.container(0, 0);
     this.contentContainer.scrollFactorX = 0;
     this.contentContainer.scrollFactorY = 0;
     this.container.add(this.contentContainer);
-
     switch (tab) {
       case 'chassis': this.renderChassisTab(); break;
       case 'loadout': this.renderLoadoutTab(); break;
       case 'companion': this.renderCompanionTab(); break;
       case 'paint': this.renderPaintTab(); break;
     }
+    // Always add EXIT button as last nav item
+    this.navItems.push({
+      x: this.exitX, y: this.exitY,
+      onSelect: () => { AudioSystem.play('uiClick'); this.hide(); this.onBackCallback(); },
+    });
+  }
+
+  /** Register a clickable item for D-pad/stick navigation. */
+  private registerNavItem(x: number, y: number, onSelect: () => void): void {
+    this.navItems.push({ x, y, onSelect });
   }
 
   // ================ CHASSIS TAB ================
@@ -213,6 +226,13 @@ export class HangarUI implements OverlayUI {
       itemBg.on('pointerout', () => { if (!isSelected) itemBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       itemBg.on('pointerdown', () => {
         AudioSystem.play('uiClick');
+        if (isUnlocked && !isSelected) {
+          SaveSystem.setSelectedChassis(chassis.id);
+          this.showTab('chassis');
+        }
+      });
+      // Register for D-pad/stick navigation
+      this.registerNavItem(listX, y + itemH / 2, () => {
         if (isUnlocked && !isSelected) {
           SaveSystem.setSelectedChassis(chassis.id);
           this.showTab('chassis');
@@ -295,6 +315,7 @@ export class HangarUI implements OverlayUI {
       btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
       btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
+      this.registerNavItem(previewX, previewY + 250, () => { SaveSystem.setSelectedChassis(selChassis.id); this.showTab('chassis'); });
     }
   }
 
@@ -418,6 +439,9 @@ export class HangarUI implements OverlayUI {
         AudioSystem.play('uiClick');
         if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
       });
+      this.registerNavItem(listX, y + itemH / 2, () => {
+        if (isUnlocked && !isSelected) { SaveSystem.setSelectedPaint(paint.id); this.showTab('paint'); }
+      });
     });
 
     // Right: preview
@@ -463,6 +487,7 @@ export class HangarUI implements OverlayUI {
       btnBg.on('pointerover', () => { btnBg.setFillStyle(THEME.BG_PANEL_HI, 1); AudioSystem.play('uiHover'); });
       btnBg.on('pointerout', () => { btnBg.setFillStyle(THEME.BG_PANEL, 0.95); });
       btnBg.on('pointerdown', () => { AudioSystem.play('uiClick'); SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
+      this.registerNavItem(previewX, previewY + 230, () => { SaveSystem.setSelectedPaint(selPaint.id); this.showTab('paint'); });
     } else {
       cc.add(scene.add.text(previewX, previewY + 230, t('hangar.locked'), fixTextStyle({
         fontFamily: 'monospace', fontSize: '12px', color: THEME.TEXT_RED, letterSpacing: 2,
@@ -473,25 +498,62 @@ export class HangarUI implements OverlayUI {
   // ================ OverlayUI interface ================
 
   /**
-   * Gamepad/keyboard navigation.
-   * - L1/R1 (shoulder buttons) = switch tabs
-   * - Left stick Left/Right = switch tabs
-   * - Virtual cursor (right stick) = primary pointing device
-   * - A button = click (handled by virtual cursor)
+   * Unified gamepad/keyboard navigation.
+   * - D-pad/stick up/down → navigate between items in current tab
+   * - L1/R1 or stick left/right → switch tabs
+   * - A button / Enter → activate focused item
+   * - Virtual cursor (right stick) → always works in parallel
    */
   handleNavigation(): void {
     const input = InputSystem.getState();
-    // L1/R1 + left stick left/right for tab switching
+    this.navCooldown -= 16;
+    if (this.navCooldown > 0) return;
+
+    // ── L1/R1 + left stick left/right for tab switching ──
     const tabs: HangarTab[] = ['chassis', 'loadout', 'companion', 'paint'];
     const idx = tabs.indexOf(this.currentTab);
     if (input.weaponPrevPressed || input.leftStickX < -0.3) {
-      const next = tabs[(idx - 1 + tabs.length) % tabs.length];
-      this.showTab(next);
+      this.showTab(tabs[(idx - 1 + tabs.length) % tabs.length]);
       AudioSystem.play('uiClick');
-    } else if (input.weaponNextPressed || input.leftStickX > 0.3) {
-      const next = tabs[(idx + 1) % tabs.length];
-      this.showTab(next);
+      this.navCooldown = 200;
+      return;
+    }
+    if (input.weaponNextPressed || input.leftStickX > 0.3) {
+      this.showTab(tabs[(idx + 1) % tabs.length]);
       AudioSystem.play('uiClick');
+      this.navCooldown = 200;
+      return;
+    }
+
+    // ── D-pad/stick up/down for item navigation ──
+    if (this.navItems.length === 0) return;
+    if (input.leftStickY < -0.3 || input.heldUp) {
+      this.navFocusIdx = (this.navFocusIdx - 1 + this.navItems.length) % this.navItems.length;
+      this.navCooldown = 120;
+      // Sync cursor to focused item
+      const item = this.navItems[this.navFocusIdx];
+      OverlayManager.getCursor()?.setPosition(item.x, item.y);
+    } else if (input.leftStickY > 0.3 || input.heldDown) {
+      this.navFocusIdx = (this.navFocusIdx + 1) % this.navItems.length;
+      this.navCooldown = 120;
+      const item = this.navItems[this.navFocusIdx];
+      OverlayManager.getCursor()?.setPosition(item.x, item.y);
+    }
+
+    // ── A button / Enter / fire → activate ──
+    if (input.jumpPressed || input.firePressed) {
+      const item = this.navItems[this.navFocusIdx];
+      if (item) {
+        // Check if cursor is handling the click (double-trigger prevention)
+        const cursor = OverlayManager.getCursor();
+        if (cursor && cursor.isVisible && cursor.hasHover) {
+          // Cursor will handle it
+        } else {
+          AudioSystem.play('uiClick');
+          item.onSelect();
+        }
+        this.navCooldown = 300;
+      }
     }
   }
 
