@@ -1,28 +1,23 @@
 /**
- * MECHA: LAST PROTOCOL — NavigableOverlay Base Class v3.2
+ * MECHA: LAST PROTOCOL — NavigableOverlay v5.0
  *
- * Provides unified gamepad + keyboard navigation for all overlay UIs.
- * Each overlay registers its interactive elements via registerNav(),
- * and handleNavigation() cycles through them automatically.
+ * Wrapper around UIController. All subclasses (Settings, Inventory,
+ * SkillTree, Quests, WorldMap) work unchanged — registerNav() and
+ * handleNavigation() now delegate to UIController internally.
  *
- * Navigation:
- *   Up/Down (stick or D-pad or WASD) → cycle focus
- *   Left/Right (stick or D-pad or WASD) → optional horizontal nav (override onNavLeft/onNavRight)
- *   A button / Enter / Space → activate focused element
- *   B button / ESC → handled by OverlayManager (back)
- *
- * Mouse + touch also work in parallel — pointerover auto-syncs focus.
+ * This is a compatibility layer — new UIs should use UIController directly.
  */
 import Phaser from 'phaser';
 import { InputSystem } from '../systems/InputSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import { UIController } from './UIController';
 import type { OverlayUI } from './OverlayManager';
 
 export interface NavElement {
-  bg: Phaser.GameObjects.Shape;       // Rectangle or Arc (the visual)
-  text: Phaser.GameObjects.Text;      // Text label (for color change on focus)
-  onSelect: () => void;               // Action when activated
-  focusColor?: number;                // Optional custom focus stroke color
+  bg: Phaser.GameObjects.Shape;
+  text: Phaser.GameObjects.Text;
+  onSelect: () => void;
+  focusColor?: number;
   normalColor?: number;
 }
 
@@ -33,18 +28,20 @@ export abstract class NavigableOverlay implements OverlayUI {
   protected navFocusIdx = 0;
   protected navCooldown = 0;
   private visible = false;
+  private ctrl: UIController;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.container = scene.add.container(0, 0).setDepth(300).setVisible(false);
     this.container.scrollFactorX = 0;
     this.container.scrollFactorY = 0;
+    this.ctrl = new UIController(scene, this.container);
+    this.ctrl.setupKeyboard();
   }
 
-  /**
-   * Add a child to the container with scrollFactor(0).
-   * Use this instead of container.add() to ensure hit-test works when camera scrolls.
-   */
+  /** OverlayUI: return our controller. */
+  getController(): UIController { return this.ctrl; }
+
   protected addFixed(...children: Phaser.GameObjects.GameObject[]): void {
     children.forEach(c => {
       const sf = c as unknown as { setScrollFactor?: (x: number, y?: number) => void };
@@ -53,32 +50,22 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.container.add(children);
   }
 
-  /**
-   * Register an interactive element for gamepad navigation.
-   * Also wires mouse hover + click automatically.
-   */
   protected registerNav(
     bg: Phaser.GameObjects.Shape,
     text: Phaser.GameObjects.Text,
     onSelect: () => void,
     opts?: { focusColor?: number; normalColor?: number },
   ): void {
-    // *** ROOT FIX: each child must have scrollFactor(0) individually.
-    // Container.setScrollFactor(0,0,true) doesn't work reliably in Phaser 4.2.1.
     bg.setScrollFactor(0);
     text.setScrollFactor(0);
-    bg.setInteractive({ useHandCursor: true });
-    bg.on('pointerover', () => {
-      this.navFocusIdx = this.navElements.findIndex(e => e.bg === bg);
-      if (this.navFocusIdx < 0) this.navFocusIdx = 0;
-      this.updateNavFocus();
-      AudioSystem.play('uiHover');
-    });
-    bg.on('pointerout', () => this.updateNavFocus());
-    bg.on('pointerdown', () => {
-      AudioSystem.play('uiClick');
-      onSelect();
-    });
+    // Register with UIController — it handles all input
+    this.ctrl.addButton(
+      (bg as unknown as { x: number }).x,
+      (bg as unknown as { y: number }).y,
+      bg, onSelect,
+      { text, focusColor: opts?.focusColor, normalColor: opts?.normalColor },
+    );
+    // Also keep in navElements for backward compat (subclasses read it)
     this.navElements.push({
       bg, text, onSelect,
       focusColor: opts?.focusColor ?? 0x39d0d8,
@@ -86,90 +73,36 @@ export abstract class NavigableOverlay implements OverlayUI {
     });
   }
 
-  /** Called by OverlayManager every frame. Handles gamepad/keyboard nav. */
-  handleNavigation(): void {
-    if (this.navElements.length === 0) return;
-    const input = InputSystem.getState();
-    this.navCooldown -= 16;
-    if (this.navCooldown > 0) return;
-
-    // ── L1/R1 (shoulder buttons) for tab switching ──
-    // weaponPrevPressed = L1/LB, weaponNextPressed = R1/RB
-    // These call onNavLeft/onNavRight which subclasses override for tab cycling
-    if (input.weaponPrevPressed) {
-      this.onNavLeft();
-      this.navCooldown = 200;
-      return;
-    }
-    if (input.weaponNextPressed) {
-      this.onNavRight();
-      this.navCooldown = 200;
-      return;
-    }
-
-    // Vertical navigation (up/down)
-    if (input.leftStickY < -0.3 || input.heldUp) {
-      this.navFocusIdx = (this.navFocusIdx - 1 + this.navElements.length) % this.navElements.length;
-      this.updateNavFocus();
-      AudioSystem.play('uiHover');
-      this.navCooldown = 120;
-    } else if (input.leftStickY > 0.3 || input.heldDown) {
-      this.navFocusIdx = (this.navFocusIdx + 1) % this.navElements.length;
-      this.updateNavFocus();
-      AudioSystem.play('uiHover');
-      this.navCooldown = 120;
-    }
-
-    // Horizontal navigation (left/right) — for tabs, sliders, etc.
-    if (input.leftStickX < -0.3) {
-      this.onNavLeft();
-      this.navCooldown = 120;
-    } else if (input.leftStickX > 0.3) {
-      this.onNavRight();
-      this.navCooldown = 120;
-    }
-
-    // Activate (A button / Enter / Space / fire)
-    if (input.jumpPressed || input.firePressed) {
-      AudioSystem.play('uiClick');
-      this.navElements[this.navFocusIdx]?.onSelect();
-      this.navCooldown = 250;
-    }
+  protected clearNavElements(): void {
+    this.navElements = [];
+    this.navFocusIdx = 0;
+    this.ctrl.clearFocusables();
   }
 
-  /** Override for horizontal navigation (e.g., switching tabs, adjusting sliders). */
+  handleNavigation(): void {
+    // Delegate entirely to UIController
+    this.ctrl.update();
+  }
+
   protected onNavLeft(): void { /* override in subclass */ }
   protected onNavRight(): void { /* override in subclass */ }
 
   protected updateNavFocus(): void {
+    // UIController handles focus visual now — this is a no-op for backward compat
+    // But we still update navFocusIdx for subclasses that read it
     this.navElements.forEach((el, i) => {
-      if (!el.bg || !el.bg.active || !el.text || !el.text.active) return;
-      // Guard against Text with uninitialized canvas
-      const textEl = el.text as unknown as { canvas?: HTMLCanvasElement | null };
-      if (textEl.canvas === null) {
-        // Still update bg, just skip text color
-        if (i === this.navFocusIdx) {
-          el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
-          el.bg.setScale(1.03);
-        } else {
-          el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
-          el.bg.setScale(1);
-        }
-        return;
-      }
+      if (!el.bg || !el.bg.active) return;
       try {
         if (i === this.navFocusIdx) {
           el.bg.setStrokeStyle(2, el.focusColor ?? 0x39d0d8, 0.9);
           el.bg.setScale(1.03);
-          el.text.setColor('#66f0ff');
+          if (el.text) el.text.setColor('#66f0ff');
         } else {
           el.bg.setStrokeStyle(1, el.normalColor ?? 0x1a3040, 0.7);
           el.bg.setScale(1);
-          el.text.setColor('#cfd6e0');
+          if (el.text) el.text.setColor('#cfd6e0');
         }
-      } catch {
-        // Skip if setColor fails
-      }
+      } catch { /* canvas not ready */ }
     });
   }
 
@@ -177,9 +110,7 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.visible = true;
     this.container.setVisible(true);
     this.navFocusIdx = 0;
-    // Defer updateNavFocus to next frame — Text objects created in subclass
-    // constructors need a frame to initialize their internal canvas before
-    // setColor() can be called safely.
+    this.ctrl.show(280);
     this.scene.time.delayedCall(0, () => {
       if (this.isVisible) this.updateNavFocus();
     });
@@ -188,22 +119,16 @@ export abstract class NavigableOverlay implements OverlayUI {
   hide(): void {
     this.visible = false;
     this.container.setVisible(false);
+    this.ctrl.hide();
   }
 
   get isVisible(): boolean { return this.visible; }
 
-  /**
-   * Clear all registered nav elements (e.g., when switching tabs).
-   * Does NOT destroy the objects — just removes them from the nav list.
-   * Call this before rebuilding tab content to avoid stale references.
-   */
-  protected clearNavElements(): void {
-    this.navElements = [];
-    this.navFocusIdx = 0;
-  }
-
   destroy(): void {
+    this.ctrl.destroy();
     this.container.destroy();
     this.navElements = [];
   }
 }
+
+export default NavigableOverlay;
