@@ -145,6 +145,18 @@ export class UIController {
     this.focusIndex = -1;
   }
 
+  /** Get the currently focused button's onSelect, or null. */
+  getFocusedOnSelect(): (() => void) | null {
+    const f = this.focusables[this.focusIndex];
+    return f && !f.disabled ? f.onSelect : null;
+  }
+
+  /** Trigger the first focusable button's onSelect (for B/ESC = resume). */
+  triggerFirst(): void {
+    const f = this.focusables[0];
+    if (f && !f.disabled) f.onSelect();
+  }
+
   // ================ Cursor ================
 
   show(minDepth: number = 40): void {

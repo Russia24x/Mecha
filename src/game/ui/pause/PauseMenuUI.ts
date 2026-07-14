@@ -138,9 +138,7 @@ export class PauseMenuUI {
     // B button / ESC = resume (first button = RESUME)
     if (input.backPressed) {
       AudioSystem.play('uiClick');
-      // Trigger first focusable (RESUME button)
-      const f = this.ctrl['focusables' as keyof UIController] as unknown as { onSelect?: () => void }[];
-      if (f && f[0] && f[0].onSelect) f[0].onSelect();
+      this.ctrl.triggerFirst();
       return;
     }
     this.ctrl.update();

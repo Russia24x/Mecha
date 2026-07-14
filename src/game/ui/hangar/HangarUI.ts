@@ -131,10 +131,14 @@ export class HangarUI implements OverlayUI {
 
   // ================ TAB SWITCHING ================
 
+  private switchingTab = false;
+
   private showTab(tab: HangarTab): void {
     // Guard against re-entrant calls (rapid L1/R1 switching)
-    if (this.currentTab === tab && this.contentContainer) return;
-    this.currentTab = tab;
+    if (this.switchingTab) return;
+    this.switchingTab = true;
+    try {
+      this.currentTab = tab;
     // Update tab highlights
     this.tabButtons.forEach(tb => {
       if (tb.tab === tab) {
@@ -178,6 +182,9 @@ export class HangarUI implements OverlayUI {
       case 'loadout': this.renderLoadoutTab(); break;
       case 'companion': this.renderCompanionTab(); break;
       case 'paint': this.renderPaintTab(); break;
+    }
+    } finally {
+      this.switchingTab = false;
     }
   }
 
