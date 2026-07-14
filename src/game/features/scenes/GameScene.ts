@@ -22,11 +22,11 @@
  *   • MetroidvaniaController — collectibles + shortcuts
  *   • NpcInteractionController — NPC sprites + prompts
  *   • LoreController — lore panel UI (terminal/corpse/echo)
- *   • MenuNavHelper — shared menu navigation (4-directional)
+ *   • MenuNavHelper — thin wrapper around UIController (backward compat)
  *   • MenuBuilder / HubBuilder — menu + hub construction
  *   • BossHealthBarUI — boss health bar
  *   • TargetRegistry — O(m) projectile hit detection
- *   • VirtualCursor — gamepad-controlled UI cursor
+ *   • UIController — unified navigation (gamepad + keyboard + mouse + touch)
  *   • FullscreenManager — browser fullscreen
  *
  * WHY HANDLERS STAY HERE (not in PlayController):
@@ -89,7 +89,6 @@ import { QuestUI } from '../../ui/quest/QuestUI';
 import { WorldMapUI } from '../../ui/map/WorldMapUI';
 import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
-import { VirtualCursor } from '../../ui/VirtualCursor';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
 import { LoreController } from '../../ui/lore/LoreController';
