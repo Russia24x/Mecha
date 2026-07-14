@@ -59,7 +59,7 @@ export class PauseMenuUI {
     this.container.add(titleBg);
     this.container.add(addCornerBrackets(scene, w / 2, 60, 500, 50, THEME.CYAN, 8, 0.6));
     this.container.add(scene.add.text(w / 2, 60, isFa ? '▮ سیستم متوقف ▮' : '▮ SYSTEM SUSPEND ▮', fixTextStyle({
-      fontFamily: 'monospace', fontSize: '22px', color: THEME.CYAN, stroke: '#000', strokeThickness: 4, letterSpacing: 4,
+      fontFamily: 'monospace', fontSize: '22px', color: '#39d0d8', stroke: '#000', strokeThickness: 4, letterSpacing: 4,
     })).setOrigin(0.5).setScrollFactor(0));
     this.container.add(scene.add.text(w / 2, 95, isFa ? 'پروتکل‌ها متوقف شدند' : 'PROTOCOLS SUSPENDED', fixTextStyle({
       fontFamily: 'monospace', fontSize: '9px', color: THEME.TEXT_DIM, letterSpacing: 3,
