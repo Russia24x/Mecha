@@ -60,6 +60,7 @@ import { LoreController } from '../../ui/lore/LoreController';
 import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
 import { MenuBuilder } from '../../ui/menu/MenuBuilder';
 import { HubBuilder } from '../../ui/hub/HubBuilder';
+import { CollisionController } from '../../controllers/CollisionController';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
@@ -127,6 +128,8 @@ export class GameScene extends Phaser.Scene {
   private perfOverlay: PerformanceOverlay | null = null;
   // Metroidvania controller (collectibles + shortcuts) — PLAY-only
   private metroidvania: MetroidvaniaController | null = null;
+  // Collision dispatch router — PLAY-only
+  private collision: CollisionController | null = null;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -511,8 +514,17 @@ export class GameScene extends Phaser.Scene {
     // ── Spawn companion (Protocol Echo) — follows player ──
     this.companion = new CompanionEntity(this, startX + 30, startY - 40);
 
-    // Collision handler
-    this.matter.world.on('collisionstart', this.onCollisionStart, this);
+    // ── Collision dispatch router (delegates to handlers below) ──
+    this.collision = new CollisionController(this);
+    this.collision.routes = {
+      onSection: (sectionId: number) => this.enterSection(sectionId),
+      onCheckpoint: () => this.activateCheckpoint(),
+      onBossEntry: () => this.enterBossArena(),
+      onEnemyContact: (enemyGo: Phaser.GameObjects.GameObject) => this.handleEnemyContact(enemyGo),
+      onBossContact: () => { if (this.boss) this.player.takeDamage(this.boss.getContactDamage()); },
+      onHazard: (hazardGo: Phaser.GameObjects.GameObject) => this.handleHazard(hazardGo),
+    };
+    this.collision.enter();
 
     // Spawn enemies for current section
     this.spawnEnemiesForSection(this.currentSection);
@@ -578,30 +590,11 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private onCollisionStart = (event: MatterJS.IEventCollision<MatterJS.Body>): void => {
-    for (const pair of event.pairs) {
-      const aGo = (pair.bodyA as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
-      const bGo = (pair.bodyB as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
-      if (!aGo || !bGo) continue;
-      const aIsPlayer = aGo.getData('entityType') === 'player';
-      const bIsPlayer = bGo.getData('entityType') === 'player';
-      const aSection = aGo.getData('sectionId') as number | undefined;
-      const bSection = bGo.getData('sectionId') as number | undefined;
-      if (aIsPlayer && bSection) { this.enterSection(bSection); }
-      else if (bIsPlayer && aSection) { this.enterSection(aSection); }
-      else if (aIsPlayer && bGo.getData('isCheckpoint')) { this.activateCheckpoint(); }
-      else if (bIsPlayer && aGo.getData('isCheckpoint')) { this.activateCheckpoint(); }
-      else if (aIsPlayer && bGo.getData('isBossEntry')) { this.enterBossArena(); }
-      else if (bIsPlayer && aGo.getData('isBossEntry')) { this.enterBossArena(); }
-      if (aIsPlayer && bGo.getData('entityType') === 'enemy') { this.handleEnemyContact(bGo); }
-      else if (bIsPlayer && aGo.getData('entityType') === 'enemy') { this.handleEnemyContact(aGo); }
-      if (aIsPlayer && bGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
-      else if (bIsPlayer && aGo.getData('entityType') === 'boss' && this.boss) { this.player.takeDamage(this.boss.getContactDamage()); }
-      // Hazard collision (spikes, lava, etc.)
-      if (aIsPlayer && bGo.getData('hazardDamage')) { this.handleHazard(bGo); }
-      else if (bIsPlayer && aGo.getData('hazardDamage')) { this.handleHazard(aGo); }
-    }
-  };
+  // ================ COLLISION DISPATCH ================
+  // Extracted to CollisionController — see src/game/controllers/CollisionController.ts
+  // GameScene registers routes in buildPlay() and delegates dispatch to the controller.
+  // Handler logic (enterSection, activateCheckpoint, handleEnemyContact, handleHazard)
+  // remains here as methods — only the routing mechanism was extracted.
 
   private handleHazard(hazardGo: Phaser.GameObjects.GameObject): void {
     const dmg = hazardGo.getData('hazardDamage') as number;
@@ -799,7 +792,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private cleanupPlay(): void {
-    this.matter.world.off('collisionstart', this.onCollisionStart, this);
+    // Remove collision dispatch listener
+    this.collision?.exit();
+    this.collision = null;
     // Destroy lore controller (closes panel if open)
     this.loreController?.destroy();
     this.loreController = null;
