@@ -1,0 +1,422 @@
+/**
+ * MECHA: LAST PROTOCOL — Unified UI Controller
+ *
+ * ONE system for ALL UI navigation. Replaces:
+ *   - NavigableOverlay (linear list for overlays)
+ *   - MenuNavHelper (2D spatial for menu/hub)
+ *   - VirtualCursor (right-stick pointer)
+ *   - HangarUI's custom navItems
+ *   - PauseMenuUI's custom handleNavigation
+ *
+ * Design principles:
+ *   1. Every interactive element is a "focusable button" with (x, y, onSelect)
+ *   2. Navigation is 2D spatial (find nearest in direction)
+ *   3. Virtual cursor is always visible (syncs with D-pad/stick nav)
+ *   4. Input: gamepad (all buttons), keyboard (arrows+WASD+Enter), mouse, touch
+ *   5. Tab switching: L1/R1, Q/E keys, or left/right stick
+ *   6. Mobile-ready: touch = pointer (same as mouse)
+ *
+ * Usage in any UI:
+ *   const ctrl = new UIController(scene, container);
+ *   ctrl.addButton(x, y, w, h, onSelect, { label, ... });
+ *   ctrl.addTabs(['tab1', 'tab2'], (tab) => this.switchTab(tab));
+ *   ctrl.update();  // call every frame
+ *   ctrl.destroy();
+ */
+
+import Phaser from 'phaser';
+import { GAME } from '../shared/Constants';
+import { InputSystem, type InputState } from '../systems/InputSystem';
+import { AudioSystem } from '../systems/AudioSystem';
+
+export interface UIFocusable {
+  id: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  onSelect: () => void;
+  bg?: Phaser.GameObjects.Shape;
+  text?: Phaser.GameObjects.Text;
+  focusColor?: number;
+  normalColor?: number;
+  disabled?: boolean;
+}
+
+export interface UITab {
+  id: string;
+  label: string;
+  onSelect: () => void;
+}
+
+export class UIController {
+  private focusables: UIFocusable[] = [];
+  private tabs: UITab[] = [];
+  private currentTabIndex = 0;
+  private focusIndex = -1; // -1 = no focus
+  private navCooldown = 0;
+  private cursorVisible = false;
+  private cursorX = GAME.WIDTH / 2;
+  private cursorY = GAME.HEIGHT / 2;
+  private cursorContainer: Phaser.GameObjects.Container;
+  private cursorGlow: Phaser.GameObjects.Arc;
+  private cursorDiamond: Phaser.GameObjects.Rectangle;
+  private lastHovered: Phaser.GameObjects.GameObject | null = null;
+  private clickCooldown = 0;
+  private minHitDepth = 40;
+  private nextId = 0;
+
+  constructor(
+    private scene: Phaser.Scene,
+    private container: Phaser.GameObjects.Container,
+  ) {
+    // Virtual cursor visual
+    this.cursorContainer = scene.add.container(this.cursorX, this.cursorY).setDepth(450).setScrollFactor(0);
+    this.cursorContainer.setVisible(false);
+    this.cursorGlow = scene.add.circle(0, 0, 14, 0x39d0d8, 0.15);
+    this.cursorGlow.setBlendMode(Phaser.BlendModes.ADD);
+    this.cursorContainer.add(this.cursorGlow);
+    this.cursorDiamond = scene.add.rectangle(0, 0, 10, 10, 0x39d0d8, 0.9);
+    this.cursorDiamond.setAngle(45);
+    this.cursorDiamond.setStrokeStyle(1.5, 0xffffff, 0.6);
+    this.cursorContainer.add(this.cursorDiamond);
+    scene.tweens.add({
+      targets: this.cursorGlow,
+      scale: { from: 0.8, to: 1.3 },
+      alpha: { from: 0.08, to: 0.2 },
+      duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+  }
+
+  // ================ Registration ================
+
+  /**
+   * Register a focusable button. Returns the button id.
+   * Call clearAll() before rebuilding content (e.g., tab switch).
+   */
+  addButton(
+    x: number, y: number,
+    bg: Phaser.GameObjects.Shape,
+    onSelect: () => void,
+    opts?: { text?: Phaser.GameObjects.Text; focusColor?: number; normalColor?: number; disabled?: boolean },
+  ): number {
+    const id = this.nextId++;
+    const w = (bg as unknown as { displayWidth?: number }).displayWidth ?? 100;
+    const h = (bg as unknown as { displayHeight?: number }).displayHeight ?? 32;
+    this.focusables.push({
+      id, x, y, w, h, onSelect,
+      bg, text: opts?.text,
+      focusColor: opts?.focusColor ?? 0x39d0d8,
+      normalColor: opts?.normalColor ?? 0x1a3040,
+      disabled: opts?.disabled ?? false,
+    });
+    // Wire mouse/touch handlers
+    if (!opts?.disabled) {
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => {
+        this.focusIndex = this.focusables.findIndex(f => f.bg === bg);
+        this.updateFocusVisual();
+        AudioSystem.play('uiHover');
+      });
+      bg.on('pointerout', () => this.updateFocusVisual());
+      bg.on('pointerdown', () => {
+        AudioSystem.play('uiClick');
+        onSelect();
+      });
+    }
+    // Auto-focus first button
+    if (this.focusIndex < 0) this.focusIndex = 0;
+    return id;
+  }
+
+  /** Register tabs for L1/R1 switching. */
+  addTabs(tabs: UITab[]): void {
+    this.tabs = tabs;
+  }
+
+  /** Set current tab index (for sync when tab clicked via mouse). */
+  setCurrentTab(index: number): void {
+    this.currentTabIndex = index;
+  }
+
+  /** Clear all focusables (call before rebuilding tab content). */
+  clearFocusables(): void {
+    this.focusables = [];
+    this.focusIndex = -1;
+  }
+
+  // ================ Cursor ================
+
+  showCursor(minDepth: number = 40): void {
+    this.cursorVisible = true;
+    this.minHitDepth = minDepth;
+    this.cursorContainer.setVisible(true);
+    this.cursorX = GAME.WIDTH / 2;
+    this.cursorY = GAME.HEIGHT / 2;
+    this.cursorContainer.setPosition(this.cursorX, this.cursorY);
+    this.lastHovered = null;
+  }
+
+  hideCursor(): void {
+    this.cursorVisible = false;
+    this.cursorContainer.setVisible(false);
+    if (this.lastHovered && this.lastHovered.active) {
+      this.lastHovered.emit('pointerout');
+    }
+    this.lastHovered = null;
+  }
+
+  get isCursorVisible(): boolean { return this.cursorVisible; }
+  get cursorHasHover(): boolean { return this.lastHovered !== null; }
+
+  setCursorPosition(x: number, y: number): void {
+    this.cursorX = Phaser.Math.Clamp(x, 5, GAME.WIDTH - 5);
+    this.cursorY = Phaser.Math.Clamp(y, 5, GAME.HEIGHT - 5);
+    this.cursorContainer.setPosition(this.cursorX, this.cursorY);
+  }
+
+  // ================ Per-frame update ================
+
+  update(): void {
+    const input = InputSystem.getState();
+    this.navCooldown -= 16;
+    this.clickCooldown -= 16;
+
+    // ── Virtual cursor movement (right stick) ──
+    if (this.cursorVisible) {
+      const speed = 7;
+      const moved = Math.abs(input.rightStickX) > 0.05 || Math.abs(input.rightStickY) > 0.05;
+      if (moved) {
+        this.cursorX = Phaser.Math.Clamp(this.cursorX + input.rightStickX * speed, 5, GAME.WIDTH - 5);
+        this.cursorY = Phaser.Math.Clamp(this.cursorY + input.rightStickY * speed, 5, GAME.HEIGHT - 5);
+        this.cursorContainer.setPosition(this.cursorX, this.cursorY);
+        this.processCursorHover();
+      }
+      // Cursor click (A button / fire)
+      if ((input.jumpPressed || input.firePressed) && this.clickCooldown <= 0) {
+        if (this.lastHovered && this.lastHovered.active) {
+          AudioSystem.play('uiClick');
+          this.lastHovered.emit('pointerdown');
+          this.clickCooldown = 200;
+          this.navCooldown = 300;
+        }
+      }
+    }
+
+    if (this.navCooldown > 0) return;
+
+    // ── Tab switching (L1/R1, Q/E, stick left/right) ──
+    if (this.tabs.length > 0) {
+      if (input.weaponPrevPressed || input.leftStickX < -0.3) {
+        this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
+        this.tabs[this.currentTabIndex].onSelect();
+        AudioSystem.play('uiClick');
+        this.navCooldown = 200;
+        return;
+      }
+      if (input.weaponNextPressed || input.leftStickX > 0.3) {
+        this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
+        this.tabs[this.currentTabIndex].onSelect();
+        AudioSystem.play('uiClick');
+        this.navCooldown = 200;
+        return;
+      }
+    }
+
+    // ── Item navigation (D-pad/stick up/down) ──
+    const up = input.leftStickY < -0.3 || input.heldUp;
+    const down = input.leftStickY > 0.3 || input.heldDown;
+    if (up || down) {
+      if (this.focusables.length > 0) {
+        if (up) this.focusIndex = this.findNearest('up');
+        else this.focusIndex = this.findNearest('down');
+        this.updateFocusVisual();
+        AudioSystem.play('uiHover');
+        this.navCooldown = 120;
+        // Sync cursor to focused button
+        const f = this.focusables[this.focusIndex];
+        if (f) this.setCursorPosition(f.x, f.y);
+      }
+    }
+
+    // ── Activate (A button / Enter / fire) — only if cursor not hovering ──
+    if (input.jumpPressed || input.firePressed) {
+      // If cursor is hovering, cursor already handled the click above
+      if (!(this.cursorVisible && this.lastHovered)) {
+        const f = this.focusables[this.focusIndex];
+        if (f && !f.disabled) {
+          AudioSystem.play('uiClick');
+          f.onSelect();
+          this.navCooldown = 300;
+        }
+      }
+    }
+  }
+
+  // ================ Internal: spatial navigation ================
+
+  private findNearest(direction: 'up' | 'down'): number {
+    if (this.focusables.length === 0) return -1;
+    if (this.focusIndex < 0) return 0;
+    const current = this.focusables[this.focusIndex];
+    if (!current) return 0;
+
+    let bestIdx = -1;
+    let bestScore = Infinity;
+    for (let i = 0; i < this.focusables.length; i++) {
+      if (i === this.focusIndex) continue;
+      const f = this.focusables[i];
+      if (f.disabled) continue;
+      const dx = f.x - current.x;
+      const dy = f.y - current.y;
+      let inDir = false;
+      let primary = 0;
+      let secondary = 0;
+      if (direction === 'up') { inDir = dy < -10; primary = Math.abs(dy); secondary = Math.abs(dx); }
+      else { inDir = dy > 10; primary = Math.abs(dy); secondary = Math.abs(dx); }
+      if (!inDir) continue;
+      const score = primary + secondary * 0.4;
+      if (score < bestScore) { bestScore = score; bestIdx = i; }
+    }
+    // Fallback: wrap around
+    if (bestIdx === -1) {
+      return direction === 'up'
+        ? (this.focusIndex - 1 + this.focusables.length) % this.focusables.length
+        : (this.focusIndex + 1) % this.focusables.length;
+    }
+    return bestIdx;
+  }
+
+  // ================ Internal: cursor hover detection ================
+
+  private processCursorHover(): void {
+    const inputPlugin = this.scene.input as unknown as {
+      _list: Phaser.GameObjects.GameObject[];
+      manager: {
+        hitTest: (pointer: { x: number; y: number }, gameObjects: Phaser.GameObjects.GameObject[], camera: Phaser.Cameras.Scene2D.Camera, output?: Phaser.GameObjects.GameObject[]) => Phaser.GameObjects.GameObject[];
+      };
+    };
+    const candidates = inputPlugin._list.filter(go => {
+      const goInput = go as unknown as { input?: { enabled?: boolean } };
+      if (!goInput.input || !goInput.input.enabled) return false;
+      let obj: Phaser.GameObjects.GameObject | null = go;
+      while (obj) {
+        const c = obj as unknown as { visible?: boolean; parentContainer?: Phaser.GameObjects.Container | null };
+        if (c.visible === false) return false;
+        obj = c.parentContainer ?? null;
+      }
+      return this.getDepth(go) >= this.minHitDepth;
+    });
+    if (candidates.length === 0) { this.clearHover(); return; }
+    const mockPointer = { x: this.cursorX, y: this.cursorY };
+    const hits = inputPlugin.manager.hitTest(mockPointer as Phaser.Input.Pointer, candidates, this.scene.cameras.main);
+    if (!hits || hits.length === 0) { this.clearHover(); return; }
+    // Sort: prefer buttons (with handlers) over backgrounds, then by depth
+    hits.sort((a, b) => {
+      const depthDiff = this.getDepth(b) - this.getDepth(a);
+      if (depthDiff !== 0) return depthDiff;
+      const aBtn = this.hasHandlers(a) ? 1 : 0;
+      const bBtn = this.hasHandlers(b) ? 1 : 0;
+      return bBtn - aBtn;
+    });
+    const hovered = hits[0];
+    if (hovered !== this.lastHovered) {
+      this.clearHover();
+      this.lastHovered = hovered;
+      hovered.emit('pointerover');
+      // Sync focus index to hovered button
+      const idx = this.focusables.findIndex(f => f.bg === hovered);
+      if (idx >= 0) { this.focusIndex = idx; this.updateFocusVisual(); }
+    }
+  }
+
+  private clearHover(): void {
+    if (this.lastHovered && this.lastHovered.active) {
+      this.lastHovered.emit('pointerout');
+    }
+    this.lastHovered = null;
+  }
+
+  private hasHandlers(go: Phaser.GameObjects.GameObject): boolean {
+    const events = (go as unknown as { _events?: Record<string, unknown> })._events;
+    if (!events) return false;
+    return 'pointerover' in events || 'pointerdown' in events;
+  }
+
+  private getDepth(go: Phaser.GameObjects.GameObject): number {
+    let depth = (go as unknown as { depth?: number }).depth ?? 0;
+    let parent = (go as unknown as { parentContainer?: Phaser.GameObjects.Container | null }).parentContainer;
+    while (parent) {
+      const pd = (parent as unknown as { depth?: number }).depth ?? 0;
+      if (pd > depth) depth = pd;
+      parent = (parent as unknown as { parentContainer?: Phaser.GameObjects.Container | null }).parentContainer ?? null;
+    }
+    return depth;
+  }
+
+  // ================ Internal: focus visual ================
+
+  private updateFocusVisual(): void {
+    this.focusables.forEach((f, i) => {
+      if (!f.bg || !f.bg.active) return;
+      try {
+        if (i === this.focusIndex) {
+          f.bg.setStrokeStyle(2, f.focusColor ?? 0x39d0d8, 0.9);
+          f.bg.setScale(1.05);
+          if (f.text) f.text.setColor('#66f0ff');
+        } else {
+          f.bg.setStrokeStyle(1, f.normalColor ?? 0x1a3040, 0.7);
+          f.bg.setScale(1);
+          if (f.text) f.text.setColor('#cfd6e0');
+        }
+      } catch { /* canvas not ready */ }
+    });
+  }
+
+  // ================ Keyboard handler (separate from polling) ================
+
+  private keyHandler: ((e: KeyboardEvent) => void) | null = null;
+
+  setupKeyboard(): void {
+    if (this.keyHandler) window.removeEventListener('keydown', this.keyHandler);
+    this.keyHandler = (e: KeyboardEvent) => {
+      if (this.focusables.length === 0) return;
+      let moved = false;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') {
+        this.focusIndex = this.findNearest('up'); moved = true;
+      } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+        this.focusIndex = this.findNearest('down'); moved = true;
+      } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        if (this.tabs.length > 0) {
+          this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
+          this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
+        }
+      } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+        if (this.tabs.length > 0) {
+          this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
+          this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
+        }
+      } else if (e.code === 'Enter' || e.code === 'Space') {
+        const f = this.focusables[this.focusIndex];
+        if (f && !f.disabled) { AudioSystem.play('uiClick'); f.onSelect(); }
+      }
+      if (moved) {
+        this.updateFocusVisual(); AudioSystem.play('uiHover');
+        const f = this.focusables[this.focusIndex];
+        if (f) this.setCursorPosition(f.x, f.y);
+      }
+    };
+    window.addEventListener('keydown', this.keyHandler);
+  }
+
+  // ================ Lifecycle ================
+
+  destroy(): void {
+    if (this.keyHandler) { window.removeEventListener('keydown', this.keyHandler); this.keyHandler = null; }
+    this.cursorContainer.destroy();
+    this.focusables = [];
+    this.tabs = [];
+  }
+}
+
+export default UIController;
