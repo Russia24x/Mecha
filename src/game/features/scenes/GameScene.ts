@@ -1,15 +1,50 @@
 /**
- * MECHA: LAST PROTOCOL — GameScene v3.1
+ * MECHA: LAST PROTOCOL — GameScene v4.0 (Refactored)
  *
- * ARCHITECTURE (v3.1 — root-cause fix for overlay navigation):
- * - Main states: menu | hub | play | gameover | victory
- * - Overlays (settings/skills/inventory/quests/map) managed by OverlayManager
- *   as a STACK — NOT as states. Opening/closing overlays never rebuilds play.
- * - Pause is a boolean flag (not a state). When paused, play update is skipped.
- * - InputSystem.init() called in create() — listeners work from menu onward.
- * - ESC sets both pausePressed AND backPressed — works as "back" in overlays,
- *   "pause" in play, "quit to menu" in hub.
- * - Gamepad nav works everywhere via handleMenuGamepadNav + OverlayManager.handleInput.
+ * ARCHITECTURE (v4.0 — post-refactor):
+ *
+ * GameScene is now a THIN state machine + Phaser lifecycle + wiring layer.
+ * All heavy logic extracted to dedicated controllers:
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ GameScene (1046 lines) — state machine + wiring             │
+ *   ├─────────────────────────────────────────────────────────────┤
+ *   │ • State machine: menu ↔ hub ↔ play ↔ gameover ↔ victory     │
+ *   │ • Phaser lifecycle: create/update/shutdown                   │
+ *   │ • EventBus listeners (PLAYER_DEAD/ENEMY_DEAD/BOSS_DEAD/etc.) │
+ *   │ • Collision route registration (delegates to handlers below) │
+ *   │ • Inline game handlers (see "WHY HANDLERS STAY HERE" below)  │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Extracted controllers:
+ *   • PlayController — build() / spawnEnemiesForSection() / update() / destroy()
+ *   • CollisionController — central collision dispatch router
+ *   • MetroidvaniaController — collectibles + shortcuts
+ *   • NpcInteractionController — NPC sprites + prompts
+ *   • LoreController — lore panel UI (terminal/corpse/echo)
+ *   • MenuNavHelper — shared menu navigation (4-directional)
+ *   • MenuBuilder / HubBuilder — menu + hub construction
+ *   • BossHealthBarUI — boss health bar
+ *   • TargetRegistry — O(m) projectile hit detection
+ *   • VirtualCursor — gamepad-controlled UI cursor
+ *   • FullscreenManager — browser fullscreen
+ *
+ * WHY HANDLERS STAY HERE (not in PlayController):
+ *   The inline handlers (handleEnemyContact, handleHazard, enterSection,
+ *   enterBossArena, activateCheckpoint, tryInteract) are 3-26 lines each
+ *   and tightly coupled to GameScene's state (player, enemies, boss,
+ *   camera, hud, loreController, dialogueUI, loadedArea, etc.).
+ *
+ *   Extracting them to PlayController would require either:
+ *     (a) Passing 15+ field references per call, OR
+ *     (b) Creating a PlayController instance with access to all GameScene fields
+ *
+ *   Both options make the code HARDER to read, not easier. The handlers
+ *   are short, focused, and readable where they are. GameScene at 1046
+ *   lines (down from 1978, -47%) is well-modularized.
+ *
+ * EventBus listeners stay here because they call setState() (cinematics,
+ * death/victory transitions) — only GameScene can do state transitions.
  *
  * Designed for Phaser 4.2.1 — fully data-driven, modular, extensible.
  */
