@@ -36,6 +36,8 @@ export interface Focusable {
   bg: Phaser.GameObjects.Shape;   // Rectangle or Arc
   text: Phaser.GameObjects.Text;
   onSelect: () => void;
+  x: number;   // button center x (for 2D spatial navigation)
+  y: number;   // button center y (for 2D spatial navigation)
 }
 
 export class MenuNavHelper {
@@ -50,8 +52,8 @@ export class MenuNavHelper {
   ) {}
 
   /** Register an existing button as focusable. */
-  addButton(bg: Phaser.GameObjects.Shape, text: Phaser.GameObjects.Text, onSelect: () => void): void {
-    this.buttons.push({ bg, text, onSelect });
+  addButton(bg: Phaser.GameObjects.Shape, text: Phaser.GameObjects.Text, onSelect: () => void, x: number, y: number): void {
+    this.buttons.push({ bg, text, onSelect, x, y });
   }
 
   /** Get the number of registered buttons. */
@@ -74,7 +76,7 @@ export class MenuNavHelper {
     })).setOrigin(0.5);
     this.container.add([bg, textEl]);
     if (!disabled) {
-      this.addButton(bg, textEl, onClick);
+      this.addButton(bg, textEl, onClick, x, y);
     }
   }
 
@@ -90,7 +92,7 @@ export class MenuNavHelper {
       fontFamily: 'monospace', fontSize: '11px', color: '#39d0d8',
     })).setOrigin(0.5);
     this.container.add([bg, textEl]);
-    this.addButton(bg, textEl, onClick);
+    this.addButton(bg, textEl, onClick, x, y);
   }
 
   /** Create a hub bottom-nav icon button (circle, focusable + clickable). */
@@ -114,21 +116,28 @@ export class MenuNavHelper {
       fontFamily: 'monospace', fontSize: '9px', color: '#3a4350', letterSpacing: 1,
     })).setOrigin(0.5);
     this.container.add([bg, iconText, labelText]);
-    this.addButton(bg, iconText, onClick);
+    this.addButton(bg, iconText, onClick, x, y);
   }
 
-  /** Per-frame gamepad navigation — called from GameScene.update(). */
+  /** Per-frame gamepad navigation — 2D spatial (up/down/left/right). */
   handleGamepadNav(input: InputState): void {
     if (this.buttons.length === 0) return;
     this.navCooldown -= 16;
     if (this.navCooldown > 0) return;
 
-    if (input.leftStickY < -0.3 || input.heldUp) {
-      this.focusIndex = (this.focusIndex - 1 + this.buttons.length) % this.buttons.length;
-      this.updateFocus(); AudioSystem.play('uiHover');
-      this.navCooldown = 110;
-    } else if (input.leftStickY > 0.3 || input.heldDown) {
-      this.focusIndex = (this.focusIndex + 1) % this.buttons.length;
+    // Read directional input from gamepad + D-pad
+    const up = input.leftStickY < -0.3 || input.heldUp;
+    const down = input.leftStickY > 0.3 || input.heldDown;
+    const left = input.leftStickX < -0.3 || input.heldLeft;
+    const right = input.leftStickX > 0.3 || input.heldRight;
+
+    let moved = false;
+    if (up) { this.focusIndex = this.findNearest('up'); moved = true; }
+    else if (down) { this.focusIndex = this.findNearest('down'); moved = true; }
+    else if (left) { this.focusIndex = this.findNearest('left'); moved = true; }
+    else if (right) { this.focusIndex = this.findNearest('right'); moved = true; }
+
+    if (moved) {
       this.updateFocus(); AudioSystem.play('uiHover');
       this.navCooldown = 110;
     }
@@ -140,23 +149,103 @@ export class MenuNavHelper {
     }
   }
 
-  /** Register keyboard navigation listener (Arrow keys + Enter/Space). */
+  /** Register keyboard navigation listener (all 4 arrow keys + WASD + Enter/Space). */
   setupNav(): void {
     this.navHandler = (e: KeyboardEvent) => {
       if (this.buttons.length === 0) return;
+      let moved = false;
       if (e.code === 'ArrowUp' || e.code === 'KeyW') {
-        this.focusIndex = (this.focusIndex - 1 + this.buttons.length) % this.buttons.length;
-        this.updateFocus(); AudioSystem.play('uiHover');
+        this.focusIndex = this.findNearest('up'); moved = true;
       } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-        this.focusIndex = (this.focusIndex + 1) % this.buttons.length;
-        this.updateFocus(); AudioSystem.play('uiHover');
+        this.focusIndex = this.findNearest('down'); moved = true;
+      } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+        this.focusIndex = this.findNearest('left'); moved = true;
+      } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+        this.focusIndex = this.findNearest('right'); moved = true;
       } else if (e.code === 'Enter' || e.code === 'Space') {
         AudioSystem.play('uiClick');
         this.buttons[this.focusIndex]?.onSelect();
       }
+      if (moved) {
+        this.updateFocus(); AudioSystem.play('uiHover');
+      }
     };
     window.addEventListener('keydown', this.navHandler);
     this.updateFocus();
+  }
+
+  /**
+   * Find the nearest button in the given direction from the currently focused button.
+   * Uses 2D spatial navigation: finds the closest button that is:
+   *   - In the correct direction (e.g. 'up' = y < current y)
+   *   - Minimizes a weighted distance (primary axis distance weighted higher)
+   * This handles both vertical menus (main menu) and horizontal layouts (hub nav bar).
+   *
+   * Algorithm: for each candidate button in the correct direction, compute a score:
+   *   score = primaryAxisDistance * 1.0 + secondaryAxisDistance * 0.4
+   * Lower score = better candidate. Falls back to cycling if no candidate found.
+   */
+  private findNearest(direction: 'up' | 'down' | 'left' | 'right'): number {
+    if (this.buttons.length === 0) return 0;
+    const current = this.buttons[this.focusIndex];
+    if (!current) return 0;
+
+    let bestIdx = -1;
+    let bestScore = Infinity;
+
+    for (let i = 0; i < this.buttons.length; i++) {
+      if (i === this.focusIndex) continue;
+      const btn = this.buttons[i];
+      const dx = btn.x - current.x;
+      const dy = btn.y - current.y;
+
+      // Check if button is in the correct direction
+      let inDirection = false;
+      let primaryDist = 0;
+      let secondaryDist = 0;
+
+      switch (direction) {
+        case 'up':
+          inDirection = dy < -10;  // button is above (with 10px tolerance)
+          primaryDist = Math.abs(dy);
+          secondaryDist = Math.abs(dx);
+          break;
+        case 'down':
+          inDirection = dy > 10;   // button is below
+          primaryDist = Math.abs(dy);
+          secondaryDist = Math.abs(dx);
+          break;
+        case 'left':
+          inDirection = dx < -10;  // button is to the left
+          primaryDist = Math.abs(dx);
+          secondaryDist = Math.abs(dy);
+          break;
+        case 'right':
+          inDirection = dx > 10;   // button is to the right
+          primaryDist = Math.abs(dx);
+          secondaryDist = Math.abs(dy);
+          break;
+      }
+
+      if (!inDirection) continue;
+
+      // Weighted score: primary axis matters most, but secondary axis breaks ties
+      const score = primaryDist + secondaryDist * 0.4;
+      if (score < bestScore) {
+        bestScore = score;
+        bestIdx = i;
+      }
+    }
+
+    // If no button found in direction, fall back to cycling (wrap around)
+    if (bestIdx === -1) {
+      if (direction === 'up' || direction === 'left') {
+        return (this.focusIndex - 1 + this.buttons.length) % this.buttons.length;
+      } else {
+        return (this.focusIndex + 1) % this.buttons.length;
+      }
+    }
+    return bestIdx;
   }
 
   /** Refresh visual focus state on all buttons. */
