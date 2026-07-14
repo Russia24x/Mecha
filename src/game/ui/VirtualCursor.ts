@@ -86,6 +86,22 @@ export class VirtualCursor {
     this.lastHovered = null;
   }
 
+  /**
+   * Set cursor position directly (used by MenuNavHelper to sync cursor
+   * with D-pad/stick left navigation).
+   */
+  setPosition(x: number, y: number): void {
+    this.x = Phaser.Math.Clamp(x, 5, GAME.WIDTH - 5);
+    this.y = Phaser.Math.Clamp(y, 5, GAME.HEIGHT - 5);
+    this.cursor.setPosition(this.x, this.y);
+  }
+
+  /** Is the cursor currently visible? */
+  get isVisible(): boolean { return this.visible; }
+
+  /** Is the cursor currently hovering over an interactive object? */
+  get hasHover(): boolean { return this.lastHovered !== null; }
+
   /** Hide the cursor (called when all overlays close). */
   hide(): void {
     this.visible = false;

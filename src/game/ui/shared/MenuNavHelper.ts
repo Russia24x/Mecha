@@ -30,6 +30,7 @@
 import Phaser from 'phaser';
 import { fixTextStyle } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
+import { OverlayManager } from '../OverlayManager';
 import type { InputState } from '../../systems/InputSystem';
 
 export interface Focusable {
@@ -140,11 +141,33 @@ export class MenuNavHelper {
     if (moved) {
       this.updateFocus(); AudioSystem.play('uiHover');
       this.navCooldown = 110;
-    }
-    if (input.jumpPressed || input.firePressed) {
-      AudioSystem.play('uiClick');
+      // ── Sync virtual cursor position to focused button ──
+      // When player navigates with D-pad/left stick, move the virtual cursor
+      // to the focused button's position so both systems stay in sync.
+      // Player can then switch to right stick at any time — cursor is already
+      // on the right button.
       const btn = this.buttons[this.focusIndex];
-      if (btn) btn.onSelect();
+      if (btn) {
+        OverlayManager.getCursor()?.setPosition(btn.x, btn.y);
+      }
+    }
+    // ── Click handling ──
+    // Virtual cursor (right stick) handles the actual click via pointerdown.
+    // MenuNavHelper only handles click when cursor is NOT active (e.g., no
+    // virtual cursor shown, or cursor is not over any button).
+    // This prevents double-trigger when both systems try to click.
+    // Keyboard Enter/Space still works for accessibility.
+    if (input.jumpPressed || input.firePressed) {
+      const cursor = OverlayManager.getCursor();
+      // If cursor is visible and hovering something, let cursor handle the click
+      if (cursor && cursor.isVisible && cursor.hasHover) {
+        // Cursor will handle the click — don't double-trigger
+      } else {
+        // No cursor hover — MenuNavHelper activates focused button directly
+        AudioSystem.play('uiClick');
+        const btn = this.buttons[this.focusIndex];
+        if (btn) btn.onSelect();
+      }
       this.navCooldown = 300;
     }
   }
