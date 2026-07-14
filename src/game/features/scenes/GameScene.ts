@@ -61,6 +61,7 @@ import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
 import { MenuBuilder } from '../../ui/menu/MenuBuilder';
 import { HubBuilder } from '../../ui/hub/HubBuilder';
 import { CollisionController } from '../../controllers/CollisionController';
+import { PlayController } from '../../controllers/PlayController';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
@@ -792,61 +793,60 @@ export class GameScene extends Phaser.Scene {
   }
 
   private cleanupPlay(): void {
-    // Remove collision dispatch listener
-    this.collision?.exit();
+    // Delegate to PlayController — see src/game/controllers/PlayController.ts
+    // PlayController.destroy() preserves the exact cleanup order:
+    //   1. collision.exit() FIRST (prevent callbacks to half-destroyed bodies)
+    //   2. entity destruction
+    //   3. world unload
+    //   4. PLAY-only systems
+    //   5. timer cleanup
+    //   6. HUD + render
+    //   7. camera filter reset (vignette leak fix)
+    //   8. camera + physics reset
+    const play = new PlayController({
+      collision: this.collision,
+      loreController: this.loreController,
+      bossHealthBar: this.bossHealthBar,
+      npcInteraction: this.npcInteraction,
+      metroidvania: this.metroidvania,
+      targetRegistry: this.targetRegistry,
+      player: this.player,
+      enemies: this.enemies,
+      boss: this.boss,
+      projectiles: this.projectiles,
+      loadedArea: this.loadedArea,
+      areaLoader: this.areaLoader,
+      parallax: this.parallax,
+      atmosphere: this.atmosphere,
+      forestEnv: this.forestEnv,
+      companion: this.companion,
+      controlHints: this.controlHints,
+      hud: this.hud,
+      render: this.render,
+      sequenceTimers: this.sequenceTimers,
+      scene: this,
+      camera: this.camera,
+      physicsSys: this.physicsSys,
+    });
+    play.destroy();
+    // Null out nullable play-only fields (definite-assignment fields like
+    // player/areaLoader/render will be overwritten in next buildPlay)
     this.collision = null;
-    // Destroy lore controller (closes panel if open)
-    this.loreController?.destroy();
     this.loreController = null;
-    this.destroyBossHealthBar();
-    AudioSystem.stopAmbient();
-    this.projectiles.forEach(p => p.kill());
-    this.projectiles = [];
-    this.player?.destroy();
-    this.enemies.forEach(e => e.destroy());
-    this.enemies = [];
-    this.boss?.destroy();
-    this.boss = null;
-    // Clear target registry — no more damageable targets exist
-    this.targetRegistry.clear();
-    if (this.loadedArea && this.areaLoader) this.areaLoader.unload(this.loadedArea);
-    this.loadedArea = null;
-    // ── Destroy PLAY-only systems (effect separation: never leak into hub/menu) ──
-    this.parallax?.destroy();
-    this.parallax = null;
-    this.atmosphere?.destroy();
-    this.atmosphere = null;
-    // Destroy NPC visuals + labels + interaction prompt
-    this.npcInteraction?.cleanup();
+    this.bossHealthBar = null;
     this.npcInteraction = null;
-    // Destroy control hints
-    this.controlHints?.destroy();
-    this.controlHints = null;
-    // Destroy companion
-    this.companion?.destroy();
-    this.companion = null;
-    // Destroy forest environment
-    this.forestEnv?.destroy();
-    this.forestEnv = null;
-    // Destroy metroidvania controller
     this.metroidvania = null;
-    this.tweens.killAll();
-    this.sequenceTimers.forEach(t => t.remove());
-    this.sequenceTimers = [];
-    // *** Destroy HUD — hub is a separate environment, no game HUD ***
-    this.hud?.destroy();
+    this.enemies = [];
+    this.boss = null;
+    this.projectiles = [];
+    this.loadedArea = null;
+    this.parallax = null;
+    this.atmosphere = null;
+    this.forestEnv = null;
+    this.companion = null;
+    this.controlHints = null;
     this.hud = null;
-    this.render?.destroy();
-    // ── Reset camera filters (vignette leak fix: clear all external filters so
-    // they don't persist into hub/menu/gameover/victory screens) ──
-    try {
-      const cam = this.cameras.main as unknown as { filters?: { external?: { list?: unknown[]; clear?: () => void } } };
-      if (cam.filters?.external?.list) cam.filters.external.list = [];
-    } catch { /* camera filters API varies */ }
-    this.camera.resetZoom();
-    this.camera.stopFollow();
-    this.camera.setBounds(0, 0, GAME.WIDTH, GAME.HEIGHT);
-    this.physicsSys.setWorldBounds(GAME.WIDTH, GAME.HEIGHT);
+    this.sequenceTimers = [];
     this.paused = false;
   }
 
