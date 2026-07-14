@@ -94,6 +94,7 @@ import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
 import { LoreController } from '../../ui/lore/LoreController';
 import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
+import { UIController } from '../../ui/UIController';
 import { MenuBuilder } from '../../ui/menu/MenuBuilder';
 import { HubBuilder } from '../../ui/hub/HubBuilder';
 import { CollisionController } from '../../controllers/CollisionController';
@@ -260,9 +261,14 @@ export class GameScene extends Phaser.Scene {
     // Cleanup previous state
     this.cleanupState();
     this.state = next;
-    // Create fresh MenuNavHelper for this state (shared by menu/hub/gameover/victory)
+    // Create stateContainer
     this.stateContainer = this.add.container(0, 0).setDepth(50);
-    this.menuNav = new MenuNavHelper(this, this.stateContainer);
+    // Create shared UIController for menu/hub/gameover/victory (not play)
+    if (next !== 'play') {
+      OverlayManager.createSharedController(this, this.stateContainer);
+      // Keep MenuNavHelper for backward compat (MenuBuilder/HubBuilder/gameover/victory use it)
+      this.menuNav = new MenuNavHelper(this, this.stateContainer);
+    }
     switch (next) {
       case 'menu': this.buildMenu(); break;
       case 'hub': this.buildHub(); break;
@@ -272,10 +278,6 @@ export class GameScene extends Phaser.Scene {
     }
     // setScrollFactor(0,0,true) AFTER all children are added by build* methods
     this.stateContainer.setScrollFactor(0, 0, true);
-    // Show virtual cursor for menu-like states (not play — play has no cursor)
-    if (next === 'menu' || next === 'hub' || next === 'gameover' || next === 'victory') {
-      OverlayManager.getCursor()?.show(40);  // stateContainer depth = 50, so min 40
-    }
   }
 
   private cleanupState(): void {
@@ -290,16 +292,16 @@ export class GameScene extends Phaser.Scene {
     this.menuBuilder = null;
     this.hubBuilder?.destroy();
     this.hubBuilder = null;
-    // Cleanup menu nav helper (removes keyboard listener + clears buttons)
+    // Destroy shared UIController (replaces old menuNav)
+    OverlayManager.destroySharedController();
     this.menuNav?.destroy();
     this.menuNav = null;
     if (this.stateContainer) {
       this.stateContainer.destroy(true);
       this.stateContainer = null;
     }
-    // Hide pause menu + virtual cursor if visible
+    // Hide pause menu if visible
     if (this.pauseMenuUI?.isVisible) this.pauseMenuUI.hide();
-    OverlayManager.getCursor()?.hide();
     this.paused = false;
   }
 
@@ -351,15 +353,11 @@ export class GameScene extends Phaser.Scene {
   private closeOverlay(): void {
     OverlayManager.close((parent) => {
       if (parent === 'play') {
-        // Reopen pause menu + cursor for pause
+        // Reopen pause menu
         this.pauseMenuUI.show();
-        OverlayManager.getCursor()?.show(280);  // overlay depth
       } else if (parent === 'hub' || parent === 'menu') {
-        // Restore cursor for menu/hub buttons (lower depth)
-        OverlayManager.getCursor()?.show(40);
-      } else {
-        // Unknown parent — hide cursor as safety
-        OverlayManager.getCursor()?.hide();
+        // Shared controller already visible (was hidden during overlay)
+        OverlayManager.getSharedController()?.show(40);
       }
     });
   }
@@ -410,14 +408,13 @@ export class GameScene extends Phaser.Scene {
           this.updatePlay(deltaMs);
         }
       } else {
-        // Paused — handle pause menu navigation + virtual cursor
-        OverlayManager.getCursor()?.update();
+        // Paused — handle pause menu navigation
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
-      // Virtual cursor (right analog stick) — works with menu/hub buttons
-      OverlayManager.getCursor()?.update();
-      // Gamepad + keyboard navigation (delegated to MenuNavHelper)
+      // UIController handles cursor + input (D-pad, tabs, click)
+      // MenuNavHelper handles button focus + spatial nav (uses same UIController cursor)
+      OverlayManager.getSharedController()?.update();
       this.menuNav?.handleGamepadNav(input);
       // ESC in hub = back to menu
       if (this.state === 'hub' && input.pausePressed) {
@@ -783,14 +780,12 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
-      OverlayManager.getCursor()?.hide();
       // Phaser 4 camera fade — smooth resume transition (per cameras skill)
       this.cameras.main.fadeIn(300, 5, 7, 13);
       AudioSystem.play('uiClick');
     } else {
       this.paused = true;
       this.pauseMenuUI.show();
-      OverlayManager.getCursor()?.show();
       this.input.enabled = true;
       AudioSystem.play('uiClick');
     }

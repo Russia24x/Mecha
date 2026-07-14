@@ -147,7 +147,7 @@ export class UIController {
 
   // ================ Cursor ================
 
-  showCursor(minDepth: number = 40): void {
+  show(minDepth: number = 40): void {
     this.cursorVisible = true;
     this.minHitDepth = minDepth;
     this.cursorContainer.setVisible(true);
@@ -157,7 +157,7 @@ export class UIController {
     this.lastHovered = null;
   }
 
-  hideCursor(): void {
+  hide(): void {
     this.cursorVisible = false;
     this.cursorContainer.setVisible(false);
     if (this.lastHovered && this.lastHovered.active) {
@@ -166,10 +166,10 @@ export class UIController {
     this.lastHovered = null;
   }
 
-  get isCursorVisible(): boolean { return this.cursorVisible; }
-  get cursorHasHover(): boolean { return this.lastHovered !== null; }
+  get isVisible(): boolean { return this.cursorVisible; }
+  get hasHover(): boolean { return this.lastHovered !== null; }
 
-  setCursorPosition(x: number, y: number): void {
+  setPosition(x: number, y: number): void {
     this.cursorX = Phaser.Math.Clamp(x, 5, GAME.WIDTH - 5);
     this.cursorY = Phaser.Math.Clamp(y, 5, GAME.HEIGHT - 5);
     this.cursorContainer.setPosition(this.cursorX, this.cursorY);
@@ -235,7 +235,7 @@ export class UIController {
         this.navCooldown = 120;
         // Sync cursor to focused button
         const f = this.focusables[this.focusIndex];
-        if (f) this.setCursorPosition(f.x, f.y);
+        if (f) this.setPosition(f.x, f.y);
       }
     }
 
@@ -403,7 +403,7 @@ export class UIController {
       if (moved) {
         this.updateFocusVisual(); AudioSystem.play('uiHover');
         const f = this.focusables[this.focusIndex];
-        if (f) this.setCursorPosition(f.x, f.y);
+        if (f) this.setPosition(f.x, f.y);
       }
     };
     window.addEventListener('keydown', this.keyHandler);

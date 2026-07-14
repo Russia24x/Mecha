@@ -1,31 +1,20 @@
 /**
- * MECHA: LAST PROTOCOL — Overlay Manager v3.1
+ * MECHA: LAST PROTOCOL — Overlay Manager v4.0
  *
- * Manages overlay UIs (settings, skills, inventory, quests, map, dialogue)
- * as a STACK on top of the current main state (hub or play).
- *
- * ROOT CAUSE THIS FIXES:
- * Previously, overlays were treated as states in the GameScene state machine.
- * Closing an overlay called setState('play') which REBUILT THE ENTIRE GAME WORLD.
- * Now, overlays are managed independently — opening/closing never touches the
- * main state's build/cleanup lifecycle.
- *
- * USAGE:
- *   OverlayManager.open('inventory', 'hub');    // open inventory from hub
- *   OverlayManager.close();                      // close current overlay → return to 'hub'
- *   OverlayManager.close('pause');              // close overlay → reopen pause menu
+ * Manages overlay UIs as a STACK. Uses UIController for unified navigation.
  *
  * Each overlay UI must implement:
  *   show(): void
  *   hide(): void
  *   destroy(): void
- *   handleNavigation?(): void   // optional gamepad nav
+ *   getController(): UIController | null   // returns its nav controller
+ *   get isVisible(): boolean
  */
 
 import type Phaser from 'phaser';
 import { InputSystem } from '../systems/InputSystem';
 import { AudioSystem } from '../systems/AudioSystem';
-import { VirtualCursor } from './VirtualCursor';
+import { UIController } from './UIController';
 
 export type OverlayId = 'settings' | 'skills' | 'inventory' | 'quests' | 'map' | 'dialogue' | 'hangar';
 
@@ -33,6 +22,9 @@ export interface OverlayUI {
   show(): void;
   hide(): void;
   destroy(): void;
+  /** Return the UI's controller for navigation, or null if it handles nav internally. */
+  getController?(): UIController | null;
+  /** Legacy: called if getController() returns null (backward compat). */
   handleNavigation?(): void;
   get isVisible(): boolean;
 }
@@ -48,38 +40,53 @@ interface OpenOverlay {
 export class OverlayManager {
   private static scene: Phaser.Scene | null = null;
   private static stack: OpenOverlay[] = [];
-  private static cursor: VirtualCursor | null = null;
+  /** Shared cursor controller for menu/hub/gameover/victory (non-overlay states). */
+  private static sharedController: UIController | null = null;
 
-  /** Get the virtual cursor (for manual show/hide outside overlay stack). */
-  static getCursor(): VirtualCursor | null {
-    return this.cursor;
+  /** Get the shared UIController (for menu/hub states). */
+  static getSharedController(): UIController | null {
+    return this.sharedController;
+  }
+
+  /**
+   * Legacy compat: returns shared controller (replaces old getCursor()).
+   * UIController has same API: show, hide, update, setPosition,
+   * isCursorVisible, cursorHasHover.
+   */
+  static getCursor(): UIController | null {
+    // If an overlay is open, return its controller; otherwise return shared
+    const top = this.current();
+    if (top) {
+      const ctrl = top.ui.getController?.();
+      if (ctrl) return ctrl;
+    }
+    return this.sharedController;
   }
 
   /** Bind to the active GameScene. Called in create(). */
   static bind(scene: Phaser.Scene): void {
     this.scene = scene;
     this.stack = [];
-    this.cursor = new VirtualCursor(scene);
+    // Shared controller will be created per-state by GameScene.setState()
   }
 
   /**
    * Open an overlay on top of the current state.
-   * @param id overlay identifier
-   * @param ui the overlay UI instance (already constructed, hidden)
-   * @param parent which main state opened this ('hub' or 'play' or 'menu')
    */
   static open(id: OverlayId, ui: OverlayUI, parent: OverlayParent): void {
-    // If an overlay is already open and it's the same one, ignore
     if (this.stack.length > 0 && this.stack[this.stack.length - 1].id === id) return;
     this.stack.push({ id, ui, parent });
     ui.show();
-    this.cursor?.show();
+    // Hide shared controller cursor (overlay has its own controller)
+    this.sharedController?.hide();
+    // Show overlay's controller cursor
+    const ctrl = ui.getController?.();
+    ctrl?.show(280);
     AudioSystem.play('uiClick');
   }
 
   /**
    * Close the current overlay and return to its parent.
-   * The onClose callback handles state transition (e.g., reopen pause menu).
    */
   static close(onClose?: (parent: OverlayParent) => void): void {
     const top = this.stack.pop();
@@ -87,40 +94,36 @@ export class OverlayManager {
       onClose?.('hub');
       return;
     }
+    // Hide overlay's controller cursor
+    top.ui.getController?.()?.hide();
     top.ui.hide();
     top.ui.destroy();
-    // NOTE: Do NOT hide cursor here — let the onClose callback decide.
-    // If returning to hub/menu, callback will show(40). If returning to play,
-    // callback will show(280) for pause or not show at all.
-    // This prevents cursor flicker (hide → show in same frame).
     AudioSystem.play('uiClick');
     onClose?.(top.parent);
   }
 
-  /** Close ALL overlays (e.g., when leaving play state entirely). */
+  /** Close ALL overlays. */
   static closeAll(): void {
     while (this.stack.length > 0) {
       const top = this.stack.pop()!;
+      top.ui.getController?.()?.hide();
       top.ui.hide();
       top.ui.destroy();
     }
-    this.cursor?.hide();
+    this.sharedController?.hide();
   }
 
-  /** Get the current top overlay, or null. */
   static current(): OpenOverlay | null {
     return this.stack.length > 0 ? this.stack[this.stack.length - 1] : null;
   }
 
-  /** Is any overlay currently open? */
   static get hasOpen(): boolean {
     return this.stack.length > 0;
   }
 
   /**
-   * Centralized input handler for overlays. Call from GameScene.update()
-   * every frame. Handles B/ESC back navigation + delegates to overlay's
-   * own handleNavigation() for D-pad/stick navigation.
+   * Centralized input handler. Call from GameScene.update() every frame.
+   * Handles B/ESC back navigation + delegates to overlay's UIController.
    */
   static handleInput(onClose: (parent: OverlayParent) => void): void {
     const top = this.current();
@@ -134,18 +137,40 @@ export class OverlayManager {
       return;
     }
 
-    // Virtual cursor (right analog stick) — works with any overlay UI
-    this.cursor?.update();
-
-    // Delegate to overlay's own navigation (left stick / D-pad / A to confirm)
-    top.ui.handleNavigation?.();
+    // Use overlay's UIController if available
+    const ctrl = top.ui.getController?.();
+    if (ctrl) {
+      ctrl.update();
+    } else {
+      // Legacy: fall back to handleNavigation
+      top.ui.handleNavigation?.();
+    }
   }
 
-  /** Destroy all overlays and unbind. Called in scene shutdown. */
+  /**
+   * Create a shared UIController for menu/hub/gameover/victory states.
+   * Called by GameScene.setState() when entering a non-play state.
+   */
+  static createSharedController(scene: Phaser.Scene, container: Phaser.GameObjects.Container): UIController {
+    if (this.sharedController) {
+      this.sharedController.destroy();
+    }
+    this.sharedController = new UIController(scene, container);
+    this.sharedController.setupKeyboard();
+    this.sharedController.show(40);
+    return this.sharedController;
+  }
+
+  /** Destroy shared controller (called on state change). */
+  static destroySharedController(): void {
+    this.sharedController?.destroy();
+    this.sharedController = null;
+  }
+
+  /** Destroy all overlays + shared controller. Called in scene shutdown. */
   static destroy(): void {
     this.closeAll();
-    this.cursor?.destroy();
-    this.cursor = null;
+    this.destroySharedController();
     this.scene = null;
   }
 }
