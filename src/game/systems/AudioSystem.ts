@@ -193,14 +193,14 @@ export class AudioSystem {
 
   static setMasterVolume(v: number): void {
     if (isNaN(v) || !isFinite(v)) return;  // S2 fix: guard against NaN from cursor mode
-    this.masterVolume = Phaser.Math.Clamp(v, 0, 1);
+    this.masterVolume = Math.max(0, Math.min(1, v));
     this.updateAllVolumes();
   }
   static getMasterVolume(): number { return this.masterVolume; }
 
   static setCategoryVolume(cat: SoundCategory, v: number): void {
     if (isNaN(v) || !isFinite(v)) return;  // S2 fix: guard against NaN
-    this.categoryVolumes.set(cat, Phaser.Math.Clamp(v, 0, 1));
+    this.categoryVolumes.set(cat, Math.max(0, Math.min(1, v)));
     this.updateCategoryVolume(cat);
   }
   static getCategoryVolume(cat: SoundCategory): number {
