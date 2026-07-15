@@ -162,10 +162,82 @@ Container محلی موقتاً به `5d93060` (قبل از rewrite) ریست ش
 **نه rollback کور، نه fix کور.** 
 
 1. **B1-legacy و B1:** هر دو نسخه مشکل ستون راست دارند — باید جدا فیکس شود (left/right به findNearest اضافه شود)
-2. **B1-hitarea:** بحرانی — hit-area در `508f3e6` خراب است. در HEAD بهتر شد. این نقطه‌ای است که HEAD بهتر است.
-3. **B2:** ریشه در `508f3e6` هنوز نامشخص است — نیاز به console.trace
+2. **B1-hitarea:** ✅ **تأیید شد که در HEAD فیکس شده** (کلیک روی RETURN TO HUB درست به Hub می‌رود، نه NEURAL CORTEX). این نقطه‌ای است که HEAD بهتر است.
+3. **B2:** ✅ **ریشه در HEAD پیدا شد** (console.trace):
+   - ENTER (2 صدا): `UIController.keyHandler` (line 459) + `GameScene.togglePause` (line 789) via onSelect
+   - SPACE (3 صدا): `PlayerEntity.tryJump` (via InputSystem) + `UIController.keyHandler` + `GameScene.togglePause`
+   - **علت معماری:** `keyHandler` هم صدا پخش می‌کند هم onSelect را صدا می‌زند، و onSelect ممکن است خودش صدا پخش کند
 4. **بقیه باگ‌ها (B3-B6):** مختص HEAD، ناشی از UIController rewrite
 
-**نتیجه‌ی اولیه:** HEAD بهتر است چون hit-area درست شد و gameplay blocking اضافه شد. اما B1 (که در هر دو هست) باید در هر مسیر فیکس شود.
+## ۶. یافته‌های تست agent-browser (تأییدشده)
+
+### تست روی HEAD (`3086d91` + docs commit `63005f8`)
+
+| تست | نتیجه | توضیح |
+|------|-------|-------|
+| Menu: Arrow Down START→SETTINGS | ✅ کار می‌کند | focus درست حرکت می‌کند |
+| Menu: Arrow Up SETTINGS→START | ✅ کار می‌کند | |
+| Menu: Enter روی START | ✅ کار می‌کند | وارد Mission Select می‌شود |
+| Pause: ESC باز کردن | ✅ کار می‌کند | |
+| **B1-hitarea: Click روی RETURN TO HUB** | ✅ **درست در HEAD** | وارد Hub شد (نه NEURAL CORTEX) |
+| **B1-hitarea: Hover روی RESTART** | ✅ **درست در HEAD** | focus به RESTART رفت (نه RESUME) |
+| B1: Arrow Down در Pause | ⚠️ متفاوت اما هنوز مشکل دارد | RESUME→DATA VAULT→RETURN TO HUB→QUIT (ستون راست!) اما left/right کار نمی‌کند |
+| **B2: Enter روی RESUME** | ❌ **2 oscillator** | keyHandler + togglePause |
+| **B2: Space روی RESUME** | ❌ **3 oscillator** | tryJump + keyHandler + togglePause |
+
+### تست روی `508f3e6` (قسمتی)
+
+| تست | نتیجه | توضیح |
+|------|-------|-------|
+| Menu: Arrow Down START→SETTINGS | ✅ کار می‌کند | |
+| Menu: Enter روی START | ✅ کار می‌کند | |
+| Pause: ESC باز کردن | ✅ کار می‌کند | |
+| **B1-legacy: Arrow Down در Pause** | ❌ فقط ستون چپ | RESUME→CHECKPOINT→NEURAL CORTEX→MISSION LOG→SETTINGS |
+| **B1-legacy: Arrow Left/Right** | ❌ هیچ کاری نمی‌کند | |
+| **B1-hitarea: Click روی RETURN TO HUB** | ❌ **بحرانی** | NEURAL CORTEX باز شد (دکمه‌ی اشتباه!) |
+| **B1-hitarea: Hover روی RESTART** | ❌ focus به RESUME پرید | |
+| **B2: Enter روی RESUME** | ❌ **2 oscillator** | ریشه هنوز ناشناخته (نیاز به console.trace) |
+| **B2: Space روی RESUME** | ❌ **1 oscillator** | (در `508f3e6` Space فقط 1 صدا دارد — بهتر از HEAD!) |
+| Hangar: باز کردن از Hub | ✅ کار می‌کند | (با موس روی nav button) |
+| Hangar: S1 stress test | ⚠️ **ناتمام** | سیستم branch را mid-test عوض کرد (مشکل infrastructure) |
+
+### محدودیت تست
+
+**مشکل infrastructure:** در حین تست `508f3e6`، سیستم به‌طور خودکار branch را به `main` برمی‌گرداند (احتمالاً یک فرآیند خودکار). این باعث می‌شود dev server کد HEAD را کامپایل کند (Fast Refresh)، که باعث reload بازی و از دست رفتن state تست می‌شود.
+
+**تأثیر:** نمی‌توان تست `508f3e6` را به‌طور قابل‌اعتماد کامل کرد. اما یافته‌های کلیدی (B1-legacy، B1-hitarea، B2 در `508f3e6`) قبل از این مشکل تأیید شده‌اند.
+
+## ۷. نتیجه‌گیری نهایی
+
+### مقایسه HEAD vs `508f3e6`
+
+| معیار | HEAD (`3086d91`) | `508f3e6` | برنده |
+|-------|------------------|-----------|-------|
+| B1 (کیبورد ستون راست Pause) | ❌ وجود دارد (spatial اما فقط up/down) | ❌ وجود دارد (linear فقط ستون چپ) | مساوی — هر دو مشکل دارند |
+| **B1-hitarea (موس)** | ✅ **فیکس شده** | ❌ **بحرانی** (کلیک اشتباه) | **HEAD** |
+| B2 (Enter) | ❌ 2 صدا (ریشه شناخته شده) | ❌ 2 صدا (ریشه ناشناخته) | مساوی |
+| B2 (Space) | ❌ 3 صدا (بدتر) | ❌ 1 صدا (بهتر) | **`508f3e6`** |
+| Gameplay blocking در pause | ✅ دارد | ❌ ندارد | **HEAD** |
+| L1/R1 tabs برای Settings/Inventory/SkillTree | ✅ دارد | ❌ ندارد | **HEAD** |
+| یکپارچه‌سازی navigation | ✅ UIController | ❌ پراکنده | **HEAD** (از نظر معماری) |
+| Hangar S1 stress test | ⚠️ تست نشد | ⚠️ تست نشد (infrastructure) | نا‌مشخص |
+
+### توصیه نهایی
+
+**HEAD را نگه دارید، نه rollback.** دلایل:
+1. **B1-hitarea فیکس شده** در HEAD (بحرانی‌ترین باگ)
+2. **Gameplay blocking** اضافه شده
+3. **B2 ریشه‌یابی شد** — فیکس مشخص است: `UIController.keyHandler` نباید صدا پخش کند، فقط onSelect را صدا بزند (onSelect مسئول صدا است)
+4. `508f3e6` هم B1-legacy و B2 را دارد، پس rollback مشکل را حل نمی‌کند
+
+### فیکس‌های پیشنهادی (به ترتیب اولویت)
+
+1. **B2 فیکس:** در `UIController.keyHandler` (line 459)، `AudioSystem.play('uiClick')` را حذف کنید. فقط `f.onSelect()` را صدا بزنید. onSelect مسئول پخش صدا است (یا نباشد). یک قرارداد روشن: «keyHandler هرگز صدا پخش نمی‌کند».
+
+2. **B1 فیکس:** در `UIController.findNearest()`، پشتیبانی از `'left' | 'right'` اضافه کنید. در `update()`، `input.heldLeft/heldRight` را برای focus navigation (مستقل از tab switching) استفاده کنید.
+
+3. **B3 فیکس:** در `HangarUI.showTab()`، بعد از re-registration، `focusIndex` را روی اولین content button بگذارید (نه EXIT).
+
+4. **A3 فیکس:** dead code را از `MenuNavHelper` حذف کنید.
 
 **هیچ تغییری در کد داده نشده است. این سند فقط تحلیل است.**
