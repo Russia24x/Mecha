@@ -21,8 +21,9 @@ import { SaveSystem } from '../../systems/SaveSystem';
 import { MenuNavHelper } from '../shared/MenuNavHelper';
 
 export interface MenuCallbacks {
-  onStart: () => void;
-  onContinue: () => void;
+  onStart: () => void;      // Continue current game → hub
+  onNewGame: () => void;    // Fresh start — clear save, start from scratch
+  onContinue: () => void;   // Resume directly at last checkpoint (skip hub)
   onOpenSettings: () => void;
 }
 
@@ -154,15 +155,19 @@ export class MenuBuilder {
     this.scene.tweens.add({ targets: protocolText, alpha: { from: 0.6, to: 1 }, duration: 2500, yoyo: true, repeat: -1 });
 
     // === Small minimal buttons ===
-    const btnY = h * 0.6;
-    const btnGap = 48;
+    const btnY = h * 0.55;
+    const btnGap = 44;
+    // START = continue current game → hub
     this.nav.makeMenuBtn(w / 2, btnY, t('menu.start'), () => { AudioSystem.play('uiClick'); this.callbacks.onStart(); });
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap, t('menu.continue'), () => {
+    // NEW GAME = clear save, start fresh
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap, L('NEW GAME', 'بازی جدید'), () => { AudioSystem.play('uiClick'); this.callbacks.onNewGame(); });
+    // CONTINUE = resume directly at last checkpoint (skip hub)
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.continue'), () => {
       AudioSystem.play('uiClick');
       this.callbacks.onContinue();
     }, !this.hasCheckpoint());
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.callbacks.onOpenSettings(); });
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.callbacks.onOpenSettings(); });
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 4, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
 
     // === Footer ===
     c.add(this.scene.add.text(w / 2, h - 25, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
