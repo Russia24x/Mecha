@@ -133,35 +133,35 @@ export class InputSystem {
           if (!this.kbHeld.jump) {
             this.kbHeld.jump = true;
             this.kbEdge.jump = true;
-            this.callbacks.jump?.();
+            if (!this.gameplayBlocked) this.callbacks.jump?.();
           }
           break;
         case 'KeyJ':
           if (!this.kbHeld.fire) {
             this.kbHeld.fire = true;
             this.kbEdge.fire = true;
-            this.callbacks.fire?.();
+            if (!this.gameplayBlocked) this.callbacks.fire?.();
           }
           break;
         case 'KeyK':
           if (!this.kbHeld.melee) {
             this.kbHeld.melee = true;
             this.kbEdge.melee = true;
-            this.callbacks.melee?.();
+            if (!this.gameplayBlocked) this.callbacks.melee?.();
           }
           break;
         case 'KeyE':
           if (!this.kbHeld.interact) {
             this.kbHeld.interact = true;
             this.kbEdge.interact = true;
-            this.callbacks.interact?.();
+            if (!this.gameplayBlocked) this.callbacks.interact?.();
           }
           break;
         case 'KeyQ':
           if (!this.kbHeld.weaponPrev) {
             this.kbHeld.weaponPrev = true;
             this.kbEdge.weaponPrev = true;
-            this.callbacks.weaponPrev?.();
+            if (!this.gameplayBlocked) this.callbacks.weaponPrev?.();
           }
           break;
         case 'KeyF':
@@ -169,7 +169,7 @@ export class InputSystem {
           if (!this.kbHeld.grapple) {
             this.kbHeld.grapple = true;
             this.kbEdge.grapple = true;
-            this.callbacks.grapple?.();
+            if (!this.gameplayBlocked) this.callbacks.grapple?.();
           }
           break;
         case 'KeyG':
@@ -177,7 +177,7 @@ export class InputSystem {
           if (!this.kbHeld.emp) {
             this.kbHeld.emp = true;
             this.kbEdge.emp = true;
-            this.callbacks.emp?.();
+            if (!this.gameplayBlocked) this.callbacks.emp?.();
           }
           break;
         case 'Escape':
@@ -185,7 +185,7 @@ export class InputSystem {
             this.kbHeld.pause = true;
             this.kbEdge.pause = true;
             this.kbEdge.back = true;
-            this.callbacks.pause?.();
+            if (!this.gameplayBlocked) this.callbacks.pause?.();
           }
           break;
         case 'ShiftLeft': case 'ShiftRight': {
@@ -193,7 +193,7 @@ export class InputSystem {
             this.kbHeld.dash = true;
             this.kbEdge.dash = true;
             const dir: Direction = this.kbHeld.left ? 'left' : this.kbHeld.right ? 'right' : 'right';
-            this.callbacks.dash?.(dir);
+            if (!this.gameplayBlocked) this.callbacks.dash?.(dir);
           }
           break;
         }
