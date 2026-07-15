@@ -665,10 +665,11 @@ export class GameScene extends Phaser.Scene {
 
   private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
     const id = enemyGo.getData('id') as string | undefined;
-    // Find the enemy entity to check if hacked
+    // Find the enemy entity to check if hacked + get damage from data
     const enemy = this.enemies.find(e => e.id === id);
     if (enemy?.hacked) return;  // Hacked enemies don't damage the player
-    const dmg = id?.startsWith('drone-') ? 8 : id?.startsWith('spider-') ? 14 : id?.startsWith('heavy-') ? 22 : id?.startsWith('sniper-') ? 12 : 10;
+    // N7 fix: use EnemyData.damage instead of hardcoded ID prefix lookup
+    const dmg = enemy?.data?.damage ?? 10;
     if (this.player.takeDamage(dmg)) {
       const enemyX = (enemyGo as unknown as { x?: number }).x;
       if (typeof enemyX === 'number' && this.player.sprite?.active) {
