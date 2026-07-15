@@ -160,7 +160,7 @@ export class MenuBuilder {
     // START = continue current game → hub
     this.nav.makeMenuBtn(w / 2, btnY, t('menu.start'), () => { AudioSystem.play('uiClick'); this.callbacks.onStart(); });
     // NEW GAME = clear save, start fresh
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap, L('NEW GAME', 'بازی جدید'), () => { AudioSystem.play('uiClick'); this.callbacks.onNewGame(); });
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap, (getLocale() === 'fa' ? 'بازی جدید' : 'NEW GAME'), () => { AudioSystem.play('uiClick'); this.callbacks.onNewGame(); });
     // CONTINUE = resume directly at last checkpoint (skip hub)
     this.nav.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.continue'), () => {
       AudioSystem.play('uiClick');
