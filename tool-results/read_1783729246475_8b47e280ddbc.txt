@@ -1,0 +1,1601 @@
+     1→/**
+     2→ * MECHA: LAST PROTOCOL - GameScene
+     3→ * Single scene with internal state machine.
+     4→ * Replaces: Menu, Map, FactoryStage, Victory, ComingSoon, SkillTree, Settings.
+     5→ *
+     6→ * States: menu | map | play | victory | comingsoon | skills | settings
+     7→ */
+     8→import Phaser from 'phaser';
+     9→import { COLORS, GAME, PLAYER, STAGE_1, STAGE_2, STAGE_3 } from '../../shared/Constants';
+    10→import { EventBus } from '../../shared/EventBus';
+    11→import { Save } from '../../shared/Save';
+    12→import { SkillTree, SKILL_DEFS } from '../../shared/SkillTree';
+    13→import { Effects } from '../../shared/Effects';
+    14→import { AssetGenerator } from '../../shared/AssetGenerator';
+    15→import { GamepadManager } from '../../shared/GamepadManager';
+    16→import { PhysicsWorld } from '../physics/PhysicsWorld';
+    17→import { Player } from '../player/Player';
+    18→import { DamageSystem } from '../combat/DamageSystem';
+    19→import { Projectile } from '../combat/Projectile';
+    20→import { Enemy } from '../enemies/Enemy';
+    21→import type { EnemyTypeId } from '../enemies/EnemyTypes';
+    22→import { Boss } from '../boss/Boss';
+    23→import { HUD } from '../ui/HUD';
+    24→import { BossBar } from '../ui/BossBar';
+    25→import { FloatingText } from '../ui/FloatingText';
+    26→import { TestSuite } from '../ui/TestSuite';
+    27→import { getLang, setLang } from '../../i18n';
+    28→import { GAME_CONFIG } from '../../shared/GameConfig';
+    29→import { Parallax } from '../rendering/Parallax';
+    30→import { Graphics } from '../rendering/Graphics';
+    31→import { StageAtmosphere } from '../rendering/StageAtmosphere';
+    32→import { Ragdoll } from '../combat/Ragdoll';
+    33→
+    34→type GameState = 'menu' | 'map' | 'play' | 'victory' | 'comingsoon' | 'skills' | 'settings';
+    35→
+    36→export class GameScene extends Phaser.Scene {
+    37→  // ---- State ----
+    38→  private state: GameState = 'menu';
+    39→  private stateContainer: Phaser.GameObjects.Container | null = null;
+    40→
+    41→  // ---- Play state entities (only valid when state === 'play') ----
+    42→  private physics!: PhysicsWorld;
+    43→  private player!: Player;
+    44→  private damageSystem!: DamageSystem;
+    45→  private hud!: HUD;
+    46→  private bossBar!: BossBar;
+    47→  private parallax!: Parallax;
+    48→  private graphics!: Graphics;
+    49→  private atmosphere!: StageAtmosphere;
+    50→  private cinematicApplied = false;
+    51→  private projectiles: Projectile[] = [];
+    52→  private enemies: Enemy[] = [];
+    53→  private boss: Boss | null = null;
+    54→  private currentSection = 1;
+    55→  private currentStageId: 1 | 2 | 3 = 1;
+    56→  private stageBgImage: Phaser.GameObjects.Image | null = null;
+    57→  private sectionTriggers: Phaser.Physics.Matter.Image[] = [];
+    58→  private checkpointTrigger: Phaser.Physics.Matter.Image | null = null;
+    59→  private bossArenaTrigger: Phaser.Physics.Matter.Image | null = null;
+    60→  private bossArenaActive = false;
+    61→  private stageStartTime = 0;
+    62→  private solids: Phaser.Physics.Matter.Image[] = [];
+    63→  private victoryTimeMs = 0;
+    64→  private healthPickups: Phaser.GameObjects.Container[] = [];
+    65→  private tutorialHints: Phaser.GameObjects.Container[] = [];
+    66→
+    67→  // ---- Menu navigation (keyboard + gamepad) ----
+    68→  private menuButtons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; onClick: () => void }[] = [];
+    69→  private menuFocusIndex = 0;
+    70→  private menuNavCooldown = 0;
+    71→
+    72→  private testSuite!: TestSuite;
+    73→
+    74→  constructor() { super({ key: 'GameScene' }); }
+    75→
+    76→  create(): void {
+    77→    Effects.init();
+    78→    Effects.resume();
+    79→    // Apply saved settings (audio volumes + brightness) on game start
+    80→    const settings = Save.getSettings();
+    81→    Effects.setMasterVolume(settings.masterVolume);
+    82→    Effects.setMusicVolume(settings.musicVolume);
+    83→    Effects.setSfxVolume(settings.sfxVolume);
+    84→    Effects.setMuted(settings.muted);
+    85→    Graphics.setBrightness(settings.brightness);
+    86→    this.testSuite = new TestSuite(this);
+    87→    this.setState('menu');
+    88→  }
+    89→
+    90→  // ================ STATE MACHINE ================
+    91→
+    92→  setState(next: GameState): void {
+    93→    this.cleanupState();
+    94→    this.state = next;
+    95→    // Only create stateContainer for menu states (not play)
+    96→    if (next !== 'play') {
+    97→      this.stateContainer = this.add.container(0, 0).setDepth(50);
+    98→    } else {
+    99→      this.stateContainer = null;
+   100→    }
+   101→    this.menuButtons = [];
+   102→    this.menuFocusIndex = 0;
+   103→    switch (next) {
+   104→      case 'menu': this.buildMenu(); break;
+   105→      case 'map': this.buildMap(); break;
+   106→      case 'play': this.buildPlay(); break;
+   107→      case 'victory': this.buildVictory(); break;
+   108→      case 'comingsoon': this.buildComingSoon(); break;
+   109→      case 'skills': this.buildSkills(); break;
+   110→      case 'settings': this.buildSettings(); break;
+   111→    }
+   112→    // Focus first button for keyboard/gamepad nav
+   113→    if (this.menuButtons.length > 0) this.focusButton(0);
+   114→  }
+   115→
+   116→  private cleanupState(): void {
+   117→    if (this.state === 'play') this.cleanupPlay();
+   118→    // Remove menu keyboard handler when leaving any state
+   119→    if (this.menuNavHandler) {
+   120→      window.removeEventListener('keydown', this.menuNavHandler);
+   121→      this.menuNavHandler = null;
+   122→    }
+   123→    if (this.stateContainer) { this.stateContainer.destroy(true); this.stateContainer = null; }
+   124→  }
+   125→
+   126→  update(_time: number, deltaMs: number): void {
+   127→    if (this.state === 'play') {
+   128→      this.updatePlay(deltaMs);
+   129→    } else {
+   130→      // Menu navigation for non-play states
+   131→      GamepadManager.update();
+   132→      this.updateMenuNavigation(deltaMs);
+   133→    }
+   134→  }
+   135→
+   136→  // ================ MENU STATE ================
+   137→
+   138→  private buildMenu(): void {
+   139→    Effects.playMusic('menuAmbient');
+   140→    const c = this.stateContainer!;
+   141→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   142→    // Drifting dust
+   143→    for (let i = 0; i < 40; i++) {
+   144→      const d = this.add.circle(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 0x39d0d8, 0.3);
+   145→      this.tweens.add({ targets: d, y: d.y - 200 - Math.random() * 300, alpha: 0, duration: 4000 + Math.random() * 4000, repeat: -1, delay: Math.random() * 2000 });
+   146→      c.add(d);
+   147→    }
+   148→    c.add(this.add.text(w / 2, h * 0.28, 'MECHA', { fontFamily: 'monospace', fontSize: '96px', color: '#39d0d8', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5));
+   149→    c.add(this.add.text(w / 2, h * 0.28 + 80, 'LAST PROTOCOL', { fontFamily: 'monospace', fontSize: '36px', color: '#cfd6e0', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5));
+   150→    c.add(this.add.text(w / 2, h * 0.28 + 140, '— ABANDONED FACTORY —', { fontFamily: 'monospace', fontSize: '14px', color: '#7a8090' }).setOrigin(0.5));
+   151→    const sy = h * 0.62;
+   152→    this.makeBtn(w / 2, sy, '▶  START', () => { Effects.play('uiClick'); this.setState('map'); });
+   153→    this.makeBtn(w / 2, sy + 60, '↻  CONTINUE', () => {
+   154→      Effects.play('uiClick');
+   155→      const cp = Save.get().lastCheckpoint;
+   156→      if (cp) {
+   157→        // Resume from checkpoint
+   158→        this.currentSection = cp.section;
+   159→        this.currentStageId = (cp.section >= 1 && Save.get().bossesKilled > 0) ? 2 : 1;
+   160→        this.setState('play');
+   161→      } else {
+   162→        // No checkpoint — go to map (last visited)
+   163→        this.setState('map');
+   164→      }
+   165→    }, !Save.hasCheckpoint());
+   166→    this.makeBtn(w / 2, sy + 120, 'i  HOW TO PLAY', () => { Effects.play('uiClick'); this.showHowToPlay(); });
+   167→    c.add(this.add.text(w / 2, h - 30, 'MVP 1.0  •  PHASER 4.2  •  MATTER.JS', { fontFamily: 'monospace', fontSize: '11px', color: '#3a4350' }).setOrigin(0.5));
+   168→  }
+   169→
+   170→  private showHowToPlay(): void {
+   171→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   172→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.85).setDepth(200);
+   173→    const lines = [
+   174→      'HOW TO PLAY', '',
+   175→      'WASD / ARROWS    →   MOVE',
+   176→      'SPACE                   →   JUMP (×2 if unlocked)',
+   177→      'SHIFT                   →   DASH',
+   178→      'J                           →   FIRE',
+   179→      'K                           →   MELEE',
+   180→      '1 / 2 / 3 / 4         →   SWITCH WEAPONS',
+   181→      'Q / E                    →   CYCLE WEAPONS',
+   182→      'GAMEPAD                 →   fully supported',
+   183→      'ESC                       →   PAUSE',
+   184→      '', 'OBJECTIVE', 'Defeat the 2-stage Guardian AX-09 boss.',
+   185→    ];
+   186→    const txt = this.add.text(w / 2, h / 2, lines, { fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0', align: 'center' }).setOrigin(0.5).setDepth(201);
+   187→    this.input.once('pointerdown', () => { overlay.destroy(); txt.destroy(); });
+   188→  }
+   189→
+   190→  // ================ MAP STATE ================
+   191→
+   192→  private buildMap(): void {
+   193→    Effects.playMusic('menuAmbient');
+   194→    const c = this.stateContainer!;
+   195→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   196→    c.add(this.add.text(w / 2, 60, 'MISSION SELECT', { fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5));
+   197→    c.add(this.add.text(w / 2, 100, '— ABANDONED FACTORY COMPLEX —', { fontFamily: 'monospace', fontSize: '13px', color: '#7a8090' }).setOrigin(0.5));
+   198→    // Progress
+   199→    const save = Save.get(), skills = SkillTree.get();
+   200→    const stage2Unlocked = skills.bossesKilled > 0;
+   201→    const stage3Unlocked = Save.isStageUnlocked(3);
+   202→    // Defensive Number() coercion prevents "[object Object]" if save data is corrupted.
+   203→    const sLvl = Number(skills.level) || 0;
+   204→    const sKills = Number(save.totalKills) || 0;
+   205→    const sSP = Number(skills.skillPoints) || 0;
+   206→    const sBosses = Number(skills.bossesKilled) || 0;
+   207→    c.add(this.add.text(w / 2, 170, `LV.${sLvl}  |  Kills: ${sKills}  |  SP: ${sSP}  |  Bosses: ${sBosses}`, { fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0' }).setOrigin(0.5));
+   208→    // Stage cards
+   209→    const stages = [
+   210→      { name: 'ABANDONED FACTORY', sub: 'Stage 1 — Industrial Complex', unlocked: true, img: '/stage1/bg-1.png' },
+   211→      { name: 'NEON DISTRICT', sub: stage2Unlocked ? 'Stage 2 — Neon City' : 'Stage 2 — Locked', unlocked: stage2Unlocked, img: stage2Unlocked ? '/stage2/bg-1.png' : null },
+   212→      { name: 'ORBITAL STATION', sub: stage3Unlocked ? 'Stage 3 — Orbital Station' : 'Stage 3 — Locked', unlocked: stage3Unlocked, img: stage3Unlocked ? '/stage3/bg-1.png' : null },
+   213→    ];
+   214→    stages.forEach((s, i) => {
+   215→      const x = w / 2 + (i - 1) * 260;
+   216→      const y = h / 2 + 20;
+   217→      // Card with nicer styling
+   218→      const card = this.add.rectangle(x, y, 220, 220, s.unlocked ? 0x1a2030 : 0x0e1218, 0.95);
+   219→      card.setStrokeStyle(2, s.unlocked ? (i === 0 ? 0x39d0d8 : i === 1 ? 0x40ff60 : 0x8080ff) : 0x2a3340, 0.8);
+   220→      c.add(card);
+   221→      // Stage number
+   222→      c.add(this.add.text(x, y - 80, `0${i + 1}`, { fontFamily: 'monospace', fontSize: '36px', color: s.unlocked ? (i === 0 ? '#39d0d8' : i === 1 ? '#40ff60' : '#8080ff') : '#3a4350' }).setOrigin(0.5));
+   223→      // Preview image area (for unlocked stages with images)
+   224→      if (s.unlocked && s.img) {
+   225→        // Use preloaded texture if available (Stage 1/3 already loaded in BootScene)
+   226→        const preloadedKey = i === 0 ? 'stage1-bg' : i === 1 ? 'stage2-bg' : 'stage3-bg';
+   227→        const showPreview = (key: string) => {
+   228→          if (this.stateContainer?.active) {
+   229→            const preview = this.add.image(x, y - 20, key);
+   230→            preview.setDisplaySize(190, 80);
+   231→            preview.setOrigin(0.5);
+   232→            preview.setDepth(51);
+   233→            preview.setAlpha(0.7);
+   234→            this.stateContainer.add(preview);
+   235→          }
+   236→        };
+   237→        if (this.textures.exists(preloadedKey)) {
+   238→          showPreview(preloadedKey);
+   239→        } else {
+   240→          // Fallback: on-demand load
+   241→          this.load.image(`stage-preview-${i}`, s.img);
+   242→          this.load.once('complete', () => {
+   243→            if (this.stateContainer?.active && this.textures.exists(`stage-preview-${i}`)) {
+   244→              showPreview(`stage-preview-${i}`);
+   245→            }
+   246→          });
+   247→          this.load.start();
+   248→        }
+   249→      }
+   250→      c.add(this.add.text(x, y + 30, s.name, { fontFamily: 'monospace', fontSize: '13px', color: s.unlocked ? '#cfd6e0' : '#4a5260' }).setOrigin(0.5));
+   251→      c.add(this.add.text(x, y + 50, s.sub, { fontFamily: 'monospace', fontSize: '10px', color: s.unlocked ? '#7a8090' : '#3a4350' }).setOrigin(0.5));
+   252→      if (s.unlocked) {
+   253→        this.makeBtn(x, y + 80, '▶  ENTER', () => {
+   254→          Effects.play('uiClick');
+   255→          this.currentSection = 1;
+   256→          this.currentStageId = (i === 0) ? 1 : (i === 1 ? 2 : 3);
+   257→          this.setState('play');
+   258→        });
+   259→      } else {
+   260→        c.add(this.add.text(x, y + 70, '🔒  LOCKED', { fontFamily: 'monospace', fontSize: '11px', color: '#3a4350' }).setOrigin(0.5));
+   261→      }
+   262→    });
+   263→    // Bottom buttons
+   264→    this.makeBtn(w / 2 - 200, h - 60, '⚙  SKILLS', () => { Effects.play('uiClick'); this.setState('skills'); });
+   265→    this.makeBtn(w / 2, h - 60, '⚙  SETTINGS', () => { Effects.play('uiClick'); this.setState('settings'); });
+   266→    this.makeBtn(w / 2 + 200, h - 60, '←  BACK', () => { Effects.play('uiClick'); this.setState('menu'); });
+   267→  }
+   268→
+   269→  // ================ PLAY STATE ================
+   270→
+   271→  /** Get the current stage data based on currentStageId. */
+   272→  private get stageData() {
+   273→    if (this.currentStageId === 3) return STAGE_3;
+   274→    if (this.currentStageId === 2) return STAGE_2;
+   275→    return STAGE_1;
+   276→  }
+   277→
+   278→  private buildPlay(): void {
+   279→    const sd = this.stageData;
+   280→    Effects.playMusic('factoryDrone');
+   281→    this.cameras.main.setBackgroundColor(sd.bgColor);
+   282→    this.cameras.main.setBounds(0, 0, sd.TOTAL_WIDTH, GAME.HEIGHT);
+   283→    this.matter.world.setBounds(0, 0, sd.TOTAL_WIDTH, GAME.HEIGHT, true, true, true, true);
+   284→    this.matter.world.setGravity(0, 0.9);
+   285→    this.projectiles = []; this.enemies = []; this.boss = null;
+   286→    this.solids = []; this.sectionTriggers = []; this.bossArenaActive = false;
+   287→    this.healthPickups = [];
+   288→    this.stageStartTime = this.time.now;
+   289→
+   290→    // Cinematic grade — Phaser 4.2 uses camera.filters (NOT the old setPostPipeline).
+   291→    // We add a Vignette (external) for edge darkening + a ColorMatrix (internal)
+   292→    // for contrast boost. Both are cheap GPU post-passes.
+   293→    this.applyCinematicGrade();
+   294→
+   295→    // Stage 2 background — 3-layer parallax using bg-1 / bg-2 / bg-3
+   296→    if (this.currentStageId === 2) {
+   297→      // Far layer — barely moves with camera
+   298→      if (this.textures.exists('stage2-far')) {
+   299→        this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'stage2-far')
+   300→          .setDepth(-3)
+   301→          .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+   302→          .setAlpha(0.45)
+   303→          .setScrollFactor(0.1);
+   304→      }
+   305→      // Mid layer — slower than world
+   306→      if (this.textures.exists('stage2-mid')) {
+   307→        this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'stage2-mid')
+   308→          .setDepth(-2.5)
+   309→          .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+   310→          .setAlpha(0.6)
+   311→          .setScrollFactor(0.3);
+   312→      }
+   313→      // Main layer — screen-fixed
+   314→      if (this.textures.exists('stage2-bg')) {
+   315→        const bg = this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'stage2-bg')
+   316→          .setDepth(-2)
+   317→          .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+   318→          .setAlpha(0.65)
+   319→          .setScrollFactor(0);
+   320→        this.stageBgImage = bg;
+   321→      }
+   322→      // Dark overlay for gameplay contrast (MULTIPLY blend for richer shadow)
+   323→      const dark = this.add.rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT, 0x0a1a2a, 0.25)
+   324→        .setOrigin(0, 0).setDepth(-1.5).setScrollFactor(0);
+   325→      dark.setBlendMode(Phaser.BlendModes.MULTIPLY);
+   326→    }
+   327→
+   328→    // Stage 3 background — Orbital Station (single layered image + dark blue overlay)
+   329→    if (this.currentStageId === 3 && this.textures.exists('stage3-bg')) {
+   330→      const bg = this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'stage3-bg')
+   331→        .setDepth(-2)
+   332→        .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+   333→        .setAlpha(0.7)
+   334→        .setScrollFactor(0);
+   335→      this.stageBgImage = bg;
+   336→      // Dark blue overlay for orbital mood
+   337→      const dark = this.add.rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT, 0x050818, 0.25)
+   338→        .setOrigin(0, 0).setDepth(-1.5).setScrollFactor(0);
+   339→      dark.setBlendMode(Phaser.BlendModes.MULTIPLY);
+   340→    }
+   341→
+   342→    // Stage 1 background — Abandoned Factory (single image + procedural parallax on top)
+   343→    if (this.currentStageId === 1 && this.textures.exists('stage1-bg')) {
+   344→      const bg = this.add.image(GAME.WIDTH / 2, GAME.HEIGHT / 2, 'stage1-bg')
+   345→        .setDepth(-3)
+   346→        .setDisplaySize(GAME.WIDTH, GAME.HEIGHT)
+   347→        .setAlpha(0.85)
+   348→        .setScrollFactor(0);
+   349→      this.stageBgImage = bg;
+   350→      // Very subtle dark overlay to keep gameplay readable
+   351→      const dark = this.add.rectangle(0, 0, GAME.WIDTH, GAME.HEIGHT, 0x05070d, 0.1)
+   352→        .setOrigin(0, 0).setDepth(-1.5).setScrollFactor(0);
+   353→      dark.setBlendMode(Phaser.BlendModes.MULTIPLY);
+   354→    }
+   355→
+   356→    // Procedural parallax disabled for Stage 1 — we now use the bg image instead.
+   357→    // (Re-enable if a richer layered background is needed alongside the image.)
+   358→    // if (this.currentStageId === 1) {
+   359→    //   this.parallax = new Parallax(this);
+   360→    // }
+   361→    // Atmospheric effects (lightning + neon signs + rain for Stage 2)
+   362→    this.atmosphere = new StageAtmosphere(this, this.currentStageId);
+   363→
+   364→    this.graphics = new Graphics(this);
+   365→    // Re-apply brightness now that the Graphics instance exists (adds ColorMatrix boost)
+   366→    Graphics.setBrightness(Graphics.getBrightness());
+   367→    this.buildStageGeometry();
+   368→    this.buildTutorialHints();
+   369→    this.damageSystem = new DamageSystem(this);
+   370→    const startX = (this.currentSection - 1) * sd.SECTION_WIDTH + 200;
+   371→    this.player = new Player(this, startX, GAME.HEIGHT - 300, this.projectiles, this.damageSystem);
+   372→    this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
+   373→    this.cameras.main.setDeadzone(160, 100);
+   374→    this.graphics.addLight({
+   375→      follow: () => {
+   376→        if (!this.player || !this.player.sprite || !this.player.sprite.active) return new Phaser.Math.Vector2(0, 0);
+   377→        return this.player.position;
+   378→      },
+   379→      radius: 140, color: COLORS.PLAYER_GLOW, intensity: 0.3, flicker: 0.05,
+   380→    });
+   381→    this.hud = new HUD(this, this.player);
+   382→    this.bossBar = new BossBar(this, this.boss);
+   383→    FloatingText.init(this);
+   384→    this.spawnEnemiesForSection(this.currentSection);
+   385→    this.buildSectionTriggers();
+   386→    EventBus.on('PLAYER_DEAD', this.onPlayerDied, this);
+   387→    EventBus.on('ENEMY_DEAD', this.onEnemyKilled, this);
+   388→    EventBus.on('BOSS_PHASE', this.onBossPhaseEvent, this);
+   389→    EventBus.on('PLAYER_DAMAGED', this.onPlayerDamaged, this);
+   390→
+   391→    const sec = sd.SECTIONS[this.currentSection - 1];
+   392→    EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.name });
+   393→  }
+   394→
+   395→  private updatePlay(deltaMs: number): void {
+   396→    if (!this.player) return;
+   397→    this.player.update(deltaMs);
+   398→    this.graphics.update(this.time.now, deltaMs);
+   399→    this.hud?.update();
+   400→    this.bossBar?.update();
+   401→    // Projectiles
+   402→    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+   403→      const p = this.projectiles[i];
+   404→      p.update(this);
+   405→      if (!p.isAlive) this.projectiles.splice(i, 1);
+   406→    }
+   407→    // Enemies
+   408→    const playerPos = this.player.position;
+   409→    const cx = this.cameras.main.scrollX + GAME.WIDTH / 2;
+   410→    for (let i = this.enemies.length - 1; i >= 0; i--) {
+   411→      const e = this.enemies[i];
+   412→      if (!e.isAlive || !e.sprite || !e.sprite.active) { this.enemies.splice(i, 1); continue; }
+   413→      if (Math.abs(e.sprite.x - cx) > GAME.WIDTH * 1.2) continue;
+   414→      try { e.update(deltaMs, playerPos); } catch { this.enemies.splice(i, 1); continue; }
+   415→      if (!e.isAlive) this.enemies.splice(i, 1);
+   416→    }
+   417→    // Boss
+   418→    if (this.boss && this.boss.isAlive && this.boss.sprite && this.boss.sprite.active) {
+   419→      try { this.boss.update(deltaMs); } catch { /* */ }
+   420→    }
+   421→    this.parallax?.update(deltaMs);
+   422→    this.atmosphere?.update(deltaMs);
+   423→    Ragdoll.update(this);
+   424→    // Out-of-bounds
+   425→    if (this.player.sprite.y > GAME.HEIGHT + 80) {
+   426→      this.player.takeDamage(25);
+   427→      this.respawnPlayerAtSection();
+   428→    }
+   429→    // Boss arena zoom
+   430→    if (this.bossArenaActive && this.boss && this.boss.isAlive) {
+   431→      this.cameras.main.setZoom(Phaser.Math.Linear(this.cameras.main.zoom, 0.85, 0.04));
+   432→    }
+   433→  }
+   434→
+   435→  private cleanupPlay(): void {
+   436→    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+   437→    EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
+   438→    EventBus.off('BOSS_PHASE', this.onBossPhaseEvent, this);
+   439→    EventBus.off('PLAYER_DAMAGED', this.onPlayerDamaged, this);
+   440→
+   441→    this.matter.world.off('collisionstart', this.onCollisionStart);
+   442→    this.projectiles.forEach(p => p.kill());
+   443→    this.projectiles = [];
+   444→    this.hud?.destroy();
+   445→    this.bossBar?.destroy();
+   446→    this.parallax?.destroy();
+   447→    this.atmosphere?.destroy();
+   448→    this.graphics?.destroy();
+   449→    Ragdoll.clear(this);
+   450→    this.tutorialHints.forEach(h => h.destroy());
+   451→    this.tutorialHints = [];
+   452→    this.healthPickups.forEach(h => h.destroy());
+   453→    this.healthPickups = [];
+   454→    this.stageBgImage?.destroy();
+   455→    this.stageBgImage = null;
+   456→    FloatingText.destroy();
+   457→    this.cameras.main.setZoom(1);
+   458→    this.cameras.main.stopFollow();
+   459→    // Remove cinematic filters when leaving play state
+   460→    this.removeCinematicGrade();
+   461→  }
+   462→
+   463→  // ---- Tutorial hints (section 1, stage 1 only) ----
+   464→  private buildTutorialHints(): void {
+   465→    if (this.currentStageId !== 1) return; // only show tutorial in stage 1
+   466→    const sec1X = this.stageData.SECTIONS[0].x;
+   467→    const hints: Array<{x: number; y: number; text: string; color: string}> = [
+   468→      { x: sec1X + 200, y: GAME.HEIGHT - 200, text: '← A / D →  MOVE',       color: '#9be0b0' },
+   469→      { x: sec1X + 500, y: GAME.HEIGHT - 250, text: 'SPACE  JUMP',             color: '#7eb0ff' },
+   470→      { x: sec1X + 800, y: GAME.HEIGHT - 200, text: 'SHIFT  DASH',             color: '#ffe060' },
+   471→      { x: sec1X + 1050, y: GAME.HEIGHT - 250, text: 'J  FIRE  /  K  MELEE',   color: '#ff8080' },
+   472→    ];
+   473→    for (const h of hints) {
+   474→      const c = this.add.container(h.x, h.y);
+   475→      const bg = this.add.rectangle(0, 0, 220, 36, 0x000000, 0.6).setStrokeStyle(1, 0x39d0d8, 0.4);
+   476→      const t = this.add.text(0, 0, h.text, { fontFamily: 'monospace', fontSize: '13px', color: h.color }).setOrigin(0.5);
+   477→      c.add([bg, t]);
+   478→      c.setDepth(20);
+   479→      // Gentle floating animation
+   480→      this.tweens.add({ targets: c, y: h.y - 6, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+   481→      this.tutorialHints.push(c);
+   482→    }
+   483→  }
+   484→
+   485→  // ---- Stage geometry (ported from FactoryStage) ----
+   486→
+   487→  /**
+   488→   * Apply cinematic post-processing using Phaser 4.2's native Filter API.
+   489→   * Adds a Vignette (edge darkening) + ColorMatrix (contrast + slight warmth)
+   490→   * to the main camera. Idempotent — only applies once per play session.
+   491→   */
+   492→  private applyCinematicGrade(): void {
+   493→    if (this.cinematicApplied) return;
+   494→    try {
+   495→      const cam = this.cameras.main;
+   496→      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   497→      const filters = (cam as unknown as { filters?: { external?: { addVignette?: (...args: unknown[]) => unknown }; internal?: { addColorMatrix?: () => { colorMatrix?: { contrast?: (v: number) => void; saturate?: (v: number) => void } } } } }).filters;
+   498→      if (!filters) return;
+   499→      // Vignette: centered, radius 0.5, strength 0.45, black, MULTIPLY blend
+   500→      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   501→      if (typeof filters.external?.addVignette === 'function') {
+   502→        filters.external.addVignette(0.5, 0.5, 0.5, 0.45, 0x000000);
+   503→      }
+   504→      // ColorMatrix: contrast boost for punchier visuals + slight saturation
+   505→      if (typeof filters.internal?.addColorMatrix === 'function') {
+   506→        const cmFilter = filters.internal.addColorMatrix();
+   507→        if (cmFilter?.colorMatrix) {
+   508→          if (typeof cmFilter.colorMatrix.contrast === 'function') cmFilter.colorMatrix.contrast(0.12);
+   509→          if (typeof cmFilter.colorMatrix.saturate === 'function') cmFilter.colorMatrix.saturate(1.08);
+   510→        }
+   511→      }
+   512→      this.cinematicApplied = true;
+   513→    } catch {
+   514→      // Filter API unavailable — skip cinematic grade silently.
+   515→    }
+   516→  }
+   517→
+   518→  /** Remove cinematic filters from the main camera (called on cleanup). */
+   519→  private removeCinematicGrade(): void {
+   520→    if (!this.cinematicApplied) return;
+   521→    try {
+   522→      const cam = this.cameras.main;
+   523→      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   524→      const filters = (cam as unknown as { filters?: { external?: { clear?: () => void }; internal?: { clear?: () => void } } }).filters;
+   525→      filters?.external?.clear?.();
+   526→      filters?.internal?.clear?.();
+   527→    } catch { /* ignore */ }
+   528→    this.cinematicApplied = false;
+   529→  }
+   530→
+   531→  private buildStageGeometry(): void {
+   532→    this.physics = new PhysicsWorld(this);
+   533→    this.addSolid(this.stageData.TOTAL_WIDTH / 2, GAME.HEIGHT, this.stageData.TOTAL_WIDTH, 80, COLORS.METAL_DARK);
+   534→    this.addSolid(this.stageData.TOTAL_WIDTH / 2, -20, this.stageData.TOTAL_WIDTH, 40, 0x000000);
+   535→    for (let i = 0; i < this.stageData.SECTIONS.length; i++) {
+   536→      this.buildSectionGeometry(i + 1, this.stageData.SECTIONS[i].x);
+   537→    }
+   538→  }
+   539→
+   540→  private buildSectionGeometry(id: number, baseX: number): void {
+   541→    switch (id) {
+   542→      case 2:
+   543→        this.addSolid(baseX + 400, GAME.HEIGHT - 80, 60, 40, COLORS.METAL_DARK);
+   544→        this.addSolid(baseX + 900, GAME.HEIGHT - 80, 60, 40, COLORS.METAL_DARK);
+   545→        // Destructible crates
+   546→        this.addDestructibleCrate(baseX + 600, GAME.HEIGHT - 60);
+   547→        this.addDestructibleCrate(baseX + 750, GAME.HEIGHT - 60);
+   548→        break;
+   549→      case 3:
+   550→        // Platforming with gaps + spike trap
+   551→        this.addSolid(baseX + 200, GAME.HEIGHT - 200, 180, 20, COLORS.METAL);
+   552→        this.addSolid(baseX + 500, GAME.HEIGHT - 320, 180, 20, COLORS.METAL);
+   553→        this.addSolid(baseX + 800, GAME.HEIGHT - 240, 180, 20, COLORS.METAL);
+   554→        this.addSolid(baseX + 1080, GAME.HEIGHT - 140, 180, 80, COLORS.METAL_DARK);
+   555→        // Spike trap between platforms (damages player on contact)
+   556→        this.addSpikeTrap(baseX + 400, GAME.HEIGHT - 30);
+   557→        this.addSpikeTrap(baseX + 700, GAME.HEIGHT - 30);
+   558→        break;
+   559→      case 4:
+   560→        this.addSolid(baseX + 400, GAME.HEIGHT - 200, 40, 160, COLORS.METAL_DARK);
+   561→        this.addSolid(baseX + 840, GAME.HEIGHT - 200, 40, 160, COLORS.METAL_DARK);
+   562→        this.addSolid(baseX + 600, GAME.HEIGHT - 280, 100, 20, COLORS.METAL);
+   563→        break;
+   564→      case 5:
+   565→        this.addSolid(baseX + 640, GAME.HEIGHT - 120, 80, 80, COLORS.METAL);
+   566→        break;
+   567→      case 6:
+   568→        this.addSolid(baseX + 80, GAME.HEIGHT - 250, 40, 210, COLORS.METAL_DARK);
+   569→        this.addSolid(baseX + this.stageData.SECTION_WIDTH - 80, GAME.HEIGHT - 250, 40, 210, COLORS.METAL_DARK);
+   570→        break;
+   571→    }
+   572→  }
+   573→
+   574→  /**
+   575→   * Add a solid platform / wall with detailed graphics:
+   576→   *  - Stage 1 (Factory): metal plating with beveled edges, rivets, rust patches
+   577→   *  - Stage 2 (Neon): dark metal with neon edge trim (cyan/magenta)
+   578→   * Visual is drawn with Phaser.GameObjects.Graphics for rich detail.
+   579→   */
+   580→  private addSolid(x: number, y: number, w: number, h: number, color: number): void {
+   581→    const s = this.physics.addStaticRect(x, y, w, h);
+   582→    const isNeon = this.currentStageId === 2;
+   583→    const g = this.add.graphics();
+   584→    g.setDepth(5);
+   585→
+   586→    // Main fill
+   587→    g.fillStyle(color, 1);
+   588→    g.fillRect(-w / 2, -h / 2, w, h);
+   589→
+   590→    // Top bevel highlight (lighter strip along top edge)
+   591→    g.fillStyle(Phaser.Display.Color.IntegerToColor(color).lighten(20).color, 0.7);
+   592→    g.fillRect(-w / 2, -h / 2, w, Math.min(3, h));
+   593→
+   594→    // Bottom shadow strip (darker)
+   595→    g.fillStyle(Phaser.Display.Color.IntegerToColor(color).darken(20).color, 0.8);
+   596→    g.fillRect(-w / 2, h / 2 - Math.min(3, h), w, Math.min(3, h));
+   597→
+   598→    // Outer stroke
+   599→    g.lineStyle(1, isNeon ? 0x1a2030 : 0x1a1418, 0.9);
+   600→    g.strokeRect(-w / 2, -h / 2, w, h);
+   601→
+   602→    // Stage-specific detailing
+   603→    if (isNeon) {
+   604→      // Neon edge trim — cyan on top, magenta on bottom, ADD blend glow
+   605→      const neonColor = 0x40e0ff;
+   606→      g.lineStyle(2, neonColor, 0.95);
+   607→      g.beginPath();
+   608→      g.moveTo(-w / 2 + 2, -h / 2 + 1);
+   609→      g.lineTo(w / 2 - 2, -h / 2 + 1);
+   610→      g.strokePath();
+   611→      // Neon glow halo (wider, lower alpha, ADD blend)
+   612→      const glow = this.add.rectangle(x, y - h / 2, w, 4, neonColor, 0.4);
+   613→      glow.setDepth(4);
+   614→      glow.setBlendMode(Phaser.BlendModes.ADD);
+   615→      // Subtle pulse on the glow
+   616→      this.tweens.add({
+   617→        targets: glow,
+   618→        alpha: { from: 0.4, to: 0.15 },
+   619→        duration: 1800, yoyo: true, repeat: -1,
+   620→        ease: 'Sine.inOut',
+   621→      });
+   622→      // Circuit-line details (vertical lines every 30px)
+   623→      g.lineStyle(1, 0x2a4050, 0.4);
+   624→      for (let dx = -w / 2 + 30; dx < w / 2 - 10; dx += 30) {
+   625→        g.beginPath();
+   626→        g.moveTo(dx, -h / 2 + 4);
+   627→        g.lineTo(dx, h / 2 - 4);
+   628→        g.strokePath();
+   629→      }
+   630→    } else {
+   631→      // Factory: rust patches + rivets + warning stripes
+   632→      // Rivets at corners and along edges (every 40px)
+   633→      g.fillStyle(0x6a6a78, 0.9);
+   634→      const rivetSpacing = 40;
+   635→      const drawRivet = (rx: number, ry: number) => {
+   636→        g.fillStyle(0x8a8a98, 1);
+   637→        g.fillCircle(rx, ry, 2);
+   638→        g.fillStyle(0x3a3a48, 1);
+   639→        g.fillCircle(rx, ry, 1);
+   640→      };
+   641→      // Top edge rivets
+   642→      for (let dx = -w / 2 + 8; dx <= w / 2 - 8; dx += rivetSpacing) {
+   643→        if (h > 12) drawRivet(dx, -h / 2 + 4);
+   644→      }
+   645→      // Bottom edge rivets
+   646→      if (h > 20) {
+   647→        for (let dx = -w / 2 + 8; dx <= w / 2 - 8; dx += rivetSpacing) {
+   648→          drawRivet(dx, h / 2 - 4);
+   649→        }
+   650→      }
+   651→      // Rust patches (random, deterministic by position)
+   652→      const seed = Math.abs(Math.floor(x * 31 + y * 17));
+   653→      const rustCount = 2 + (seed % 3);
+   654→      for (let i = 0; i < rustCount; i++) {
+   655→        const rx = ((seed * (i + 1) * 73) % (w - 12)) - w / 2 + 6;
+   656→        const ry = ((seed * (i + 1) * 41) % (h - 8)) - h / 2 + 4;
+   657→        const rw = 6 + ((seed * (i + 1)) % 8);
+   658→        const rh = 3 + ((seed * (i + 2)) % 4);
+   659→        g.fillStyle(0x6a3a1a, 0.5);
+   660→        g.fillRect(rx, ry, rw, rh);
+   661→      }
+   662→      // Warning stripes on tall walls (h > 100)
+   663→      if (h > 100) {
+   664→        g.fillStyle(0xffcc00, 0.6);
+   665→        for (let sy = -h / 2 + 20; sy < h / 2 - 20; sy += 16) {
+   666→          g.fillRect(-w / 2 + 2, sy, 4, 8);
+   667→          g.fillRect(w / 2 - 6, sy, 4, 8);
+   668→        }
+   669→      }
+   670→    }
+   671→
+   672→    g.setPosition(x, y);
+   673→    this.solids.push(s);
+   674→  }
+   675→
+   676→  /** Destructible crate — has HP, breaks into debris when destroyed. */
+   677→  private addDestructibleCrate(x: number, y: number): void {
+   678→    const s = this.physics.addStaticRect(x, y, 40, 40);
+   679→    s.setData('entityType', 'destructible');
+   680→    s.setData('crateHp', 20);
+   681→    const isNeon = this.currentStageId === 2;
+   682→    const g = this.add.graphics();
+   683→    g.setDepth(5);
+   684→    g.setPosition(x, y);
+   685→    if (isNeon) {
+   686→      // Neon-era crate: dark metal with magenta trim + hazard symbol
+   687→      g.fillStyle(0x2a1a3a, 1);
+   688→      g.fillRect(-20, -20, 40, 40);
+   689→      g.lineStyle(2, 0xff40a0, 0.9);
+   690→      g.strokeRect(-20, -20, 40, 40);
+   691→      // Inner panel
+   692→      g.fillStyle(0x3a2a4a, 0.6);
+   693→      g.fillRect(-15, -15, 30, 30);
+   694→      // Hazard diamond
+   695→      g.lineStyle(1.5, 0xff40a0, 0.7);
+   696→      g.beginPath();
+   697→      g.moveTo(0, -10); g.lineTo(10, 0); g.lineTo(0, 10); g.lineTo(-10, 0);
+   698→      g.closePath();
+   699→      g.strokePath();
+   700→      g.fillStyle(0xff40a0, 0.5);
+   701→      g.fillCircle(0, 0, 2);
+   702→      // Corner rivets
+   703→      g.fillStyle(0xff80c0, 0.8);
+   704→      g.fillCircle(-16, -16, 1.5);
+   705→      g.fillCircle(16, -16, 1.5);
+   706→      g.fillCircle(-16, 16, 1.5);
+   707→      g.fillCircle(16, 16, 1.5);
+   708→    } else {
+   709→      // Factory crate: rusted metal with bands + warning chevrons
+   710→      g.fillStyle(0x8a4a2a, 1);
+   711→      g.fillRect(-20, -20, 40, 40);
+   712→      g.lineStyle(2, 0x6a3020, 0.9);
+   713→      g.strokeRect(-20, -20, 40, 40);
+   714→      // Metal banding (horizontal + vertical)
+   715→      g.fillStyle(0x5a2a18, 0.7);
+   716→      g.fillRect(-20, -4, 40, 8);
+   717→      g.fillRect(-4, -20, 8, 40);
+   718→      // Corner bolts
+   719→      g.fillStyle(0x4a4a50, 1);
+   720→      g.fillCircle(-15, -15, 2);
+   721→      g.fillCircle(15, -15, 2);
+   722→      g.fillCircle(-15, 15, 2);
+   723→      g.fillCircle(15, 15, 2);
+   724→      g.fillStyle(0x2a2a30, 1);
+   725→      g.fillCircle(-15, -15, 1);
+   726→      g.fillCircle(15, -15, 1);
+   727→      g.fillCircle(-15, 15, 1);
+   728→      g.fillCircle(15, 15, 1);
+   729→      // Rust spots
+   730→      g.fillStyle(0x4a2010, 0.6);
+   731→      g.fillCircle(-8, 8, 3);
+   732→      g.fillCircle(10, -10, 2);
+   733→    }
+   734→    s.setData('visual', g);
+   735→  }
+   736→
+   737→  /** Spike trap — damages player on contact. Energy-style for Neon, rusty for Factory. */
+   738→  private addSpikeTrap(x: number, y: number): void {
+   739→    const s = this.physics.addSensor(x, y, 80, 20, 'spike-trap');
+   740→    s.setData('isSpikeTrap', true);
+   741→    const isNeon = this.currentStageId === 2;
+   742→    const g = this.add.graphics();
+   743→    g.setDepth(6);
+   744→    g.setPosition(x, y);
+   745→    // Base plate
+   746→    g.fillStyle(isNeon ? 0x1a2030 : 0x3a3038, 1);
+   747→    g.fillRect(-40, 4, 80, 8);
+   748→    g.lineStyle(1, isNeon ? 0x40e0ff : 0x6a4030, 0.7);
+   749→    g.strokeRect(-40, 4, 80, 8);
+   750→    // Spikes (6 triangles)
+   751→    const spikeColor = isNeon ? 0xff4060 : 0x808090;
+   752→    const spikeHighlight = isNeon ? 0xff80a0 : 0xa0a0b0;
+   753→    for (let i = 0; i < 6; i++) {
+   754→      const sx = -36 + i * 14;
+   755→      g.fillStyle(spikeColor, 1);
+   756→      g.beginPath();
+   757→      g.moveTo(sx, 6);
+   758→      g.lineTo(sx + 7, -10);
+   759→      g.lineTo(sx + 14, 6);
+   760→      g.closePath();
+   761→      g.fillPath();
+   762→      // Highlight on left edge of each spike
+   763→      g.lineStyle(1, spikeHighlight, 0.6);
+   764→      g.beginPath();
+   765→      g.moveTo(sx, 6);
+   766→      g.lineTo(sx + 7, -10);
+   767→      g.strokePath();
+   768→    }
+   769→    if (isNeon) {
+   770→      // Pulsing red glow at the base of the spikes
+   771→      const glow = this.add.rectangle(x, y - 2, 80, 8, 0xff4060, 0.35);
+   772→      glow.setDepth(5);
+   773→      glow.setBlendMode(Phaser.BlendModes.ADD);
+   774→      this.tweens.add({
+   775→        targets: glow,
+   776→        alpha: { from: 0.35, to: 0.1 },
+   777→        duration: 600, yoyo: true, repeat: -1,
+   778→        ease: 'Sine.inOut',
+   779→      });
+   780→    }
+   781→  }
+   782→
+   783→  private buildSectionTriggers(): void {
+   784→    for (let i = 1; i <= this.stageData.SECTIONS.length; i++) {
+   785→      const x = (i - 1) * this.stageData.SECTION_WIDTH + 80;
+   786→      const trigger = this.physics.addSensor(x, GAME.HEIGHT / 2, 40, GAME.HEIGHT, `section-${i}`);
+   787→      trigger.setData('sectionId', i);
+   788→      this.sectionTriggers.push(trigger);
+   789→    }
+   790→    this.matter.world.on('collisionstart', this.onCollisionStart, this);
+   791→    // Multiple checkpoint triggers — one per checkpoint section
+   792→    for (const secId of this.stageData.CHECKPOINT_SECTIONS) {
+   793→      const cpX = (secId - 1) * this.stageData.SECTION_WIDTH + 640;
+   794→      const cp = this.physics.addSensor(cpX, GAME.HEIGHT - 80, 60, 60, `checkpoint-${secId}`);
+   795→      cp.setData('isCheckpoint', true);
+   796→      cp.setData('checkpointSection', secId);
+   797→    }
+   798→    const bossX = (6 - 1) * this.stageData.SECTION_WIDTH + 200;
+   799→    this.bossArenaTrigger = this.physics.addSensor(bossX, GAME.HEIGHT / 2, 30, GAME.HEIGHT, 'boss-arena-entry');
+   800→    this.bossArenaTrigger.setData('isBossEntry', true);
+   801→  }
+   802→
+   803→  private onCollisionStart = (event: MatterJS.Events.CollisionStartEvent) => {
+   804→    for (const pair of event.pairs) {
+   805→      const aGo = (pair.bodyA as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   806→      const bGo = (pair.bodyB as unknown as { gameObject?: Phaser.GameObjects.GameObject }).gameObject;
+   807→      if (!aGo || !bGo) continue;
+   808→      const aIsPlayer = aGo.getData('entityType') === 'player';
+   809→      const bIsPlayer = bGo.getData('entityType') === 'player';
+   810→      const aSection = aGo.getData('sectionId') as number | undefined;
+   811→      const bSection = bGo.getData('sectionId') as number | undefined;
+   812→      if (aIsPlayer && bSection) this.enterSection(bSection);
+   813→      else if (bIsPlayer && aSection) this.enterSection(aSection);
+   814→      else if (aIsPlayer && bGo.getData('isCheckpoint')) this.activateCheckpoint();
+   815→      else if (bIsPlayer && aGo.getData('isCheckpoint')) this.activateCheckpoint();
+   816→      else if (aIsPlayer && bGo.getData('isBossEntry')) this.enterBossArena();
+   817→      else if (bIsPlayer && aGo.getData('isBossEntry')) this.enterBossArena();
+   818→      // Health pickup
+   819→      else if (aIsPlayer && bGo.getData('isHealthPickup')) this.collectHealthPickup(bGo);
+   820→      else if (bIsPlayer && aGo.getData('isHealthPickup')) this.collectHealthPickup(aGo);
+   821→      // Spike trap
+   822→      else if (aIsPlayer && bGo.getData('isSpikeTrap')) this.player.takeDamage(15);
+   823→      else if (bIsPlayer && aGo.getData('isSpikeTrap')) this.player.takeDamage(15);
+   824→      if (aIsPlayer && bGo.getData('entityType') === 'enemy') this.handleEnemyContact(bGo);
+   825→      else if (bIsPlayer && aGo.getData('entityType') === 'enemy') this.handleEnemyContact(aGo);
+   826→      if (aIsPlayer && bGo.getData('entityType') === 'boss' && this.boss) this.player.takeDamage(this.boss.getContactDamage());
+   827→      else if (bIsPlayer && aGo.getData('entityType') === 'boss' && this.boss) this.player.takeDamage(this.boss.getContactDamage());
+   828→    }
+   829→  };
+   830→
+   831→  private collectHealthPickup(pickupGo: Phaser.GameObjects.GameObject): void {
+   832→    const c = pickupGo.getData('container') as Phaser.GameObjects.Container | undefined;
+   833→    if (c && c.active) {
+   834→      this.player.heal(30);
+   835→      Effects.play('checkpoint');
+   836→      Effects.sparks(this, c.x, c.y, 0x40d070, 8);
+   837→      c.destroy();
+   838→      const idx = this.healthPickups.indexOf(c);
+   839→      if (idx >= 0) this.healthPickups.splice(idx, 1);
+   840→    }
+   841→  }
+   842→
+   843→  private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
+   844→    const id = enemyGo.getData('id') as string | undefined;
+   845→    const dmg = id?.startsWith('drone-') ? 8 : id?.startsWith('spider-') ? 14 : id?.startsWith('heavy-') ? 22 : 8;
+   846→    const ok = this.player.takeDamage(dmg);
+   847→    if (ok) {
+   848→      const enemySprite = (enemyGo as unknown as { x?: number }).x;
+   849→      if (typeof enemySprite === 'number') {
+   850→        const dir = this.player.sprite.x < enemySprite ? -1 : 1;
+   851→        this.player.sprite.setVelocityX(dir * 4);
+   852→        this.player.sprite.setVelocityY(-4);
+   853→      }
+   854→    }
+   855→  }
+   856→
+   857→  private enterSection(id: number): void {
+   858→    if (id === this.currentSection) return;
+   859→    this.currentSection = id;
+   860→    const sec = this.stageData.SECTIONS[id - 1];
+   861→    EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.name });
+   862→    this.spawnEnemiesForSection(id);
+   863→  }
+   864→
+   865→  private spawnEnemiesForSection(id: number): void {
+   866→    const sec = this.stageData.SECTIONS[id - 1];
+   867→    for (const type of sec.enemies) {
+   868→      if (type === 'boss' || type === 'boss2' || type === 'boss3') continue;
+   869→      const x = sec.x + 400 + Math.random() * 400;
+   870→      const et = type as EnemyTypeId;
+   871→      const y = et === 'drone' ? GAME.HEIGHT - 100 : GAME.HEIGHT - 200;
+   872→      const e = new Enemy(this, x, y, et, this.projectiles);
+   873→      this.enemies.push(e);
+   874→      const color = et === 'drone' ? COLORS.ENEMY_DRONE : et === 'spider' ? COLORS.ENEMY_SPIDER : COLORS.ENEMY_HEAVY;
+   875→      const ref = e;
+   876→      this.graphics.addLight({
+   877→        follow: () => (!ref.isAlive || !ref.sprite?.active) ? new Phaser.Math.Vector2(-9999, -9999) : new Phaser.Math.Vector2(ref.sprite.x, ref.sprite.y),
+   878→        radius: 60, color, intensity: 0.25, flicker: 0.2,
+   879→      });
+   880→    }
+   881→  }
+   882→
+   883→  private activateCheckpoint(): void {
+   884→    Save.saveCheckpoint({ section: this.currentSection, x: this.player.sprite.x, y: this.player.sprite.y, timestamp: Date.now() });
+   885→    EventBus.emit('CHECKPOINT', { section: this.currentSection });
+   886→    Effects.play('checkpoint');
+   887→    Effects.screenFlash(this, 0x40d070, 0.18, 300);
+   888→  }
+   889→
+   890→  private enterBossArena(): void {
+   891→    if (this.bossArenaActive) return;
+   892→    this.bossArenaActive = true;
+   893→    Effects.playMusic('bossFight');
+   894→    const x = (6 - 1) * this.stageData.SECTION_WIDTH + 800;
+   895→    const y = GAME.HEIGHT - 320;
+   896→    // Stage 2 boss uses Enraged config (stage=2) for higher difficulty.
+   897→    // Stage 3 reuses the Enraged config for now (could add a stage=3 variant later).
+   898→    const bossStage = this.currentStageId === 1 ? 1 : 2;
+   899→    this.boss = new Boss(this, x, y, this.projectiles, () => this.player.position, bossStage as 1 | 2);
+   900→    this.bossBar.boss = this.boss;
+   901→    const ref = this.boss;
+   902→    const bossColor = this.currentStageId === 2 ? 0x40ff60 : this.currentStageId === 3 ? 0x8080ff : COLORS.BOSS_GLOW;
+   903→    this.graphics.addLight({
+   904→      follow: () => (!ref.isAlive || !ref.sprite?.active) ? new Phaser.Math.Vector2(-9999, -9999) : ref.position,
+   905→      radius: 240, color: bossColor, intensity: 0.45, flicker: 0.08,
+   906→    });
+   907→    this.bossBar.show();
+   908→    Effects.screenFlash(this, this.currentStageId === 2 ? 0x40ff60 : 0xff3030, 0.35, 500);
+   909→    this.cameras.main.shake(400, 0.012);
+   910→    this.addSolid(x - 280, GAME.HEIGHT - 200, 30, 200, COLORS.RUST);
+   911→  }
+   912→
+   913→  // ---- Play event handlers ----
+   914→  private onPlayerDamaged = (payload: unknown): void => {
+   915→    const data = payload as { amount: number; x: number; y: number; heal?: boolean };
+   916→    if (data.heal) {
+   917→      FloatingText.heal(data.x, data.y - 30, -data.amount);
+   918→    } else {
+   919→      FloatingText.damage(data.x, data.y - 20, data.amount, 0xff5050);
+   920→    }
+   921→  };
+   922→
+   923→  private onPlayerDied = (): void => {
+   924→    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+   925→    Effects.explosion(this, this.player.sprite.x, this.player.sprite.y, COLORS.PLAYER, 1.2);
+   926→    this.cameras.main.shake(400, 0.012);
+   927→    // Fade to black, then show game over (reset fade so overlay is visible)
+   928→    this.cameras.main.fadeOut(700, 0, 0, 0);
+   929→    this.time.delayedCall(900, () => {
+   930→      this.cameras.main.fadeIn(300, 0, 0, 0); // clear the fade
+   931→      this.showGameOver();
+   932→    });
+   933→  };
+   934→
+   935→  /** Game Over screen — retry from checkpoint or quit to map. */
+   936→  private showGameOver(): void {
+   937→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   938→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0).setDepth(250);
+   939→    this.tweens.add({ targets: overlay, alpha: 0.85, duration: 500 });
+   940→
+   941→    const title = this.add.text(w / 2, h * 0.3, 'GAME OVER', {
+   942→      fontFamily: 'monospace', fontSize: '56px', color: '#ff4040',
+   943→      stroke: '#000', strokeThickness: 8,
+   944→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+   945→    this.tweens.add({ targets: title, alpha: 1, duration: 800, delay: 300 });
+   946→
+   947→    const cp = Save.get().lastCheckpoint;
+   948→    const hasCheckpoint = !!cp;
+   949→
+   950→    const subtitle = this.add.text(w / 2, h * 0.3 + 60, hasCheckpoint
+   951→      ? 'Checkpoint available — retry from last save?'
+   952→      : 'No checkpoint — return to map?', {
+   953→      fontFamily: 'monospace', fontSize: '14px', color: '#7a8090',
+   954→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+   955→    this.tweens.add({ targets: subtitle, alpha: 1, duration: 800, delay: 800 });
+   956→
+   957→    // Stats
+   958→    const skills = SkillTree.get();
+   959→    // Defensive Number() coercion prevents "[object Object]" display bugs.
+   960→    const gLvl = Number(skills.level) || 0;
+   961→    const gXp = Number(skills.xp) || 0;
+   962→    const gKills = Number(skills.totalKills) || 0;
+   963→    const gBosses = Number(skills.bossesKilled) || 0;
+   964→    const stats = this.add.text(w / 2, h * 0.5, [
+   965→      `LEVEL: ${gLvl}    XP: ${gXp}`,
+   966→      `KILLS: ${gKills}    BOSSES: ${gBosses}`,
+   967→      `STAGE: ${this.currentStageId === 1 ? 'ABANDONED FACTORY' : this.currentStageId === 2 ? 'NEON DISTRICT' : 'ORBITAL STATION'}`,
+   968→      `SECTION: ${this.currentSection}`,
+   969→    ], {
+   970→      fontFamily: 'monospace', fontSize: '13px', color: '#5a6470',
+   971→      align: 'center', lineSpacing: 6,
+   972→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+   973→    this.tweens.add({ targets: stats, alpha: 1, duration: 800, delay: 1200 });
+   974→
+   975→    // Buttons
+   976→    const btnY = h * 0.72;
+   977→    const buttons: { bg: Phaser.GameObjects.Rectangle; text: Phaser.GameObjects.Text; onClick: () => void }[] = [];
+   978→    const makeGameOverBtn = (x: number, label: string, onClick: () => void) => {
+   979→      const bg = this.add.rectangle(x, btnY, 200, 44, 0x1a2030, 0.95).setStrokeStyle(1, 0x39d0d8, 0.6).setDepth(251);
+   980→      const t = this.add.text(x, btnY, label, { fontFamily: 'monospace', fontSize: '14px', color: '#cfd6e0' }).setOrigin(0.5).setDepth(252);
+   981→      bg.setInteractive({ useHandCursor: true });
+   982→      bg.on('pointerdown', onClick);
+   983→      buttons.push({ bg, text: t, onClick });
+   984→    };
+   985→
+   986→    if (hasCheckpoint) {
+   987→      makeGameOverBtn(w / 2 - 120, '↻  RETRY', () => {
+   988→        Effects.play('uiClick');
+   989→        overlay.destroy(); title.destroy(); subtitle.destroy(); stats.destroy();
+   990→        buttons.forEach(b => { b.bg.destroy(); b.text.destroy(); });
+   991→        window.removeEventListener('keydown', keyHandler);
+   992→        this.currentSection = cp!.section;
+   993→        this.setState('play');
+   994→      });
+   995→      makeGameOverBtn(w / 2 + 120, '⌂  QUIT TO MAP', () => {
+   996→        Effects.play('uiClick');
+   997→        overlay.destroy(); title.destroy(); subtitle.destroy(); stats.destroy();
+   998→        buttons.forEach(b => { b.bg.destroy(); b.text.destroy(); });
+   999→        window.removeEventListener('keydown', keyHandler);
+  1000→        this.setState('map');
+  1001→      });
+  1002→    } else {
+  1003→      makeGameOverBtn(w / 2, '⌂  RETURN TO MAP', () => {
+  1004→        Effects.play('uiClick');
+  1005→        overlay.destroy(); title.destroy(); subtitle.destroy(); stats.destroy();
+  1006→        buttons.forEach(b => { b.bg.destroy(); b.text.destroy(); });
+  1007→        window.removeEventListener('keydown', keyHandler);
+  1008→        this.setState('map');
+  1009→      });
+  1010→    }
+  1011→
+  1012→    // Keyboard: Enter for first button, ESC for second/quit
+  1013→    let focusIdx = 0;
+  1014→    const updateFocus = () => {
+  1015→      buttons.forEach((b, i) => {
+  1016→        if (i === focusIdx) {
+  1017→          b.bg.setFillStyle(0x243040, 1);
+  1018→          b.bg.setStrokeStyle(2, 0x66f0ff, 1);
+  1019→          b.text.setColor('#66f0ff');
+  1020→        } else {
+  1021→          b.bg.setFillStyle(0x1a2030, 0.95);
+  1022→          b.bg.setStrokeStyle(1, 0x39d0d8, 0.6);
+  1023→          b.text.setColor('#cfd6e0');
+  1024→        }
+  1025→      });
+  1026→    };
+  1027→    updateFocus();
+  1028→    const keyHandler = (e: KeyboardEvent) => {
+  1029→      switch (e.code) {
+  1030→        case 'KeyA': case 'ArrowLeft':
+  1031→          focusIdx = (focusIdx - 1 + buttons.length) % buttons.length;
+  1032→          updateFocus();
+  1033→          Effects.play('uiHover');
+  1034→          break;
+  1035→        case 'KeyD': case 'ArrowRight':
+  1036→          focusIdx = (focusIdx + 1) % buttons.length;
+  1037→          updateFocus();
+  1038→          Effects.play('uiHover');
+  1039→          break;
+  1040→        case 'Enter': case 'Space':
+  1041→          buttons[focusIdx].onClick();
+  1042→          break;
+  1043→        case 'Escape':
+  1044→          // ESC = quit to map
+  1045→          if (buttons.length > 1) buttons[1].onClick();
+  1046→          else buttons[0].onClick();
+  1047→          break;
+  1048→      }
+  1049→    };
+  1050→    window.addEventListener('keydown', keyHandler);
+  1051→
+  1052→    // Gamepad support
+  1053→    this.time.addEvent({
+  1054→      delay: 100, loop: true,
+  1055→      callback: () => {
+  1056→        if (!overlay.active) return;
+  1057→        const gp = GamepadManager.getState();
+  1058→        if (gp.leftStickX < -0.3 || gp.leftStickX > 0.3) {
+  1059→          if (buttons.length > 1) {
+  1060→            focusIdx = gp.leftStickX < 0 ? 0 : 1;
+  1061→            updateFocus();
+  1062→          }
+  1063→        }
+  1064→        if (gp.jumpPressed) buttons[focusIdx].onClick();
+  1065→        if (gp.backPressed) {
+  1066→          if (buttons.length > 1) buttons[1].onClick();
+  1067→          else buttons[0].onClick();
+  1068→        }
+  1069→      },
+  1070→    });
+  1071→  }
+  1072→
+  1073→  private onEnemyKilled = (payload: { id: string; score: number }): void => {
+  1074→    Save.recordKill();
+  1075→    // XP reward based on enemy type
+  1076→    let xpReward = 15;
+  1077→    if (payload.id.startsWith('drone-')) xpReward = 15;
+  1078→    else if (payload.id.startsWith('spider-')) xpReward = 25;
+  1079→    else if (payload.id.startsWith('heavy-')) xpReward = 50;
+  1080→    const xpResult = SkillTree.recordKill(xpReward);
+  1081→    Effects.play('enemyHit');
+  1082→    FloatingText.onKill();
+  1083→    if (xpResult.leveledUp) {
+  1084→      const data = SkillTree.get();
+  1085→      this.hud.toast(`LEVEL UP! Lv.${data.level} — +1 SP`);
+  1086→      Effects.screenFlash(this, 0xffe060, 0.3, 400);
+  1087→    }
+  1088→    const enemy = this.enemies.find(e => e.id === payload.id);
+  1089→    let enemyX = 0, enemyY = 0;
+  1090→    if (enemy) {
+  1091→      enemyX = enemy.sprite.x;
+  1092→      enemyY = enemy.sprite.y;
+  1093→      Effects.explosion(this, enemyX, enemyY, COLORS.ENEMY_DRONE, 0.6);
+  1094→    }
+  1095→    // Progressive weapon unlock based on enemy type
+  1096→    if (payload.id.startsWith('spider-') && !this.player.hasWeapon('shotgun')) {
+  1097→      this.player.unlockWeapon('shotgun');
+  1098→      this.hud.toast('SHOTGUN UNLOCKED — press 2');
+  1099→    } else if (payload.id.startsWith('heavy-') && !this.player.hasWeapon('rocket')) {
+  1100→      this.player.unlockWeapon('rocket');
+  1101→      this.hud.toast('ROCKET UNLOCKED — press 4');
+  1102→    } else if (payload.id.startsWith('drone-') && !this.player.hasWeapon('laser')) {
+  1103→      // Laser unlocks when all drones in the section are cleared
+  1104→      const dronesLeft = this.enemies.filter(e => e.id.startsWith('drone-') && e.isAlive).length;
+  1105→      if (dronesLeft === 0) {
+  1106→        this.player.unlockWeapon('laser');
+  1107→        this.hud.toast('LASER UNLOCKED — press 3');
+  1108→      }
+  1109→    }
+  1110→    // Health pickup — 35% chance to drop
+  1111→    if (enemyX > 0 && Math.random() < 0.35) {
+  1112→      this.spawnHealthPickup(enemyX, enemyY);
+  1113→    }
+  1114→  };
+  1115→
+  1116→  /** Spawn a health pickup at (x, y) — player walks over it to heal. */
+  1117→  private spawnHealthPickup(x: number, y: number): void {
+  1118→    const c = this.add.container(x, y);
+  1119→    const glow = this.add.circle(0, 0, 16, 0x40d070, 0.3);
+  1120→    const cross = this.add.text(0, 0, '+', { fontFamily: 'monospace', fontSize: '24px', color: '#40d070', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+  1121→    c.add([glow, cross]);
+  1122→    c.setDepth(18);
+  1123→    // Float + spin animation
+  1124→    this.tweens.add({ targets: c, y: y - 30, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  1125→    this.tweens.add({ targets: cross, rotation: Math.PI * 2, duration: 2000, repeat: -1 });
+  1126→    // Sensor for pickup detection
+  1127→    const sensor = this.physics.addSensor(x, y, 30, 30, 'health-pickup');
+  1128→    sensor.setData('isHealthPickup', true);
+  1129→    sensor.setData('container', c);
+  1130→    this.healthPickups.push(c);
+  1131→    // Despawn after 10s
+  1132→    this.time.delayedCall(10000, () => {
+  1133→      if (c.active) {
+  1134→        c.destroy();
+  1135→        const idx = this.healthPickups.indexOf(c);
+  1136→        if (idx >= 0) this.healthPickups.splice(idx, 1);
+  1137→      }
+  1138→    });
+  1139→  }
+  1140→
+  1141→  private onBossPhaseEvent = (payload: unknown): void => {
+  1142→    const data = payload as { type?: string; stage?: number };
+  1143→    if (data.type === 'stage-defeated') {
+  1144→      this.handleBossStageDefeated();
+  1145→    } else if (data.type === 'dead') {
+  1146→      this.handleBossDead();
+  1147→    }
+  1148→  };
+  1149→
+  1150→  private handleBossStageDefeated(): void {
+  1151→    Effects.explosion(this, this.boss!.position.x, this.boss!.position.y, COLORS.BOSS, 2.4);
+  1152→    this.time.delayedCall(300, () => { if (this.boss) Effects.explosion(this, this.boss.position.x + 60, this.boss.position.y - 40, COLORS.BOSS, 1.8); });
+  1153→    this.time.delayedCall(600, () => { if (this.boss) Effects.explosion(this, this.boss.position.x - 80, this.boss.position.y + 30, COLORS.BOSS, 1.6); });
+  1154→    this.cameras.main.flash(500, 255, 255, 255);
+  1155→    this.time.delayedCall(1800, () => {
+  1156→      this.boss = null;
+  1157→      const x = (6 - 1) * this.stageData.SECTION_WIDTH + 800;
+  1158→      const y = GAME.HEIGHT - 320;
+  1159→      this.boss = new Boss(this, x, y, this.projectiles, () => this.player.position, 2);
+  1160→      this.bossBar.boss = this.boss;
+  1161→      const ref = this.boss;
+  1162→      this.graphics.addLight({
+  1163→        follow: () => (!ref.isAlive || !ref.sprite?.active) ? new Phaser.Math.Vector2(-9999, -9999) : ref.position,
+  1164→        radius: 280, color: 0xff2080, intensity: 0.55, flicker: 0.1,
+  1165→      });
+  1166→      Effects.screenFlash(this, 0xff2080, 0.45, 600);
+  1167→      this.cameras.main.shake(600, 0.016);
+  1168→      Effects.play('phaseChange');
+  1169→    });
+  1170→  }
+  1171→
+  1172→  private handleBossDead(): void {
+  1173→    const elapsed = this.time.now - this.stageStartTime;
+  1174→    Save.recordBossTime(elapsed);
+  1175→    // Mark this stage as completed → unlocks the next stage in the map screen.
+  1176→    Save.recordStageComplete(this.currentStageId, elapsed);
+  1177→    const bossXpResult = SkillTree.recordBossKill(200);
+  1178→    this.victoryTimeMs = elapsed;
+  1179→    // Explosion sequence
+  1180→    Effects.explosion(this, this.boss!.position.x, this.boss!.position.y, 0xff2080, 3.0);
+  1181→    this.time.delayedCall(300, () => { if (this.boss) Effects.explosion(this, this.boss.position.x + 80, this.boss.position.y - 50, 0xff2080, 2.2); });
+  1182→    this.time.delayedCall(600, () => { if (this.boss) Effects.explosion(this, this.boss.position.x - 100, this.boss.position.y + 40, 0xff2080, 2.0); });
+  1183→    this.time.delayedCall(900, () => { if (this.boss) Effects.explosion(this, this.boss.position.x + 40, this.boss.position.y + 60, 0xff2080, 1.8); });
+  1184→    this.cameras.main.flash(800, 255, 255, 255);
+  1185→    // After explosions → show boss lore (Souls-style)
+  1186→    this.time.delayedCall(2200, () => {
+  1187→      Effects.stopMusic();
+  1188→      this.showBossLore(elapsed, bossXpResult);
+  1189→    });
+  1190→  }
+  1191→
+  1192→  /** Show boss lore screen (Dark Souls style) then rewards then victory. */
+  1193→  private showBossLore(elapsed: number, xpResult: { leveledUp: boolean; newLevel: number }): void {
+  1194→    const sd = this.stageData;
+  1195→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1196→    // Dark overlay
+  1197→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0).setDepth(250);
+  1198→    this.tweens.add({ targets: overlay, alpha: 0.85, duration: 800 });
+  1199→    // Boss name (big, fades in)
+  1200→    const nameColor = this.currentStageId === 2 ? '#40ff60' : this.currentStageId === 3 ? '#8080ff' : '#ff4060';
+  1201→    const name = this.add.text(w / 2, h * 0.3, sd.BOSS_NAME, {
+  1202→      fontFamily: 'monospace', fontSize: '48px', color: nameColor,
+  1203→      stroke: '#000', strokeThickness: 6,
+  1204→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+  1205→    this.tweens.add({ targets: name, alpha: 1, duration: 1500, delay: 500 });
+  1206→    // Lore text from stage data
+  1207→    const loreLines = ['', '', '', ...sd.BOSS_LORE];
+  1208→    const lore = this.add.text(w / 2, h * 0.5, loreLines, {
+  1209→      fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0',
+  1210→      align: 'center', lineSpacing: 6,
+  1211→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+  1212→    this.tweens.add({ targets: lore, alpha: 1, duration: 2000, delay: 1500 });
+  1213→    // "DEFEATED" stamp
+  1214→    const defeated = this.add.text(w / 2, h * 0.72, '— DEFEATED —', {
+  1215→      fontFamily: 'monospace', fontSize: '24px', color: '#ffe060',
+  1216→      stroke: '#000', strokeThickness: 4,
+  1217→    }).setOrigin(0.5).setAlpha(0).setDepth(251);
+  1218→    this.tweens.add({ targets: defeated, alpha: 1, duration: 1000, delay: 3500 });
+  1219→
+  1220→    // After lore → rewards screen
+  1221→    this.time.delayedCall(6000, () => {
+  1222→      overlay.destroy(); name.destroy(); lore.destroy(); defeated.destroy();
+  1223→      this.showBossRewards(elapsed, xpResult);
+  1224→    });
+  1225→  }
+  1226→
+  1227→  /** Show rewards screen (XP, SP, unlocks) then victory. */
+  1228→  private showBossRewards(elapsed: number, xpResult: { leveledUp: boolean; newLevel: number }): void {
+  1229→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1230→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.9).setDepth(250);
+  1231→    Effects.play('victory');
+  1232→
+  1233→    const title = this.add.text(w / 2, h * 0.2, 'REWARDS', {
+  1234→      fontFamily: 'monospace', fontSize: '36px', color: '#ffe060',
+  1235→      stroke: '#000', strokeThickness: 5,
+  1236→    }).setOrigin(0.5).setDepth(251);
+  1237→
+  1238→    const skills = SkillTree.get();
+  1239→    const sec = Math.floor(elapsed / 1000);
+  1240→    const min = Math.floor(sec / 60);
+  1241→    // Defensive Number() coercion prevents "[object Object]" display bugs.
+  1242→    const rLvl = Number(skills.level) || 0;
+  1243→    const rSP = Number(skills.skillPoints) || 0;
+  1244→    const rKills = Number(skills.totalKills) || 0;
+  1245→    const rBosses = Number(skills.bossesKilled) || 0;
+  1246→    const xpGained = Number(GAME_CONFIG.LEVELING.xpPerBoss.value) || 200;
+  1247→    const spGained = xpResult.leveledUp ? Math.max(1, Math.ceil(xpGained / 100)) : 0;
+  1248→    const rewards = [
+  1249→      `XP GAINED:        +${xpGained}`,
+  1250→      `LEVEL:            ${rLvl - (xpResult.leveledUp ? 1 : 0)} → ${rLvl}`,
+  1251→      `SKILL POINTS:     ${rSP} (+${spGained})`,
+  1252→      `CLEAR TIME:       ${min}:${(sec % 60).toString().padStart(2, '0')}`,
+  1253→      `TOTAL KILLS:      ${rKills}`,
+  1254→      `BOSSES DOWN:      ${rBosses}`,
+  1255→      ``,
+  1256→      this.currentStageId === 1 ? `STAGE 2 UNLOCKED: NEON DISTRICT`
+  1257→        : this.currentStageId === 2 ? `STAGE 3 UNLOCKED: ORBITAL STATION`
+  1258→        : `ALL STAGES CLEARED`,
+  1259→    ];
+  1260→    const rewardText = this.add.text(w / 2, h * 0.45, rewards, {
+  1261→      fontFamily: 'monospace', fontSize: '16px', color: '#9be0b0',
+  1262→      align: 'left', lineSpacing: 8,
+  1263→    }).setOrigin(0.5).setDepth(251);
+  1264→
+  1265→    const hint = this.add.text(w / 2, h * 0.82, '[ Press Enter / A / Click to continue ]', {
+  1266→      fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
+  1267→    }).setOrigin(0.5).setDepth(251);
+  1268→
+  1269→    // Continue to victory
+  1270→    const continueToVictory = () => {
+  1271→      overlay.destroy(); title.destroy(); rewardText.destroy(); hint.destroy();
+  1272→      window.removeEventListener('keydown', keyHandler);
+  1273→      overlay.off('pointerdown');
+  1274→      this.setState('victory');
+  1275→    };
+  1276→    const keyHandler = (e: KeyboardEvent) => {
+  1277→      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'Escape') continueToVictory();
+  1278→    };
+  1279→    window.addEventListener('keydown', keyHandler);
+  1280→    overlay.setInteractive();
+  1281→    overlay.on('pointerdown', continueToVictory);
+  1282→    // Auto-continue after 8s
+  1283→    this.time.delayedCall(8000, () => {
+  1284→      if (overlay.active) continueToVictory();
+  1285→    });
+  1286→  }
+  1287→
+  1288→  private respawnPlayerAtSection(): void {
+  1289→    const sec = this.stageData.SECTIONS[this.currentSection - 1];
+  1290→    this.player.sprite.setPosition(sec.x + 200, GAME.HEIGHT - 300);
+  1291→    this.player.sprite.setVelocity(0, 0);
+  1292→  }
+  1293→
+  1294→  // ================ VICTORY STATE ================
+  1295→
+  1296→  private buildVictory(): void {
+  1297→    Effects.playMusic('victory');
+  1298→    const c = this.stateContainer!;
+  1299→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1300→    // Confetti
+  1301→    for (let i = 0; i < 60; i++) {
+  1302→      const colors = [0x39d0d8, 0xffe060, 0x40d070, 0xff60c0, 0xffffff];
+  1303→      const p = this.add.circle(Math.random() * w, -20, 2 + Math.random() * 3, colors[Math.floor(Math.random() * colors.length)], 0.9);
+  1304→      this.tweens.add({ targets: p, y: h + 40, x: p.x + (Math.random() - 0.5) * 200, alpha: 0.6, duration: 3000 + Math.random() * 2000, delay: Math.random() * 1500, repeat: -1 });
+  1305→      c.add(p);
+  1306→    }
+  1307→    c.add(this.add.text(w / 2, h * 0.32, 'VICTORY', { fontFamily: 'monospace', fontSize: '96px', color: '#ffe060', stroke: '#000', strokeThickness: 8 }).setOrigin(0.5));
+  1308→    c.add(this.add.text(w / 2, h * 0.32 + 70, '— GUARDIAN AX-09 DESTROYED —', { fontFamily: 'monospace', fontSize: '18px', color: '#cfd6e0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5));
+  1309→    const sec = Math.floor(this.victoryTimeMs / 1000);
+  1310→    const min = Math.floor(sec / 60);
+  1311→    const stats = [
+  1312→      `CLEAR TIME:  ${min}:${(sec % 60).toString().padStart(2, '0')}`,
+  1313→      `TOTAL KILLS: ${Save.get().totalKills}`,
+  1314→      `BOSSES DOWN: ${SkillTree.get().bossesKilled}`,
+  1315→      `SKILL POINTS EARNED: +3`,
+  1316→    ];
+  1317→    c.add(this.add.text(w / 2, h * 0.55, stats, { fontFamily: 'monospace', fontSize: '16px', color: '#9be0b0', align: 'center', lineSpacing: 8 }).setOrigin(0.5));
+  1318→    this.makeBtn(w / 2 - 180, h - 100, '🗺  MAP', () => { Effects.play('uiClick'); this.setState('map'); });
+  1319→    this.makeBtn(w / 2, h - 100, '⚙  SKILLS', () => { Effects.play('uiClick'); this.setState('skills'); });
+  1320→    this.makeBtn(w / 2 + 180, h - 100, '⌂  MENU', () => { Effects.play('uiClick'); this.setState('menu'); });
+  1321→  }
+  1322→
+  1323→  // ================ COMING SOON STATE ================
+  1324→
+  1325→  private buildComingSoon(): void {
+  1326→    const c = this.stateContainer!;
+  1327→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1328→    c.add(this.add.text(w / 2, h * 0.35, '— COMING SOON —', { fontFamily: 'monospace', fontSize: '64px', color: '#39d0d8', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5));
+  1329→    c.add(this.add.text(w / 2, h * 0.35 + 70, 'NEXT MISSIONS IN DEVELOPMENT', { fontFamily: 'monospace', fontSize: '16px', color: '#7a8090' }).setOrigin(0.5));
+  1330→    const upcoming = [
+  1331→      { name: 'STAGE 2', sub: 'NEON DISTRICT', color: '#ff60c0' },
+  1332→      { name: 'STAGE 3', sub: 'ORBITAL STATION', color: '#4090ff' },
+  1333→    ];
+  1334→    upcoming.forEach((u, i) => {
+  1335→      const x = w / 2 + (i - 0.5) * 240;
+  1336→      c.add(this.add.rectangle(x, h * 0.62, 200, 120, 0x101820, 0.95).setStrokeStyle(1, 0x2a3340));
+  1337→      c.add(this.add.text(x, h * 0.62 - 20, u.name, { fontFamily: 'monospace', fontSize: '24px', color: u.color }).setOrigin(0.5));
+  1338→      c.add(this.add.text(x, h * 0.62 + 15, u.sub, { fontFamily: 'monospace', fontSize: '12px', color: '#7a8090' }).setOrigin(0.5));
+  1339→      c.add(this.add.text(x, h * 0.62 + 40, '🔒 LOCKED', { fontFamily: 'monospace', fontSize: '10px', color: '#3a4350' }).setOrigin(0.5));
+  1340→    });
+  1341→    this.makeBtn(w / 2, h - 80, '←  BACK TO MAP', () => { Effects.play('uiClick'); this.setState('map'); });
+  1342→  }
+  1343→
+  1344→  // ================ SKILLS STATE ================
+  1345→
+  1346→  private buildSkills(): void {
+  1347→    Effects.playMusic('menuAmbient');
+  1348→    const c = this.stateContainer!;
+  1349→    const w = GAME.WIDTH;
+  1350→    c.add(this.add.text(w / 2, 40, 'SKILL TREE', { fontFamily: 'monospace', fontSize: '28px', color: '#39d0d8', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5));
+  1351→    const skills = SkillTree.get();
+  1352→    const xpNeeded = Number(SkillTree.xpForLevel(skills.level)) || 0;
+  1353→    const skLvl = Number(skills.level) || 0;
+  1354→    const skXp = Number(skills.xp) || 0;
+  1355→    const skSP = Number(skills.skillPoints) || 0;
+  1356→    const skKills = Number(skills.totalKills) || 0;
+  1357→    c.add(this.add.text(w / 2, 72, `LV.${skLvl}  |  XP ${skXp}/${xpNeeded}  |  SP: ${skSP}  |  Kills: ${skKills}`, { fontFamily: 'monospace', fontSize: '14px', color: skSP > 0 ? '#ffe060' : '#7a8090', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5));
+  1358→    // XP bar
+  1359→    const xpBarBg = this.add.rectangle(w / 2 - 150, 92, 300, 6, 0x202830).setOrigin(0, 0.5);
+  1360→    const xpBarFg = this.add.rectangle(w / 2 - 150, 92, 300 * SkillTree.getLevelProgress(), 6, 0x40d070).setOrigin(0, 0.5);
+  1361→    c.add([xpBarBg, xpBarFg]);
+  1362→    const trees = [
+  1363→      { name: '⚔  COMBAT', color: 0xff5050, tree: 'combat' as const },
+  1364→      { name: '➤  MOBILITY', color: 0x40d0ff, tree: 'mobility' as const },
+  1365→      { name: '♥  SURVIVAL', color: 0x40d070, tree: 'survival' as const },
+  1366→    ];
+  1367→    const colW = 280, gap = 30;
+  1368→    const startX = (w - trees.length * colW - (trees.length - 1) * gap) / 2;
+  1369→    trees.forEach((t, ti) => {
+  1370→      const x = startX + ti * (colW + gap);
+  1371→      c.add(this.add.rectangle(x + colW / 2, GAME.HEIGHT / 2 + 30, colW, GAME.HEIGHT - 220, 0x101820, 0.6).setStrokeStyle(1, 0x2a3340));
+  1372→      c.add(this.add.text(x + colW / 2, 140, t.name, { fontFamily: 'monospace', fontSize: '16px', color: '#' + t.color.toString(16).padStart(6, '0') }).setOrigin(0.5));
+  1373→      const treeSkills = SKILL_DEFS.filter(s => s.tree === t.tree);
+  1374→      treeSkills.forEach((skill, si) => {
+  1375→        const y = 180 + si * 107;
+  1376→        const unlocked = SkillTree.isUnlocked(skill.id);
+  1377→        const canUnlock = SkillTree.canUnlock(skill.id);
+  1378→        const prereqMet = !skill.requires || SkillTree.isUnlocked(skill.requires);
+  1379→        const bg = this.add.rectangle(x + colW / 2, y, colW - 20, 95, unlocked ? 0x1a3020 : canUnlock ? 0x1a2030 : 0x101418, 0.95);
+  1380→        bg.setStrokeStyle(1, unlocked ? 0x40d070 : canUnlock ? t.color : 0x2a3340, unlocked ? 0.9 : 0.5);
+  1381→        if (canUnlock) {
+  1382→          bg.setInteractive({ useHandCursor: true });
+  1383→          bg.on('pointerover', () => { bg.setFillStyle(0x243040, 1); Effects.play('uiHover'); });
+  1384→          bg.on('pointerout', () => bg.setFillStyle(0x1a2030, 0.95));
+  1385→          bg.on('pointerdown', () => { if (SkillTree.unlock(skill.id)) { Effects.play('checkpoint'); this.setState('skills'); } });
+  1386→        }
+  1387→        c.add(bg);
+  1388→        c.add(this.add.text(x + 12, y - 35, skill.name, { fontFamily: 'monospace', fontSize: '13px', color: unlocked ? '#40d070' : prereqMet ? '#cfd6e0' : '#4a5260' }).setOrigin(0, 0));
+  1389→        c.add(this.add.text(x + colW - 12, y - 35, `${skill.cost} SP`, { fontFamily: 'monospace', fontSize: '11px', color: unlocked ? '#40d070' : canUnlock ? '#ffe060' : '#3a4350' }).setOrigin(1, 0));
+  1390→        c.add(this.add.text(x + 12, y - 12, skill.description, { fontFamily: 'monospace', fontSize: '10px', color: unlocked ? '#9be0b0' : prereqMet ? '#7a8090' : '#3a4350' }).setOrigin(0, 0));
+  1391→        // Effect (mechanical detail)
+  1392→        c.add(this.add.text(x + 12, y + 6, `→ ${skill.effect}`, { fontFamily: 'monospace', fontSize: '9px', color: unlocked ? '#5ac080' : prereqMet ? '#5a6470' : '#3a4350' }).setOrigin(0, 0));
+  1393→        c.add(this.add.text(x + colW / 2, y + 38, unlocked ? '✓  UNLOCKED' : canUnlock ? 'PRESS A / CLICK TO UNLOCK' : prereqMet ? 'NOT ENOUGH SP' : '🔒  REQUIRES PREREQUISITE', { fontFamily: 'monospace', fontSize: '9px', color: unlocked ? '#40d070' : canUnlock ? '#ffe060' : '#3a4350' }).setOrigin(0.5, 1));
+  1394→      });
+  1395→    });
+  1396→    this.makeBtn(w / 2, GAME.HEIGHT - 40, '←  BACK', () => { Effects.play('uiClick'); this.setState('map'); });
+  1397→  }
+  1398→
+  1399→  // ================ SETTINGS STATE ================
+  1400→
+  1401→  private buildSettings(): void {
+  1402→    const c = this.stateContainer!;
+  1403→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1404→    c.add(this.add.text(w / 2, 50, 'SETTINGS', { fontFamily: 'monospace', fontSize: '32px', color: '#39d0d8', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5));
+  1405→    let y = 110;
+  1406→    // Audio
+  1407→    c.add(this.add.text(w / 2 - 280, y, 'AUDIO', { fontFamily: 'monospace', fontSize: '14px', color: '#7a8090' }));
+  1408→    y += 40;
+  1409→    this.makeSlider(w / 2, y, 'Master Volume', Effects.getMasterVolume()); y += 50;
+  1410→    this.makeSlider(w / 2, y, 'Music Volume', Effects.getMusicVolume()); y += 50;
+  1411→    this.makeSlider(w / 2, y, 'SFX Volume', Effects.getSfxVolume()); y += 60;
+  1412→    // Video
+  1413→    c.add(this.add.text(w / 2 - 280, y, 'VIDEO', { fontFamily: 'monospace', fontSize: '14px', color: '#7a8090' }));
+  1414→    y += 40;
+  1415→    this.makeSlider(w / 2, y, 'Brightness', Graphics.getBrightness()); y += 50;
+  1416→    // Language
+  1417→    c.add(this.add.text(w / 2 - 280, y, 'LANGUAGE', { fontFamily: 'monospace', fontSize: '14px', color: '#7a8090' }));
+  1418→    y += 35;
+  1419→    const currentLang = getLang();
+  1420→    const enBtn = this.add.rectangle(w / 2 - 60, y, 100, 32, currentLang === 'en' ? 0x243040 : 0x1a2030, 0.95)
+  1421→      .setStrokeStyle(1, currentLang === 'en' ? 0x66f0ff : 0x3a4350);
+  1422→    enBtn.setInteractive({ useHandCursor: true });
+  1423→    const enText = this.add.text(w / 2 - 60, y, 'EN', { fontFamily: 'monospace', fontSize: '13px', color: currentLang === 'en' ? '#66f0ff' : '#cfd6e0' }).setOrigin(0.5);
+  1424→    enBtn.on('pointerdown', () => { setLang('en'); Effects.play('uiClick'); this.setState('settings'); });
+  1425→    c.add([enBtn, enText]);
+  1426→    const faBtn = this.add.rectangle(w / 2 + 60, y, 100, 32, currentLang === 'fa' ? 0x243040 : 0x1a2030, 0.95)
+  1427→      .setStrokeStyle(1, currentLang === 'fa' ? 0x66f0ff : 0x3a4350);
+  1428→    faBtn.setInteractive({ useHandCursor: true });
+  1429→    const faText = this.add.text(w / 2 + 60, y, 'فارسی', { fontFamily: 'monospace', fontSize: '13px', color: currentLang === 'fa' ? '#66f0ff' : '#cfd6e0' }).setOrigin(0.5);
+  1430→    faBtn.on('pointerdown', () => { setLang('fa'); Effects.play('uiClick'); this.setState('settings'); });
+  1431→    c.add([faBtn, faText]);
+  1432→    y += 55;
+  1433→    // Controls
+  1434→    c.add(this.add.text(w / 2 - 280, y, 'CONTROLS', { fontFamily: 'monospace', fontSize: '14px', color: '#7a8090' }));
+  1435→    y += 30;
+  1436→    const gpAvail = GamepadManager.isAvailable();
+  1437→    c.add(this.add.text(w / 2, y, gpAvail ? '✓ Gamepad detected' : '○ No gamepad connected', { fontFamily: 'monospace', fontSize: '11px', color: gpAvail ? '#40d070' : '#7a8090' }).setOrigin(0.5));
+  1438→    y += 25;
+  1439→    c.add(this.add.text(w / 2, y, 'WASD: Move  SPACE: Jump  SHIFT: Dash  J: Fire  K: Melee  1-4: Weapons  ESC: Pause', { fontFamily: 'monospace', fontSize: '10px', color: '#5a6470' }).setOrigin(0.5));
+  1440→    this.makeBtn(w / 2 + 130, h - 50, '✓  SAVE & BACK', () => { Effects.play('uiClick'); this.setState('map'); });
+  1441→  }
+  1442→
+  1443→  private makeSlider(x: number, y: number, label: string, value: number): void {
+  1444→    const c = this.stateContainer!;
+  1445→    c.add(this.add.text(x - 200, y, label, { fontFamily: 'monospace', fontSize: '13px', color: '#cfd6e0' }).setOrigin(0, 0.5));
+  1446→    const track = this.add.rectangle(x + 20, y, 240, 8, 0x202830).setStrokeStyle(1, 0x3a4350);
+  1447→    c.add(track);
+  1448→    const fill = this.add.rectangle(x + 20, y, 240 * value, 8, 0x39d0d8).setOrigin(0, 0.5);
+  1449→    c.add(fill);
+  1450→    const handle = this.add.circle(x + 20 + 240 * value, y, 10, 0x39d0d8).setStrokeStyle(2, 0xffffff, 0.6);
+  1451→    handle.setInteractive({ useHandCursor: true });
+  1452→    this.input.setDraggable(handle);
+  1453→    handle.on('drag', (_pointer: Phaser.Input.Pointer, dragX: number) => {
+  1454→      const clamped = Phaser.Math.Clamp(dragX, x + 20, x + 20 + 240);
+  1455→      handle.x = clamped;
+  1456→      const v = (clamped - x - 20) / 240;
+  1457→      fill.width = 240 * v;
+  1458→      if (label === 'Master Volume') Effects.setMasterVolume(v);
+  1459→      else if (label === 'Music Volume') Effects.setMusicVolume(v);
+  1460→      else if (label === 'SFX Volume') Effects.setSfxVolume(v);
+  1461→      else if (label === 'Brightness') {
+  1462→        Graphics.setBrightness(v);
+  1463→        Save.saveSettings({ brightness: v });
+  1464→      }
+  1465→    });
+  1466→    c.add(handle);
+  1467→  }
+  1468→
+  1469→  // ================ SHARED UI ================
+  1470→
+  1471→  private makeBtn(x: number, y: number, label: string, onClick: () => void, disabled = false): void {
+  1472→    const c = this.stateContainer!;
+  1473→    const bg = this.add.rectangle(x, y, 180, 40, disabled ? 0x101820 : 0x1a2030, 0.95);
+  1474→    bg.setStrokeStyle(1, disabled ? 0x202830 : 0x39d0d8, 0.6);
+  1475→    bg.setDepth(51);
+  1476→    const t = this.add.text(x, y, label, { fontFamily: 'monospace', fontSize: '13px', color: disabled ? '#4a5260' : '#cfd6e0' }).setOrigin(0.5);
+  1477→    t.setDepth(52);
+  1478→    c.add(bg);
+  1479→    c.add(t);
+  1480→    if (!disabled) {
+  1481→      // Mouse input
+  1482→      bg.setInteractive({ useHandCursor: true });
+  1483→      bg.on('pointerover', () => { this.focusButton(this.menuButtons.findIndex(b => b.bg === bg)); });
+  1484→      bg.on('pointerout', () => { /* keep focus color if still focused */ });
+  1485→      bg.on('pointerdown', onClick);
+  1486→      // Register for keyboard/gamepad navigation
+  1487→      this.menuButtons.push({ bg, text: t, onClick });
+  1488→    }
+  1489→  }
+  1490→
+  1491→  // ---- Pause support (called by UIScene) ----
+  1492→
+  1493→  /** Focus a menu button by index (for keyboard/gamepad navigation). */
+  1494→  private focusButton(index: number): void {
+  1495→    if (index < 0 || index >= this.menuButtons.length) return;
+  1496→    this.menuFocusIndex = index;
+  1497→    for (let i = 0; i < this.menuButtons.length; i++) {
+  1498→      const btn = this.menuButtons[i];
+  1499→      if (i === index) {
+  1500→        btn.bg.setFillStyle(0x243040, 1);
+  1501→        btn.bg.setStrokeStyle(2, 0x66f0ff, 1);
+  1502→        btn.text.setColor('#66f0ff');
+  1503→      } else {
+  1504→        btn.bg.setFillStyle(0x1a2030, 0.95);
+  1505→        btn.bg.setStrokeStyle(1, 0x39d0d8, 0.6);
+  1506→        btn.text.setColor('#cfd6e0');
+  1507→      }
+  1508→    }
+  1509→  }
+  1510→
+  1511→  /** Navigate menu with keyboard arrows + Enter, or gamepad D-pad/stick + A. */
+  1512→  private menuNavHandler: ((e: KeyboardEvent) => void) | null = null;
+  1513→
+  1514→  private updateMenuNavigation(deltaMs: number): void {
+  1515→    if (this.menuButtons.length === 0) return;
+  1516→    this.menuNavCooldown -= deltaMs;
+  1517→
+  1518→    // Ensure a button is always focused
+  1519→    if (this.menuFocusIndex >= this.menuButtons.length) this.menuFocusIndex = 0;
+  1520→    if (this.menuFocusIndex < 0) this.menuFocusIndex = 0;
+  1521→
+  1522→    // Set up window keyboard listener once per state
+  1523→    if (!this.menuNavHandler) {
+  1524→      this.menuNavHandler = (e: KeyboardEvent) => {
+  1525→        if (this.state === 'play') return; // skip during play
+  1526→        if (this.menuButtons.length === 0) return;
+  1527→        switch (e.code) {
+  1528→          case 'KeyW': case 'ArrowUp':
+  1529→            this.focusButton((this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length);
+  1530→            Effects.play('uiHover');
+  1531→            break;
+  1532→          case 'KeyS': case 'ArrowDown':
+  1533→            this.focusButton((this.menuFocusIndex + 1) % this.menuButtons.length);
+  1534→            Effects.play('uiHover');
+  1535→            break;
+  1536→          case 'Enter': case 'Space': {
+  1537→            const btn = this.menuButtons[this.menuFocusIndex];
+  1538→            if (btn) { Effects.play('uiClick'); btn.onClick(); }
+  1539→            break;
+  1540→          }
+  1541→          case 'Escape':
+  1542→            this.menuGoBack();
+  1543→            break;
+  1544→        }
+  1545→      };
+  1546→      window.addEventListener('keydown', this.menuNavHandler);
+  1547→    }
+  1548→
+  1549→    // Gamepad: Left stick OR D-pad to navigate, A to activate, B to go back
+  1550→    const gp = GamepadManager.getState();
+  1551→    if (this.menuNavCooldown <= 0) {
+  1552→      if (gp.leftStickY < -0.3) {
+  1553→        this.focusButton((this.menuFocusIndex - 1 + this.menuButtons.length) % this.menuButtons.length);
+  1554→        Effects.play('uiHover');
+  1555→        this.menuNavCooldown = 200;
+  1556→      } else if (gp.leftStickY > 0.3) {
+  1557→        this.focusButton((this.menuFocusIndex + 1) % this.menuButtons.length);
+  1558→        Effects.play('uiHover');
+  1559→        this.menuNavCooldown = 200;
+  1560→      }
+  1561→    }
+  1562→    if (gp.jumpPressed) {
+  1563→      const btn = this.menuButtons[this.menuFocusIndex];
+  1564→      if (btn) { Effects.play('uiClick'); btn.onClick(); }
+  1565→    }
+  1566→    if (gp.backPressed) {
+  1567→      this.menuGoBack();
+  1568→    }
+  1569→  }
+  1570→
+  1571→  /** Go back from current menu state. */
+  1572→  private menuGoBack(): void {
+  1573→    Effects.play('uiClick');
+  1574→    switch (this.state) {
+  1575→      case 'map': this.setState('menu'); break;
+  1576→      case 'skills': this.setState('map'); break;
+  1577→      case 'settings': this.setState('map'); break;
+  1578→      case 'victory': this.setState('map'); break;
+  1579→      case 'comingsoon': this.setState('map'); break;
+  1580→      // menu: no back (it's the root)
+  1581→    }
+  1582→  }
+  1583→
+  1584→  pauseGame(): void {
+  1585→    if (this.state === 'play') {
+  1586→      this.scene.pause();
+  1587→      this.scene.launch('UIScene');
+  1588→    }
+  1589→  }
+  1590→
+  1591→  resumeGame(): void {
+  1592→    this.scene.resume();
+  1593→  }
+  1594→
+  1595→  shutdown(): void {
+  1596→    if (this.state === 'play') this.cleanupPlay();
+  1597→  }
+  1598→}
+  1599→
+  1600→export default GameScene;
+  1601→

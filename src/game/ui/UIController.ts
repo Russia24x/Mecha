@@ -421,6 +421,7 @@ export class UIController {
     if (candidates.length === 0) { this.clearHover(); return; }
     const mockPointer = { x: this.cursorX, y: this.cursorY };
     const hits = inputPlugin.manager.hitTest(mockPointer as Phaser.Input.Pointer, candidates, this.scene.cameras.main);
+    console.log('[S2-DEBUG] processCursorHover cursor:', this.cursorX, this.cursorY, 'candidates:', candidates.length, 'hits:', hits?.length || 0, 'lastHovered:', this.lastHovered ? 'SET' : 'NULL');
     if (!hits || hits.length === 0) { this.clearHover(); return; }
     // Sort: prefer buttons (with handlers) over backgrounds, then by depth
     hits.sort((a, b) => {

@@ -1,0 +1,2002 @@
+     1→forward-logs-shared.ts:95 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+     2→forward-logs-shared.ts:95 [HMR] connected
+     3→forward-logs-shared.ts:95 Phaser v4.2.1 (WebGL | Web Audio) https://phaser.io/v4021
+     4→node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:132346 Uncaught TypeError: Cannot read properties of undefined (reading 'position')
+     5→    at MatterImage.get [as x] (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:132346:38)
+     6→    at Object.follow (FactoryStage.ts:384:56)
+     7→    at Lighting.update (Lighting.ts:72:21)
+     8→    at FactoryStage.update (FactoryStage.ts:151:19)
+     9→    at Systems.step (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:169141:34)
+    10→    at SceneManager.update (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:166987:29)
+    11→    at Game.step (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:13972:28)
+    12→    at TimeStep.step (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:14764:22)
+    13→    at step (node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25446:27)
+    14→get @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:132346
+    15→(anonymous) @ FactoryStage.ts:384
+    16→update @ Lighting.ts:72
+    17→update @ FactoryStage.ts:151
+    18→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:169141
+    19→update @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:166987
+    20→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:13972
+    21→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:14764
+    22→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25446
+    23→requestAnimationFrame
+    24→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    25→requestAnimationFrame
+    26→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    27→requestAnimationFrame
+    28→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    29→requestAnimationFrame
+    30→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    31→requestAnimationFrame
+    32→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    33→requestAnimationFrame
+    34→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    35→requestAnimationFrame
+    36→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    37→requestAnimationFrame
+    38→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    39→requestAnimationFrame
+    40→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    41→requestAnimationFrame
+    42→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    43→requestAnimationFrame
+    44→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    45→requestAnimationFrame
+    46→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    47→requestAnimationFrame
+    48→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    49→requestAnimationFrame
+    50→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    51→requestAnimationFrame
+    52→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    53→requestAnimationFrame
+    54→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    55→requestAnimationFrame
+    56→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    57→requestAnimationFrame
+    58→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    59→requestAnimationFrame
+    60→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    61→requestAnimationFrame
+    62→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    63→requestAnimationFrame
+    64→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    65→requestAnimationFrame
+    66→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    67→requestAnimationFrame
+    68→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    69→requestAnimationFrame
+    70→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    71→requestAnimationFrame
+    72→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    73→requestAnimationFrame
+    74→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    75→requestAnimationFrame
+    76→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    77→requestAnimationFrame
+    78→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    79→requestAnimationFrame
+    80→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    81→requestAnimationFrame
+    82→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    83→requestAnimationFrame
+    84→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    85→requestAnimationFrame
+    86→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    87→requestAnimationFrame
+    88→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    89→requestAnimationFrame
+    90→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    91→requestAnimationFrame
+    92→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    93→requestAnimationFrame
+    94→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    95→requestAnimationFrame
+    96→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    97→requestAnimationFrame
+    98→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+    99→requestAnimationFrame
+   100→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   101→requestAnimationFrame
+   102→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   103→requestAnimationFrame
+   104→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   105→requestAnimationFrame
+   106→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   107→requestAnimationFrame
+   108→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   109→requestAnimationFrame
+   110→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   111→requestAnimationFrame
+   112→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   113→requestAnimationFrame
+   114→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   115→requestAnimationFrame
+   116→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   117→requestAnimationFrame
+   118→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   119→requestAnimationFrame
+   120→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   121→requestAnimationFrame
+   122→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   123→requestAnimationFrame
+   124→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   125→requestAnimationFrame
+   126→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   127→requestAnimationFrame
+   128→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   129→requestAnimationFrame
+   130→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   131→requestAnimationFrame
+   132→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   133→requestAnimationFrame
+   134→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   135→requestAnimationFrame
+   136→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   137→requestAnimationFrame
+   138→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   139→requestAnimationFrame
+   140→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   141→requestAnimationFrame
+   142→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   143→requestAnimationFrame
+   144→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   145→requestAnimationFrame
+   146→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   147→requestAnimationFrame
+   148→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   149→requestAnimationFrame
+   150→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   151→requestAnimationFrame
+   152→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   153→requestAnimationFrame
+   154→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   155→requestAnimationFrame
+   156→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   157→requestAnimationFrame
+   158→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   159→requestAnimationFrame
+   160→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   161→requestAnimationFrame
+   162→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   163→requestAnimationFrame
+   164→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   165→requestAnimationFrame
+   166→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   167→requestAnimationFrame
+   168→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   169→requestAnimationFrame
+   170→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   171→requestAnimationFrame
+   172→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   173→requestAnimationFrame
+   174→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   175→requestAnimationFrame
+   176→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   177→requestAnimationFrame
+   178→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   179→requestAnimationFrame
+   180→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   181→requestAnimationFrame
+   182→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   183→requestAnimationFrame
+   184→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   185→requestAnimationFrame
+   186→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   187→requestAnimationFrame
+   188→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   189→requestAnimationFrame
+   190→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   191→requestAnimationFrame
+   192→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   193→requestAnimationFrame
+   194→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   195→requestAnimationFrame
+   196→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   197→requestAnimationFrame
+   198→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   199→requestAnimationFrame
+   200→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   201→requestAnimationFrame
+   202→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   203→requestAnimationFrame
+   204→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   205→requestAnimationFrame
+   206→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   207→requestAnimationFrame
+   208→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   209→requestAnimationFrame
+   210→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   211→requestAnimationFrame
+   212→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   213→requestAnimationFrame
+   214→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   215→requestAnimationFrame
+   216→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   217→requestAnimationFrame
+   218→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   219→requestAnimationFrame
+   220→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   221→requestAnimationFrame
+   222→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   223→requestAnimationFrame
+   224→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   225→requestAnimationFrame
+   226→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   227→requestAnimationFrame
+   228→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   229→requestAnimationFrame
+   230→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   231→requestAnimationFrame
+   232→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   233→requestAnimationFrame
+   234→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   235→requestAnimationFrame
+   236→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   237→requestAnimationFrame
+   238→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   239→requestAnimationFrame
+   240→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   241→requestAnimationFrame
+   242→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   243→requestAnimationFrame
+   244→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   245→requestAnimationFrame
+   246→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   247→requestAnimationFrame
+   248→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   249→requestAnimationFrame
+   250→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   251→requestAnimationFrame
+   252→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   253→requestAnimationFrame
+   254→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   255→requestAnimationFrame
+   256→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   257→requestAnimationFrame
+   258→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   259→requestAnimationFrame
+   260→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   261→requestAnimationFrame
+   262→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   263→requestAnimationFrame
+   264→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   265→requestAnimationFrame
+   266→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   267→requestAnimationFrame
+   268→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   269→requestAnimationFrame
+   270→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   271→requestAnimationFrame
+   272→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   273→requestAnimationFrame
+   274→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   275→requestAnimationFrame
+   276→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   277→requestAnimationFrame
+   278→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   279→requestAnimationFrame
+   280→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   281→requestAnimationFrame
+   282→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   283→requestAnimationFrame
+   284→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   285→requestAnimationFrame
+   286→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   287→requestAnimationFrame
+   288→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   289→requestAnimationFrame
+   290→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   291→requestAnimationFrame
+   292→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   293→requestAnimationFrame
+   294→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   295→requestAnimationFrame
+   296→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   297→requestAnimationFrame
+   298→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   299→requestAnimationFrame
+   300→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   301→requestAnimationFrame
+   302→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   303→requestAnimationFrame
+   304→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   305→requestAnimationFrame
+   306→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   307→requestAnimationFrame
+   308→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   309→requestAnimationFrame
+   310→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   311→requestAnimationFrame
+   312→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   313→requestAnimationFrame
+   314→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   315→requestAnimationFrame
+   316→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   317→requestAnimationFrame
+   318→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   319→requestAnimationFrame
+   320→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   321→requestAnimationFrame
+   322→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   323→requestAnimationFrame
+   324→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   325→requestAnimationFrame
+   326→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   327→requestAnimationFrame
+   328→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   329→requestAnimationFrame
+   330→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   331→requestAnimationFrame
+   332→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   333→requestAnimationFrame
+   334→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   335→requestAnimationFrame
+   336→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   337→requestAnimationFrame
+   338→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   339→requestAnimationFrame
+   340→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   341→requestAnimationFrame
+   342→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   343→requestAnimationFrame
+   344→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   345→requestAnimationFrame
+   346→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   347→requestAnimationFrame
+   348→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   349→requestAnimationFrame
+   350→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   351→requestAnimationFrame
+   352→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   353→requestAnimationFrame
+   354→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   355→requestAnimationFrame
+   356→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   357→requestAnimationFrame
+   358→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   359→requestAnimationFrame
+   360→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   361→requestAnimationFrame
+   362→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   363→requestAnimationFrame
+   364→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   365→requestAnimationFrame
+   366→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   367→requestAnimationFrame
+   368→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   369→requestAnimationFrame
+   370→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   371→requestAnimationFrame
+   372→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   373→requestAnimationFrame
+   374→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   375→requestAnimationFrame
+   376→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   377→requestAnimationFrame
+   378→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   379→requestAnimationFrame
+   380→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   381→requestAnimationFrame
+   382→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   383→requestAnimationFrame
+   384→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   385→requestAnimationFrame
+   386→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   387→requestAnimationFrame
+   388→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   389→requestAnimationFrame
+   390→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   391→requestAnimationFrame
+   392→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   393→requestAnimationFrame
+   394→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   395→requestAnimationFrame
+   396→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   397→requestAnimationFrame
+   398→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   399→requestAnimationFrame
+   400→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   401→requestAnimationFrame
+   402→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   403→requestAnimationFrame
+   404→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   405→requestAnimationFrame
+   406→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   407→requestAnimationFrame
+   408→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   409→requestAnimationFrame
+   410→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   411→requestAnimationFrame
+   412→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   413→requestAnimationFrame
+   414→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   415→requestAnimationFrame
+   416→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   417→requestAnimationFrame
+   418→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   419→requestAnimationFrame
+   420→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   421→requestAnimationFrame
+   422→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   423→requestAnimationFrame
+   424→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   425→requestAnimationFrame
+   426→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   427→requestAnimationFrame
+   428→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   429→requestAnimationFrame
+   430→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   431→requestAnimationFrame
+   432→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   433→requestAnimationFrame
+   434→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   435→requestAnimationFrame
+   436→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   437→requestAnimationFrame
+   438→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   439→requestAnimationFrame
+   440→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   441→requestAnimationFrame
+   442→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   443→requestAnimationFrame
+   444→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   445→requestAnimationFrame
+   446→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   447→requestAnimationFrame
+   448→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   449→requestAnimationFrame
+   450→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   451→requestAnimationFrame
+   452→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   453→requestAnimationFrame
+   454→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   455→requestAnimationFrame
+   456→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   457→requestAnimationFrame
+   458→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   459→requestAnimationFrame
+   460→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   461→requestAnimationFrame
+   462→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   463→requestAnimationFrame
+   464→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   465→requestAnimationFrame
+   466→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   467→requestAnimationFrame
+   468→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   469→requestAnimationFrame
+   470→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   471→requestAnimationFrame
+   472→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   473→requestAnimationFrame
+   474→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   475→requestAnimationFrame
+   476→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   477→requestAnimationFrame
+   478→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   479→requestAnimationFrame
+   480→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   481→requestAnimationFrame
+   482→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   483→requestAnimationFrame
+   484→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   485→requestAnimationFrame
+   486→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   487→requestAnimationFrame
+   488→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   489→requestAnimationFrame
+   490→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   491→requestAnimationFrame
+   492→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   493→requestAnimationFrame
+   494→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   495→requestAnimationFrame
+   496→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   497→requestAnimationFrame
+   498→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   499→requestAnimationFrame
+   500→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   501→requestAnimationFrame
+   502→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   503→requestAnimationFrame
+   504→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   505→requestAnimationFrame
+   506→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   507→requestAnimationFrame
+   508→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   509→requestAnimationFrame
+   510→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   511→requestAnimationFrame
+   512→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   513→requestAnimationFrame
+   514→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   515→requestAnimationFrame
+   516→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   517→requestAnimationFrame
+   518→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   519→requestAnimationFrame
+   520→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   521→requestAnimationFrame
+   522→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   523→requestAnimationFrame
+   524→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   525→requestAnimationFrame
+   526→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   527→requestAnimationFrame
+   528→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   529→requestAnimationFrame
+   530→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   531→requestAnimationFrame
+   532→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   533→requestAnimationFrame
+   534→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   535→requestAnimationFrame
+   536→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   537→requestAnimationFrame
+   538→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   539→requestAnimationFrame
+   540→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   541→requestAnimationFrame
+   542→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   543→requestAnimationFrame
+   544→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   545→requestAnimationFrame
+   546→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   547→requestAnimationFrame
+   548→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   549→requestAnimationFrame
+   550→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   551→requestAnimationFrame
+   552→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   553→requestAnimationFrame
+   554→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   555→requestAnimationFrame
+   556→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   557→requestAnimationFrame
+   558→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   559→requestAnimationFrame
+   560→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   561→requestAnimationFrame
+   562→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   563→requestAnimationFrame
+   564→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   565→requestAnimationFrame
+   566→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   567→requestAnimationFrame
+   568→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   569→requestAnimationFrame
+   570→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   571→requestAnimationFrame
+   572→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   573→requestAnimationFrame
+   574→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   575→requestAnimationFrame
+   576→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   577→requestAnimationFrame
+   578→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   579→requestAnimationFrame
+   580→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   581→requestAnimationFrame
+   582→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   583→requestAnimationFrame
+   584→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   585→requestAnimationFrame
+   586→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   587→requestAnimationFrame
+   588→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   589→requestAnimationFrame
+   590→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   591→requestAnimationFrame
+   592→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   593→requestAnimationFrame
+   594→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   595→requestAnimationFrame
+   596→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   597→requestAnimationFrame
+   598→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   599→requestAnimationFrame
+   600→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   601→requestAnimationFrame
+   602→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   603→requestAnimationFrame
+   604→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   605→requestAnimationFrame
+   606→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   607→requestAnimationFrame
+   608→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   609→requestAnimationFrame
+   610→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   611→requestAnimationFrame
+   612→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   613→requestAnimationFrame
+   614→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   615→requestAnimationFrame
+   616→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   617→requestAnimationFrame
+   618→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   619→requestAnimationFrame
+   620→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   621→requestAnimationFrame
+   622→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   623→requestAnimationFrame
+   624→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   625→requestAnimationFrame
+   626→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   627→requestAnimationFrame
+   628→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   629→requestAnimationFrame
+   630→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   631→requestAnimationFrame
+   632→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   633→requestAnimationFrame
+   634→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   635→requestAnimationFrame
+   636→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   637→requestAnimationFrame
+   638→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   639→requestAnimationFrame
+   640→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   641→requestAnimationFrame
+   642→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   643→requestAnimationFrame
+   644→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   645→requestAnimationFrame
+   646→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   647→requestAnimationFrame
+   648→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   649→requestAnimationFrame
+   650→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   651→requestAnimationFrame
+   652→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   653→requestAnimationFrame
+   654→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   655→requestAnimationFrame
+   656→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   657→requestAnimationFrame
+   658→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   659→requestAnimationFrame
+   660→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   661→requestAnimationFrame
+   662→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   663→requestAnimationFrame
+   664→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   665→requestAnimationFrame
+   666→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   667→requestAnimationFrame
+   668→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   669→requestAnimationFrame
+   670→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   671→requestAnimationFrame
+   672→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   673→requestAnimationFrame
+   674→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   675→requestAnimationFrame
+   676→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   677→requestAnimationFrame
+   678→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   679→requestAnimationFrame
+   680→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   681→requestAnimationFrame
+   682→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   683→requestAnimationFrame
+   684→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   685→requestAnimationFrame
+   686→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   687→requestAnimationFrame
+   688→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   689→requestAnimationFrame
+   690→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   691→requestAnimationFrame
+   692→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   693→requestAnimationFrame
+   694→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   695→requestAnimationFrame
+   696→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   697→requestAnimationFrame
+   698→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   699→requestAnimationFrame
+   700→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   701→requestAnimationFrame
+   702→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   703→requestAnimationFrame
+   704→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   705→requestAnimationFrame
+   706→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   707→requestAnimationFrame
+   708→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   709→requestAnimationFrame
+   710→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   711→requestAnimationFrame
+   712→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   713→requestAnimationFrame
+   714→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   715→requestAnimationFrame
+   716→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   717→requestAnimationFrame
+   718→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   719→requestAnimationFrame
+   720→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   721→requestAnimationFrame
+   722→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   723→requestAnimationFrame
+   724→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   725→requestAnimationFrame
+   726→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   727→requestAnimationFrame
+   728→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   729→requestAnimationFrame
+   730→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   731→requestAnimationFrame
+   732→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   733→requestAnimationFrame
+   734→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   735→requestAnimationFrame
+   736→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   737→requestAnimationFrame
+   738→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   739→requestAnimationFrame
+   740→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   741→requestAnimationFrame
+   742→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   743→requestAnimationFrame
+   744→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   745→requestAnimationFrame
+   746→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   747→requestAnimationFrame
+   748→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   749→requestAnimationFrame
+   750→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   751→requestAnimationFrame
+   752→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   753→requestAnimationFrame
+   754→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   755→requestAnimationFrame
+   756→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   757→requestAnimationFrame
+   758→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   759→requestAnimationFrame
+   760→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   761→requestAnimationFrame
+   762→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   763→requestAnimationFrame
+   764→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   765→requestAnimationFrame
+   766→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   767→requestAnimationFrame
+   768→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   769→requestAnimationFrame
+   770→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   771→requestAnimationFrame
+   772→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   773→requestAnimationFrame
+   774→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   775→requestAnimationFrame
+   776→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   777→requestAnimationFrame
+   778→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   779→requestAnimationFrame
+   780→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   781→requestAnimationFrame
+   782→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   783→requestAnimationFrame
+   784→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   785→requestAnimationFrame
+   786→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   787→requestAnimationFrame
+   788→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   789→requestAnimationFrame
+   790→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   791→requestAnimationFrame
+   792→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   793→requestAnimationFrame
+   794→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   795→requestAnimationFrame
+   796→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   797→requestAnimationFrame
+   798→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   799→requestAnimationFrame
+   800→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   801→requestAnimationFrame
+   802→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   803→requestAnimationFrame
+   804→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   805→requestAnimationFrame
+   806→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   807→requestAnimationFrame
+   808→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   809→requestAnimationFrame
+   810→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   811→requestAnimationFrame
+   812→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   813→requestAnimationFrame
+   814→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   815→requestAnimationFrame
+   816→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   817→requestAnimationFrame
+   818→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   819→requestAnimationFrame
+   820→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   821→requestAnimationFrame
+   822→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   823→requestAnimationFrame
+   824→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   825→requestAnimationFrame
+   826→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   827→requestAnimationFrame
+   828→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   829→requestAnimationFrame
+   830→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   831→requestAnimationFrame
+   832→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   833→requestAnimationFrame
+   834→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   835→requestAnimationFrame
+   836→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   837→requestAnimationFrame
+   838→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   839→requestAnimationFrame
+   840→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   841→requestAnimationFrame
+   842→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   843→requestAnimationFrame
+   844→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   845→requestAnimationFrame
+   846→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   847→requestAnimationFrame
+   848→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   849→requestAnimationFrame
+   850→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   851→requestAnimationFrame
+   852→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   853→requestAnimationFrame
+   854→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   855→requestAnimationFrame
+   856→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   857→requestAnimationFrame
+   858→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   859→requestAnimationFrame
+   860→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   861→requestAnimationFrame
+   862→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   863→requestAnimationFrame
+   864→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   865→requestAnimationFrame
+   866→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   867→requestAnimationFrame
+   868→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   869→requestAnimationFrame
+   870→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   871→requestAnimationFrame
+   872→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   873→requestAnimationFrame
+   874→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   875→requestAnimationFrame
+   876→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   877→requestAnimationFrame
+   878→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   879→requestAnimationFrame
+   880→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   881→requestAnimationFrame
+   882→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   883→requestAnimationFrame
+   884→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   885→requestAnimationFrame
+   886→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   887→requestAnimationFrame
+   888→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   889→requestAnimationFrame
+   890→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   891→requestAnimationFrame
+   892→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   893→requestAnimationFrame
+   894→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   895→requestAnimationFrame
+   896→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   897→requestAnimationFrame
+   898→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   899→requestAnimationFrame
+   900→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   901→requestAnimationFrame
+   902→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   903→requestAnimationFrame
+   904→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   905→requestAnimationFrame
+   906→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   907→requestAnimationFrame
+   908→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   909→requestAnimationFrame
+   910→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   911→requestAnimationFrame
+   912→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   913→requestAnimationFrame
+   914→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   915→requestAnimationFrame
+   916→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   917→requestAnimationFrame
+   918→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   919→requestAnimationFrame
+   920→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   921→requestAnimationFrame
+   922→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   923→requestAnimationFrame
+   924→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   925→requestAnimationFrame
+   926→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   927→requestAnimationFrame
+   928→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   929→requestAnimationFrame
+   930→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   931→requestAnimationFrame
+   932→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   933→requestAnimationFrame
+   934→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   935→requestAnimationFrame
+   936→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   937→requestAnimationFrame
+   938→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   939→requestAnimationFrame
+   940→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   941→requestAnimationFrame
+   942→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   943→requestAnimationFrame
+   944→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   945→requestAnimationFrame
+   946→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   947→requestAnimationFrame
+   948→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   949→requestAnimationFrame
+   950→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   951→requestAnimationFrame
+   952→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   953→requestAnimationFrame
+   954→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   955→requestAnimationFrame
+   956→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   957→requestAnimationFrame
+   958→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   959→requestAnimationFrame
+   960→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   961→requestAnimationFrame
+   962→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   963→requestAnimationFrame
+   964→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   965→requestAnimationFrame
+   966→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   967→requestAnimationFrame
+   968→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   969→requestAnimationFrame
+   970→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   971→requestAnimationFrame
+   972→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   973→requestAnimationFrame
+   974→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   975→requestAnimationFrame
+   976→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   977→requestAnimationFrame
+   978→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   979→requestAnimationFrame
+   980→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   981→requestAnimationFrame
+   982→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   983→requestAnimationFrame
+   984→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   985→requestAnimationFrame
+   986→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   987→requestAnimationFrame
+   988→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   989→requestAnimationFrame
+   990→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   991→requestAnimationFrame
+   992→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   993→requestAnimationFrame
+   994→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   995→requestAnimationFrame
+   996→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   997→requestAnimationFrame
+   998→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+   999→requestAnimationFrame
+  1000→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1001→requestAnimationFrame
+  1002→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1003→requestAnimationFrame
+  1004→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1005→requestAnimationFrame
+  1006→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1007→requestAnimationFrame
+  1008→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1009→requestAnimationFrame
+  1010→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1011→requestAnimationFrame
+  1012→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1013→requestAnimationFrame
+  1014→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1015→requestAnimationFrame
+  1016→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1017→requestAnimationFrame
+  1018→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1019→requestAnimationFrame
+  1020→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1021→requestAnimationFrame
+  1022→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1023→requestAnimationFrame
+  1024→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1025→requestAnimationFrame
+  1026→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1027→requestAnimationFrame
+  1028→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1029→requestAnimationFrame
+  1030→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1031→requestAnimationFrame
+  1032→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1033→requestAnimationFrame
+  1034→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1035→requestAnimationFrame
+  1036→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1037→requestAnimationFrame
+  1038→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1039→requestAnimationFrame
+  1040→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1041→requestAnimationFrame
+  1042→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1043→requestAnimationFrame
+  1044→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1045→requestAnimationFrame
+  1046→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1047→requestAnimationFrame
+  1048→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1049→requestAnimationFrame
+  1050→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1051→requestAnimationFrame
+  1052→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1053→requestAnimationFrame
+  1054→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1055→requestAnimationFrame
+  1056→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1057→requestAnimationFrame
+  1058→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1059→requestAnimationFrame
+  1060→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1061→requestAnimationFrame
+  1062→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1063→requestAnimationFrame
+  1064→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1065→requestAnimationFrame
+  1066→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1067→requestAnimationFrame
+  1068→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1069→requestAnimationFrame
+  1070→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1071→requestAnimationFrame
+  1072→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1073→requestAnimationFrame
+  1074→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1075→requestAnimationFrame
+  1076→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1077→requestAnimationFrame
+  1078→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1079→requestAnimationFrame
+  1080→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1081→requestAnimationFrame
+  1082→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1083→requestAnimationFrame
+  1084→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1085→requestAnimationFrame
+  1086→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1087→requestAnimationFrame
+  1088→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1089→requestAnimationFrame
+  1090→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1091→requestAnimationFrame
+  1092→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1093→requestAnimationFrame
+  1094→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1095→requestAnimationFrame
+  1096→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1097→requestAnimationFrame
+  1098→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1099→requestAnimationFrame
+  1100→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1101→requestAnimationFrame
+  1102→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1103→requestAnimationFrame
+  1104→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1105→requestAnimationFrame
+  1106→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1107→requestAnimationFrame
+  1108→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1109→requestAnimationFrame
+  1110→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1111→requestAnimationFrame
+  1112→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1113→requestAnimationFrame
+  1114→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1115→requestAnimationFrame
+  1116→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1117→requestAnimationFrame
+  1118→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1119→requestAnimationFrame
+  1120→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1121→requestAnimationFrame
+  1122→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1123→requestAnimationFrame
+  1124→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1125→requestAnimationFrame
+  1126→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1127→requestAnimationFrame
+  1128→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1129→requestAnimationFrame
+  1130→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1131→requestAnimationFrame
+  1132→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1133→requestAnimationFrame
+  1134→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1135→requestAnimationFrame
+  1136→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1137→requestAnimationFrame
+  1138→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1139→requestAnimationFrame
+  1140→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1141→requestAnimationFrame
+  1142→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1143→requestAnimationFrame
+  1144→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1145→requestAnimationFrame
+  1146→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1147→requestAnimationFrame
+  1148→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1149→requestAnimationFrame
+  1150→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1151→requestAnimationFrame
+  1152→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1153→requestAnimationFrame
+  1154→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1155→requestAnimationFrame
+  1156→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1157→requestAnimationFrame
+  1158→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1159→requestAnimationFrame
+  1160→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1161→requestAnimationFrame
+  1162→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1163→requestAnimationFrame
+  1164→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1165→requestAnimationFrame
+  1166→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1167→requestAnimationFrame
+  1168→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1169→requestAnimationFrame
+  1170→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1171→requestAnimationFrame
+  1172→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1173→requestAnimationFrame
+  1174→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1175→requestAnimationFrame
+  1176→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1177→requestAnimationFrame
+  1178→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1179→requestAnimationFrame
+  1180→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1181→requestAnimationFrame
+  1182→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1183→requestAnimationFrame
+  1184→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1185→requestAnimationFrame
+  1186→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1187→requestAnimationFrame
+  1188→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1189→requestAnimationFrame
+  1190→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1191→requestAnimationFrame
+  1192→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1193→requestAnimationFrame
+  1194→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1195→requestAnimationFrame
+  1196→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1197→requestAnimationFrame
+  1198→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1199→requestAnimationFrame
+  1200→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1201→requestAnimationFrame
+  1202→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1203→requestAnimationFrame
+  1204→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1205→requestAnimationFrame
+  1206→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1207→requestAnimationFrame
+  1208→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1209→requestAnimationFrame
+  1210→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1211→requestAnimationFrame
+  1212→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1213→requestAnimationFrame
+  1214→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1215→requestAnimationFrame
+  1216→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1217→requestAnimationFrame
+  1218→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1219→requestAnimationFrame
+  1220→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1221→requestAnimationFrame
+  1222→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1223→requestAnimationFrame
+  1224→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1225→requestAnimationFrame
+  1226→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1227→requestAnimationFrame
+  1228→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1229→requestAnimationFrame
+  1230→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1231→requestAnimationFrame
+  1232→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1233→requestAnimationFrame
+  1234→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1235→requestAnimationFrame
+  1236→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1237→requestAnimationFrame
+  1238→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1239→requestAnimationFrame
+  1240→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1241→requestAnimationFrame
+  1242→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1243→requestAnimationFrame
+  1244→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1245→requestAnimationFrame
+  1246→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1247→requestAnimationFrame
+  1248→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1249→requestAnimationFrame
+  1250→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1251→requestAnimationFrame
+  1252→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1253→requestAnimationFrame
+  1254→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1255→requestAnimationFrame
+  1256→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1257→requestAnimationFrame
+  1258→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1259→requestAnimationFrame
+  1260→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1261→requestAnimationFrame
+  1262→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1263→requestAnimationFrame
+  1264→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1265→requestAnimationFrame
+  1266→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1267→requestAnimationFrame
+  1268→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1269→requestAnimationFrame
+  1270→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1271→requestAnimationFrame
+  1272→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1273→requestAnimationFrame
+  1274→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1275→requestAnimationFrame
+  1276→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1277→requestAnimationFrame
+  1278→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1279→requestAnimationFrame
+  1280→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1281→requestAnimationFrame
+  1282→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1283→requestAnimationFrame
+  1284→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1285→requestAnimationFrame
+  1286→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1287→requestAnimationFrame
+  1288→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1289→requestAnimationFrame
+  1290→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1291→requestAnimationFrame
+  1292→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1293→requestAnimationFrame
+  1294→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1295→requestAnimationFrame
+  1296→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1297→requestAnimationFrame
+  1298→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1299→requestAnimationFrame
+  1300→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1301→requestAnimationFrame
+  1302→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1303→requestAnimationFrame
+  1304→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1305→requestAnimationFrame
+  1306→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1307→requestAnimationFrame
+  1308→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1309→requestAnimationFrame
+  1310→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1311→requestAnimationFrame
+  1312→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1313→requestAnimationFrame
+  1314→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1315→requestAnimationFrame
+  1316→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1317→requestAnimationFrame
+  1318→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1319→requestAnimationFrame
+  1320→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1321→requestAnimationFrame
+  1322→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1323→requestAnimationFrame
+  1324→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1325→requestAnimationFrame
+  1326→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1327→requestAnimationFrame
+  1328→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1329→requestAnimationFrame
+  1330→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1331→requestAnimationFrame
+  1332→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1333→requestAnimationFrame
+  1334→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1335→requestAnimationFrame
+  1336→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1337→requestAnimationFrame
+  1338→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1339→requestAnimationFrame
+  1340→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1341→requestAnimationFrame
+  1342→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1343→requestAnimationFrame
+  1344→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1345→requestAnimationFrame
+  1346→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1347→requestAnimationFrame
+  1348→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1349→requestAnimationFrame
+  1350→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1351→requestAnimationFrame
+  1352→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1353→requestAnimationFrame
+  1354→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1355→requestAnimationFrame
+  1356→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1357→requestAnimationFrame
+  1358→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1359→requestAnimationFrame
+  1360→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1361→requestAnimationFrame
+  1362→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1363→requestAnimationFrame
+  1364→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1365→requestAnimationFrame
+  1366→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1367→requestAnimationFrame
+  1368→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1369→requestAnimationFrame
+  1370→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1371→requestAnimationFrame
+  1372→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1373→requestAnimationFrame
+  1374→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1375→requestAnimationFrame
+  1376→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1377→requestAnimationFrame
+  1378→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1379→requestAnimationFrame
+  1380→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1381→requestAnimationFrame
+  1382→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1383→requestAnimationFrame
+  1384→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1385→requestAnimationFrame
+  1386→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1387→requestAnimationFrame
+  1388→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1389→requestAnimationFrame
+  1390→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1391→requestAnimationFrame
+  1392→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1393→requestAnimationFrame
+  1394→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1395→requestAnimationFrame
+  1396→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1397→requestAnimationFrame
+  1398→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1399→requestAnimationFrame
+  1400→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1401→requestAnimationFrame
+  1402→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1403→requestAnimationFrame
+  1404→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1405→requestAnimationFrame
+  1406→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1407→requestAnimationFrame
+  1408→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1409→requestAnimationFrame
+  1410→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1411→requestAnimationFrame
+  1412→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1413→requestAnimationFrame
+  1414→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1415→requestAnimationFrame
+  1416→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1417→requestAnimationFrame
+  1418→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1419→requestAnimationFrame
+  1420→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1421→requestAnimationFrame
+  1422→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1423→requestAnimationFrame
+  1424→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1425→requestAnimationFrame
+  1426→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1427→requestAnimationFrame
+  1428→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1429→requestAnimationFrame
+  1430→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1431→requestAnimationFrame
+  1432→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1433→requestAnimationFrame
+  1434→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1435→requestAnimationFrame
+  1436→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1437→requestAnimationFrame
+  1438→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1439→requestAnimationFrame
+  1440→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1441→requestAnimationFrame
+  1442→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1443→requestAnimationFrame
+  1444→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1445→requestAnimationFrame
+  1446→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1447→requestAnimationFrame
+  1448→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1449→requestAnimationFrame
+  1450→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1451→requestAnimationFrame
+  1452→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1453→requestAnimationFrame
+  1454→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1455→requestAnimationFrame
+  1456→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1457→requestAnimationFrame
+  1458→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1459→requestAnimationFrame
+  1460→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1461→requestAnimationFrame
+  1462→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1463→requestAnimationFrame
+  1464→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1465→requestAnimationFrame
+  1466→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1467→requestAnimationFrame
+  1468→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1469→requestAnimationFrame
+  1470→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1471→requestAnimationFrame
+  1472→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1473→requestAnimationFrame
+  1474→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1475→requestAnimationFrame
+  1476→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1477→requestAnimationFrame
+  1478→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1479→requestAnimationFrame
+  1480→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1481→requestAnimationFrame
+  1482→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1483→requestAnimationFrame
+  1484→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1485→requestAnimationFrame
+  1486→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1487→requestAnimationFrame
+  1488→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1489→requestAnimationFrame
+  1490→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1491→requestAnimationFrame
+  1492→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1493→requestAnimationFrame
+  1494→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1495→requestAnimationFrame
+  1496→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1497→requestAnimationFrame
+  1498→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1499→requestAnimationFrame
+  1500→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1501→requestAnimationFrame
+  1502→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1503→requestAnimationFrame
+  1504→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1505→requestAnimationFrame
+  1506→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1507→requestAnimationFrame
+  1508→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1509→requestAnimationFrame
+  1510→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1511→requestAnimationFrame
+  1512→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1513→requestAnimationFrame
+  1514→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1515→requestAnimationFrame
+  1516→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1517→requestAnimationFrame
+  1518→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1519→requestAnimationFrame
+  1520→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1521→requestAnimationFrame
+  1522→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1523→requestAnimationFrame
+  1524→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1525→requestAnimationFrame
+  1526→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1527→requestAnimationFrame
+  1528→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1529→requestAnimationFrame
+  1530→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1531→requestAnimationFrame
+  1532→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1533→requestAnimationFrame
+  1534→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1535→requestAnimationFrame
+  1536→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1537→requestAnimationFrame
+  1538→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1539→requestAnimationFrame
+  1540→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1541→requestAnimationFrame
+  1542→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1543→requestAnimationFrame
+  1544→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1545→requestAnimationFrame
+  1546→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1547→requestAnimationFrame
+  1548→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1549→requestAnimationFrame
+  1550→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1551→requestAnimationFrame
+  1552→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1553→requestAnimationFrame
+  1554→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1555→requestAnimationFrame
+  1556→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1557→requestAnimationFrame
+  1558→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1559→requestAnimationFrame
+  1560→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1561→requestAnimationFrame
+  1562→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1563→requestAnimationFrame
+  1564→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1565→requestAnimationFrame
+  1566→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1567→requestAnimationFrame
+  1568→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1569→requestAnimationFrame
+  1570→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1571→requestAnimationFrame
+  1572→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1573→requestAnimationFrame
+  1574→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1575→requestAnimationFrame
+  1576→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1577→requestAnimationFrame
+  1578→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1579→requestAnimationFrame
+  1580→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1581→requestAnimationFrame
+  1582→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1583→requestAnimationFrame
+  1584→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1585→requestAnimationFrame
+  1586→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1587→requestAnimationFrame
+  1588→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1589→requestAnimationFrame
+  1590→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1591→requestAnimationFrame
+  1592→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1593→requestAnimationFrame
+  1594→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1595→requestAnimationFrame
+  1596→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1597→requestAnimationFrame
+  1598→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1599→requestAnimationFrame
+  1600→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1601→requestAnimationFrame
+  1602→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1603→requestAnimationFrame
+  1604→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1605→requestAnimationFrame
+  1606→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1607→requestAnimationFrame
+  1608→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1609→requestAnimationFrame
+  1610→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1611→requestAnimationFrame
+  1612→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1613→requestAnimationFrame
+  1614→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1615→requestAnimationFrame
+  1616→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1617→requestAnimationFrame
+  1618→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1619→requestAnimationFrame
+  1620→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1621→requestAnimationFrame
+  1622→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1623→requestAnimationFrame
+  1624→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1625→requestAnimationFrame
+  1626→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1627→requestAnimationFrame
+  1628→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1629→requestAnimationFrame
+  1630→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1631→requestAnimationFrame
+  1632→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1633→requestAnimationFrame
+  1634→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1635→requestAnimationFrame
+  1636→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1637→requestAnimationFrame
+  1638→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1639→requestAnimationFrame
+  1640→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1641→requestAnimationFrame
+  1642→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1643→requestAnimationFrame
+  1644→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1645→requestAnimationFrame
+  1646→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1647→requestAnimationFrame
+  1648→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1649→requestAnimationFrame
+  1650→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1651→requestAnimationFrame
+  1652→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1653→requestAnimationFrame
+  1654→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1655→requestAnimationFrame
+  1656→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1657→requestAnimationFrame
+  1658→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1659→requestAnimationFrame
+  1660→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1661→requestAnimationFrame
+  1662→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1663→requestAnimationFrame
+  1664→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1665→requestAnimationFrame
+  1666→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1667→requestAnimationFrame
+  1668→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1669→requestAnimationFrame
+  1670→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1671→requestAnimationFrame
+  1672→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1673→requestAnimationFrame
+  1674→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1675→requestAnimationFrame
+  1676→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1677→requestAnimationFrame
+  1678→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1679→requestAnimationFrame
+  1680→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1681→requestAnimationFrame
+  1682→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1683→requestAnimationFrame
+  1684→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1685→requestAnimationFrame
+  1686→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1687→requestAnimationFrame
+  1688→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1689→requestAnimationFrame
+  1690→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1691→requestAnimationFrame
+  1692→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1693→requestAnimationFrame
+  1694→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1695→requestAnimationFrame
+  1696→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1697→requestAnimationFrame
+  1698→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1699→requestAnimationFrame
+  1700→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1701→requestAnimationFrame
+  1702→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1703→requestAnimationFrame
+  1704→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1705→requestAnimationFrame
+  1706→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1707→requestAnimationFrame
+  1708→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1709→requestAnimationFrame
+  1710→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1711→requestAnimationFrame
+  1712→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1713→requestAnimationFrame
+  1714→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1715→requestAnimationFrame
+  1716→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1717→requestAnimationFrame
+  1718→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1719→requestAnimationFrame
+  1720→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1721→requestAnimationFrame
+  1722→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1723→requestAnimationFrame
+  1724→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1725→requestAnimationFrame
+  1726→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1727→requestAnimationFrame
+  1728→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1729→requestAnimationFrame
+  1730→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1731→requestAnimationFrame
+  1732→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1733→requestAnimationFrame
+  1734→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1735→requestAnimationFrame
+  1736→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1737→requestAnimationFrame
+  1738→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1739→requestAnimationFrame
+  1740→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1741→requestAnimationFrame
+  1742→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1743→requestAnimationFrame
+  1744→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1745→requestAnimationFrame
+  1746→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1747→requestAnimationFrame
+  1748→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1749→requestAnimationFrame
+  1750→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1751→requestAnimationFrame
+  1752→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1753→requestAnimationFrame
+  1754→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1755→requestAnimationFrame
+  1756→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1757→requestAnimationFrame
+  1758→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1759→requestAnimationFrame
+  1760→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1761→requestAnimationFrame
+  1762→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1763→requestAnimationFrame
+  1764→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1765→requestAnimationFrame
+  1766→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1767→requestAnimationFrame
+  1768→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1769→requestAnimationFrame
+  1770→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1771→requestAnimationFrame
+  1772→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1773→requestAnimationFrame
+  1774→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1775→requestAnimationFrame
+  1776→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1777→requestAnimationFrame
+  1778→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1779→requestAnimationFrame
+  1780→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1781→requestAnimationFrame
+  1782→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1783→requestAnimationFrame
+  1784→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1785→requestAnimationFrame
+  1786→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1787→requestAnimationFrame
+  1788→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1789→requestAnimationFrame
+  1790→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1791→requestAnimationFrame
+  1792→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1793→requestAnimationFrame
+  1794→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1795→requestAnimationFrame
+  1796→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1797→requestAnimationFrame
+  1798→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1799→requestAnimationFrame
+  1800→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1801→requestAnimationFrame
+  1802→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1803→requestAnimationFrame
+  1804→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1805→requestAnimationFrame
+  1806→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1807→requestAnimationFrame
+  1808→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1809→requestAnimationFrame
+  1810→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1811→requestAnimationFrame
+  1812→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1813→requestAnimationFrame
+  1814→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1815→requestAnimationFrame
+  1816→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1817→requestAnimationFrame
+  1818→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1819→requestAnimationFrame
+  1820→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1821→requestAnimationFrame
+  1822→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1823→requestAnimationFrame
+  1824→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1825→requestAnimationFrame
+  1826→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1827→requestAnimationFrame
+  1828→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1829→requestAnimationFrame
+  1830→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1831→requestAnimationFrame
+  1832→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1833→requestAnimationFrame
+  1834→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1835→requestAnimationFrame
+  1836→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1837→requestAnimationFrame
+  1838→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1839→requestAnimationFrame
+  1840→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1841→requestAnimationFrame
+  1842→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1843→requestAnimationFrame
+  1844→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1845→requestAnimationFrame
+  1846→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1847→requestAnimationFrame
+  1848→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1849→requestAnimationFrame
+  1850→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1851→requestAnimationFrame
+  1852→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1853→requestAnimationFrame
+  1854→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1855→requestAnimationFrame
+  1856→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1857→requestAnimationFrame
+  1858→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1859→requestAnimationFrame
+  1860→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1861→requestAnimationFrame
+  1862→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1863→requestAnimationFrame
+  1864→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1865→requestAnimationFrame
+  1866→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1867→requestAnimationFrame
+  1868→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1869→requestAnimationFrame
+  1870→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1871→requestAnimationFrame
+  1872→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1873→requestAnimationFrame
+  1874→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1875→requestAnimationFrame
+  1876→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1877→requestAnimationFrame
+  1878→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1879→requestAnimationFrame
+  1880→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1881→requestAnimationFrame
+  1882→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1883→requestAnimationFrame
+  1884→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1885→requestAnimationFrame
+  1886→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1887→requestAnimationFrame
+  1888→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1889→requestAnimationFrame
+  1890→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1891→requestAnimationFrame
+  1892→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1893→requestAnimationFrame
+  1894→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1895→requestAnimationFrame
+  1896→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1897→requestAnimationFrame
+  1898→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1899→requestAnimationFrame
+  1900→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1901→requestAnimationFrame
+  1902→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1903→requestAnimationFrame
+  1904→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1905→requestAnimationFrame
+  1906→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1907→requestAnimationFrame
+  1908→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1909→requestAnimationFrame
+  1910→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1911→requestAnimationFrame
+  1912→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1913→requestAnimationFrame
+  1914→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1915→requestAnimationFrame
+  1916→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1917→requestAnimationFrame
+  1918→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1919→requestAnimationFrame
+  1920→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1921→requestAnimationFrame
+  1922→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1923→requestAnimationFrame
+  1924→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1925→requestAnimationFrame
+  1926→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1927→requestAnimationFrame
+  1928→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1929→requestAnimationFrame
+  1930→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1931→requestAnimationFrame
+  1932→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1933→requestAnimationFrame
+  1934→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1935→requestAnimationFrame
+  1936→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1937→requestAnimationFrame
+  1938→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1939→requestAnimationFrame
+  1940→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1941→requestAnimationFrame
+  1942→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1943→requestAnimationFrame
+  1944→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1945→requestAnimationFrame
+  1946→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1947→requestAnimationFrame
+  1948→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1949→requestAnimationFrame
+  1950→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1951→requestAnimationFrame
+  1952→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1953→requestAnimationFrame
+  1954→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1955→requestAnimationFrame
+  1956→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1957→requestAnimationFrame
+  1958→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1959→requestAnimationFrame
+  1960→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1961→requestAnimationFrame
+  1962→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1963→requestAnimationFrame
+  1964→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1965→requestAnimationFrame
+  1966→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1967→requestAnimationFrame
+  1968→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1969→requestAnimationFrame
+  1970→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1971→requestAnimationFrame
+  1972→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1973→requestAnimationFrame
+  1974→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1975→requestAnimationFrame
+  1976→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1977→requestAnimationFrame
+  1978→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1979→requestAnimationFrame
+  1980→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1981→requestAnimationFrame
+  1982→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1983→requestAnimationFrame
+  1984→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1985→requestAnimationFrame
+  1986→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1987→requestAnimationFrame
+  1988→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1989→requestAnimationFrame
+  1990→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1991→requestAnimationFrame
+  1992→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1993→requestAnimationFrame
+  1994→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1995→requestAnimationFrame
+  1996→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1997→requestAnimationFrame
+  1998→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+  1999→requestAnimationFrame
+  2000→step @ node_modules_phaser_dist_phaser_esm_93c004bf.js:sourcemap:25448
+
+[showing lines 1-2000 of 3117; use offset=2001 with limit to continue reading]

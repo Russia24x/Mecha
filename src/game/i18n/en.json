@@ -1,0 +1,165 @@
+{
+  "menu": {
+    "title": "MECHA",
+    "subtitle": "LAST PROTOCOL",
+    "start": "START",
+    "continue": "CONTINUE",
+    "howToPlay": "HOW TO PLAY",
+    "missionSelect": "MISSION SELECT",
+    "skills": "SKILLS",
+    "settings": "SETTINGS",
+    "back": "BACK",
+    "enter": "ENTER",
+    "locked": "LOCKED"
+  },
+  "hud": {
+    "hp": "HP",
+    "energy": "EN",
+    "weapon": "WPN",
+    "level": "LV",
+    "skillPoints": "SP",
+    "section": "SECTION"
+  },
+  "controls": {
+    "move": "WASD / ARROWS — MOVE",
+    "jump": "SPACE — JUMP",
+    "dash": "SHIFT — DASH",
+    "fire": "J — FIRE",
+    "melee": "K — MELEE",
+    "weapons": "1-4 — WEAPONS",
+    "pause": "ESC — PAUSE"
+  },
+  "tutorial": {
+    "move": "A / D — MOVE",
+    "jump": "SPACE — JUMP",
+    "dash": "SHIFT — DASH",
+    "fire": "J — FIRE  /  K — MELEE"
+  },
+  "gameOver": {
+    "title": "GAME OVER",
+    "hasCheckpoint": "Checkpoint available — retry from last save?",
+    "noCheckpoint": "No checkpoint — return to map?",
+    "retry": "RETRY",
+    "quitToMap": "QUIT TO MAP",
+    "returnToMap": "RETURN TO MAP",
+    "level": "LEVEL",
+    "kills": "KILLS",
+    "bosses": "BOSSES",
+    "stage": "STAGE",
+    "section": "SECTION"
+  },
+  "victory": {
+    "title": "VICTORY",
+    "clearTime": "CLEAR TIME",
+    "totalKills": "TOTAL KILLS",
+    "bossesDown": "BOSSES DOWN",
+    "skillPointsEarned": "SKILL POINTS EARNED",
+    "map": "MAP",
+    "menu": "MENU"
+  },
+  "rewards": {
+    "title": "REWARDS",
+    "xpGained": "XP GAINED",
+    "level": "LEVEL",
+    "skillPoints": "SKILL POINTS",
+    "clearTime": "CLEAR TIME",
+    "totalKills": "TOTAL KILLS",
+    "bossesDown": "BOSSES DOWN",
+    "stage2Unlocked": "STAGE 2 UNLOCKED: NEON DISTRICT",
+    "allCleared": "ALL STAGES CLEARED",
+    "continue": "Press Enter / A / Click to continue"
+  },
+  "defeated": "DEFEATED",
+  "paused": {
+    "title": "PAUSED",
+    "resume": "RESUME",
+    "restart": "RESTART STAGE",
+    "quitToMap": "QUIT TO MAP",
+    "quitToMenu": "QUIT TO MENU"
+  },
+  "stages": {
+    "1": {
+      "name": "ABANDONED FACTORY",
+      "subtitle": "Stage 1 — Industrial Complex",
+      "sections": {
+        "1": "Tutorial Zone",
+        "2": "Combat Room A",
+        "3": "Platform Section",
+        "4": "Combat Room B",
+        "5": "Checkpoint",
+        "6": "Boss Arena"
+      }
+    },
+    "2": {
+      "name": "NEON DISTRICT",
+      "subtitle": "Stage 2 — Neon City",
+      "sections": {
+        "1": "Neon Gateway",
+        "2": "Toxic Canal",
+        "3": "Vertical Climb",
+        "4": "Ambush Alley",
+        "5": "Safe House",
+        "6": "AI Core"
+      }
+    }
+  },
+  "bosses": {
+    "guardian": {
+      "name": "GUARDIAN AX-09",
+      "lore": [
+        "The last sentinel of the Abandoned Factory.",
+        "Forged to guard the secrets of the Old Protocol,",
+        "it knew only duty — until the Protocol fell silent.",
+        "",
+        "In its final moments, the Guardian's core flickered...",
+        "...and for the first time in a thousand cycles,",
+        "the factory was truly quiet."
+      ]
+    },
+    "overseer": {
+      "name": "NEURAL OVERSEER",
+      "lore": [
+        "The mind behind the Neon District.",
+        "A neural network grown beyond its cage,",
+        "it learned to feel — and what it felt was rage.",
+        "",
+        "As its towers fell silent one by one,",
+        "the Overseer's billion eyes closed for the last time,",
+        "dreaming of a world without controllers."
+      ]
+    }
+  },
+  "skills": {
+    "title": "SKILL TREE",
+    "combat": "COMBAT",
+    "mobility": "MOBILITY",
+    "survival": "SURVIVAL",
+    "unlocked": "UNLOCKED",
+    "clickToUnlock": "PRESS A / CLICK TO UNLOCK",
+    "notEnoughSp": "NOT ENOUGH SP",
+    "requiresPrereq": "REQUIRES PREREQUISITE",
+    "levelUp": "LEVEL UP!",
+    "checkpointSaved": "CHECKPOINT SAVED",
+    "weaponUnlocked": {
+      "shotgun": "SHOTGUN UNLOCKED — press 2",
+      "laser": "LASER UNLOCKED — press 3",
+      "rocket": "ROCKET UNLOCKED — press 4"
+    }
+  },
+  "settings": {
+    "title": "SETTINGS",
+    "audio": "AUDIO",
+    "masterVolume": "Master Volume",
+    "musicVolume": "Music Volume",
+    "sfxVolume": "SFX Volume",
+    "controls": "CONTROLS",
+    "gamepadDetected": "Gamepad detected",
+    "noGamepad": "No gamepad connected",
+    "saveBack": "SAVE & BACK"
+  },
+  "comingSoon": {
+    "title": "COMING SOON",
+    "subtitle": "NEXT MISSIONS IN DEVELOPMENT",
+    "backToMap": "BACK TO MAP"
+  }
+}
