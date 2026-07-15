@@ -1,0 +1,171 @@
+# ممیزی UI — سند تحلیلی (بدون تغییر کد)
+
+> این سند فقط تحلیل است. هیچ کدی تغییر نکرده است.
+> هدف: مشخص کردن دقیقاً چه چیزی کجاست و چرا، قبل از هرگونه اقدام.
+> **نکته:** این سند قبلاً ساخته شده بود اما با ریست container محلی از بین رفت. دوباره بازسازی شد.
+
+---
+
+## ۰. وضعیت گیت (تأیید قطعی با `git ls-remote`)
+
+```
+git ls-remote origin
+→ 3086d913b21e54f0c7b590c8a679fc3ab443fcf3  refs/heads/main
+```
+
+**GitHub main = `3086d91`** — تمام کار UIController سالم است روی GitHub.
+Container محلی موقتاً به `5d93060` (قبل از rewrite) ریست شده بود، اما با `git fetch + git reset --hard origin/main` دوباره همگام شد.
+
+**توصیه:** فعال‌سازی branch protection rule («Do not allow force pushes») روی `main` در GitHub — مستقل از علت این‌بار.
+
+---
+
+## ۱. باگ‌های تأییدشده با خواندن کد (روی HEAD = `3086d91`)
+
+### B1 — ستون راست Pause Menu غیرقابل انتخاب است (کیبورد/گیم‌پد)
+
+**علت ریشه‌ای:** `UIController.findNearest()` فقط دو جهت دارد: `'up' | 'down'`.
+هیچ پشتیبانی از left/right برای حرکت بین ستون‌ها وجود ندارد.
+
+**مسیر کد:**
+- `UIController.ts` خط 326: `private findNearest(direction: 'up' | 'down')`
+- `UIController.update()` خط 293-294: فقط `findNearest('up')` / `findNearest('down')`
+- `keyHandler` خط 472-483: ArrowLeft/ArrowRight فقط اگر `this.tabs.length > 0` باشد
+- `PauseMenuUI` هیچ‌گاه `addTabs()` صدا نمی‌زند → `tabs.length === 0`
+
+**نتیجه:** در Pause Menu با ۲ ستون دکمه، حرکت از ستون چپ به راست غیرممکن است.
+
+**شدت:** بحرانی — ۴ دکمه از ۹ دکمه غیرقابل دسترسی هستند.
+
+### B1-legacy — همین باگ در `508f3e6` (قبل از rewrite) هم وجود داشت
+
+**تأیید شده با تست agent-browser روی `508f3e6`:**
+- Arrow Down: RESUME → CHECKPOINT → NEURAL CORTEX → MISSION LOG → SETTINGS (فقط ستون چپ!)
+- Arrow Right/Left: هیچ کاری نمی‌کند
+- RETURN TO HUB, RESTART, DATA VAULT, QUIT — همگی غیرقابل دسترسی با کیبورد
+
+**نکته مهم:** این یک **باگ قدیمی و مستقل از UIController** است، نه رگرشن ناشی از بازنویسی. رفع‌کردنش ربطی به تصمیم rollback ندارد و در هر دو مسیر باید جدا فیکس شود.
+
+### B1-hitarea — مشکل hit-area در Pause Menu (بحرانی، جدا از B1)
+
+**تأیید شده با تست agent-browser روی `508f3e6`:**
+- Hover روی موقعیت بصری RESTART: focus به RESUME پرید (نه RESTART!)
+- Click روی موقعیت RETURN TO HUB: **NEURAL CORTEX باز شد!** (یعنی hit-area کاملاً اشتباه است)
+
+**علت احتمالی:** مختصات hit-area با موقعیت بصری دکمه‌ها مطابقت ندارد — ممکن است_due to canvas scaling (DPI)، یا layout قدیمی که hit-area آپدیت نشده.
+
+**شدت:** بحرانی — کاربر می‌تواند به‌طور کاملاً غیرمنتظره وارد بخش اشتباه شود. این خطرناک‌تر از صرفاً «غیرقابل‌دسترس‌بودن» است.
+
+### B2 — کلید Space دکمه را دوبار فعال می‌کند
+
+**تأیید شده با تست agent-browser:**
+- Enter روی RESUME در `508f3e6`: **۲ oscillator** ساخته شد (دوبار)
+- Space روی RESUME در `508f3e6`: ۱ oscillator (یک بار)
+
+**علت در HEAD (`3086d91`):** دو مسیر ورودی موازی:
+- `InputSystem` Space → `kbEdge.jump` → `state.jumpPressed` → `UIController.update()` activates
+- `UIController.keyHandler` Space → activates
+
+**علت در `508f3e6`:** Enter در InputSystem هندل نمی‌شود، اما چیزی باعث دوبار پخش صدا می‌شود. **ریشه هنوز مشخص نیست — نیاز به console.trace واقعی.**
+
+**شدت:** بالا — رفتار غیرقابل پیش‌بینی.
+
+### B3 — بعد از tab switch در Hangar، focus روی EXIT می‌افتد
+
+**مسیر کد (`HangarUI.ts` خط 155-168):** ترتیب re-registration: clearFocusables → addButton(EXIT) → addButton(tabs) → addButton(content). اولین دکمه = EXIT.
+
+**شدت:** متوسط.
+
+### B4 — `findNearest` fallback روی disabled buttons می‌رود
+
+**مسیر کد (`UIController.ts` خط 350-353):** fallback `disabled` را چک نمی‌کند.
+
+**شدت:** پایین.
+
+### B5 — `processCursorHover` به internals خصوصی Phaser دسترسی دارد
+
+**مسیر کد (`UIController.ts` خط 361-380):** `_list` و `manager.hitTest` خصوصی/غیرمستند.
+
+**شدت:** متوسط — fragility.
+
+### B6 — `navElements` و `ctrl.focusables` می‌توانند OutOf Sync شوند
+
+**تله‌ی آینده:** اگر کسی `updateNavFocus()` را دوباره فعال کند، باگ بلافاصله برمی‌گردد.
+
+**شدت:** پایین (فعلاً).
+
+---
+
+## ۲. مشکلات معماری
+
+### A1 — سه مسیر ورودی موازی در UIController
+| مسیر | منبع | چه چیزی را فعال می‌کند |
+|------|------|------------------------|
+| `update()` | polling هر frame | gamepad + keyboard edges |
+| `keyHandler` | `window.addEventListener('keydown')` | keyboard |
+| `bg.on('pointerdown')` | Phaser pointer events | mouse + touch |
+
+### A2 — `findNearest` فقط up/down دارد (بعد از rewrite)
+
+### A3 — `MenuNavHelper` اکثراً dead code است
+
+### A4 — N کنترل‌کننده ورودی مستقل، هر کدام `keydown` listener
+
+### A5 — `OverlayManager.open()` دو بار `show()` صدا می‌زند
+
+### A6 — `clearFocusables()` tabs را پاک نمی‌کند
+
+---
+
+## ۳. باگ‌شناسی گیت: 15 کامیت، 10 پچ
+
+| # | Hash | نوع | موضوع |
+|---|------|-----|--------|
+| 1 | `adf0991` | feat | UIController foundation |
+| 2 | `4fb2c4a` | feat | migrate OverlayManager + GameScene |
+| 3 | `f7e8074` | feat | migrate PauseMenuUI |
+| 4 | `014c2a3` | feat | migrate NavigableOverlay |
+| 5 | `d56eaf8` | cleanup | delete VirtualCursor |
+| 6 | `2d69157` | fix | cursor mode + HangarUI crash |
+| 7 | `10a8a48` | fix | P0: double-registration, keyboard stacking |
+| 8 | `149a7a1` | fix | manual splice → registerNav |
+| 9 | `717b44a` | fix | SettingsUI manual splice → registerNav |
+| 10 | `34039ad` | feat | addTabs() + tab index sync |
+| 11 | `626768e` | cleanup | dead code removal |
+| 12 | `54998a5` | fix | gameplay callbacks blocked + Hangar crash |
+| 13 | `9cad276` | fix | HangarUI re-entrancy + PauseMenu triggerFirst |
+| 14 | `e5d20b5` | fix | 5 critical + 3 high bugs |
+| 15 | `3086d91` | fix | Enter key (revert of C4) |
+
+**الگو:** ۵ کامیت برای ساخت + ۱۰ کامیت برای پچ. پینگ‌پنگ C4 ↔ 3086d91.
+
+---
+
+## ۴. مقایسه‌ی `508f3e6` در برابر HEAD (`3086d91`)
+
+| فیچر | `508f3e6` | HEAD | وضعیت |
+|------|-----------|------|-------|
+| HangarUI L1/R1 tab switch | ✅ داشت | ✅ دارد | حفظ شد |
+| Settings/Inventory/SkillTree L1/R1 | ❌ نداشت | ✅ دارد | NEW |
+| VirtualCursor | ✅ داشت (فایل جدا) | ❌ حذف شد | حذف شد |
+| Cursor Mode در UIController | ❌ نداشت | ✅ دارد | NEW |
+| PauseMenu navigation | خطی (up/down) | 2D spatial اما فقط up/down | CHANGED |
+| PauseMenu ستون راست با موس | ⚠️ hit-area خراب | ✅ کار می‌کند | بهتر شد |
+| PauseMenu ستون راست با کیبورد | ❌ غیرقابل دسترسی (B1-legacy) | ❌ غیرقابل دسترسی (B1) | هر دو مشکل دارند |
+| Gameplay blocking در pause | ❌ نداشت | ✅ دارد | NEW |
+| یکپارچه‌سازی navigation | ❌ هر UI جدا | ✅ UIController | NEW |
+
+---
+
+## ۵. توصیه
+
+**نه rollback کور، نه fix کور.** 
+
+1. **B1-legacy و B1:** هر دو نسخه مشکل ستون راست دارند — باید جدا فیکس شود (left/right به findNearest اضافه شود)
+2. **B1-hitarea:** بحرانی — hit-area در `508f3e6` خراب است. در HEAD بهتر شد. این نقطه‌ای است که HEAD بهتر است.
+3. **B2:** ریشه در `508f3e6` هنوز نامشخص است — نیاز به console.trace
+4. **بقیه باگ‌ها (B3-B6):** مختص HEAD، ناشی از UIController rewrite
+
+**نتیجه‌ی اولیه:** HEAD بهتر است چون hit-area درست شد و gameplay blocking اضافه شد. اما B1 (که در هر دو هست) باید در هر مسیر فیکس شود.
+
+**هیچ تغییری در کد داده نشده است. این سند فقط تحلیل است.**
