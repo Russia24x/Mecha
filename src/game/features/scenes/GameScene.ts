@@ -466,7 +466,12 @@ export class GameScene extends Phaser.Scene {
   private buildMenu(): void {
     // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
     this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
-      onStart: () => this.setState('hub'),
+      onStart: () => {
+        // New Game: clear save data + checkpoint before starting
+        SaveSystem.clear();
+        CheckpointSystem.clear();
+        this.setState('hub');
+      },
       onContinue: () => {
         if (CheckpointSystem.hasCheckpoint()) {
           CheckpointSystem.init();
