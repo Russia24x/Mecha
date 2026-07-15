@@ -375,7 +375,7 @@ export class PlayerEntity {
     if (!this.alive) return;
     this.updateMovement();
     // ── Abilities ──
-    this.tryHover();
+    this.tryHover(deltaMs);
     this.updateGrapple(deltaMs);
     this.tryHack(deltaMs);
     this.updateAnimation(deltaMs);
@@ -686,7 +686,7 @@ export class PlayerEntity {
    * HOVER — hold jump in mid-air to slow descent.
    * Drains energy per second. Visual: thruster flame intensifies downward.
    */
-  private tryHover(): void {
+  private tryHover(deltaMs: number): void {
     if (!this.alive || !this.sprite || !this.sprite.active) return;
     if (!this.abilities.has('hover')) return;
     if (this.grounded) { this.hovering = false; return; }
@@ -695,8 +695,8 @@ export class PlayerEntity {
       this.hovering = true;
       // Slow descent
       this.sprite.setVelocityY(PlayerEntity.HOVER_FALL_VELOCITY);
-      // Drain energy
-      this.energy.current = Math.max(0, this.energy.current - PlayerEntity.HOVER_ENERGY_PER_SEC * (1 / 60));
+      // Drain energy (N8 fix: use deltaMs instead of hardcoded 1/60)
+      this.energy.current = Math.max(0, this.energy.current - PlayerEntity.HOVER_ENERGY_PER_SEC * (deltaMs / 1000));
       // Emit downward thruster flame (pooled)
       const now = this.scene.time.now;
       if (now - this.lastThrusterEmit > 25) {
