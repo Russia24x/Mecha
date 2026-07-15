@@ -36,7 +36,8 @@ export abstract class NavigableOverlay implements OverlayUI {
     this.container.scrollFactorX = 0;
     this.container.scrollFactorY = 0;
     this.ctrl = new UIController(scene, this.container);
-    this.ctrl.setupKeyboard();
+    // NOTE: do NOT call setupKeyboard() here — show() will attach the keyHandler
+    // only when overlay is actually open (A4 listener leak fix).
   }
 
   /** OverlayUI: return our controller. */

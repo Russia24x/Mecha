@@ -42,7 +42,10 @@ export class PauseMenuUI {
 
     // UIController
     this.ctrl = new UIController(scene, this.container);
-    this.ctrl.setupKeyboard();
+    // NOTE: do NOT call setupKeyboard() here — show() will attach the keyHandler
+    // only when pause is actually open. Calling it in constructor leaves a
+    // dangling keyHandler active even when pause is closed, causing A4
+    // (listener leak: PauseMenu's keyHandler fires alongside shared controller's).
 
     // Overlay (blocks clicks behind)
     const overlay = scene.add.rectangle(w / 2, h / 2, w, h, 0x05080c, 0.85);
