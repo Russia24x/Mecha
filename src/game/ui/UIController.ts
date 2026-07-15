@@ -281,9 +281,6 @@ export class UIController {
       // Cursor click (A button / fire)
       // B2 fix: use gp* flags (gamepad-only) so keyboard activation (keyHandler)
       // doesn't double-fire with update() on the same key press.
-      if (input.gpJumpPressed || input.gpFirePressed) {
-        console.log('[S2-DEBUG] A button pressed — gpJump:', input.gpJumpPressed, 'gpFire:', input.gpFirePressed, 'clickCooldown:', this.clickCooldown, 'lastHovered:', this.lastHovered ? 'SET' : 'NULL', 'active:', this.lastHovered?.active);
-      }
       if ((input.gpJumpPressed || input.gpFirePressed) && this.clickCooldown <= 0) {
         if (this.lastHovered && this.lastHovered.active) {
           // emit('pointerdown') fires addButton's handler which plays uiClick
@@ -424,7 +421,6 @@ export class UIController {
     if (candidates.length === 0) { this.clearHover(); return; }
     const mockPointer = { x: this.cursorX, y: this.cursorY };
     const hits = inputPlugin.manager.hitTest(mockPointer as Phaser.Input.Pointer, candidates, this.scene.cameras.main);
-    console.log('[S2-DEBUG] processCursorHover cursor:', this.cursorX, this.cursorY, 'candidates:', candidates.length, 'hits:', hits?.length || 0, 'lastHovered:', this.lastHovered ? 'SET' : 'NULL');
     if (!hits || hits.length === 0) { this.clearHover(); return; }
     // Sort: prefer focusable buttons (registered via addButton) over overlays/backgrounds
     hits.sort((a, b) => {

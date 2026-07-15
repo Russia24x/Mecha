@@ -269,7 +269,17 @@ export class SettingsUI extends NavigableOverlay {
     sliderBg.off('pointerdown');
     sliderBg.on('pointerdown', (p: Phaser.Input.Pointer, localX: number) => {
       AudioSystem.play('uiClick');
-      const v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
+      // S2 fix: when cursor mode clicks via emit('pointerdown'), localX is undefined.
+      // Fall back to cursor position relative to slider center.
+      let v: number;
+      if (localX !== undefined && !isNaN(localX)) {
+        v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
+      } else {
+        // Cursor mode: use cursor X relative to slider bg position
+        const cursorX = this.scene.input.activePointer?.x ?? x;
+        const relX = cursorX - (x - 150);
+        v = Phaser.Math.Clamp(relX / 300, 0, 1);
+      }
       handle.x = x - 150 + 300 * v;
       fill.setDisplaySize(300 * v, 8);
       valueText.setText(`${Math.round(v * 100)}%`);
