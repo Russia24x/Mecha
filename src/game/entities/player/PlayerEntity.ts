@@ -470,11 +470,23 @@ export class PlayerEntity {
       }
       if (now >= this.dashUntil) this.isDashing = false;
     } else if (now < this.meleeCommitUntil || now < this.fireCommitUntil) {
-      // ── Phase 3: Animation commitment — movement locked during attack ──
-      // Player can't run while attacking. Decelerate rapidly but allow falling.
-      // This makes attacks feel committed and heavy (per Design Pillars: Heavy·Precise·Punishing).
+      // Movement while attacking: reduced speed but NOT locked.
+      // Class differentiation via speedMult: Scout (1.15) barely slowed,
+      // Assault (1.0) moderate, Titan (0.85) more slowed.
+      // Melee still locks more than fire (heavier commitment).
       const body = this.sprite.body;
-      this.sprite.setVelocityX((body ? body.velocity.x : 0) * 0.5);
+      const currentVx = body ? body.velocity.x : 0;
+      const isMelee = now < this.meleeCommitUntil;
+      // Melee: 40% speed. Fire: 70% speed (can still strafe while shooting).
+      const speedFactor = isMelee ? 0.4 : 0.7;
+      if (moveX !== 0) {
+        const targetVx = moveX * this.stats.moveSpeed * speedFactor;
+        this.sprite.setVelocityX(Phaser.Math.Linear(currentVx, targetVx, 0.3));
+        this.facing = moveX > 0 ? 'right' : 'left';
+      } else {
+        // Decelerate when no input
+        this.sprite.setVelocityX(currentVx * (isMelee ? 0.5 : 0.85));
+      }
     } else {
       if (moveX !== 0) {
         const targetVx = moveX * this.stats.moveSpeed;
