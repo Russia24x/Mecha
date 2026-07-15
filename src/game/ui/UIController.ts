@@ -169,6 +169,23 @@ export class UIController {
     if (f && !f.disabled) f.onSelect();
   }
 
+  /**
+   * B3 fix: Focus the first non-disabled button at or after `startIndex`.
+   * Used by HangarUI.showTab() to move focus from EXIT (index 0) to the
+   * first content button after tab switch, preventing accidental EXIT
+   * activation on the next key press.
+   */
+  focusButtonFrom(startIndex: number): void {
+    for (let i = startIndex; i < this.focusables.length; i++) {
+      if (!this.focusables[i].disabled) {
+        this.focusIndex = i;
+        this.updateFocusVisual();
+        return;
+      }
+    }
+    // Fallback: keep current focusIndex if no non-disabled button found
+  }
+
   // ================ Cursor ================
 
   show(minDepth: number = 40): void {

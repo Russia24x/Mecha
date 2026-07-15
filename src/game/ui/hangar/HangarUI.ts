@@ -178,6 +178,10 @@ export class HangarUI implements OverlayUI {
       case 'companion': this.renderCompanionTab(); break;
       case 'paint': this.renderPaintTab(); break;
     }
+    // B3 fix: move focus from EXIT (index 0) to first content button.
+    // Persistent buttons are: EXIT (1) + tabs (4) = 5, so content starts at index 5.
+    // This prevents accidental EXIT activation after tab switch.
+    this.ctrl.focusButtonFrom(1 + this.tabButtons.length);
     } finally {
       this.switchingTab = false;
     }
