@@ -115,10 +115,10 @@ export class LoreSystem {
   }
 
   /** Check an unlock condition string against save data. */
-  private static checkCondition(condition: string, save: { player: { bossesKilled: number; unlockedWeapons: string[]; inventory: { itemId: string }[] }; discoveredAreas: string[] }): boolean {
+  private static checkCondition(condition: string, save: { player: { bossesKilled: number; unlockedWeapons: string[]; inventory: { itemId: string }[] }; discoveredAreas: string[]; bestBossTimes: Record<string, number> }): boolean {
     const [type, id] = condition.split(':');
     switch (type) {
-      case 'boss_kill': return save.player.bossesKilled > 0; // simplified
+      case 'boss_kill': return save.bestBossTimes[id] !== undefined;  // N6 fix: check specific boss, not any boss
       case 'weapon_unlock': return save.player.unlockedWeapons.includes(id);
       case 'area_discover': return save.discoveredAreas.includes(id);
       case 'item_collect': return save.player.inventory.some((i: { itemId: string }) => i.itemId === id);
