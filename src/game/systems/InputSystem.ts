@@ -285,6 +285,24 @@ export class InputSystem {
   }
 
   /**
+   * Clear all keyboard edge flags. Called when transitioning from pause to gameplay
+   * to prevent "phantom" actions (e.g., Space pressed during Pause → jump after unpause).
+   */
+  static clearKbEdges(): void {
+    this.kbEdge.jump = false;
+    this.kbEdge.fire = false;
+    this.kbEdge.melee = false;
+    this.kbEdge.dash = false;
+    this.kbEdge.weaponNext = false;
+    this.kbEdge.weaponPrev = false;
+    this.kbEdge.pause = false;
+    this.kbEdge.interact = false;
+    this.kbEdge.back = false;
+    this.kbEdge.grapple = false;
+    this.kbEdge.emp = false;
+  }
+
+  /**
    * Merge keyboard edges + poll gamepad. Call every frame.
    * Keyboard edges survive from when they were pressed until this method runs.
    */

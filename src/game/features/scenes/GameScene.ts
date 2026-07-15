@@ -801,6 +801,10 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       this.paused = false;
       this.pauseMenuUI.hide();
+      // Phantom jump fix: clear keyboard edges that were set during pause
+      // (e.g., Space sets kbEdge.jump during pause, which would cause
+      // player to jump on the next frame after unpause)
+      InputSystem.clearKbEdges();
       // Phaser 4 camera fade — smooth resume transition (per cameras skill)
       this.cameras.main.fadeIn(300, 5, 7, 13);
       AudioSystem.play('uiClick');
