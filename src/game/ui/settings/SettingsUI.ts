@@ -379,7 +379,7 @@ export class SettingsUI extends NavigableOverlay {
     // Register via registerNav (handles setInteractive + ctrl.addButton)
     this.registerNav(bg, labelEl, () => {
       idx = (idx + 1) % options.length;
-      valueText.setText(options[idx]);
+      if (valueText && valueText.active) { try { valueText.setText(options[idx]); } catch { /* destroyed */ } }
       onSelect(idx);
     });
     this.optionElements.push({ objects, bg, text: labelEl, onSelect: () => {} });
