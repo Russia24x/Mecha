@@ -317,6 +317,7 @@ export class GameScene extends Phaser.Scene {
    */
   private openOverlay(id: OverlayId): void {
     const parent: OverlayParent = this.state === 'hub' ? 'hub' : this.state === 'play' ? 'play' : 'menu';
+    console.log('[HANGAR-BYPASS] openOverlay called:', id, 'parent:', parent);
 
     // If from play, hide pause menu (paused stays true so play doesn't update)
     if (parent === 'play') {

@@ -74,6 +74,7 @@ export class OverlayManager {
    * Open an overlay on top of the current state.
    */
   static open(id: OverlayId, ui: OverlayUI, parent: OverlayParent): void {
+    console.log('[HANGAR-BYPASS] OverlayManager.open:', id, 'parent:', parent);
     if (this.stack.length > 0 && this.stack[this.stack.length - 1].id === id) return;
     this.stack.push({ id, ui, parent });
     ui.show();
