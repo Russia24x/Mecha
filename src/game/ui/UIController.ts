@@ -112,6 +112,13 @@ export class UIController {
     });
     // Wire mouse/touch handlers
     if (!opts?.disabled) {
+      // S1 fix: remove old listeners BEFORE setInteractive to prevent accumulation.
+      // When re-registering the same bg (e.g. Hangar tab switch), old listeners
+      // must be cleared first. clearFocusables() does this, but as a safety net
+      // (and for cases where addButton is called without clearFocusables):
+      bg.off('pointerover');
+      bg.off('pointerout');
+      bg.off('pointerdown');
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerover', () => {
         this.focusIndex = this.focusables.findIndex(f => f.bg === bg);
@@ -142,14 +149,17 @@ export class UIController {
   /** Clear all focusables (call before rebuilding tab content).
    *  Removes event listeners from bg objects to prevent accumulation. */
   clearFocusables(): void {
-    // Remove event listeners + disable interactive on all registered bgs
+    // S1 fix: do NOT call removeInteractive() — it corrupts Phaser's InputPlugin
+    // internal state when called on a bg that's being processed mid-event.
+    // Data showed _list.length doesn't change with removeInteractive, but mouse
+    // still dies after 2-3 clicks. Only bg.off() listeners; bgs that are
+    // destroyed are cleaned up by Phaser automatically.
     for (const f of this.focusables) {
       if (f.bg && f.bg.active) {
         try {
           f.bg.off('pointerover');
           f.bg.off('pointerout');
           f.bg.off('pointerdown');
-          f.bg.removeInteractive();
         } catch { /* bg already destroyed */ }
       }
     }

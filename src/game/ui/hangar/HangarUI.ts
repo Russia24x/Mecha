@@ -132,59 +132,67 @@ export class HangarUI implements OverlayUI {
     // Guard against re-entrant calls (rapid L1/R1 switching)
     if (this.switchingTab) return;
     this.switchingTab = true;
-    try {
-      this.currentTab = tab;
-    // Update tab highlights
-    this.tabButtons.forEach(tb => {
-      if (tb.tab === tab) {
-        tb.bg.setFillStyle(THEME.BG_PANEL_HI, 1);
-        tb.bg.setStrokeStyle(2, THEME.CYAN, 0.9);
-        tb.text.setColor(THEME.TEXT_ACCENT);
-      } else {
-        tb.bg.setFillStyle(THEME.BG_PANEL, 0.9);
-        tb.bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
-        tb.text.setColor(THEME.TEXT_MED);
+    // S1 fix: defer clearFocusables + re-registration to next frame.
+    // When showTab is called from a pointerdown handler (clicking a tab),
+    // clearFocusables() calls removeInteractive() on the bg that Phaser is
+    // currently processing — modifying InputPlugin's internal list mid-event.
+    // This corrupts Phaser's input system, killing all subsequent mouse events.
+    // delayedCall(0) lets Phaser finish the current pointer event first.
+    this.scene.time.delayedCall(0, () => {
+      try {
+        this.currentTab = tab;
+      // Update tab highlights
+      this.tabButtons.forEach(tb => {
+        if (tb.tab === tab) {
+          tb.bg.setFillStyle(THEME.BG_PANEL_HI, 1);
+          tb.bg.setStrokeStyle(2, THEME.CYAN, 0.9);
+          tb.text.setColor(THEME.TEXT_ACCENT);
+        } else {
+          tb.bg.setFillStyle(THEME.BG_PANEL, 0.9);
+          tb.bg.setStrokeStyle(1, THEME.STROKE_DIM, 0.6);
+          tb.text.setColor(THEME.TEXT_MED);
+        }
+      });
+      this.ctrl.setCurrentTab(this.tabButtons.findIndex(tb => tb.tab === tab));
+      // Clear content container
+      if (this.contentContainer) {
+        this.contentContainer.destroy(true);
+        this.contentContainer = null;
+      }
+      // Clear all focusables and re-register persistent buttons
+      this.ctrl.clearFocusables();
+      // Re-register EXIT (using stored field references — no list.find hack)
+      this.ctrl.addButton(this.exitBg.x, this.exitBg.y, this.exitBg,
+        () => { this.hide(); this.onBackCallback(); }, { text: this.exitText });
+      // Re-register tab buttons
+      this.tabButtons.forEach(tb => {
+        this.ctrl.addButton(tb.bg.x, tb.bg.y, tb.bg,
+          () => { this.showTab(tb.tab); }, { text: tb.text });
+      });
+      // Re-register tabs for L1/R1 switching
+      this.ctrl.addTabs(this.tabButtons.map(tb => ({
+        id: tb.tab, label: tb.text.text,
+        onSelect: () => { this.showTab(tb.tab); },
+      })));
+      // Build content (registers content-specific buttons)
+      this.contentContainer = this.scene.add.container(0, 0);
+      this.contentContainer.scrollFactorX = 0;
+      this.contentContainer.scrollFactorY = 0;
+      this.container.add(this.contentContainer);
+      switch (tab) {
+        case 'chassis': this.renderChassisTab(); break;
+        case 'loadout': this.renderLoadoutTab(); break;
+        case 'companion': this.renderCompanionTab(); break;
+        case 'paint': this.renderPaintTab(); break;
+      }
+      // B3 fix: move focus from EXIT (index 0) to first content button.
+      // Persistent buttons are: EXIT (1) + tabs (4) = 5, so content starts at index 5.
+      // This prevents accidental EXIT activation after tab switch.
+      this.ctrl.focusButtonFrom(1 + this.tabButtons.length);
+      } finally {
+        this.switchingTab = false;
       }
     });
-    this.ctrl.setCurrentTab(this.tabButtons.findIndex(tb => tb.tab === tab));
-    // Clear content container
-    if (this.contentContainer) {
-      this.contentContainer.destroy(true);
-      this.contentContainer = null;
-    }
-    // Clear all focusables and re-register persistent buttons
-    this.ctrl.clearFocusables();
-    // Re-register EXIT (using stored field references — no list.find hack)
-    this.ctrl.addButton(this.exitBg.x, this.exitBg.y, this.exitBg,
-      () => { this.hide(); this.onBackCallback(); }, { text: this.exitText });
-    // Re-register tab buttons
-    this.tabButtons.forEach(tb => {
-      this.ctrl.addButton(tb.bg.x, tb.bg.y, tb.bg,
-        () => { this.showTab(tb.tab); }, { text: tb.text });
-    });
-    // Re-register tabs for L1/R1 switching
-    this.ctrl.addTabs(this.tabButtons.map(tb => ({
-      id: tb.tab, label: tb.text.text,
-      onSelect: () => { this.showTab(tb.tab); },
-    })));
-    // Build content (registers content-specific buttons)
-    this.contentContainer = this.scene.add.container(0, 0);
-    this.contentContainer.scrollFactorX = 0;
-    this.contentContainer.scrollFactorY = 0;
-    this.container.add(this.contentContainer);
-    switch (tab) {
-      case 'chassis': this.renderChassisTab(); break;
-      case 'loadout': this.renderLoadoutTab(); break;
-      case 'companion': this.renderCompanionTab(); break;
-      case 'paint': this.renderPaintTab(); break;
-    }
-    // B3 fix: move focus from EXIT (index 0) to first content button.
-    // Persistent buttons are: EXIT (1) + tabs (4) = 5, so content starts at index 5.
-    // This prevents accidental EXIT activation after tab switch.
-    this.ctrl.focusButtonFrom(1 + this.tabButtons.length);
-    } finally {
-      this.switchingTab = false;
-    }
   }
 
   // ================ CHASSIS TAB ================

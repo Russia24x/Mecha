@@ -1367,3 +1367,35 @@ Stage Summary:
 - B8a (Pause) and B8b (Hangar→Menu) are same family
 - Fix design needed: context-dependent ESC or edge consumption
 - NO CODE CHANGES
+
+---
+Task ID: b8-fix-committed + hangar-bypass-discovered
+Agent: main
+Task: Commit B8 fix, discover Hangar bypass bug
+
+Work Log:
+- B8 fix committed (59c183b) and pushed to origin/main
+- Fix: single consumption point for backPressed||pausePressed in GameScene.update()
+  with priority chain + early return
+- Verified with debug logging: Quests overlay + ESC → close once → return to hub ✅
+- Discovery during B8 debugging: Hangar bypasses OverlayManager
+  * Clicking HANGAR nav button does NOT call GameScene.openOverlay
+  * No OverlayManager.open log when Hangar opens
+  * hasOpen stays false when Hangar is "open"
+  * This means B8 fix doesn't cover Hangar (it's not in OverlayManager.stack)
+- git blame confirms openOverlay code is correct (from 774662ea, 2026-07-11)
+  * case 'hangar' added in 63612214 (2026-07-13)
+  * OverlayManager.open(id, ui, parent) always called at line 352
+  * So the code path is correct — issue is in mouse click not reaching openOverlay
+- Separate bug: mouse click on HANGAR nav button doesn't trigger onClick
+  * Enter on focused nav button DOES work (Quests opened via Enter)
+  * Mouse click does NOT (no openOverlay log)
+  * Possible cause: pointerdown handler not registered correctly, or click position off
+
+Stage Summary:
+- B8 FIXED for registered overlays (Settings, Skills, Inventory, Quests, Map)
+- B8 NOT covering Hangar (separate bypass bug)
+- New bug discovered: Hangar bypasses OverlayManager
+- New bug discovered: mouse click on nav buttons may not work
+- Both need separate investigation
+- Commit 59c183b pushed to origin/main (fast-forward a3e260b..59c183b)
