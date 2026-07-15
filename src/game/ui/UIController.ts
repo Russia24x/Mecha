@@ -281,6 +281,9 @@ export class UIController {
       // Cursor click (A button / fire)
       // B2 fix: use gp* flags (gamepad-only) so keyboard activation (keyHandler)
       // doesn't double-fire with update() on the same key press.
+      if (input.gpJumpPressed || input.gpFirePressed) {
+        console.log('[S2-DEBUG] A button pressed — gpJump:', input.gpJumpPressed, 'gpFire:', input.gpFirePressed, 'clickCooldown:', this.clickCooldown, 'lastHovered:', this.lastHovered ? 'SET' : 'NULL', 'active:', this.lastHovered?.active);
+      }
       if ((input.gpJumpPressed || input.gpFirePressed) && this.clickCooldown <= 0) {
         if (this.lastHovered && this.lastHovered.active) {
           // emit('pointerdown') fires addButton's handler which plays uiClick
