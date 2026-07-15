@@ -291,9 +291,8 @@ export class BossEntity {
     return Math.max(0, this.health / this.maxHealth);
   }
 
-  /** Static accessor for boss data (used by GameScene for health bar name). */
+  /** Static accessor for boss data (used by BossHealthBarUI for boss name). */
   static getBossData(bossId: string): import('../../data/types').BossData | null {
-    const { getBoss } = require('../../data/bosses/bosses') as typeof import('../../data/bosses/bosses');
     return getBoss(bossId) ?? null;
   }
 }

@@ -228,14 +228,11 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('PLAYER_DEAD', this.onPlayerDied, this);
     EventBus.on('ENEMY_DEAD', this.onEnemyKilled, this);
     EventBus.on('BOSS_DEAD', this.onBossDied, this);
-    EventBus.on('CHECKPOINT', () => this.hud?.toast(t('checkpoint.saved')));
-    EventBus.on('GAME_STATE', (p: unknown) => {
-      const data = p as { sectionName?: string };
-      if (data.sectionName) this.hud?.setSection(data.sectionName);
-    });
-    EventBus.on('LEVEL_UP', () => this.hud?.toast(t('levelup')));
-    EventBus.on('SKILL_UNLOCKED', () => { this.player?.refreshStats(); });
-    EventBus.on('ABILITY_UNLOCKED', () => { this.player?.refreshStats(); });
+    EventBus.on('CHECKPOINT', this.onCheckpointSaved, this);
+    EventBus.on('GAME_STATE', this.onGameStateChanged, this);
+    EventBus.on('LEVEL_UP', this.onLevelUp, this);
+    EventBus.on('SKILL_UNLOCKED', this.onSkillUnlocked, this);
+    EventBus.on('ABILITY_UNLOCKED', this.onAbilityUnlocked, this);
     // ── Ability events ──
     EventBus.on('EMP_PULSE', this.onEmpPulse, this);
     EventBus.on('EMP_HIT', this.onEmpHit, this);
@@ -937,6 +934,27 @@ export class GameScene extends Phaser.Scene {
   // ================ ABILITY EVENT HANDLERS ================
 
   /** EMP pulse — open any EMP doors in range + stun enemies (stun handled in PlayerEntity). */
+  private onLevelUp = (): void => {
+    this.hud?.toast(t('levelup'));
+  };
+
+  private onSkillUnlocked = (): void => {
+    this.player?.refreshStats();
+  };
+
+  private onAbilityUnlocked = (): void => {
+    this.player?.refreshStats();
+  };
+
+  private onCheckpointSaved = (): void => {
+    this.hud?.toast(t('checkpoint.saved'));
+  };
+
+  private onGameStateChanged = (p: unknown): void => {
+    const data = p as { sectionName?: string };
+    if (data.sectionName) this.hud?.setSection(data.sectionName);
+  };
+
   private onEmpPulse = (payload: unknown): void => {
     const data = payload as { x: number; y: number; radius: number };
     if (!this.loadedArea) return;
@@ -1087,11 +1105,11 @@ export class GameScene extends Phaser.Scene {
     EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
     EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
     EventBus.off('BOSS_DEAD', this.onBossDied, this);
-    EventBus.off('CHECKPOINT');
-    EventBus.off('GAME_STATE');
-    EventBus.off('LEVEL_UP');
-    EventBus.off('SKILL_UNLOCKED');
-    EventBus.off('ABILITY_UNLOCKED');
+    EventBus.off('CHECKPOINT', this.onCheckpointSaved, this);
+    EventBus.off('GAME_STATE', this.onGameStateChanged, this);
+    EventBus.off('LEVEL_UP', this.onLevelUp, this);
+    EventBus.off('SKILL_UNLOCKED', this.onSkillUnlocked, this);
+    EventBus.off('ABILITY_UNLOCKED', this.onAbilityUnlocked, this);
     EventBus.off('EMP_PULSE', this.onEmpPulse, this);
     EventBus.off('EMP_HIT', this.onEmpHit, this);
     EventBus.off('HACK_COMPLETE', this.onHackComplete, this);

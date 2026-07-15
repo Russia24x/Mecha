@@ -373,6 +373,8 @@ export class SaveSystem {
 
   static clear(): void {
     this.cache = { ...DEFAULT_SAVE, player: { ...DEFAULT_PLAYER }, settings: { ...DEFAULT_SETTINGS } };
+    this.collectedCache = null;  // N1 fix: reset cache Sets so isCollectibleCollected returns false after clear
+    this.shortcutsCache = null;
     this.persist();
   }
 }
