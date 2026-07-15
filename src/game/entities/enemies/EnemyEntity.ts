@@ -279,7 +279,7 @@ export class EnemyEntity {
         if (!isStaggered) this.changeState('aggro');
         break;
     }
-    this.updateFlash();
+    this.updateFlash(deltaMs);
   }
 
   private runAttackFSM(playerPos: Phaser.Math.Vector2): void {
@@ -478,12 +478,12 @@ export class EnemyEntity {
     this.projectiles.push(proj);
   }
 
-  private updateFlash(): void {
+  private updateFlash(deltaMs: number): void {
     if (!this.sprite || !this.sprite.active) return;
     if (!this.visual) return;
     // Update visual position + facing
     this.visual.container.setPosition(this.sprite.x, this.sprite.y);
-    this.animTime += 16;
+    this.animTime += deltaMs;  // N9 fix: use deltaMs instead of hardcoded 16
     const body = this.sprite.body;
     const vx = body?.velocity.x ?? 0;
     if (Math.abs(vx) > 0.5) {
