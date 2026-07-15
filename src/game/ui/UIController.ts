@@ -285,13 +285,19 @@ export class UIController {
       }
     }
 
-    // Item navigation (D-pad/stick up/down)
+    // Item navigation (D-pad/stick up/down/left/right)
+    // Left/right only for focus navigation when NO tabs (tabs use L1/R1 above).
+    // When tabs exist, left/right is consumed by tab switching (lines 271-286).
     const up = input.leftStickY < -0.3 || input.heldUp;
     const down = input.leftStickY > 0.3 || input.heldDown;
-    if (up || down) {
+    const left = this.tabs.length === 0 && (input.heldLeft || input.leftStickX < -0.3);
+    const right = this.tabs.length === 0 && (input.heldRight || input.leftStickX > 0.3);
+    if (up || down || left || right) {
       if (this.focusables.length > 0) {
         if (up) this.focusIndex = this.findNearest('up');
-        else this.focusIndex = this.findNearest('down');
+        else if (down) this.focusIndex = this.findNearest('down');
+        else if (left) this.focusIndex = this.findNearest('left');
+        else this.focusIndex = this.findNearest('right');
         this.updateFocusVisual();
         AudioSystem.play('uiHover');
         this.navCooldown = 120;
@@ -323,7 +329,7 @@ export class UIController {
 
   // ================ Internal: spatial navigation ================
 
-  private findNearest(direction: 'up' | 'down'): number {
+  private findNearest(direction: 'up' | 'down' | 'left' | 'right'): number {
     if (this.focusables.length === 0) return -1;
     if (this.focusIndex < 0) return 0;
     const current = this.focusables[this.focusIndex];
@@ -341,16 +347,19 @@ export class UIController {
       let primary = 0;
       let secondary = 0;
       if (direction === 'up') { inDir = dy < -10; primary = Math.abs(dy); secondary = Math.abs(dx); }
-      else { inDir = dy > 10; primary = Math.abs(dy); secondary = Math.abs(dx); }
+      else if (direction === 'down') { inDir = dy > 10; primary = Math.abs(dy); secondary = Math.abs(dx); }
+      else if (direction === 'left') { inDir = dx < -10; primary = Math.abs(dx); secondary = Math.abs(dy); }
+      else { inDir = dx > 10; primary = Math.abs(dx); secondary = Math.abs(dy); }
       if (!inDir) continue;
       const score = primary + secondary * 0.4;
       if (score < bestScore) { bestScore = score; bestIdx = i; }
     }
-    // Fallback: wrap around
+    // Fallback: wrap around (only for up/down to preserve existing behavior;
+    // left/right have no sensible wrap in 2D grids)
     if (bestIdx === -1) {
-      return direction === 'up'
-        ? (this.focusIndex - 1 + this.focusables.length) % this.focusables.length
-        : (this.focusIndex + 1) % this.focusables.length;
+      if (direction === 'up') return (this.focusIndex - 1 + this.focusables.length) % this.focusables.length;
+      if (direction === 'down') return (this.focusIndex + 1) % this.focusables.length;
+      return this.focusIndex;  // no left/right neighbor — stay
     }
     return bestIdx;
   }
@@ -471,15 +480,23 @@ export class UIController {
         this.focusIndex = this.findNearest('down'); moved = true;
       } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
         if (this.tabs.length > 0) {
+          // Tab switching (existing behavior for UIs with tabs)
           this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
           this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
           this.navCooldown = 200;
+        } else {
+          // Focus navigation left (new — for UIs without tabs, e.g. Pause Menu)
+          this.focusIndex = this.findNearest('left'); moved = true;
         }
       } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
         if (this.tabs.length > 0) {
+          // Tab switching (existing behavior for UIs with tabs)
           this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
           this.tabs[this.currentTabIndex].onSelect(); AudioSystem.play('uiClick');
           this.navCooldown = 200;
+        } else {
+          // Focus navigation right (new — for UIs without tabs, e.g. Pause Menu)
+          this.focusIndex = this.findNearest('right'); moved = true;
         }
       }
       if (moved) {
