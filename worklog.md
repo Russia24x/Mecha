@@ -1144,3 +1144,137 @@ Stage Summary:
 - B7 gamepad path: VERIFIED by code inspection (same gate pattern), but NOT by behavioral test
 - Gamepad behavioral test needs real gamepad (mock method unreliable)
 - Commit 22eaaa7 pushed to origin/main
+
+---
+Task ID: b1-fix
+Agent: main
+Task: Fix B1 — add left/right spatial navigation for UIs without tabs (e.g. Pause Menu)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: Local = origin/main = 22eaaa7 (synced)
+- Analyzed B1 root cause:
+  * findNearest() only supported 'up' | 'down' — no left/right
+  * keyHandler: ArrowLeft/Right only worked if tabs.length > 0
+  * update() polling: left/right only for tab switching
+  * Pause Menu has no tabs → left/right dead → right column inaccessible
+- Implemented fix (3 changes in UIController.ts):
+  1. findNearest() now accepts 'left' | 'right' (dx primary, dy secondary)
+     Fallback for left/right: stay (no wrap — 2D grids have no sensible horizontal wrap)
+  2. update(): when tabs.length === 0, heldLeft/heldRight + leftStickX trigger findNearest('left'/'right')
+  3. keyHandler: ArrowLeft/KeyA, ArrowRight/KeyD check tabs.length first
+     If tabs → tab switch (existing behavior preserved)
+     If no tabs → findNearest('left'/'right') (new)
+- TypeScript: clean (game code)
+- Dev server: HTTP 200
+- Verified with VLM (keyboard only):
+  * CHECKPOINT → Right → RESTART ✅
+  * RESTART → Left → CHECKPOINT ✅
+  * CHECKPOINT → Down → NEURAL CORTEX ✅
+  * NEURAL CORTEX → Right → DATA VAULT ✅
+- Regression test (Hangar has tabs):
+  * Arrow Left/Right still switches tabs (content changed) ✅
+- Gamepad path: NOT verified (mock unreliable — needs physical gamepad)
+
+Stage Summary:
+- Commit e2db393 pushed to origin/main (fast-forward 22eaaa7..e2db393)
+- B1 keyboard: FULLY VERIFIED (4 navigation tests passed)
+- B1 gamepad: pending manual test with physical gamepad
+- Regression: Hangar tab switching preserved
+
+---
+Task ID: b8-analysis (NO CODE CHANGES — analysis only)
+Agent: main
+Task: Analyze B8 — ESC/backPressed potential double-action (separate from B2)
+
+Context:
+  B2 fix (commit f825f59) separated keyboard/gamepad sources for UI activation.
+  During that analysis, discovered ESC sets BOTH kbEdge.pause AND kbEdge.back
+  in InputSystem.onKeyDown. This is a separate issue (B8) that needs its own
+  analysis before any fix.
+
+Analysis:
+
+1. ESC in InputSystem.onKeyDown (line 196-197):
+   case 'Escape':
+     this.kbEdge.pause = true;
+     this.kbEdge.back = true;
+   → Both edges set on same key press.
+
+2. In update(), these become:
+   state.pausePressed = kbEdge.pause || gpPause
+   state.backPressed = kbEdge.back || gpBack
+   → Both true when ESC pressed (keyboard).
+
+3. Consumers:
+   - input.pausePressed:
+     * GameScene line 398: if (input.pausePressed && !loreWasOpen) → togglePause()
+     * GameScene line 419: if (state === 'hub' && input.pausePressed) → setState('menu')
+   - input.backPressed:
+     * OverlayManager line 135: if (input.backPressed) → close() (closes overlay)
+     * PauseMenuUI line 142: if (input.backPressed) → triggerFirst() (resumes)
+     * LoreController line 64: if (backPressed) → closes lore panel
+
+4. Flow analysis — when is double-action possible?
+
+   Scenario A: Overlay open (e.g. Settings over Pause)
+   - GameScene.update() line 382: if (OverlayManager.hasOpen) → OverlayManager.handleInput()
+   - OverlayManager.handleInput() line 135: if (input.backPressed) → close() (closes Settings)
+   - GameScene line 390: return; → does NOT reach line 398 (pausePressed check)
+   - Result: ESC closes overlay, does NOT toggle pause. SINGLE action. ✅ OK
+
+   Scenario B: Pause open (no overlay)
+   - GameScene.update() line 382: OverlayManager.hasOpen = false → skip
+   - GameScene line 393: state === 'play' → enter
+   - GameScene line 398: if (input.pausePressed && !loreWasOpen) → togglePause()
+     → togglePause() sees this.paused = true → sets paused = false, hides pause menu (RESUMES)
+   - GameScene line 402: InputSystem.setGameplayBlocked(this.paused) → now false
+   - GameScene line 411: else branch (paused = false now) → skip pauseMenuUI.handleNavigation()
+   - Result: ESC resumes via pausePressed. backPressed NOT consumed (PauseMenuUI.handleNavigation
+     not called this frame). SINGLE action. ✅ OK (but by luck — backPressed is ignored)
+
+   Scenario C: Pause open, but pauseMenuUI.handleNavigation() IS called
+   - This happens when: state === 'play' && this.paused === true
+   - GameScene line 411-413: else { this.pauseMenuUI.handleNavigation(); }
+   - PauseMenuUI line 142: if (input.backPressed) → triggerFirst() (resumes)
+   - BUT line 398 also: if (input.pausePressed) → togglePause() (also resumes)
+   - Result: BOTH togglePause() AND triggerFirst() fire → togglePause resumes,
+     triggerFirst() calls onResume → togglePause() AGAIN.
+   - togglePause has 200ms debounce (line 776: if (now - lastPauseToggleAt < 200) return)
+   - So second togglePause is debounced. But triggerFirst → onResume → togglePause
+     may happen within same frame (before debounce timestamp updates).
+   - POTENTIAL DOUBLE-ACTION: resume happens twice, but debounced. ⚠️ NEEDS TESTING
+
+   Scenario D: Hub state
+   - GameScene line 419: if (state === 'hub' && input.pausePressed) → setState('menu')
+   - backPressed not consumed in hub (no overlay, no pause menu)
+   - Result: ESC goes hub → menu. SINGLE action. ✅ OK
+
+5. Risk assessment:
+   - Scenario A (overlay): OK
+   - Scenario B (pause, first ESC): OK by luck
+   - Scenario C (pause, when handleNavigation called): POTENTIAL double-action
+     - togglePause + triggerFirst both fire
+     - 200ms debounce may or may not catch it
+     - NEEDS BEHAVIORAL TEST
+   - Scenario D (hub): OK
+
+6. Question for fix design:
+   Should ESC have context-dependent meaning?
+   - If overlay open → only back (close overlay)
+   - If pause open → only back (resume)
+   - If in play, not paused → only pause (open pause)
+   - If in hub → only back (go to menu)
+   
+   Current: ESC sets both pause+back edges, consumers race.
+   Proposed: ESC should set ONLY one edge based on context.
+   But InputSystem doesn't know UI context — GameScene does.
+   
+   Alternative: keep both edges, but ensure only one consumer fires
+   (e.g., OverlayManager/PauseMenuUI consume backPressed, GameScene
+   only reads pausePressed when no overlay/pause is open).
+
+Stage Summary:
+- B8 documented, NO CODE CHANGES
+- Potential double-action in Scenario C (pause + handleNavigation same frame)
+- Needs behavioral test before fix
+- Fix design requires context-dependent ESC semantics (separate task)
