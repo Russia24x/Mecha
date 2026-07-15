@@ -252,7 +252,9 @@ export class UIController {
         this.processCursorHover();
       }
       // Cursor click (A button / fire)
-      if ((input.jumpPressed || input.firePressed) && this.clickCooldown <= 0) {
+      // B2 fix: use gp* flags (gamepad-only) so keyboard activation (keyHandler)
+      // doesn't double-fire with update() on the same key press.
+      if ((input.gpJumpPressed || input.gpFirePressed) && this.clickCooldown <= 0) {
         if (this.lastHovered && this.lastHovered.active) {
           // emit('pointerdown') fires addButton's handler which plays uiClick
           this.lastHovered.emit('pointerdown');
@@ -269,14 +271,17 @@ export class UIController {
 
     // Tab switching (L1/R1, stick left/right)
     if (this.tabs.length > 0) {
-      if (input.weaponPrevPressed || input.leftStickX < -0.3) {
+      // B2 fix: use gpWeaponPrevPressed (gamepad-only) for tab switching.
+      // Keyboard Q/E is handled by keyHandler (not here) to avoid double-fire.
+      if (input.gpWeaponPrevPressed || input.leftStickX < -0.3) {
         this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
         this.tabs[this.currentTabIndex].onSelect();
         AudioSystem.play('uiClick');
         this.navCooldown = 200;
         return;
       }
-      if (input.weaponNextPressed || input.leftStickX > 0.3) {
+      // B2 fix: use gpWeaponNextPressed (gamepad-only) for tab switching.
+      if (input.gpWeaponNextPressed || input.leftStickX > 0.3) {
         this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
         this.tabs[this.currentTabIndex].onSelect();
         AudioSystem.play('uiClick');
@@ -305,7 +310,9 @@ export class UIController {
     }
 
     // Activate (A button / Enter / fire)
-    if (input.jumpPressed || input.firePressed) {
+    // B2 fix: use gp* flags (gamepad-only) for focus activation.
+    // Keyboard Enter/Space is handled by keyHandler (not here) to avoid double-fire.
+    if (input.gpJumpPressed || input.gpFirePressed) {
       const f = this.focusables[this.focusIndex];
       if (f && !f.disabled) {
         AudioSystem.play('uiClick');
@@ -462,10 +469,12 @@ export class UIController {
       // NOTE: Space also sets jumpPressed in InputSystem (via kbEdge.jump).
       // To prevent double-fire (keyHandler + update()), we set navCooldown
       // so update() skips activation for this frame.
+      // B2 fix: keyHandler does NOT play uiClick — onSelect callback is the
+      // single source of activation sound (e.g. togglePause, openOverlay).
+      // This prevents double-sound when both keyHandler and onSelect play.
       if (e.code === 'Enter' || e.code === 'Space') {
         const f = this.focusables[this.focusIndex];
         if (f && !f.disabled) {
-          AudioSystem.play('uiClick');
           f.onSelect();
           this.navCooldown = 300;  // prevent update() from also activating
         }

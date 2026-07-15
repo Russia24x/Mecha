@@ -48,6 +48,16 @@ export interface InputState {
   backPressed: boolean;
   grapplePressed: boolean;
   empPressed: boolean;
+  // Gamepad-only edge flags (B2 fix: separate source for UI activation)
+  // These mirror the mixed flags above but only reflect gamepad input.
+  // UIController.update() reads these instead of the mixed flags so that
+  // keyboard activation (via keyHandler) and gamepad activation (via update())
+  // don't double-fire on the same key press.
+  gpJumpPressed: boolean;
+  gpFirePressed: boolean;
+  gpWeaponNextPressed: boolean;
+  gpWeaponPrevPressed: boolean;
+  gpBackPressed: boolean;  // added for B8 analysis, not yet consumed
   leftStickX: number;
   leftStickY: number;
   rightStickX: number;
@@ -95,6 +105,9 @@ export class InputSystem {
     weaponNextPressed: false, weaponPrevPressed: false, pausePressed: false, interactPressed: false,
     backPressed: false,
     grapplePressed: false, empPressed: false,
+    gpJumpPressed: false, gpFirePressed: false,
+    gpWeaponNextPressed: false, gpWeaponPrevPressed: false,
+    gpBackPressed: false,
     leftStickX: 0, leftStickY: 0, rightStickX: 0, rightStickY: 0,
     gamepadConnected: false,
   };
@@ -354,6 +367,16 @@ export class InputSystem {
     this.state.backPressed = this.kbEdge.back || gpBack;
     this.state.grapplePressed = this.kbEdge.grapple;
     this.state.empPressed = this.kbEdge.emp;
+
+    // B2 fix: gamepad-only edge flags for UI activation.
+    // UIController.update() reads these (not the mixed flags above) so that
+    // keyboard activation (via keyHandler) and gamepad activation (via update())
+    // don't double-fire on the same key press.
+    this.state.gpJumpPressed = gpJump;
+    this.state.gpFirePressed = gpFire;
+    this.state.gpWeaponNextPressed = gpWeaponNext;
+    this.state.gpWeaponPrevPressed = gpWeaponPrev;
+    this.state.gpBackPressed = gpBack;  // for B8 analysis, not yet consumed
 
     // Clear keyboard edges (consumed by GameScene this frame)
     this.kbEdge.jump = false;
