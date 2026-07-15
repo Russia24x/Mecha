@@ -37,6 +37,7 @@ export class SettingsUI extends NavigableOverlay {
   private categoryIcons: Phaser.GameObjects.Text[] = [];
   private selectedCategory: CategoryId = 'audio';
   private optionElements: OptionElement[] = [];
+  private fullscreenUnsub: (() => void) | null = null;  // N5 fix: track listener for cleanup
 
   constructor(scene: Phaser.Scene, onBack: () => void) {
     super(scene);
@@ -176,7 +177,9 @@ export class SettingsUI extends NavigableOverlay {
         });
       // Sync toggle visual when fullscreen state changes externally
       // (e.g. user presses ESC or F11 to exit fullscreen)
-      FullscreenManager.onChange((active) => {
+      // N5 fix: store unsubscribe function for cleanup in destroy()
+      if (this.fullscreenUnsub) this.fullscreenUnsub();  // remove previous if refreshOptions called again
+      this.fullscreenUnsub = FullscreenManager.onChange((active) => {
         setFullscreenVisual(active);
       });
       // ── Resolution selector (data-driven, not hardcoded) ──
@@ -428,6 +431,12 @@ export class SettingsUI extends NavigableOverlay {
 
   // onNavLeft/onNavRight removed — UIController handles L1/R1 tab switching
   // and slider nudge via addButton onSelect (A button = nudge 5%)
+
+  destroy(): void {
+    // N5 fix: unsubscribe from FullscreenManager before destroying
+    if (this.fullscreenUnsub) { this.fullscreenUnsub(); this.fullscreenUnsub = null; }
+    super.destroy();
+  }
 }
 
 export default SettingsUI;
