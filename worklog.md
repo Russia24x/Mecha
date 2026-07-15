@@ -1278,3 +1278,92 @@ Stage Summary:
 - Potential double-action in Scenario C (pause + handleNavigation same frame)
 - Needs behavioral test before fix
 - Fix design requires context-dependent ESC semantics (separate task)
+
+---
+Task ID: b3-fix + persistence-root-cause + s1-retest
+Agent: main
+Task: Fix B3 (focus on EXIT after tab switch), retest S1, root-cause persistence
+
+Work Log:
+- B3 analysis confirmed: HangarUI.showTab() registers EXIT first → focusIndex=0 (EXIT)
+  after every tab switch. This was the cause of "10 rapid Arrow Right → exit to Hub".
+- B3 fix: 
+  * UIController.focusButtonFrom(startIndex) — focuses first non-disabled button at/after index
+  * HangarUI.showTab() calls ctrl.focusButtonFrom(1 + tabButtons.length) after content render
+- Verified B3 fix:
+  * Enter in Hangar after open: stays in Hangar (no unwanted exit)
+  * S1 retest: 10 rapid Arrow Right → stays in Hangar (was: exits to Hub)
+  * No console errors
+- Persistence root cause:
+  * SaveSystem uses localStorage key 'mecha_last_protocol_save_v3'
+  * localStorage was empty in earlier test because no selection had been made
+    (default state in memory, only persisted on change via persist())
+  * Verified: set localStorage directly with selectedChassis='scout', reloaded,
+    Hangar showed Scout as EQUIPPED. Persistence WORKING, not broken.
+- Regression 2 (gameplay Space/KeyJ): INCONCLUSIVE via agent-browser
+  (could not navigate to gameplay reliably). Code inspection confirms
+  state.jumpPressed/firePressed (mixed) unchanged, PlayerEntity.setCallbacks
+  intact, B7 fix only gates callbacks when gameplayBlocked=true (not in gameplay).
+  Needs manual test.
+- Commit a3e260b pushed to origin/main
+
+Stage Summary:
+- B3 FIXED (commit a3e260b) — focus moved from EXIT to content button
+- S1 RETEST PASSED — 10 rapid Arrow Right no longer exits to Hub (B3 was the cause)
+- PERSISTENCE: WORKING (not broken — earlier test was method error)
+- Regression 2: needs manual gameplay test
+
+---
+Task ID: b8-analysis-extended (NO CODE — analysis only)
+Agent: main
+Task: Extend B8 analysis to include Hangar→Menu double-action (per user feedback)
+
+User-reported behavior:
+  Single ESC in Hangar → goes to main menu (two levels back), not Hub (one level).
+
+B8 extended analysis (code inspection):
+
+  ESC in InputSystem.onKeyDown sets BOTH:
+    kbEdge.pause = true
+    kbEdge.back = true
+
+  In GameScene.update():
+  - Line 382: if (OverlayManager.hasOpen) → handleInput()
+    - handleInput sees input.backPressed → close() → Hangar closed, return to Hub
+    - Line 390: return ← should STOP here
+  - BUT: state.pausePressed is ALSO true (from same ESC)
+  - After close(), OverlayManager.hasOpen = false
+  - If GameScene.update() runs again BEFORE InputSystem.update() clears edges:
+    - Line 415: state === 'hub' (after close returned to hub)
+    - Line 419: if (state === 'hub' && input.pausePressed) → setState('menu')
+    → Second level back!
+
+  ROOT CAUSE: ESC sets two edges (pause + back). backPressed is consumed by
+  OverlayManager.close() in the first GameScene.update() pass. But pausePressed
+  survives (not consumed) and is seen in the SAME frame's second evaluation
+  (or next frame before InputSystem.update() clears it), triggering hub→menu.
+
+  This is the SAME root cause as B8 original (ESC double-meaning), just
+  manifesting in Hangar→Menu instead of Pause scenarios.
+
+  Family of bugs:
+  - B8a (original): Pause + handleNavigation → togglePause + triggerFirst
+  - B8b (new): Hangar → close (back) + hub→menu (pause)
+  - Both from: ESC sets both kbEdge.pause and kbEdge.back
+
+  Proposed fix (unified for whole family):
+  ESC should have context-dependent meaning — only ONE edge should be set
+  based on current UI context. But InputSystem doesn't know UI context.
+  
+  Alternative: GameScene should consume pausePressed when it's used for
+  back navigation (i.e., when overlay was open and closed via backPressed).
+  Or: clear kbEdge.pause when kbEdge.back is consumed by overlay close.
+
+  This needs a design decision before implementation.
+
+Stage Summary:
+- B8 extended to include Hangar→Menu scenario (B8b)
+- Root cause unified: ESC sets both pause+back edges
+- B8a (Pause) and B8b (Hangar→Menu) are same family
+- Fix design needed: context-dependent ESC or edge consumption
+- NO CODE CHANGES

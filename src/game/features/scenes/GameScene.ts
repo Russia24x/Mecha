@@ -378,47 +378,69 @@ export class GameScene extends Phaser.Scene {
     }
     // F3 key handled via window listener (set up in create)
 
-    // *** Overlay input has highest priority — B/ESC closes, gamepad navigates ***
+    // *** B8 fix: ESC/B button — single consumption point with priority chain ***
+    // ESC sets both kbEdge.pause and kbEdge.back. Previously these were consumed
+    // by different consumers in the same frame (overlay close + hub→menu),
+    // causing double-action (e.g., Hangar→menu instead of Hangar→hub).
+    // Now: one priority chain, early return, no other code reads backPressed/pausePressed.
+    if (input.backPressed || input.pausePressed) {
+      if (OverlayManager.hasOpen) {
+        // Priority 1: overlay open → close it (back navigation)
+        InputSystem.setGameplayBlocked(true);
+        OverlayManager.handleInput((parent) => {
+          if (parent === 'play') {
+            this.pauseMenuUI.show();
+          } else if (parent === 'hub' || parent === 'menu') {
+            OverlayManager.getSharedController()?.show(40);
+          }
+        });
+      } else if (this.loreController?.isOpen) {
+        // Priority 2: lore panel open → close it (handles both back+pause internally)
+        this.loreController.handleInput(input);
+      } else if (this.paused) {
+        // Priority 3: pause menu open → resume (via handleNavigation which checks backPressed)
+        this.pauseMenuUI.handleNavigation();
+      } else if (this.state === 'hub') {
+        // Priority 4: in hub → back to menu
+        this.setState('menu');
+      } else if (this.state === 'play') {
+        // Priority 5: in play → open pause
+        this.togglePause();
+      }
+      // Single consumption: return early so no other code reads backPressed/pausePressed this frame
+      this.handleDialogueInput(input);
+      return;
+    }
+
+    // *** Non-back/pause input processing ***
     if (OverlayManager.hasOpen) {
-      InputSystem.setGameplayBlocked(true);  // Block gameplay callbacks during overlay
+      // Overlay navigation (gamepad/keyboard nav, but NOT back/pause — already consumed above)
+      InputSystem.setGameplayBlocked(true);
       OverlayManager.handleInput((parent) => {
         if (parent === 'play') {
           this.pauseMenuUI.show();
         }
       });
       this.handleDialogueInput(input);
-      return;  // Block all other input while overlay is open
+      return;
     }
 
     if (this.state === 'play') {
-      // ── Lore controller input handling (closes panel on interact/back/ESC) ──
-      const loreWasOpen = this.loreController?.isOpen ?? false;
+      // Lore controller (non-back input only — back already handled above)
       this.loreController?.handleInput(input);
-      // ESC / Start = toggle pause — ONLY if lore was NOT open this frame
-      if (input.pausePressed && !loreWasOpen) {
-        this.togglePause();
-      }
-      // Block gameplay callbacks when paused
       InputSystem.setGameplayBlocked(this.paused);
       if (!this.paused) {
-        InputSystem.setGameplayBlocked(false);  // Gameplay active
-        // ── tryInteract only if lore was NOT open this frame ──
-        if (input.interactPressed && !loreWasOpen) this.tryInteract();
-        // Freeze game while lore panel is open (gating behavior preserved)
+        InputSystem.setGameplayBlocked(false);
+        if (input.interactPressed) this.tryInteract();
         if (!this.loreController?.isOpen) {
           this.updatePlay(deltaMs);
         }
       } else {
-        // Paused — handle pause menu navigation
         this.pauseMenuUI.handleNavigation();
       }
     } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
-      InputSystem.setGameplayBlocked(true);  // Block gameplay in menu states
+      InputSystem.setGameplayBlocked(true);
       OverlayManager.getSharedController()?.update();
-      // ESC in hub = back to menu
-      if (this.state === 'hub' && input.pausePressed) {
-        this.setState('menu');
-      }
     }
 
     this.handleDialogueInput(input);
