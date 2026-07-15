@@ -380,6 +380,16 @@ export class GameScene extends Phaser.Scene {
     // by different consumers in the same frame (overlay close + hub→menu),
     // causing double-action (e.g., Hangar→menu instead of Hangar→hub).
     // Now: one priority chain, early return, no other code reads backPressed/pausePressed.
+    //
+    // BUT: gamepad B button sets BOTH backPressed AND interactPressed.
+    // In gameplay (not paused, no overlay), B should interact (NPC/lore),
+    // NOT open pause. So we check interactPressed FIRST in play state.
+    if (this.state === 'play' && !this.paused && !OverlayManager.hasOpen && !this.loreController?.isOpen && input.interactPressed) {
+      // B button in gameplay → interact (takes priority over backPressed)
+      this.tryInteract();
+      this.handleDialogueInput(input);
+      return;
+    }
     if (input.backPressed || input.pausePressed) {
       if (OverlayManager.hasOpen) {
         // Priority 1: overlay open → close it (back navigation)
