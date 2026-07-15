@@ -138,8 +138,8 @@ export class PauseMenuUI {
   /** Called by GameScene when paused — delegates to UIController. */
   handleNavigation(): void {
     const input = InputSystem.getState();
-    // B button / ESC = resume (first button = RESUME)
-    if (input.backPressed) {
+    // B button / ESC / Start button = resume (first button = RESUME)
+    if (input.backPressed || input.pausePressed) {
       AudioSystem.play('uiClick');
       this.ctrl.triggerFirst();
       return;
