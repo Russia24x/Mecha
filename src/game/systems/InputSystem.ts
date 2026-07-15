@@ -324,9 +324,13 @@ export class InputSystem {
         if (edge(5)) { gpWeaponNext = true; if (!this.gameplayBlocked) this.callbacks.weaponNext?.(); }
         if (edge(4)) { gpWeaponPrev = true; if (!this.gameplayBlocked) this.callbacks.weaponPrev?.(); }
         if (edge(9)) { gpPause = true; if (!this.gameplayBlocked) this.callbacks.pause?.(); }
-        // Grapple = D-pad Up (button 12), EMP = D-pad Down (button 13)
+        // D-pad Up/Down (buttons 12/13) — also set heldUp/heldDown for UI navigation
+        // (was: only grapple/emp, which UI never reads)
         if (edge(12)) { this.kbEdge.grapple = true; if (!this.gameplayBlocked) this.callbacks.grapple?.(); }
         if (edge(13)) { this.kbEdge.emp = true; if (!this.gameplayBlocked) this.callbacks.emp?.(); }
+        // D-pad Up/Down for UI navigation (same as keyboard Arrow Up/Down)
+        if (held(12)) this.state.heldUp = true; else if (!this.kbHeld.up) this.state.heldUp = false;
+        if (held(13)) this.state.heldDown = true; else if (!this.kbHeld.down) this.state.heldDown = false;
 
         // D-pad Left/Right overrides left stick for movement (Up/Down reserved for abilities)
         if (held(14)) this.state.leftStickX = -1;
