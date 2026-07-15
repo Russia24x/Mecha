@@ -1,0 +1,1104 @@
+     1→/**
+     2→ * MECHA: LAST PROTOCOL — GameScene v4.0 (Refactored)
+     3→ *
+     4→ * ARCHITECTURE (v4.0 — post-refactor):
+     5→ *
+     6→ * GameScene is now a THIN state machine + Phaser lifecycle + wiring layer.
+     7→ * All heavy logic extracted to dedicated controllers:
+     8→ *
+     9→ *   ┌─────────────────────────────────────────────────────────────┐
+    10→ *   │ GameScene (1046 lines) — state machine + wiring             │
+    11→ *   ├─────────────────────────────────────────────────────────────┤
+    12→ *   │ • State machine: menu ↔ hub ↔ play ↔ gameover ↔ victory     │
+    13→ *   │ • Phaser lifecycle: create/update/shutdown                   │
+    14→ *   │ • EventBus listeners (PLAYER_DEAD/ENEMY_DEAD/BOSS_DEAD/etc.) │
+    15→ *   │ • Collision route registration (delegates to handlers below) │
+    16→ *   │ • Inline game handlers (see "WHY HANDLERS STAY HERE" below)  │
+    17→ *   └─────────────────────────────────────────────────────────────┘
+    18→ *
+    19→ * Extracted controllers:
+    20→ *   • PlayController — build() / spawnEnemiesForSection() / update() / destroy()
+    21→ *   • CollisionController — central collision dispatch router
+    22→ *   • MetroidvaniaController — collectibles + shortcuts
+    23→ *   • NpcInteractionController — NPC sprites + prompts
+    24→ *   • LoreController — lore panel UI (terminal/corpse/echo)
+    25→ *   • MenuNavHelper — thin wrapper around UIController (backward compat)
+    26→ *   • MenuBuilder / HubBuilder — menu + hub construction
+    27→ *   • BossHealthBarUI — boss health bar
+    28→ *   • TargetRegistry — O(m) projectile hit detection
+    29→ *   • UIController — unified navigation (gamepad + keyboard + mouse + touch)
+    30→ *   • FullscreenManager — browser fullscreen
+    31→ *
+    32→ * WHY HANDLERS STAY HERE (not in PlayController):
+    33→ *   The inline handlers (handleEnemyContact, handleHazard, enterSection,
+    34→ *   enterBossArena, activateCheckpoint, tryInteract) are 3-26 lines each
+    35→ *   and tightly coupled to GameScene's state (player, enemies, boss,
+    36→ *   camera, hud, loreController, dialogueUI, loadedArea, etc.).
+    37→ *
+    38→ *   Extracting them to PlayController would require either:
+    39→ *     (a) Passing 15+ field references per call, OR
+    40→ *     (b) Creating a PlayController instance with access to all GameScene fields
+    41→ *
+    42→ *   Both options make the code HARDER to read, not easier. The handlers
+    43→ *   are short, focused, and readable where they are. GameScene at 1046
+    44→ *   lines (down from 1978, -47%) is well-modularized.
+    45→ *
+    46→ * EventBus listeners stay here because they call setState() (cinematics,
+    47→ * death/victory transitions) — only GameScene can do state transitions.
+    48→ *
+    49→ * Designed for Phaser 4.2.1 — fully data-driven, modular, extensible.
+    50→ */
+    51→import Phaser from 'phaser';
+    52→import { COLORS, GAME, PLAYER } from '../../shared/Constants';
+    53→import { EventBus } from '../../systems/EventBus';
+    54→import { AudioSystem } from '../../systems/AudioSystem';
+    55→import { InputSystem } from '../../systems/InputSystem';
+    56→import { CombatSystem } from '../../systems/CombatSystem';
+    57→import { PhysicsSystem } from '../../systems/PhysicsSystem';
+    58→import { CameraSystem } from '../../systems/CameraSystem';
+    59→import { ParticleSystem } from '../../systems/ParticleSystem';
+    60→import { RenderSystem } from '../../systems/RenderSystem';
+    61→import { SaveSystem } from '../../systems/SaveSystem';
+    62→import { setLocale, t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
+    63→import { NPCSystem } from '../../systems/NPCSystem';
+    64→import { DialogueSystem } from '../../systems/DialogueSystem';
+    65→import { LoreSystem } from '../../systems/LoreSystem';
+    66→import { QuestSystem } from '../../systems/QuestSystem';
+    67→import { InventorySystem } from '../../systems/InventorySystem';
+    68→import { WeaponUpgradeSystem } from '../../systems/WeaponUpgradeSystem';
+    69→import { ExperienceSystem } from '../../systems/ExperienceSystem';
+    70→import { SkillTreeSystem } from '../../systems/SkillTreeSystem';
+    71→import { WorldSystem } from '../../world/WorldSystem';
+    72→import { WorldMapSystem } from '../../world/WorldMapSystem';
+    73→import { AreaLoader, type LoadedArea } from '../../world/AreaLoader';
+    74→import { MetroidvaniaController } from '../../world/MetroidvaniaController';
+    75→import { NpcInteractionController } from '../../world/NpcInteractionController';
+    76→import { CheckpointSystem } from '../../world/CheckpointSystem';
+    77→import { PlayerEntity } from '../../entities/player/PlayerEntity';
+    78→import { EnemyEntity, resetEnemyIds } from '../../entities/enemies/EnemyEntity';
+    79→import { BossEntity } from '../../entities/boss/BossEntity';
+    80→import { Projectile } from '../../entities/combat/Projectile';
+    81→import { TargetRegistry } from '../../entities/combat/TargetRegistry';
+    82→import { HUDUI } from '../../ui/hud/HUDUI';
+    83→import { DialogueUI } from '../../ui/dialogue/DialogueUI';
+    84→import { PauseMenuUI } from '../../ui/pause/PauseMenuUI';
+    85→import { SettingsUI } from '../../ui/settings/SettingsUI';
+    86→import { SkillTreeUI } from '../../ui/skilltree/SkillTreeUI';
+    87→import { InventoryUI } from '../../ui/inventory/InventoryUI';
+    88→import { QuestUI } from '../../ui/quest/QuestUI';
+    89→import { WorldMapUI } from '../../ui/map/WorldMapUI';
+    90→import { HangarUI } from '../../ui/hangar/HangarUI';
+    91→import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
+    92→import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
+    93→import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
+    94→import { LoreController } from '../../ui/lore/LoreController';
+    95→import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
+    96→import { UIController } from '../../ui/UIController';
+    97→import { MenuBuilder } from '../../ui/menu/MenuBuilder';
+    98→import { HubBuilder } from '../../ui/hub/HubBuilder';
+    99→import { CollisionController } from '../../controllers/CollisionController';
+   100→import { PlayController } from '../../controllers/PlayController';
+   101→import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
+   102→import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
+   103→import { AtmosphereSystem } from '../../world/atmosphere/AtmosphereSystem';
+   104→import { ForestEnvironmentSystem } from '../../world/atmosphere/ForestEnvironmentSystem';
+   105→import { CompanionEntity } from '../../entities/companion/CompanionEntity';
+   106→import { GamepadManager } from '../../shared/GamepadManager';
+   107→import { InputSchemeManager } from '../../systems/InputSchemeManager';
+   108→import { QualityManager } from '../../systems/QualityManager';
+   109→import type { EnemyTypeId } from '../../data/types';
+   110→
+   111→type GameState = 'menu' | 'hub' | 'play' | 'gameover' | 'victory';
+   112→
+   113→export class GameScene extends Phaser.Scene {
+   114→  private state: GameState = 'menu';
+   115→  private stateContainer: Phaser.GameObjects.Container | null = null;
+   116→  // Shared menu navigation helper (used by menu, hub, gameover, victory)
+   117→  private menuNav: MenuNavHelper | null = null;
+   118→  // Builders for menu + hub (gameover/victory still inline — smaller, rarely change)
+   119→  private menuBuilder: MenuBuilder | null = null;
+   120→  private hubBuilder: HubBuilder | null = null;
+   121→
+   122→  // Systems (physicsSys — NOT 'physics', which conflicts with Phaser.Scene.physics)
+   123→  private physicsSys!: PhysicsSystem;
+   124→  private camera!: CameraSystem;
+   125→  private particles!: ParticleSystem;
+   126→  private render!: RenderSystem;
+   127→  private combat!: CombatSystem;
+   128→
+   129→  // Entities
+   130→  private player!: PlayerEntity;
+   131→  private enemies: EnemyEntity[] = [];
+   132→  private boss: BossEntity | null = null;
+   133→  private projectiles: Projectile[] = [];
+   134→  /** Typed registry of damageable targets — used by Projectile for O(m) hit detection. */
+   135→  private targetRegistry = new TargetRegistry();
+   136→
+   137→  // World
+   138→  private areaLoader!: AreaLoader;
+   139→  private loadedArea: LoadedArea | null = null;
+   140→  private currentSection = 1;
+   141→  private stageStartTime = 0;
+   142→  private bossArenaActive = false;
+   143→  private sequenceTimers: Phaser.Time.TimerEvent[] = [];
+   144→  private miniBossSpawned = false;
+   145→
+   146→  // UI
+   147→  private hud: HUDUI | null = null;
+   148→  private dialogueUI!: DialogueUI;
+   149→  private pauseMenuUI!: PauseMenuUI;
+   150→  private controlHints: ControlHintsUI | null = null;
+   151→  private loreController: LoreController | null = null;
+   152→  private bossHealthBar: BossHealthBarUI | null = null;
+   153→
+   154→  // Atmosphere + Parallax + NPCs (PLAY-only — never leak to hub/menu)
+   155→  private parallax: ParallaxBackground | null = null;
+   156→  private atmosphere: AtmosphereSystem | null = null;
+   157→  private npcInteraction: NpcInteractionController | null = null;
+   158→  // Phase 3: Death penalty tracking
+   159→  private lastLostXp = 0;
+   160→  // Companion entity (Protocol Echo — follows player)
+   161→  private companion: CompanionEntity | null = null;
+   162→  // Forest environment (grass/trees/vines/water/rain — forest region only)
+   163→  private forestEnv: ForestEnvironmentSystem | null = null;
+   164→  // Performance overlay (toggle with F3)
+   165→  private perfOverlay: PerformanceOverlay | null = null;
+   166→  // Metroidvania controller (collectibles + shortcuts) — PLAY-only
+   167→  private metroidvania: MetroidvaniaController | null = null;
+   168→  // Collision dispatch router — PLAY-only
+   169→  private collision: CollisionController | null = null;
+   170→
+   171→  // Pause state — when paused, play is frozen but game loop runs for UI
+   172→  private paused = false;
+   173→  private lastPauseToggleAt = 0;
+   174→
+   175→  constructor() { super({ key: 'GameScene' }); }
+   176→
+   177→  create(): void {
+   178→    // Init audio
+   179→    AudioSystem.init();
+   180→    AudioSystem.resume();
+   181→
+   182→    // *** ROOT FIX: Init InputSystem NOW — listeners work from menu onward ***
+   183→    // Previously init() was only called by PlayerEntity, leaving menu/hub without keyboard.
+   184→    InputSystem.init();
+   185→
+   186→    // Bind OverlayManager to this scene
+   187→    OverlayManager.bind(this);
+   188→
+   189→    // Load settings
+   190→    const settings = SaveSystem.getSettings();
+   191→    AudioSystem.setMasterVolume(settings.masterVolume);
+   192→    AudioSystem.setSfxVolume(settings.sfxVolume);
+   193→    AudioSystem.setMuted(settings.muted);
+   194→    RenderSystem.setBrightness(settings.brightness);
+   195→    // ── Apply quality setting on startup ──
+   196→    QualityManager.setQuality((settings.quality ?? 'high') as 'low' | 'medium' | 'high');
+   197→    setLocale(settings.locale);
+   198→
+   199→    // Init meta systems
+   200→    QuestSystem.init();
+   201→    LoreSystem.init();
+   202→    CheckpointSystem.init();
+   203→    WorldSystem.initFromSave();
+   204→
+   205→    // Init core systems
+   206→    this.physicsSys = new PhysicsSystem(this);
+   207→    this.camera = new CameraSystem(this);
+   208→    this.particles = new ParticleSystem(this);
+   209→
+   210→    // Build dialogue UI (used in any state)
+   211→    this.dialogueUI = new DialogueUI(this);
+   212→
+   213→    // Build pause menu with all callbacks
+   214→    this.pauseMenuUI = new PauseMenuUI(this, {
+   215→      onResume: () => this.togglePause(),
+   216→      onRestart: () => this.restartStage(),
+   217→      onCheckpoint: () => this.returnToCheckpoint(),
+   218→      onSettings: () => this.openOverlay('settings'),
+   219→      onSkills: () => this.openOverlay('skills'),
+   220→      onInventory: () => this.openOverlay('inventory'),
+   221→      onQuests: () => this.openOverlay('quests'),
+   222→      onMap: () => this.openOverlay('map'),
+   223→      onReturnToHub: () => this.quitToHub(),
+   224→      onQuit: () => this.quitToMenu(),
+   225→    });
+   226→
+   227→    // EventBus listeners
+   228→    EventBus.on('PLAYER_DEAD', this.onPlayerDied, this);
+   229→    EventBus.on('ENEMY_DEAD', this.onEnemyKilled, this);
+   230→    EventBus.on('BOSS_DEAD', this.onBossDied, this);
+   231→    EventBus.on('CHECKPOINT', () => this.hud?.toast(t('checkpoint.saved')));
+   232→    EventBus.on('GAME_STATE', (p: unknown) => {
+   233→      const data = p as { sectionName?: string };
+   234→      if (data.sectionName) this.hud?.setSection(data.sectionName);
+   235→    });
+   236→    EventBus.on('LEVEL_UP', () => this.hud?.toast(t('levelup')));
+   237→    EventBus.on('SKILL_UNLOCKED', () => { this.player?.refreshStats(); });
+   238→    EventBus.on('ABILITY_UNLOCKED', () => { this.player?.refreshStats(); });
+   239→    // ── Ability events ──
+   240→    EventBus.on('EMP_PULSE', this.onEmpPulse, this);
+   241→    EventBus.on('EMP_HIT', this.onEmpHit, this);
+   242→    EventBus.on('HACK_COMPLETE', this.onHackComplete, this);
+   243→
+   244→    // Performance overlay (F3 toggle)
+   245→    this.perfOverlay = new PerformanceOverlay(this);
+   246→    // F3 key listener for toggle
+   247→    window.addEventListener('keydown', (e: KeyboardEvent) => {
+   248→      if (e.code === 'F3') {
+   249→        e.preventDefault();
+   250→        this.perfOverlay?.toggle();
+   251→      }
+   252→    });
+   253→
+   254→    this.setState('menu');
+   255→  }
+   256→
+   257→  // ================ STATE MACHINE ================
+   258→
+   259→  private setState(next: GameState): void {
+   260→    // Cleanup previous state
+   261→    this.cleanupState();
+   262→    this.state = next;
+   263→    // Create stateContainer
+   264→    this.stateContainer = this.add.container(0, 0).setDepth(50);
+   265→    // Create shared UIController for menu/hub/gameover/victory (not play)
+   266→    if (next !== 'play') {
+   267→      OverlayManager.createSharedController(this, this.stateContainer);
+   268→      // Keep MenuNavHelper for backward compat (MenuBuilder/HubBuilder/gameover/victory use it)
+   269→      this.menuNav = new MenuNavHelper(this, this.stateContainer);
+   270→    }
+   271→    switch (next) {
+   272→      case 'menu': this.buildMenu(); break;
+   273→      case 'hub': this.buildHub(); break;
+   274→      case 'play': this.buildPlay(); break;
+   275→      case 'gameover': this.buildGameOver(); break;
+   276→      case 'victory': this.buildVictory(); break;
+   277→    }
+   278→    // setScrollFactor(0,0,true) AFTER all children are added by build* methods
+   279→    this.stateContainer.setScrollFactor(0, 0, true);
+   280→    // NOW show the shared controller — buttons are registered, keyboard can be set up
+   281→    if (next !== 'play') {
+   282→      OverlayManager.getSharedController()?.show(40);
+   283→    }
+   284→  }
+   285→
+   286→  private cleanupState(): void {
+   287→    // Close any open overlays first
+   288→    OverlayManager.closeAll();
+   289→    // Destroy HUD if leaving play (hub is a separate environment — no HUD)
+   290→    if (this.state === 'play') {
+   291→      this.cleanupPlay();
+   292→    }
+   293→    // Cleanup builders
+   294→    this.menuBuilder?.destroy();
+   295→    this.menuBuilder = null;
+   296→    this.hubBuilder?.destroy();
+   297→    this.hubBuilder = null;
+   298→    // Destroy shared UIController (replaces old menuNav)
+   299→    OverlayManager.destroySharedController();
+   300→    this.menuNav?.destroy();
+   301→    this.menuNav = null;
+   302→    if (this.stateContainer) {
+   303→      this.stateContainer.destroy(true);
+   304→      this.stateContainer = null;
+   305→    }
+   306→    // Hide pause menu if visible
+   307→    if (this.pauseMenuUI?.isVisible) this.pauseMenuUI.hide();
+   308→    this.paused = false;
+   309→  }
+   310→
+   311→  // ================ OVERLAY MANAGEMENT ================
+   312→
+   313→  /**
+   314→   * Open an overlay from the current context.
+   315→   * - From hub: overlay sits on top of hub. Closing returns to hub.
+   316→   * - From play (paused): hide pause menu first. Closing reopens pause menu.
+   317→   */
+   318→  private openOverlay(id: OverlayId): void {
+   319→    const parent: OverlayParent = this.state === 'hub' ? 'hub' : this.state === 'play' ? 'play' : 'menu';
+   320→
+   321→    // If from play, hide pause menu (paused stays true so play doesn't update)
+   322→    if (parent === 'play') {
+   323→      this.pauseMenuUI.hide();
+   324→    }
+   325→
+   326→    // Build the overlay UI on demand
+   327→    let ui: OverlayUI | null = null;
+   328→    switch (id) {
+   329→      case 'settings':
+   330→        ui = new SettingsUI(this, () => this.closeOverlay());
+   331→        break;
+   332→      case 'skills':
+   333→        ui = new SkillTreeUI(this, () => this.closeOverlay());
+   334→        break;
+   335→      case 'inventory':
+   336→        ui = new InventoryUI(this, () => this.closeOverlay());
+   337→        break;
+   338→      case 'quests':
+   339→        ui = new QuestUI(this, () => this.closeOverlay());
+   340→        break;
+   341→      case 'map':
+   342→        ui = new WorldMapUI(this,
+   343→          () => this.closeOverlay(),
+   344→          (areaId: string) => this.fastTravel(areaId),
+   345→        );
+   346→        break;
+   347→      case 'hangar':
+   348→        ui = new HangarUI(this, () => this.closeOverlay());
+   349→        break;
+   350→    }
+   351→    if (!ui) return;
+   352→    OverlayManager.open(id, ui, parent);
+   353→  }
+   354→
+   355→  /** Close the current overlay and return to its parent. */
+   356→  private closeOverlay(): void {
+   357→    OverlayManager.close((parent) => {
+   358→      if (parent === 'play') {
+   359→        // Reopen pause menu
+   360→        this.pauseMenuUI.show();
+   361→      } else if (parent === 'hub' || parent === 'menu') {
+   362→        // Shared controller already visible (was hidden during overlay)
+   363→        OverlayManager.getSharedController()?.show(40);
+   364→      }
+   365→    });
+   366→  }
+   367→
+   368→  // ================ UPDATE LOOP ================
+   369→
+   370→  update(_time: number, deltaMs: number): void {
+   371→    InputSystem.update();
+   372→    InputSchemeManager.update();  // dynamic scheme detection (KB / Xbox / PS)
+   373→    const input = InputSystem.getState();
+   374→
+   375→    // ── Performance overlay toggle (F3) + update ──
+   376→    if (this.perfOverlay) {
+   377→      this.perfOverlay.update(deltaMs);
+   378→    }
+   379→    // F3 key handled via window listener (set up in create)
+   380→
+   381→    // *** B8 fix: ESC/B button — single consumption point with priority chain ***
+   382→    // ESC sets both kbEdge.pause and kbEdge.back. Previously these were consumed
+   383→    // by different consumers in the same frame (overlay close + hub→menu),
+   384→    // causing double-action (e.g., Hangar→menu instead of Hangar→hub).
+   385→    // Now: one priority chain, early return, no other code reads backPressed/pausePressed.
+   386→    if (input.backPressed || input.pausePressed) {
+   387→      if (OverlayManager.hasOpen) {
+   388→        // Priority 1: overlay open → close it (back navigation)
+   389→        InputSystem.setGameplayBlocked(true);
+   390→        OverlayManager.handleInput((parent) => {
+   391→          if (parent === 'play') {
+   392→            this.pauseMenuUI.show();
+   393→          } else if (parent === 'hub' || parent === 'menu') {
+   394→            OverlayManager.getSharedController()?.show(40);
+   395→          }
+   396→        });
+   397→      } else if (this.loreController?.isOpen) {
+   398→        // Priority 2: lore panel open → close it (handles both back+pause internally)
+   399→        this.loreController.handleInput(input);
+   400→      } else if (this.paused) {
+   401→        // Priority 3: pause menu open → resume (via handleNavigation which checks backPressed)
+   402→        this.pauseMenuUI.handleNavigation();
+   403→      } else if (this.state === 'hub') {
+   404→        // Priority 4: in hub → back to menu
+   405→        this.setState('menu');
+   406→      } else if (this.state === 'play') {
+   407→        // Priority 5: in play → open pause
+   408→        this.togglePause();
+   409→      }
+   410→      // Single consumption: return early so no other code reads backPressed/pausePressed this frame
+   411→      this.handleDialogueInput(input);
+   412→      return;
+   413→    }
+   414→
+   415→    // *** Non-back/pause input processing ***
+   416→    if (OverlayManager.hasOpen) {
+   417→      // Overlay navigation (gamepad/keyboard nav, but NOT back/pause — already consumed above)
+   418→      InputSystem.setGameplayBlocked(true);
+   419→      OverlayManager.handleInput((parent) => {
+   420→        if (parent === 'play') {
+   421→          this.pauseMenuUI.show();
+   422→        }
+   423→      });
+   424→      this.handleDialogueInput(input);
+   425→      return;
+   426→    }
+   427→
+   428→    if (this.state === 'play') {
+   429→      // Lore controller (non-back input only — back already handled above)
+   430→      this.loreController?.handleInput(input);
+   431→      InputSystem.setGameplayBlocked(this.paused);
+   432→      if (!this.paused) {
+   433→        InputSystem.setGameplayBlocked(false);
+   434→        if (input.interactPressed) this.tryInteract();
+   435→        if (!this.loreController?.isOpen) {
+   436→          this.updatePlay(deltaMs);
+   437→        }
+   438→      } else {
+   439→        this.pauseMenuUI.handleNavigation();
+   440→      }
+   441→    } else if (this.state === 'menu' || this.state === 'hub' || this.state === 'gameover' || this.state === 'victory') {
+   442→      InputSystem.setGameplayBlocked(true);
+   443→      OverlayManager.getSharedController()?.update();
+   444→    }
+   445→
+   446→    this.handleDialogueInput(input);
+   447→  }
+   448→
+   449→  private handleDialogueInput(input: import('../../systems/InputSystem').InputState): void {
+   450→    if (this.dialogueUI?.isVisible) {
+   451→      if (input.jumpPressed || input.firePressed) {
+   452→        this.dialogueUI.advance();
+   453→      }
+   454→    }
+   455→  }
+   456→
+   457→  // ================ MENU ================
+   458→
+   459→  private buildMenu(): void {
+   460→    // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
+   461→    this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
+   462→      onStart: () => this.setState('hub'),
+   463→      onContinue: () => {
+   464→        if (CheckpointSystem.hasCheckpoint()) {
+   465→          CheckpointSystem.init();
+   466→          WorldSystem.initFromSave();
+   467→          this.setState('hub');
+   468→        }
+   469→      },
+   470→      onOpenSettings: () => this.openOverlay('settings'),
+   471→    });
+   472→    this.menuBuilder.build();
+   473→  }
+   474→
+   475→  // ================ HUB (World Map + Menu Access) ================
+   476→
+   477→  private buildHub(): void {
+   478→    // Delegate to HubBuilder — see src/game/ui/hub/HubBuilder.ts
+   479→    this.hubBuilder = new HubBuilder(this, this.stateContainer!, this.menuNav!, {
+   480→      onEnterArea: (areaId: string) => {
+   481→        if (areaId !== WorldSystem.getCurrent().areaId) {
+   482→          WorldSystem.travelTo(areaId, 1);
+   483→        }
+   484→        this.setState('play');
+   485→      },
+   486→      onOpenOverlay: (overlayId: string) => this.openOverlay(overlayId as OverlayId),
+   487→      onBackToMenu: () => this.setState('menu'),
+   488→    });
+   489→    this.hubBuilder.build();
+   490→  }
+   491→
+   492→
+   493→  // ================ PLAY ================
+   494→
+   495→  private buildPlay(): void {
+   496→    // Delegate construction to PlayController.build()
+   497→    // Pass this.targetRegistry so Projectile can find it via (scene as HasTargetRegistry).targetRegistry
+   498→    // Collision route registration stays here (handlers are in GameScene)
+   499→    const state = PlayController.build(
+   500→      this, this.physicsSys, this.particles, this.camera,
+   501→      this.targetRegistry,
+   502→      {
+   503→        onToast: (msg: string) => this.hud?.toast(msg),
+   504→        isMiniBossSpawned: () => this.miniBossSpawned,
+   505→        setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
+   506→        setExternalRefs: (enemies, anchors) => this.player?.setExternalRefs(enemies, anchors),
+   507→      },
+   508→    );
+   509→    if (!state) return;
+   510→    // Assign built state to GameScene fields
+   511→    this.parallax = state.parallax;
+   512→    this.atmosphere = state.atmosphere;
+   513→    this.forestEnv = state.forestEnv;
+   514→    this.areaLoader = state.areaLoader;
+   515→    this.loadedArea = state.loadedArea;
+   516→    this.metroidvania = state.metroidvania;
+   517→    this.render = state.render;
+   518→    this.combat = state.combat;
+   519→    this.player = state.player;
+   520→    this.companion = state.companion;
+   521→    this.hud = state.hud;
+   522→    this.npcInteraction = state.npcInteraction;
+   523→    this.loreController = state.loreController;
+   524→    this.controlHints = state.controlHints;
+   525→    this.enemies = state.enemies;
+   526→    this.projectiles = state.projectiles;
+   527→    this.currentSection = state.currentSection;
+   528→    this.stageStartTime = state.stageStartTime;
+   529→    this.bossArenaActive = false;
+   530→    this.miniBossSpawned = false;
+   531→    this.sequenceTimers = [];
+   532→    // Note: targetRegistry already cleared + player registered by PlayController.build()
+   533→    // No need to call registerPlayer again here.
+   534→
+   535→    // ── Collision dispatch router (handlers are in GameScene) ──
+   536→    this.collision = new CollisionController(this);
+   537→    this.collision.routes = {
+   538→      onSection: (sectionId: number) => this.enterSection(sectionId),
+   539→      onCheckpoint: () => this.activateCheckpoint(),
+   540→      onBossEntry: () => this.enterBossArena(),
+   541→      onEnemyContact: (enemyGo: Phaser.GameObjects.GameObject) => this.handleEnemyContact(enemyGo),
+   542→      onBossContact: () => { if (this.boss) this.player.takeDamage(this.boss.getContactDamage()); },
+   543→      onHazard: (hazardGo: Phaser.GameObjects.GameObject) => this.handleHazard(hazardGo),
+   544→    };
+   545→    this.collision.enter();
+   546→
+   547→    // Emit section info
+   548→    const area = WorldSystem.getCurrentArea();
+   549→    if (area) {
+   550→      const sec = area.sections.find(s => s.id === this.currentSection);
+   551→      if (sec) EventBus.emit('GAME_STATE', { sectionId: sec.id, sectionName: sec.nameKey });
+   552→    }
+   553→  }
+   554→
+   555→  // ================ PLAY HELPERS ================
+   556→  // buildPlay, spawnEnemiesForSection, updatePlayerExternalRefs extracted to
+   557→  // PlayController — see src/game/controllers/PlayController.ts
+   558→
+   559→  // ================ COLLISION DISPATCH ================
+   560→  // Extracted to CollisionController — see src/game/controllers/CollisionController.ts
+   561→  // GameScene registers routes in buildPlay() and delegates dispatch to the controller.
+   562→  // Handler logic (enterSection, activateCheckpoint, handleEnemyContact, handleHazard)
+   563→  // remains here as methods — only the routing mechanism was extracted.
+   564→
+   565→  private handleHazard(hazardGo: Phaser.GameObjects.GameObject): void {
+   566→    const dmg = hazardGo.getData('hazardDamage') as number;
+   567→    if (dmg && this.player.takeDamage(dmg)) {
+   568→      if (this.player.sprite?.active) {
+   569→        this.player.sprite.setVelocityY(-8);
+   570→        this.camera.shake(200, 0.008);
+   571→      }
+   572→    }
+   573→  }
+   574→
+   575→  // ─── Boss Health Bar ─────────────────────────────────────────────────
+   576→  private createBossHealthBar(bossId: string): void {
+   577→    if (!this.bossHealthBar) this.bossHealthBar = new BossHealthBarUI(this);
+   578→    this.bossHealthBar.show(bossId);
+   579→  }
+   580→
+   581→  private updateBossHealthBar(): void {
+   582→    if (!this.boss || !this.bossHealthBar) return;
+   583→    this.bossHealthBar.update(this.boss);
+   584→  }
+   585→
+   586→  private destroyBossHealthBar(): void {
+   587→    this.bossHealthBar?.hide();
+   588→  }
+   589→
+   590→  private enterSection(id: number): void {
+   591→    if (id === this.currentSection) return;
+   592→    this.currentSection = id;
+   593→    WorldSystem.setSection(id);
+   594→    // Delegate enemy spawn to PlayController (static method)
+   595→    PlayController.spawnEnemiesForSection(
+   596→      this, this.physicsSys, this.particles, this.projectiles,
+   597→      this.enemies, this.targetRegistry, id,
+   598→      {
+   599→        onToast: (msg: string) => this.hud?.toast(msg),
+   600→        isMiniBossSpawned: () => this.miniBossSpawned,
+   601→        setMiniBossSpawned: (v: boolean) => { this.miniBossSpawned = v; },
+   602→        setExternalRefs: () => {},
+   603→      },
+   604→    );
+   605→    // Refresh player external refs (new enemies spawned)
+   606→    if (this.player && this.loadedArea) {
+   607→      const anchorPositions: Phaser.Math.Vector2[] = [];
+   608→      for (const anchor of this.loadedArea.grappleAnchors) {
+   609→        if (anchor && anchor.active) {
+   610→          anchorPositions.push(new Phaser.Math.Vector2(anchor.x, anchor.y));
+   611→        }
+   612→      }
+   613→      this.player.setExternalRefs(this.enemies, anchorPositions);
+   614→    }
+   615→    // ── Hide control hints after leaving section 1 ──
+   616→    if (id !== 1 && this.controlHints) {
+   617→      this.controlHints.setVisible(false);
+   618→    }
+   619→  }
+   620→
+   621→  private activateCheckpoint(): void {
+   622→    CheckpointSystem.activate(this.currentSection, this.player.sprite.x, this.player.sprite.y);
+   623→  }
+   624→
+   625→  private enterBossArena(): void {
+   626→    if (this.bossArenaActive) return;
+   627→    this.bossArenaActive = true;
+   628→    const area = WorldSystem.getCurrentArea();
+   629→    if (!area) return;
+   630→    const bossSection = area.sections.find(s => s.bossId);
+   631→    if (!bossSection || !bossSection.bossId) return;
+   632→    const x = bossSection.x + 800;
+   633→    const y = GAME.HEIGHT - 320;
+   634→    this.boss = new BossEntity(this, this.physicsSys, this.particles, bossSection.bossId, x, y, this.projectiles, () => this.player.position);
+   635→    this.targetRegistry.registerBoss(this.boss);
+   636→    // Switch to boss ambient (tense, dissonant)
+   637→    AudioSystem.startAmbient('boss');
+   638→    AudioSystem.play('phaseChange');
+   639→    this.particles.screenFlash(0xff3030, 0.35, 500);
+   640→    // Phaser 4 camera effects: shake + flash for boss entrance (per cameras skill)
+   641→    this.cameras.main.shake(400, 0.012);
+   642→    this.cameras.main.flash(300, 255, 30, 30);
+   643→    // Boss health bar — top center (per Design Pillars: 'Boss: every boss teaches something')
+   644→    this.createBossHealthBar(bossSection.bossId);
+   645→    // Note: boss circle light removed per user feedback — boss has its own glow via
+   646→    // BossEntity's sprite (red eyes, weapon glow). Camera shake + flash already telegraph arrival.
+   647→  }
+   648→
+   649→  private handleEnemyContact(enemyGo: Phaser.GameObjects.GameObject): void {
+   650→    const id = enemyGo.getData('id') as string | undefined;
+   651→    // Find the enemy entity to check if hacked
+   652→    const enemy = this.enemies.find(e => e.id === id);
+   653→    if (enemy?.hacked) return;  // Hacked enemies don't damage the player
+   654→    const dmg = id?.startsWith('drone-') ? 8 : id?.startsWith('spider-') ? 14 : id?.startsWith('heavy-') ? 22 : id?.startsWith('sniper-') ? 12 : 10;
+   655→    if (this.player.takeDamage(dmg)) {
+   656→      const enemyX = (enemyGo as unknown as { x?: number }).x;
+   657→      if (typeof enemyX === 'number' && this.player.sprite?.active) {
+   658→        const dir = this.player.sprite.x < enemyX ? -1 : 1;
+   659→        this.player.sprite.setVelocityX(dir * 4);
+   660→        this.player.sprite.setVelocityY(-4);
+   661→      }
+   662→    }
+   663→  }
+   664→
+   665→  private tryInteract(): void {
+   666→    // Close lore panel if open (delegates to LoreController)
+   667→    if (this.loreController?.isOpen) {
+   668→      this.loreController.close();
+   669→      return;
+   670→    }
+   671→    const area = WorldSystem.getCurrentArea();
+   672→    if (!area) return;
+   673→    // ── Wire: NPC interaction ──
+   674→    const npcs = NPCSystem.getNPCsInArea(area.id);
+   675→    for (const npc of npcs) {
+   676→      const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, npc.x, npc.y);
+   677→      if (dist < 80) {
+   678→        const dialogueId = NPCSystem.interact(npc.id);
+   679→        if (dialogueId) {
+   680→          this.dialogueUI.show(dialogueId);
+   681→          return;
+   682→        }
+   683→      }
+   684→    }
+   685→    // ── Wire: Lore object interaction (delegates to LoreController) ──
+   686→    if (this.loadedArea && this.loreController) {
+   687→      for (const loreObj of this.loadedArea.loreObjects) {
+   688→        if (!loreObj || !loreObj.active) continue;
+   689→        const dist = Phaser.Math.Distance.Between(this.player.sprite.x, this.player.sprite.y, loreObj.x, loreObj.y);
+   690→        if (dist < 70) {
+   691→          this.loreController.open(
+   692→            loreObj.getData('loreTitle') as string,
+   693→            loreObj.getData('loreText') as string,
+   694→          );
+   695→          return;
+   696→        }
+   697→      }
+   698→    }
+   699→  }
+   700→
+   701→  // ================ LORE PANEL ================
+   702→  // Extracted to LoreController — see src/game/ui/lore/LoreController.ts
+   703→  // GameScene delegates via this.loreController.open(...) / .close() / .isOpen
+   704→
+   705→  private updatePlay(deltaMs: number): void {
+   706→    // Delegate to PlayController.update() — see src/game/controllers/PlayController.ts
+   707→    // Only the update loop body is extracted; handler methods (enterSection,
+   708→    // handleEnemyContact, etc.) remain in GameScene for Step 4b.
+   709→    PlayController.update(deltaMs, {
+   710→      scene: this,
+   711→      player: this.player,
+   712→      render: this.render,
+   713→      hud: this.hud,
+   714→      controlHints: this.controlHints,
+   715→      atmosphere: this.atmosphere,
+   716→      npcInteraction: this.npcInteraction,
+   717→      metroidvania: this.metroidvania,
+   718→      loadedArea: this.loadedArea,
+   719→      companion: this.companion,
+   720→      forestEnv: this.forestEnv,
+   721→      particles: this.particles,
+   722→      projectiles: this.projectiles,
+   723→      enemies: this.enemies,
+   724→      targetRegistry: this.targetRegistry,
+   725→      boss: this.boss,
+   726→      bossHealthBar: this.bossHealthBar,
+   727→      bossArenaActive: this.bossArenaActive,
+   728→      currentSection: this.currentSection,
+   729→      camera: this.camera,
+   730→    });
+   731→  }
+   732→
+   733→  private cleanupPlay(): void {
+   734→    // Delegate to PlayController — see src/game/controllers/PlayController.ts
+   735→    // PlayController.destroy() preserves the exact cleanup order:
+   736→    //   1. collision.exit() FIRST (prevent callbacks to half-destroyed bodies)
+   737→    //   2. entity destruction
+   738→    //   3. world unload
+   739→    //   4. PLAY-only systems
+   740→    //   5. timer cleanup
+   741→    //   6. HUD + render
+   742→    //   7. camera filter reset (vignette leak fix)
+   743→    //   8. camera + physics reset
+   744→    const play = new PlayController({
+   745→      collision: this.collision,
+   746→      loreController: this.loreController,
+   747→      bossHealthBar: this.bossHealthBar,
+   748→      npcInteraction: this.npcInteraction,
+   749→      metroidvania: this.metroidvania,
+   750→      targetRegistry: this.targetRegistry,
+   751→      player: this.player,
+   752→      enemies: this.enemies,
+   753→      boss: this.boss,
+   754→      projectiles: this.projectiles,
+   755→      loadedArea: this.loadedArea,
+   756→      areaLoader: this.areaLoader,
+   757→      parallax: this.parallax,
+   758→      atmosphere: this.atmosphere,
+   759→      forestEnv: this.forestEnv,
+   760→      companion: this.companion,
+   761→      controlHints: this.controlHints,
+   762→      hud: this.hud,
+   763→      render: this.render,
+   764→      sequenceTimers: this.sequenceTimers,
+   765→      scene: this,
+   766→      camera: this.camera,
+   767→      physicsSys: this.physicsSys,
+   768→    });
+   769→    play.destroy();
+   770→    // Null out nullable play-only fields (definite-assignment fields like
+   771→    // player/areaLoader/render will be overwritten in next buildPlay)
+   772→    this.collision = null;
+   773→    this.loreController = null;
+   774→    this.bossHealthBar = null;
+   775→    this.npcInteraction = null;
+   776→    this.metroidvania = null;
+   777→    this.enemies = [];
+   778→    this.boss = null;
+   779→    this.projectiles = [];
+   780→    this.loadedArea = null;
+   781→    this.parallax = null;
+   782→    this.atmosphere = null;
+   783→    this.forestEnv = null;
+   784→    this.companion = null;
+   785→    this.controlHints = null;
+   786→    this.hud = null;
+   787→    this.sequenceTimers = [];
+   788→    this.paused = false;
+   789→  }
+   790→
+   791→  // ================ PAUSE / OVERLAYS ================
+   792→
+   793→  private togglePause(): void {
+   794→    if (this.state !== 'play') return;
+   795→    // Don't toggle if an overlay is open (overlay handles its own back)
+   796→    if (OverlayManager.hasOpen) return;
+   797→    const now = this.time.now;
+   798→    if (now - this.lastPauseToggleAt < 200) return;
+   799→    this.lastPauseToggleAt = now;
+   800→
+   801→    if (this.paused) {
+   802→      this.paused = false;
+   803→      this.pauseMenuUI.hide();
+   804→      // Phantom jump fix: clear keyboard edges that were set during pause
+   805→      // (e.g., Space sets kbEdge.jump during pause, which would cause
+   806→      // player to jump on the next frame after unpause)
+   807→      InputSystem.clearKbEdges();
+   808→      // Phaser 4 camera fade — smooth resume transition (per cameras skill)
+   809→      this.cameras.main.fadeIn(300, 5, 7, 13);
+   810→      AudioSystem.play('uiClick');
+   811→    } else {
+   812→      this.paused = true;
+   813→      this.pauseMenuUI.show();
+   814→      this.input.enabled = true;
+   815→      AudioSystem.play('uiClick');
+   816→    }
+   817→  }
+   818→
+   819→  private restartStage(): void {
+   820→    this.paused = false;
+   821→    this.pauseMenuUI.hide();
+   822→    CheckpointSystem.clear();
+   823→    this.cleanupPlay();
+   824→    this.setState('play');
+   825→  }
+   826→
+   827→  /** Return to last checkpoint (without clearing it). */
+   828→  private returnToCheckpoint(): void {
+   829→    if (!CheckpointSystem.hasCheckpoint()) {
+   830→      this.hud?.toast(getLocale() === 'fa' ? 'چک‌پوینتی موجود نیست' : 'NO CHECKPOINT');
+   831→      return;
+   832→    }
+   833→    this.paused = false;
+   834→    this.pauseMenuUI.hide();
+   835→    this.cleanupPlay();
+   836→    this.setState('play');  // rebuilds at checkpoint position
+   837→  }
+   838→
+   839→  private fastTravel(areaId: string): void {
+   840→    WorldSystem.travelTo(areaId, 1);
+   841→    OverlayManager.closeAll();
+   842→    this.paused = false;
+   843→    this.pauseMenuUI.hide();
+   844→    this.cleanupPlay();
+   845→    this.setState('play');
+   846→  }
+   847→
+   848→  /** Quit from pause menu → hub (separate environment). */
+   849→  private quitToHub(): void {
+   850→    this.paused = false;
+   851→    this.pauseMenuUI.hide();
+   852→    this.cleanupPlay();
+   853→    this.setState('hub');
+   854→  }
+   855→
+   856→  /** Quit from pause menu → main menu. */
+   857→  private quitToMenu(): void {
+   858→    this.paused = false;
+   859→    this.pauseMenuUI.hide();
+   860→    this.cleanupPlay();
+   861→    this.setState('menu');
+   862→  }
+   863→
+   864→  // ================ EVENT HANDLERS ================
+   865→
+   866→  private onPlayerDied = (): void => {
+   867→    // NOTE: Do NOT unregister — listener must survive for retry (pre-existing bug fix).
+   868→    this.particles.explosion(this.player.sprite.x, this.player.sprite.y, COLORS.PLAYER, 1.2);
+   869→    // ── Phase 3: Death penalty — lose 50% unbanked XP ──
+   870→    // Per Design Pillars: death must have stakes (Souls-like).
+   871→    this.lastLostXp = SaveSystem.applyDeathPenalty();
+   872→    // Phaser 4 camera effects: shake + fade for death (per cameras skill)
+   873→    this.cameras.main.shake(400, 0.012);
+   874→    this.cameras.main.fadeOut(700, 5, 7, 13);
+   875→    this.scheduleDelayed(900, () => {
+   876→      this.cameras.main.fadeIn(300, 5, 7, 13);
+   877→      this.setState('gameover');
+   878→    });
+   879→  };
+   880→
+   881→  private onEnemyKilled = (payload: unknown): void => {
+   882→    const data = payload as { id: string; x: number; y: number };
+   883→    if (data.x && data.y) this.particles.explosion(data.x, data.y, COLORS.ENEMY_DRONE, 0.6);
+   884→    // Mini Boss (Elite) defeat → unlock Mag-Clamp Thrusters (wall slide + wall jump)
+   885→    if (data.id && data.id.startsWith('elite-') && !this.player.hasAbility('wallJump')) {
+   886→      SaveSystem.unlockAbility('wallJump');
+   887→      this.player.refreshStats();
+   888→      this.hud?.toast('◆ MAG-CLAMP THRUSTERS ONLINE');
+   889→      AudioSystem.play('skillUnlock');
+   890→      this.particles.screenFlash(0x39d0d8, 0.3, 400);
+   891→    }
+   892→  };
+   893→
+   894→  private onBossDied = (payload: unknown): void => {
+   895→    const data = payload as { id: string; lore: string[] };
+   896→    // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
+   897→    if (this.boss) {
+   898→      this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
+   899→    }
+   900→    // Hide boss health bar
+   901→    this.destroyBossHealthBar();
+   902→    // Restore factory ambient
+   903→    AudioSystem.startAmbient('factory');
+   904→    // Moment 10: Horizon view — camera pans up to show silhouette in fog
+   905→    this.scheduleDelayed(2500, () => {
+   906→      // Pan camera upward to reveal horizon
+   907→      const targetY = this.cameras.main.scrollY - 200;
+   908→      this.cameras.main.pan(this.cameras.main.scrollX + GAME.WIDTH / 2, targetY, 2000, 'Sine.easeInOut');
+   909→      // Draw Leviathan silhouette in the distance (foreshadowing Act II)
+   910→      const silX = this.cameras.main.scrollX + GAME.WIDTH / 2;
+   911→      const silY = targetY + 50;
+   912→      const silhouette = this.add.rectangle(silX, silY, 200, 300, 0x0a0e1a, 0.6);
+   913→      silhouette.setDepth(2);
+   914→      silhouette.setBlendMode(Phaser.BlendModes.MULTIPLY);
+   915→      // Slow fade in silhouette
+   916→      silhouette.setAlpha(0);
+   917→      this.tweens.add({ targets: silhouette, alpha: 0.6, duration: 2000, delay: 500 });
+   918→      // Caption
+   919→      const caption = this.add.text(GAME.WIDTH / 2, GAME.HEIGHT * 0.7,
+   920→        'The Drowned Wastes await...', {
+   921→        fontFamily: 'monospace', fontSize: '14px', color: '#3a4350', stroke: '#000', strokeThickness: 3,
+   922→        letterSpacing: 4,
+   923→      }).setOrigin(0.5).setScrollFactor(0).setDepth(250).setAlpha(0);
+   924→      this.tweens.add({ targets: caption, alpha: 1, duration: 1500, delay: 1000 });
+   925→
+   926→      // Transition to victory after horizon view
+   927→      this.scheduleDelayed(3500, () => {
+   928→        this.cameras.main.fadeOut(600, 5, 7, 13);
+   929→        this.scheduleDelayed(700, () => {
+   930→          AudioSystem.play('victory');
+   931→          this.setState('victory');
+   932→        });
+   933→      });
+   934→    });
+   935→  };
+   936→
+   937→  // ================ ABILITY EVENT HANDLERS ================
+   938→
+   939→  /** EMP pulse — open any EMP doors in range + stun enemies (stun handled in PlayerEntity). */
+   940→  private onEmpPulse = (payload: unknown): void => {
+   941→    const data = payload as { x: number; y: number; radius: number };
+   942→    if (!this.loadedArea) return;
+   943→    for (const door of this.loadedArea.empDoors) {
+   944→      if (!door || !door.active) continue;
+   945→      if (door.getData('empDoorOpen')) continue;
+   946→      const dist = Phaser.Math.Distance.Between(data.x, data.y, door.x, door.y);
+   947→      if (dist < data.radius) {
+   948→        // Open the door
+   949→        door.setData('empDoorOpen', true);
+   950→        // ── FIX Bug 1: Remove the physics body so player can pass through ──
+   951→        const physicsBody = door.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+   952→        if (physicsBody && physicsBody.active) {
+   953→          this.matter.world.remove(physicsBody.body as MatterJS.Body);
+   954→          physicsBody.destroy();
+   955→        }
+   956→        this.tweens.add({
+   957→          targets: door, alpha: 0, scaleY: 0, duration: 400, ease: 'Cubic.out',
+   958→          onComplete: () => { door.setVisible(false); },
+   959→        });
+   960→        // Spark burst
+   961→        this.particles.sparks(door.x, door.y, 0xc060ff, 12);
+   962→        this.hud?.toast(getLocale() === 'fa' ? '◆ در EMP باز شد' : '◆ EMP DOOR OPENED');
+   963→        AudioSystem.play('skillUnlock');
+   964→      }
+   965→    }
+   966→  };
+   967→
+   968→  /** ── FIX Bug 3: EMP_HIT listener — force-stagger enemies hit by EMP ── */
+   969→  private onEmpHit = (payload: unknown): void => {
+   970→    const data = payload as { enemyId: string; x: number; y: number };
+   971→    for (const enemy of this.enemies) {
+   972→      if (enemy.id === data.enemyId) {
+   973→        enemy.forceStagger();
+   974→        break;
+   975→      }
+   976→    }
+   977→  };
+   978→
+   979→  /** Hack complete — convert enemy to friendly (disable hostile AI). */
+   980→  private onHackComplete = (payload: unknown): void => {
+   981→    const data = payload as { enemyId: string };
+   982→    for (const enemy of this.enemies) {
+   983→      if (enemy.id === data.enemyId) {
+   984→        // Mark as hacked — enemy stops attacking player
+   985→        enemy.hacked = true;
+   986→        this.hud?.toast(getLocale() === 'fa' ? '◆ دشمن هک شد' : '◆ ENEMY HACKED');
+   987→        // Visual: green tint (will be handled in enemy updateFlash)
+   988→        this.particles.sparks(enemy.position.x, enemy.position.y, 0x40ff80, 10);
+   989→        break;
+   990→      }
+   991→    }
+   992→  };
+   993→
+   994→  // ================ GAMEOVER / VICTORY ================
+   995→
+   996→  private buildGameOver(): void {
+   997→    const c = this.stateContainer!;
+   998→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+   999→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.88).setDepth(200);
+  1000→    c.add(overlay);
+  1001→    c.add(this.add.text(w / 2, h * 0.3, t('gameover.title'), fixTextStyle({
+  1002→      fontFamily: 'monospace', fontSize: '56px', color: '#ff4040', stroke: '#000', strokeThickness: 8,
+  1003→    })).setOrigin(0.5).setDepth(201));
+  1004→    const statsLine = getLocale() === 'fa'
+  1005→      ? `سطح ${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} کشته`
+  1006→      : `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`;
+  1007→    c.add(this.add.text(w / 2, h * 0.42, statsLine, fixTextStyle({
+  1008→      fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
+  1009→    })).setOrigin(0.5).setDepth(201));
+  1010→    // ── Phase 3: Death penalty display — show lost XP ──
+  1011→    if (this.lastLostXp > 0) {
+  1012→      const lostLine = getLocale() === 'fa'
+  1013→        ? `جریمه مرگ: -${this.lastLostXp} XP`
+  1014→        : `DEATH PENALTY: -${this.lastLostXp} XP`;
+  1015→      c.add(this.add.text(w / 2, h * 0.48, lostLine, fixTextStyle({
+  1016→        fontFamily: 'monospace', fontSize: '12px', color: '#ff4040', stroke: '#000', strokeThickness: 3,
+  1017→      })).setOrigin(0.5).setDepth(201));
+  1018→    }
+  1019→    // Retry button — restarts the stage
+  1020→    this.menuNav!.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
+  1021→      AudioSystem.play('uiClick');
+  1022→      CheckpointSystem.clear();
+  1023→      this.setState('play');
+  1024→    });
+  1025→    // Quit button — back to main menu (user: "if defeated → game over with retry/restart")
+  1026→    this.menuNav!.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
+  1027→      AudioSystem.play('uiClick');
+  1028→      this.setState('menu');
+  1029→    });
+  1030→    // setupNav removed — UIController handles keyboard
+  1031→  }
+  1032→
+  1033→  private buildVictory(): void {
+  1034→    const c = this.stateContainer!;
+  1035→    const w = GAME.WIDTH, h = GAME.HEIGHT;
+  1036→    // Background — dark void with subtle starfield
+  1037→    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x040810, 1).setDepth(0);
+  1038→    c.add(overlay);
+  1039→    // Faint stars
+  1040→    for (let i = 0; i < 30; i++) {
+  1041→      const star = this.add.circle(Math.random() * w, Math.random() * h, Math.random() * 1.5 + 0.3, 0x39d0d8, Math.random() * 0.2 + 0.05);
+  1042→      c.add(star);
+  1043→    }
+  1044→    // Fade in camera
+  1045→    this.cameras.main.fadeIn(600, 5, 7, 13);
+  1046→    // Title — Persian-aware
+  1047→    c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), fixTextStyle({
+  1048→      fontFamily: 'monospace', fontSize: '56px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
+  1049→    })).setOrigin(0.5).setDepth(1));
+  1050→    // Boss lore — Persian-aware
+  1051→    const lore = LoreSystem.getBossLore('guardian_ax09');
+  1052→    if (lore) {
+  1053→      const lines = lore.lines.map(key => t(key));
+  1054→      c.add(this.add.text(w / 2, h * 0.5, lines, fixTextStyle({
+  1055→        fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0', align: 'center', lineSpacing: 6,
+  1056→      })).setOrigin(0.5).setDepth(1));
+  1057→    }
+  1058→    // Atlas quote — Persian-aware
+  1059→    const atlasQuote = getLocale() === 'fa'
+  1060→      ? '"اطلس هرگز منتظر ماند."'
+  1061→      : '"Atlas never stopped waiting."';
+  1062→    c.add(this.add.text(w / 2, h * 0.68, atlasQuote, fixTextStyle({
+  1063→      fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', stroke: '#000', strokeThickness: 4, fontStyle: 'italic',
+  1064→    })).setOrigin(0.5).setDepth(1));
+  1065→    // ── Return to HUB (not menu) — per user: after victory, go to hub to prepare for next stage ──
+  1066→    const returnLabel = getLocale() === 'fa' ? 'بازگشت به هاب' : t('victory.return');
+  1067→    this.menuNav!.makeMenuBtn(w / 2, h * 0.82, returnLabel, () => {
+  1068→      AudioSystem.play('uiClick');
+  1069→      this.setState('hub');
+  1070→    });
+  1071→    // setupNav removed — UIController handles keyboard
+  1072→  }
+  1073→
+  1074→  // ================ HELPERS ================
+  1075→
+  1076→  private scheduleDelayed(delay: number, callback: () => void): Phaser.Time.TimerEvent {
+  1077→    const timer = this.time.delayedCall(delay, () => {
+  1078→      const idx = this.sequenceTimers.indexOf(timer);
+  1079→      if (idx >= 0) this.sequenceTimers.splice(idx, 1);
+  1080→      callback();
+  1081→    });
+  1082→    this.sequenceTimers.push(timer);
+  1083→    return timer;
+  1084→  }
+  1085→
+  1086→  shutdown(): void {
+  1087→    EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
+  1088→    EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
+  1089→    EventBus.off('BOSS_DEAD', this.onBossDied, this);
+  1090→    EventBus.off('CHECKPOINT');
+  1091→    EventBus.off('GAME_STATE');
+  1092→    EventBus.off('LEVEL_UP');
+  1093→    EventBus.off('SKILL_UNLOCKED');
+  1094→    EventBus.off('ABILITY_UNLOCKED');
+  1095→    EventBus.off('EMP_PULSE', this.onEmpPulse, this);
+  1096→    EventBus.off('EMP_HIT', this.onEmpHit, this);
+  1097→    EventBus.off('HACK_COMPLETE', this.onHackComplete, this);
+  1098→    OverlayManager.destroy();
+  1099→    InputSystem.destroy();
+  1100→  }
+  1101→}
+  1102→
+  1103→export default GameScene;
+  1104→
