@@ -929,6 +929,8 @@ export class GameScene extends Phaser.Scene {
         letterSpacing: 4,
       }).setOrigin(0.5).setScrollFactor(0).setDepth(250).setAlpha(0);
       this.tweens.add({ targets: caption, alpha: 1, duration: 1500, delay: 1000 });
+      // Destroy caption when transitioning to victory (prevents it persisting on screen)
+      this.sequenceTimers.push(this.time.delayedCall(4200, () => { caption.destroy(); }));
 
       // Transition to victory after horizon view
       this.scheduleDelayed(3500, () => {
