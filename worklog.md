@@ -1112,3 +1112,35 @@ Stage Summary:
 - Single-line fix, but critical — the game was completely broken (could not load any area)
 - Lesson: when creating wrapper methods, always verify the wrapped call uses the
   underlying API, not the wrapper itself
+
+---
+Task ID: b7-fix-verification
+Agent: main
+Task: Verify B7 fix — gate keyboard gameplay callbacks with gameplayBlocked. Test all 7 keys + gamepad path.
+
+Work Log:
+- SESSION-START-SYNC-CHECK: Local HEAD = origin/main = 22eaaa7 (synced)
+- Verified fix in place: 9 keyboard callbacks in onKeyDown now gated with `if (!this.gameplayBlocked)`
+- Tested all 7 keyboard gameplay keys in Pause with console.trace (AudioContext.createOscillator instrumentation):
+  * Space (jump): 0 callbacks ✅
+  * KeyJ (fire): 0 callbacks ✅
+  * KeyK (melee): 0 callbacks ✅
+  * ShiftLeft (dash): 0 callbacks ✅
+  * KeyQ (weaponPrev): 0 callbacks ✅
+  * KeyF (grapple): 0 callbacks ✅
+  * KeyG (emp): 0 callbacks ✅
+- Verified gameplay keys still work when NOT paused:
+  * Space in gameplay: 1 callback (tryJump) ✅
+- Gamepad path verification:
+  * Code inspection: all 11 gamepad callbacks (lines 301-316) gated with gameplayBlocked ✅
+  * Mock navigator.getGamepads() test: INCONCLUSIVE
+    - Results inconsistent (0, 1, 0 for same button 3 test)
+    - Root cause: prevButtons drifts between mock button set/unset and real frame polling
+    - Cannot reliably verify with mock method
+
+Stage Summary:
+- B7 keyboard fix: FULLY VERIFIED with console.trace (7/7 keys = 0 callbacks in pause)
+- B7 keyboard gameplay: VERIFIED (keys still work when not paused)
+- B7 gamepad path: VERIFIED by code inspection (same gate pattern), but NOT by behavioral test
+- Gamepad behavioral test needs real gamepad (mock method unreliable)
+- Commit 22eaaa7 pushed to origin/main
