@@ -1,8 +1,8 @@
-# MECHA: LAST PROTOCOL — Complete Architecture v3.0
+# MECHA: LAST PROTOCOL — Complete Architecture v4.0
 
 > **Read this file FIRST before writing any code.**
 > This is the authoritative design document for ALL AI agents working on this project.
-> Last updated: 2026-07-11
+> Last updated: 2026-07-15
 
 ---
 
@@ -23,402 +23,264 @@
 
 | Layer | Technology |
 |---|---|
-| Engine | Phaser 4.x |
-| Framework | Next.js |
-| Language | TypeScript |
+| Engine | Phaser 4.2.1 |
+| Framework | Next.js 16 |
+| Language | TypeScript (strict) |
 | Physics | Matter.js |
 | UI | React (wraps Phaser canvas) |
-| Audio | Web Audio API (procedural SFX) |
-| Save | JSON Save System (localStorage) |
-| Localization | Persian + English |
 
 ---
 
-## High Level Architecture
+## Current State (2026-07-15)
+
+### What's Working
+- **Act I** (The Fallen Foundry) — fully designed, 6 sections, 9216px, ~15-20 min gameplay
+- **Act IV** (The Silent Canopy) — partially designed, 6 sections, 7680px, enemies + boss but no collectibles/shortcuts
+- **5 Abilities**: double jump, wall jump, grapple, hover, EMP, hack — all functional
+- **6 Enemy types**: drone, spider, heavy, sniper, flying_ai, elite — all with FSM AI
+- **2 Bosses**: Guardian AX-09 (Act I), Neural Overseer (Act IV) — phased combat
+- **29 Skills** across 6 trees (combat/weapon/movement/energy/protocol/survival)
+- **8 Weapons** (5 unlockable via skills, 3 with broken unlock paths)
+- **3 Chassis** (scout/assault/titan) with stat multipliers
+- **4 Paints** (1 unlocked, 3 locked)
+- **7 Companions** (defined but CompanionSystem not implemented)
+- **1 Quest** (defined but not wired to NPCSystem — can't be started)
+- **2 NPCs** (Engineer Kara, Ghost Operator — both in Act I)
+- **Metroidvania**: 7 collectibles, 2 shortcuts, 1 EMP door, 2 grapple anchors (Act I only)
+- **Save System**: v3, localStorage, quest progress persisted, migration support
+- **Full UI**: HUD, Pause, Settings, Inventory, SkillTree, Quest, Map, Hangar, Dialogue, Lore
+- **Input**: keyboard + gamepad + mouse, all working with unified UIController
+- **Audio**: procedural SFX (19 sounds), ambient drone, 8 categories — no music tracks
+- **Localization**: ~287 keys, EN + FA
+
+### What's Missing
+- **Acts II, III, V** — empty stubs (1-2 platforms per section, no content)
+- **3 Bosses** — Leviathan Hulk, Iron Magistrate, The Architect (referenced in WORLD_BIBLE but absent from code)
+- **Music** — 0 tracks (AUDIO_BIBLE specifies 10% of mix)
+- **ShopSystem** — Kara has shopId but no ShopSystem exists
+- **CompanionSystem** — 7 companions defined but no AI/behavior system
+- **Quest wiring** — NPCSystem doesn't call QuestSystem.startQuest()
+- **3 weapons unobtainable** — plasma_cannon, laser, energy_blade (unlockCondition never checked)
+- **3 paints unobtainable** — military_green, protocol_white, rust (no unlock path)
+- **Elite enemy** — defined but only spawns as mini-boss, not in regular enemy lists
+- **Ending** — no Act V content, no truth reveal, no binary choice
+
+---
+
+## File Structure (src/game/)
 
 ```
-Game
-├── Runtime         — Game loop, scene manager, state machine
-├── Systems         — 18+ independent systems (no entity dependencies)
-├── World           — Act → Region → Area → Checkpoint
-├── Entities        — Player, Enemy, Boss, Projectile
-├── Data            — All gameplay data (weapons, enemies, bosses, skills, items, acts, NPC, dialogue, quests)
-├── UI              — HUD, Inventory, Map, Skill Tree, Dialogue, Quest, Pause, Settings, Boss, Loading
-├── Resources       — Localization (EN/FA), textures (procedural)
-└── Save            — Versioned, migrates, full game state
+src/game/
+├── PhaserGame.ts              — Phaser.Game config (singleton)
+├── GAME_VARIABLES.md          — All tunable variables reference
+│
+├── features/
+│   ├── scenes/
+│   │   ├── BootScene.ts       — Preload + splash
+│   │   ├── GameScene.ts       — Main scene, state machine (1146 lines)
+│   │   ├── UIScene.ts         — Stub (stops immediately)
+│   │   ├── PlayController.ts  — Play state builder
+│   │   ├── CollisionController.ts — Collision routing
+│   │   ├── FactoryStage.ts    — Legacy (pre-refactor, dead code)
+│   │   └── TestSuite.ts       — Legacy test (F2)
+│   ├── boss/                  — Legacy boss files (dead code)
+│   ├── combat/                — Legacy combat files (dead code)
+│   ├── physics/               — Legacy physics files (dead code)
+│   ├── player/                — Legacy player files (dead code)
+│   ├── rendering/             — Legacy render files (dead code)
+│   └── ui/                    — Legacy UI files (dead code)
+│
+├── systems/
+│   ├── InputSystem.ts         — Keyboard + gamepad (421 lines)
+│   ├── AudioSystem.ts         — Procedural SFX, 8 categories
+│   ├── SaveSystem.ts          — localStorage v3, cache, migration
+│   ├── LocalizationSystem.ts  — EN/FA, ~287 keys
+│   ├── RenderSystem.ts        — Brightness, lights, darkness overlay
+│   ├── PhysicsSystem.ts       — Matter.js wrapper
+│   ├── CombatSystem.ts        — Damage routing
+│   ├── CameraSystem.ts        — Follow, shake, fade, zoom
+│   ├── ParticleSystem.ts      — Sparks, explosions, dust, afterimage
+│   ├── EventBus.ts            — 20+ game events
+│   ├── ExperienceSystem.ts    — XP, levels, skill points
+│   ├── SkillTreeSystem.ts     — Skill unlock, effect application
+│   ├── InventorySystem.ts     — Items, materials, consumables
+│   ├── WeaponUpgradeSystem.ts — Weapon level upgrades
+│   ├── QuestSystem.ts         — Quest tracking (1 quest, not wired)
+│   ├── NPCSystem.ts           — NPC dialogue routing
+│   ├── DialogueSystem.ts      — Dialogue tree state
+│   ├── LoreSystem.ts          — Lore discovery (4 entries)
+│   ├── WorldSystem.ts         — Area tracking, travel
+│   ├── WorldMapSystem.ts      — Map tree, boss defeat tracking
+│   ├── CheckpointSystem.ts    — Checkpoint save/respawn
+│   ├── InputSchemeManager.ts  — KB/Xbox/PS auto-detect
+│   ├── FullscreenManager.ts   — Browser fullscreen + canvas resize
+│   └── QualityManager.ts      — Low/medium/high presets
+│
+├── ui/
+│   ├── UIController.ts        — Unified nav (focusables, cursor, tabs)
+│   ├── NavigableOverlay.ts    — Abstract base for overlay UIs
+│   ├── OverlayManager.ts      — Overlay stack management
+│   ├── shared/MenuNavHelper.ts — Thin wrapper for shared controller
+│   ├── Theme.ts               — Colors, helpers (corner brackets, scanlines)
+│   ├── hud/HUDUI.ts           — Health, energy, weapon, level
+│   ├── pause/PauseMenuUI.ts   — 10-button grid
+│   ├── settings/SettingsUI.ts — Audio/display/language tabs
+│   ├── inventory/InventoryUI.ts — 4-tab grid
+│   ├── skilltree/SkillTreeUI.ts — 6-tree diamond nodes
+│   ├── quest/QuestUI.ts       — Quest list (read-only)
+│   ├── map/WorldMapUI.ts      — Hex-grid travel
+│   ├── hangar/HangarUI.ts     — Chassis/loadout/companion/paint
+│   ├── menu/MenuBuilder.ts    — Title screen + How To Play
+│   ├── hub/HubBuilder.ts      — Mission select + nav bar
+│   ├── dialogue/DialogueUI.ts — Bottom box, RTL support
+│   ├── lore/LoreController.ts — In-world lore panel
+│   ├── boss/BossHealthBarUI.ts — Boss HP bar
+│   ├── controls/ControlHintsUI.ts — On-screen control hints
+│   ├── PerformanceOverlay.ts  — F3 FPS/stats
+│   └── VirtualCursor.ts       — DELETED (merged into UIController)
+│
+├── entities/
+│   ├── player/PlayerEntity.ts — Movement, combat, abilities (1089 lines)
+│   ├── enemies/EnemyEntity.ts — 6 types, FSM, posture (532 lines)
+│   ├── boss/BossEntity.ts     — 2 bosses, phased AI (300 lines)
+│   ├── combat/Projectile.ts   — Projectile + hitscan + explosive
+│   ├── combat/TargetRegistry.ts — O(m) hit detection registry
+│   ├── companion/CompanionEntity.ts — Visual only, no AI
+│   └── sprites/MechaSpriteFactory.ts — Mech sprite builder (973 lines)
+│
+├── world/
+│   ├── AreaLoader.ts          — AreaData → Matter + visuals (1369 lines)
+│   ├── MetroidvaniaController.ts — Collectibles, shortcuts, EMP doors
+│   ├── NpcInteractionController.ts — NPC spawning + interaction prompt
+│   ├── ParallaxBackground.ts  — 4-layer parallax
+│   ├── AtmosphereSystem.ts    — Fog, god rays, particles
+│   └── ForestEnvironmentSystem.ts — Grass, trees, vines, water, rain
+│
+├── data/
+│   ├── acts/acts.ts           — 5 Acts (I full, IV partial, II/III/V stubs)
+│   ├── chassis/chassis.ts     — 3 chassis (scout/assault/titan)
+│   ├── weapons/weapons.ts     — 8 weapons
+│   ├── skills/skills.ts       — 29 skills, 6 trees
+│   ├── paints/paints.ts       — 4 paints
+│   ├── companions/companions.ts — 7 companions (all locked)
+│   ├── enemies/enemies.ts     — 6 enemy types
+│   ├── bosses/bosses.ts       — 2 bosses
+│   ├── quests/quests.ts       — 1 quest
+│   ├── npc/npcs.ts            — 2 NPCs
+│   ├── dialogues/             — Dialogue trees
+│   ├── items/items.ts         — 7 materials + 2 consumables
+│   ├── localization/en.json   — ~287 keys
+│   ├── localization/fa.json   — ~287 keys
+│   └── types.ts               — All TypeScript types
+│
+└── shared/
+    ├── Constants.ts           — GAME, PLAYER, STAGE_1, etc.
+    ├── Types.ts               — (legacy, use data/types.ts)
+    ├── GamepadManager.ts      — DEAD CODE (use InputSystem instead)
+    ├── Effects.ts             — DEAD CODE (legacy)
+    └── Save.ts                — DEAD CODE (use systems/SaveSystem.ts)
 ```
 
-### Runtime Flow
-```
-GameRuntime → Game Loop → Scene Manager → Update Systems → Render
-```
-
-### Systems (each independent, no direct Player dependency)
-- Input System
-- Combat System
-- Damage System
-- Physics System
-- Animation System
-- Camera System
-- Audio System
-- Particle System
-- Weapon System
-- Inventory System
-- Skill System
-- Quest System
-- Dialogue System
-- NPC System
-- Loot System
-- Save System
-- Localization System
-- World System
-- Map System
-- Checkpoint System
-- Boss System
-- UI System
-
 ---
 
-## Player
+## Content Counts
 
-Player is ONLY responsible for itself:
-- Health
-- Energy
-- Level
-- Experience
-- Skill Points
-- Inventory (via InventorySystem)
-- Weapons (via WeaponUpgradeSystem)
-- Animation
-- Movement
-- Stats (computed from skills via SkillTreeSystem)
-
----
-
-## Level System
-
-- **Max Level:** 100
-- **Each Level:** +1 Skill Point
-- **XP Formula:** `100 × level^1.5` (increasing curve)
-  - Level 1→2: 100 XP
-  - Level 2→3: ~283 XP
-  - Level 3→4: ~520 XP
-  - Harder as you progress
-
----
-
-## Skill Tree
-
-6 trees, player chooses their own build path:
-
-1. **Combat** — damage boosts, fire rate
-2. **Weapon** — unlock new weapons
-3. **Movement** — speed, dash cooldown, double jump, wall jump, grapple
-4. **Energy** — max energy, regen, hover
-5. **Protocol** — EMP, hack abilities
-6. **Survival** — health, invulnerability
-
-Each level = exactly 1 Skill Point. Player is free to choose their build path.
-
----
-
-## Weapons
-
-8 weapons, each upgradeable:
-
-| Weapon | Tier |
-|---|---|
-| Assault Rifle | Projectile |
-| Shotgun | Projectile (spread) |
-| Railgun | Hitscan |
-| Plasma Cannon | Projectile (heavy) |
-| Laser | Hitscan (rapid) |
-| Rocket | Explosive (AoE) |
-| Sword | Melee |
-| Energy Blade | Melee (upgraded) |
-
-Each weapon has: Level, Damage, Range, Fire Rate, Energy Cost, Passive Bonus. Upgradeable to level 5.
-
----
-
-## Inventory
-
-- Weapons
-- Upgrade Materials (scrap metal, circuit boards, armor plates, etc.)
-- Key Items (boss drops, quest items)
-- Quest Items
-- Consumables (health packs, energy cells)
-
-Simple but extensible.
-
----
-
-## NPC System
-
-Each NPC has:
-- Identity (name, location)
-- Dialogue (branching, conditional)
-- Shop (future)
-- Quest (linked quests)
-- Flags (met, quest_given, quest_done — persisted)
-- Lore
-
-NPCs get new dialogue as story progresses (flag-based).
-
----
-
-## Dialogue
-
-- Normal Dialogue
-- Quest Dialogue
-- Boss Dialogue
-- Hidden Dialogue
-
-All text from localization files (EN/FA). No hardcoded strings. Supports branching + conditions + RTL for Persian.
-
----
-
-## Quest System
-
-- Main Story
-- Side Quest
-- Hidden Quest
-- NPC Quest
-
-Objectives: kill, collect, reach, talk, boss. Auto-tracked via EventBus. Rewards: XP + items.
-
----
-
-## Boss System
-
-Each Boss has:
-- Unique AI (phased, data-driven attacks)
-- Arena (dedicated area section)
-- Music (future: procedural boss themes)
-- Cutscene (intro + death lore)
-- Lore (Souls-style, revealed on death)
-- Drops (guaranteed + chance-based)
-
----
-
-## Lore System (Souls-style)
-
-Story is NOT told directly. Lore is hidden inside:
-- Bosses (defeat to reveal)
-- Weapons (unlock to reveal)
-- NPCs (talk to reveal)
-- Environment (discover areas)
-- Items (collect to reveal)
-- Memories (future)
-
-Player must discover the story themselves.
-
----
-
-## World Structure
-
-```
-Act → Region → Area → Checkpoint
-```
-
-| Act | Regions | Areas |
+| Category | Count | Notes |
 |---|---|---|
-| Act I | Factory, Forest | Abandoned Factory, Toxic Forest |
-| Act II | Desert, Ruined City, Underground | (future) |
-| Act III | Orbital Station, AI Core, Final Protocol | (future) |
+| Acts | 5 (1 full, 1 partial, 3 stubs) | WORLD_BIBLE describes 6 |
+| Bosses | 2 | WORLD_BIBLE describes 6 |
+| Enemy types | 6 | WORLD_BIBLE describes 15+ |
+| Skills | 29 across 6 trees | 83 SP to clear all |
+| Weapons | 8 | 3 unobtainable (unlock broken) |
+| Chassis | 3 | All unlocked by default |
+| Paints | 4 | 3 locked, no unlock path |
+| Companions | 7 | All locked, no CompanionSystem |
+| NPCs | 2 | Both in Act I |
+| Quests | 1 | Not wired to NPCSystem |
+| Lore entries | 4 (LoreSystem) + 15 (in-world) | |
+| Collectibles | 7 (Act I only) | |
+| Shortcuts | 2 (Act I only) | |
+| Hazards | 4 (Act I) + 1 (Act IV) | |
+| Localization keys | ~287 per language | EN + FA |
 
 ---
 
-## World Map
+## Key Architecture Decisions
 
-- **Fog of War** — only discovered areas visible
-- **Unlocked Regions** — areas unlock progressively
-- **Fast Travel** — travel between discovered areas
-- **Boss Icons** — show defeated/undefeated bosses
-- **NPC Icons** — show NPC locations (future)
-- **Checkpoint Icons** — show save points
-
-At game start, only a small portion is visible.
-
----
-
-## Exploration (Metroidvania)
-
-Player unlocks abilities to access new areas and revisit old ones:
-- Dash
-- Double Jump
-- Wall Jump
-- Grapple
-- EMP
-- Hover
-
----
-
-## Enemies
-
-All enemies are data-driven:
-
-| Enemy | Type |
-|---|---|
-| Drone | Flying, ranged |
-| Spider | Ground, lunge |
-| Heavy | Ground, charge |
-| Sniper | Ground, long-range |
-| Flying AI | Flying, fast |
-| Elite | Ground, multi-attack |
-| Mini Boss | (future) |
-| Boss | Unique per area |
-
----
-
-## Save System
-
-Tracks:
-- Player: Level, XP, Skill Tree, Weapons, Inventory
-- Bosses: defeated + best times
-- NPC Flags: per-NPC dialogue/quest state
-- Quest: completed/active flags
-- Map: unlocked + discovered areas
-- Checkpoint: last save position
-- Settings: locale, volume, brightness
-
----
-
-## Localization
-
-- **fa** (Persian) — RTL
-- **en** (English) — LTR
-
-All text in JSON files. No hardcoded strings in code.
-
----
-
-## UI
-
-- HUD (health, energy, weapon, level/XP)
-- Inventory (tabbed: weapons, materials, consumables, key items)
-- Map (fog of war, fast travel)
-- Skill Tree (6 trees, unlock buttons)
-- Dialogue (branching, RTL support)
-- Quest (active, complete, turned-in)
-- Pause (resume, restart, settings, skills, inventory, quests, map)
-- Settings (volume, brightness, language)
-- Boss (health bar, phase indicator)
-- Loading (boot screen)
-
----
-
-## Data Driven
-
-ALL gameplay data is outside source code:
-
-| Data File | Content |
-|---|---|
-| `data/weapons/weapons.ts` | 8 weapons with all stats |
-| `data/enemies/enemies.ts` | 6 enemy types with all stats + drops |
-| `data/bosses/bosses.ts` | 2 bosses with phases + lore + drops |
-| `data/skills/skills.ts` | 19 skills in 6 trees |
-| `data/items/items.ts` | 15 items (materials, key items, consumables, abilities) |
-| `data/acts/acts.ts` | World structure (Act I: Factory + Forest) |
-| `data/npc/npcs.ts` | 2 NPCs with dialogue refs + flags |
-| `data/dialogue/dialogues.ts` | 8 dialogues with conditions + branching |
-| `data/quests/quests.ts` | 1 quest with objectives + rewards |
-| `data/localization/en.json` | All English strings |
-| `data/localization/fa.json` | All Persian strings |
+1. **Phaser 4.2.1 + Matter.js** — physics-based 2D platformer
+2. **Next.js 16 + TypeScript** — React shell wraps Phaser canvas
+3. **3 Scenes** — BootScene (preload), GameScene (everything), UIScene (stub)
+4. **5-state machine** — menu ↔ hub ↔ play ↔ gameover ↔ victory
+5. **Data-driven** — all content in `data/` files, systems read data
+6. **Static systems + EventBus** — 18+ systems communicate via events, no circular deps
+7. **Extracted controllers** — PlayController, CollisionController, MetroidvaniaController, etc.
+8. **Unified UIController** — ONE navigation system for ALL UIs (focus mode + cursor mode)
+9. **OverlayManager stack** — overlays managed as LIFO stack with parent tracking
+10. **SaveSystem v3** — localStorage with migration, cache Sets for performance
+11. **InputSystem** — keyboard edges (kbEdge buffer) + gamepad polling + gp* flags (B2 fix)
+12. **TargetRegistry** — O(m) projectile hit detection via typed registry
 
 ---
 
 ## AI Development Rules
 
-1. **One file = one responsibility.** No God Classes.
-2. **No hardcoded text.** All strings via `t('key')` from localization.
-3. **All content is data-driven.** Adding content = adding data, not changing code.
-4. **All systems are independent.** No direct system-to-system imports.
-5. **Communication only via EventBus or internal API.**
-6. **Classes are small and testable.** If >500 lines, split.
-7. **Prefer composition over inheritance.** Inject systems.
-8. **Keep code clean, typed, and documented.** JSDoc on every class.
-9. **Make every system extensible** without breaking existing code.
-10. **Use Phaser 4.2 API only.** Check: https://docs.phaser.io/api-documentation/4.0.0/api-documentation
-
-### MUST NOT DO
-- NO `setPostPipeline()` — removed in Phaser 4.2
-- NO `fixedStep` in Matter config — removed in Phaser 4.2
-- NO `PostFXPipeline` — replaced by `Filters.Controller`
-- NO `world.bodies` — use `world.getAllBodies()`
-- NO `import type` for classes used at runtime — use `import`
-- NO `scene.pause()` for pause menu — use internal `paused` flag
-- NO `scene.launch('UIScene')` — pause is handled within GameScene
-- NO window listeners without cleanup — always `removeEventListener` in `destroy()`
-- NO duplicate input listeners — `InputSystem` is the single source of truth
-- NO hardcoded gameplay values — use `Constants.ts` or data files
+1. **Read WORLD_BIBLE, DESIGN_PILLARS, MOMENTS, AUDIO_BIBLE** before any content work
+2. **Read GAME_VARIABLES.md** before tuning any value
+3. **Read TECH-DEBT.md** (in download/) before touching systems
+4. **Read ARCHITECTURE-AUDIT-FULL.md** (in download/) for full architecture
+5. **Data-driven first** — add content to data files, not code
+6. **Static system + EventBus** — no circular dependencies
+7. **No new systems** without checking if existing ones can be extended
+8. **TypeScript strict** — 0 errors in game code
+9. **Test before push** — behavioral test, not just code reading
+10. **Every commit tested in browser** — no "should work" assumptions
 
 ---
 
-## File Structure
+## MUST NOT DO
 
-```
-src/game/
-├── PhaserGame.ts              — Game config
-├── shared/Constants.ts        — GAME, PLAYER, PHYSICS, COLORS
-├── data/                      — ALL gameplay data (no logic)
-│   ├── types.ts               — All TypeScript interfaces
-│   ├── weapons/               — 8 weapons
-│   ├── enemies/               — 6 enemy types
-│   ├── bosses/                — 2 bosses
-│   ├── skills/                — 19 skills in 6 trees
-│   ├── items/                 — 15 items
-│   ├── acts/                  — World structure
-│   ├── npc/                   — NPCs
-│   ├── dialogue/              — Dialogues
-│   ├── quests/                — Quests
-│   └── localization/          — EN + FA JSON
-├── systems/                   — 18 independent systems
-├── world/                     — World, Area, Checkpoint, Map
-├── entities/                  — Player, Enemy, Boss, Projectile
-├── features/scenes/           — BootScene, GameScene, UIScene(stub)
-└── ui/                        — 8 UI panels
-```
+- Do NOT create new design documents (enough exist)
+- Do NOT add new systems without architectural review
+- Do NOT hardcode values that should be in data files
+- Do NOT bypass SaveSystem.persist() with direct localStorage access
+- Do NOT use `require()` in ESM context — use `import`
+- Do NOT use Phaser private internals (`_list`, `manager.hitTest`) without try/catch
+- Do NOT call `removeInteractive()` mid-pointerdown (corrupts InputPlugin — S1 fix)
+- Do NOT create anonymous keydown listeners without storing reference for cleanup
+- Do NOT force push to main (RULES.md)
+- Do NOT skip SESSION-START-SYNC-CHECK (RULES.md)
 
 ---
 
-## Adding New Content (Agent Guide)
+## Reference Documents (Canonical)
 
-| To add... | What to do |
-|---|---|
-| New weapon | Add to `data/weapons/weapons.ts` + localization keys |
-| New enemy | Add to `data/enemies/enemies.ts` + add to section in `acts.ts` + localization |
-| New boss | Add to `data/bosses/bosses.ts` + add `bossId` to section + lore in `LoreSystem` + localization |
-| New skill | Add to `data/skills/skills.ts` + localization — `computeStats()` auto-applies |
-| New NPC | Add to `data/npc/npcs.ts` + dialogues to `dialogues.ts` + localization |
-| New area | Add to `data/acts/acts.ts` under region + localization — `AreaLoader` builds automatically |
-| New quest | Add to `data/quests/quests.ts` + link to NPC + localization |
-| New item | Add to `data/items/items.ts` + localization |
-| New dialogue | Add to `data/dialogue/dialogues.ts` + localization keys in EN/FA JSON |
-| New lore | Add entry to `LoreSystem.LORE_ENTRIES` + localization keys |
+### Vision (do NOT change — code must match these)
+- `WORLD_BIBLE.md` — world, lore, 6 acts, bosses, NPCs, enemy families
+- `PLAYER_EXPERIENCE_BIBLE.md` — emotional journey, pacing
+- `GAME_DESIGN_DOCUMENT.md` — gameplay loops, progression, content pipeline
+- `DESIGN_PILLARS.md` — 8 pillars with keywords
+- `MOMENTS.md` — 10 cinematic moments in Act I
+- `AUDIO_BIBLE.md` — audio philosophy, SFX list, mix ratios
 
-**No code changes needed for any of the above.** Just data + localization.
+### Reference (accurate, keep updated)
+- `RULES.md` — git rules, quality gates
+- `AGENT_GUIDE.md` — this file
+- `DECISIONS.md` — architectural decisions log
+- `src/game/GAME_VARIABLES.md` — all tunable variables
+- `download/ARCHITECTURE-AUDIT-FULL.md` — full architecture audit
+- `download/GAME-CONTENT-AUDIT.md` — content inventory + gaps
+- `download/TECH-DEBT.md` — consolidated tech debt tracker
+- `download/DESIGN-VS-CODE-AUDIT.md` — vision vs reality comparison
 
----
-
-## Future Compatibility
-
-The architecture is ready for future expansion WITHOUT major changes:
-
-- **Cloud Save** — `SaveSystem` abstracts storage layer
-- **Achievements** — `EventBus` already emits all key events (LEVEL_UP, BOSS_DEAD, QUEST_COMPLETE, etc.)
-- **Mod Support** — Data files are external, can be swapped/added
-- **New Acts** — Add to `acts.ts`, no code changes
-- **Co-op** — `EventBus` can be bridged to network layer
-- **PvP** — Entities use interface-based damage (takeDamage), swappable owners
-- **Dedicated Server** — Systems are stateless, can run server-side
-- **Online Events** — `EventBus` can emit to network
-- **Seasonal Content** — Data files versioned, can be pushed as updates
-- **Steam Release** — Phaser runs in Electron/desktop wrappers
-- **Console Release** — Phaser supports gamepad API natively
-
----
-
-## Architecture Philosophy
-
-> This project is NOT designed as a small indie game. It is built as a **Game Platform** — a core engine whose first version is a standalone game, but whose architecture is ready for years of growth. AI agents can add new content, stages, bosses, NPCs, weapons, and even new Acts without changing the core engine. This approach is compatible with the current indie scope AND future features like online multiplayer, co-op, or content expansions.
+### Deleted (were stale and misleading)
+- `docs/ARCHITECTURE.md` — described MVP 2.0 (20 files/3100 lines, now 60+/15000+)
+- `PROJECT_AUDIT.md` — claimed abilities broken, 19 skills, 533-line PlayerEntity
+- `GAME_DIRECTOR_REVIEW.md` — scored 3.8/10 based on stale state
+- `STATUS.md` — stale metrics (skills=19, files=~45)
+- `CURRENT_STATE.md` — stopped at v21 parallax fix
+- `NEXT_TASK.md` — pointed to Stage 2 bg
+- `VERTICAL_SLICE_REVIEW.md` — stopped at Sprint 3
+- `VERTICAL_SLICE_MANIFEST.md` — freeze was broken
+- `CREATIVE_DIRECTOR_REVIEW.md` — 8 of 10 contradictions now fixed
+- `phaser4-audit-report.md` — old Phaser audit
+- `audit-systems-report.md` — old systems audit
