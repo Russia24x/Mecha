@@ -48,6 +48,7 @@ const DEFAULT_SAVE: SaveData = {
   bestBossTimes: {},
   settings: { ...DEFAULT_SETTINGS },
   questFlags: {},
+  questProgress: {},  // N2 fix: quest objective progress persistence
   npcFlags: {},
   unlockedAreas: ['abandoned_factory', 'toxic_forest'],
   discoveredAreas: [],
@@ -89,6 +90,7 @@ export class SaveSystem {
     };
     if (!migrated.bestBossTimes) migrated.bestBossTimes = {};
     if (!migrated.questFlags) migrated.questFlags = {};
+    if (!migrated.questProgress) migrated.questProgress = {};  // N2 fix: add to old saves
     if (!migrated.npcFlags) migrated.npcFlags = {};
     if (!migrated.unlockedAreas) migrated.unlockedAreas = ['abandoned_factory', 'toxic_forest'];
     if (!migrated.discoveredAreas) migrated.discoveredAreas = [];
@@ -348,6 +350,31 @@ export class SaveSystem {
     const data = this.load();
     data.questFlags[questId] = flag;
     this.persist();
+  }
+
+  /** N4 fix: proper setters to avoid bypassing persist() */
+  static setSkillPoints(sp: number): void {
+    const data = this.load();
+    data.player.skillPoints = Math.max(0, sp);
+    this.persist();
+  }
+
+  static setWeaponLevel(weaponId: string, level: number): void {
+    const data = this.load();
+    data.player.weaponLevels[weaponId] = level;
+    this.persist();
+  }
+
+  /** N2 fix: quest progress persistence */
+  static setQuestProgress(questId: string, progress: number[]): void {
+    const data = this.load();
+    if (!data.questProgress) data.questProgress = {};
+    data.questProgress[questId] = progress;
+    this.persist();
+  }
+
+  static getQuestProgress(questId: string): number[] | null {
+    return this.load().questProgress?.[questId] ?? null;
   }
 
   static getQuestFlag(questId: string): boolean {

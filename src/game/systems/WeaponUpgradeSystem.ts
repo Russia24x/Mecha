@@ -93,16 +93,8 @@ export class WeaponUpgradeSystem {
     InventorySystem.removeItem('scrap_metal', scrapNeeded);
     InventorySystem.removeItem('circuit_board', circuitNeeded);
 
-    // Set new weapon level
-    const save = SaveSystem.get();
-    save.player.weaponLevels[weaponId] = nextLevel;
-    // Persist directly (SaveSystem doesn't have a setWeaponLevel method, so use saveSettings pattern)
-    // We need to persist — use a workaround: add a dummy item then remove
-    // Actually, let's add a proper method to SaveSystem
-    // For now, we can directly persist:
-    try {
-      window.localStorage.setItem('mecha_last_protocol_save_v3', JSON.stringify(save));
-    } catch { /* */ }
+    // Set new weapon level (N4 fix: use SaveSystem instead of direct localStorage)
+    SaveSystem.setWeaponLevel(weaponId, nextLevel);
 
     AudioSystem.play('skillUnlock');
     EventBus.emit('WEAPON_UNLOCKED', { weaponId, upgraded: true, level: nextLevel });

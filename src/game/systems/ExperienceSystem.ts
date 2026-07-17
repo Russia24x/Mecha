@@ -108,11 +108,7 @@ export class ExperienceSystem {
   static spendSkillPoint(): boolean {
     const sp = this.getSkillPoints();
     if (sp <= 0) return false;
-    const save = SaveSystem.get();
-    save.player.skillPoints--;
-    try {
-      window.localStorage.setItem('mecha_last_protocol_save_v3', JSON.stringify(save));
-    } catch { /* */ }
+    SaveSystem.setSkillPoints(sp - 1);  // N4 fix: use SaveSystem instead of direct localStorage
     return true;
   }
 }

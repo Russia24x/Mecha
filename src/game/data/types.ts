@@ -462,6 +462,7 @@ export interface SaveData {
   bestBossTimes: Record<string, number>;
   settings: GameSettings;
   questFlags: Record<string, boolean>;
+  questProgress: Record<string, number[]>;  // N2 fix: persist quest objective progress
   npcFlags: Record<string, Record<string, boolean>>;
   unlockedAreas: string[];
   discoveredAreas: string[];

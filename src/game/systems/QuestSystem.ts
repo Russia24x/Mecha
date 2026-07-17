@@ -27,13 +27,14 @@ export class QuestSystem {
     if (this.initialized) return;
     this.initialized = true;
 
-    // Load quest flags from save
+    // Load quest flags + progress from save (N2 fix: persist progress)
     for (const quest of getAllQuests()) {
       const turnedIn = SaveSystem.getQuestFlag(quest.id);
+      const savedProgress = SaveSystem.getQuestProgress(quest.id);
       this.quests.set(quest.id, {
         questId: quest.id,
         status: turnedIn ? 'turned_in' : 'not_started',
-        progress: quest.objectives.map(() => 0),
+        progress: savedProgress ?? quest.objectives.map(() => 0),
       });
     }
 
@@ -155,6 +156,8 @@ export class QuestSystem {
         }
         if (state.progress[i] < obj.amount) allComplete = false;
       }
+      // N2 fix: persist quest progress to save
+      SaveSystem.setQuestProgress(questId, state.progress);
       if (allComplete && state.status === 'active') {
         state.status = 'completed';
         EventBus.emit('QUEST_UPDATED', { questId, status: 'completed' });
