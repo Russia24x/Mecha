@@ -233,6 +233,8 @@ export class UIController {
 
   get isVisible(): boolean { return this.cursorVisible; }
   get hasHover(): boolean { return this.lastHovered !== null; }
+  /** Get cursor X position (for slider click-to-jump in cursor mode). */
+  get cursorPositionX(): number { return this.cursorX; }
 
   setPosition(x: number, y: number): void {
     this.cursorX = Phaser.Math.Clamp(x, 5, GAME.WIDTH - 5);

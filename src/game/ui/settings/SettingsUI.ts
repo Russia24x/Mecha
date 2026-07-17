@@ -278,8 +278,9 @@ export class SettingsUI extends NavigableOverlay {
       if (localX !== undefined && !isNaN(localX)) {
         v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
       } else {
-        // Cursor mode: use cursor X relative to slider bg position
-        const cursorX = this.scene.input.activePointer?.x ?? x;
+        // Cursor mode: use UIController cursor X (not mouse activePointer which may be stale)
+        const ctrl = this.getController();
+        const cursorX = ctrl?.isVisible ? ctrl.cursorPositionX : (this.scene.input.activePointer?.x ?? x);
         const relX = cursorX - (x - 150);
         v = Phaser.Math.Clamp(relX / 300, 0, 1);
       }
