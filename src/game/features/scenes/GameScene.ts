@@ -130,6 +130,7 @@ export class GameScene extends Phaser.Scene {
   private player!: PlayerEntity;
   private enemies: EnemyEntity[] = [];
   private boss: BossEntity | null = null;
+  private killedBossId: string | null = null;  // for victory screen lore
   private projectiles: Projectile[] = [];
   /** Typed registry of damageable targets — used by Projectile for O(m) hit detection. */
   private targetRegistry = new TargetRegistry();
@@ -911,6 +912,7 @@ export class GameScene extends Phaser.Scene {
 
   private onBossDied = (payload: unknown): void => {
     const data = payload as { id: string; lore: string[] };
+    this.killedBossId = data.id;  // store for victory screen lore
     // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
@@ -1088,8 +1090,8 @@ export class GameScene extends Phaser.Scene {
     c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '56px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
     })).setOrigin(0.5).setDepth(1));
-    // Boss lore — Persian-aware
-    const lore = LoreSystem.getBossLore('guardian_ax09');
+    // Boss lore — use the actual boss that was killed (not hardcoded)
+    const lore = this.killedBossId ? LoreSystem.getBossLore(this.killedBossId) : null;
     if (lore) {
       const lines = lore.lines.map(key => t(key));
       c.add(this.add.text(w / 2, h * 0.5, lines, fixTextStyle({
