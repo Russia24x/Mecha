@@ -86,6 +86,8 @@
   "skill.weapon.shotgun.desc": "سلاح شاتگان را باز می‌کند",
   "skill.weapon.railgun.name": "باز کردن ریل‌گان",
   "skill.weapon.railgun.desc": "سلاح ریل‌گان را باز می‌کند",
+  "skill.weapon.laser.name": "باز کردن لیزر",
+  "skill.weapon.laser.desc": "سلاح لیزر را باز می‌کند",
   "skill.weapon.rocket.name": "باز کردن راکت‌لانچر",
   "skill.weapon.rocket.desc": "سلاح راکت‌لانچر را باز می‌کند",
   "skill.weapon.dualwield.name": "پروتکل دو دستی",

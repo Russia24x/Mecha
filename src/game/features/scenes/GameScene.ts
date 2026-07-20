@@ -913,6 +913,17 @@ export class GameScene extends Phaser.Scene {
   private onBossDied = (payload: unknown): void => {
     const data = payload as { id: string; lore: string[] };
     this.killedBossId = data.id;  // store for victory screen lore
+    // Unlock boss-gated weapons (plasma_cannon on boss_1, energy_blade on boss_2)
+    if (data.id === 'guardian_ax09' && !SaveSystem.isWeaponUnlocked('plasma_cannon')) {
+      SaveSystem.unlockWeapon('plasma_cannon');
+      EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'plasma_cannon' });
+      this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: توپ پلاسما' : 'NEW WEAPON: Plasma Cannon');
+    }
+    if (data.id === 'neural_overseer' && !SaveSystem.isWeaponUnlocked('energy_blade')) {
+      SaveSystem.unlockWeapon('energy_blade');
+      EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'energy_blade' });
+      this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: تیغ انرژی' : 'NEW WEAPON: Energy Blade');
+    }
     // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);

@@ -198,6 +198,10 @@ export class SaveSystem {
     this.persist();
   }
 
+  static isWeaponUnlocked(weaponId: string): boolean {
+    return this.load().player.unlockedWeapons.includes(weaponId);
+  }
+
   static unlockAbility(ability: string): void {
     const data = this.load();
     if (!data.player.abilities.includes(ability)) {
