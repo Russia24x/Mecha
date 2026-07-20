@@ -108,6 +108,11 @@ export class QuestSystem {
     return this.quests.get(questId)?.status ?? 'not_started';
   }
 
+  /** Get full quest state (for NPCSystem to check completion before turn-in). */
+  static getQuestState(questId: string): QuestState | undefined {
+    return this.quests.get(questId);
+  }
+
   /** Get all active quests. */
   static getActiveQuests(): QuestData[] {
     return getAllQuests().filter(q => this.quests.get(q.id)?.status === 'active');

@@ -7,6 +7,7 @@ import { getNPC, getNPCsInArea } from '../data/npc/npcs';
 import type { NPCData } from '../data/types';
 import { SaveSystem } from '../systems/SaveSystem';
 import { EventBus } from '../systems/EventBus';
+import { QuestSystem } from '../systems/QuestSystem';
 
 export class NPCSystem {
   /**
@@ -70,6 +71,9 @@ export class NPCSystem {
    * Interact with an NPC — triggers the active dialogue.
    * Called when player presses interact near an NPC.
    * Returns the dialogue ID to display, or null if no dialogue available.
+   *
+   * Quest wiring: when dialogue is quest_start, starts the quest.
+   * When dialogue is quest_complete, turns in the quest.
    */
   static interact(npcId: string): string | null {
     const dialogueId = this.getActiveDialogue(npcId);
@@ -78,6 +82,22 @@ export class NPCSystem {
     // Mark as met
     if (!this.getFlag(npcId, 'met')) {
       this.setFlag(npcId, 'met', true);
+    }
+
+    // Quest wiring: start or complete quest based on dialogue type
+    const npc = getNPC(npcId);
+    if (npc?.questIds && npc.questIds.length > 0) {
+      const questId = npc.questIds[0];
+      if (dialogueId.includes('quest_start') && !this.getFlag(npcId, 'quest_given')) {
+        QuestSystem.startQuest(questId);
+        this.setFlag(npcId, 'quest_given', true);
+      } else if (dialogueId.includes('quest_complete')) {
+        const state = QuestSystem.getQuestState(questId);
+        if (state?.status === 'completed') {
+          QuestSystem.turnInQuest(questId);
+          this.setFlag(npcId, 'quest_done', true);
+        }
+      }
     }
 
     EventBus.emit('DIALOGUE_START', { npcId, dialogueId });
