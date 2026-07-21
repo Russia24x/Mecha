@@ -54,11 +54,18 @@ export class NPCSystem {
       for (const dialogueId of npc.dialogues) {
         if (!dialogueId.includes(p)) continue;
         // Condition checks per priority type
-        if (p === 'quest_complete' && !this.getFlag(npcId, 'quest_given')) continue;
+        if (p === 'quest_complete') {
+          if (!this.getFlag(npcId, 'quest_given')) continue;
+          // Only show quest_complete if quest is ACTUALLY completed
+          if (npc.questIds && npc.questIds.length > 0) {
+            const questStatus = QuestSystem.getStatus(npc.questIds[0]);
+            if (questStatus !== 'completed') continue;
+          }
+        }
         if (p === 'quest_start' && this.getFlag(npcId, 'quest_done')) continue;
         if (p === 'quest_start' && !this.getFlag(npcId, 'met')) continue;
-        if (p === 'lore' && !this.getFlag(npcId, 'met')) continue;  // lore only after met
-        if (p === 'shop' && !this.getFlag(npcId, 'met')) continue;  // shop only after met
+        if (p === 'lore' && !this.getFlag(npcId, 'met')) continue;
+        if (p === 'shop' && !this.getFlag(npcId, 'met')) continue;
         return dialogueId;
       }
     }
