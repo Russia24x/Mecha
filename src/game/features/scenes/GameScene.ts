@@ -468,16 +468,11 @@ export class GameScene extends Phaser.Scene {
   private buildMenu(): void {
     // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
     this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
-      // START = continue current game → hub (keep save data)
-      onStart: () => {
-        this.setState('hub');
-      },
-      // NEW GAME = clear everything, start fresh
       onNewGame: () => {
         SaveSystem.clear();
         CheckpointSystem.clear();
         QuestSystem.reset();
-        QuestSystem.init();  // re-initialize from cleared save data
+        QuestSystem.init();
         this.setState('hub');
       },
       // CONTINUE = resume directly at last checkpoint (skip hub)
