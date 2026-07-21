@@ -430,16 +430,17 @@ export class SkillTreeUI extends NavigableOverlay {
           this.refreshTree();
         }
       };
-      // Preview detail panel on hover (before clicking)
-      diamond.on('pointerover', () => {
-        this.updateDetailPanel(node, skill);
-      });
       // Register via registerNav (handles setInteractive + ctrl.addButton)
       const backIdx = this.navElements.length - 1;
       this.registerNav(diamond, icon, unlockAction, {
         insertAt: backIdx,
         focusColor: treeColor,
         normalColor: this.getNodeStroke(node),
+      });
+      // Preview detail panel on hover — MUST be AFTER registerNav
+      // (registerNav → addButton → bg.off('pointerover') would remove our handler if placed before)
+      diamond.on('pointerover', () => {
+        this.updateDetailPanel(node, skill);
       });
     });
 

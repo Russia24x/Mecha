@@ -57,6 +57,8 @@ export class NPCSystem {
         if (p === 'quest_complete' && !this.getFlag(npcId, 'quest_given')) continue;
         if (p === 'quest_start' && this.getFlag(npcId, 'quest_done')) continue;
         if (p === 'quest_start' && !this.getFlag(npcId, 'met')) continue;
+        if (p === 'lore' && !this.getFlag(npcId, 'met')) continue;  // lore only after met
+        if (p === 'shop' && !this.getFlag(npcId, 'met')) continue;  // shop only after met
         return dialogueId;
       }
     }
