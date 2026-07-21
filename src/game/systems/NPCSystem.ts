@@ -46,20 +46,18 @@ export class NPCSystem {
     const npc = getNPC(npcId);
     if (!npc) return null;
 
-    // Priority order: quest completion > quest start > lore > intro
+    // Priority order: quest completion > quest start > lore > intro > shop
     const priority = ['quest_complete', 'quest_start', 'lore', 'intro', 'shop'];
 
-    for (const dialogueId of npc.dialogues) {
-      // Check if this dialogue's type is in priority order
-      // We check by ID pattern for simplicity
-      for (const p of priority) {
-        if (dialogueId.includes(p)) {
-          // Check if already completed (quest_done flag set → skip quest_start)
-          if (p === 'quest_start' && this.getFlag(npcId, 'quest_done')) continue;
-          if (p === 'quest_complete' && !this.getFlag(npcId, 'quest_given')) continue;
-          if (p === 'quest_start' && !this.getFlag(npcId, 'met')) continue;
-          return dialogueId;
-        }
+    // Fix: iterate PRIORITY first, then find matching dialogue
+    for (const p of priority) {
+      for (const dialogueId of npc.dialogues) {
+        if (!dialogueId.includes(p)) continue;
+        // Condition checks per priority type
+        if (p === 'quest_complete' && !this.getFlag(npcId, 'quest_given')) continue;
+        if (p === 'quest_start' && this.getFlag(npcId, 'quest_done')) continue;
+        if (p === 'quest_start' && !this.getFlag(npcId, 'met')) continue;
+        return dialogueId;
       }
     }
 
