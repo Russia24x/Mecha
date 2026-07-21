@@ -3,7 +3,7 @@
  * Manages quest state: not_started → active → completed → turned_in.
  */
 import { getQuest, getAllQuests } from '../data/quests/quests';
-import type { QuestData, QuestState, QuestStatus } from '../data/types';
+import type { QuestData } from '../data/types';
 import { SaveSystem } from './SaveSystem';
 import { EventBus } from './EventBus';
 import { AudioSystem } from './AudioSystem';
