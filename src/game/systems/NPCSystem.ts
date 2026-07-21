@@ -89,13 +89,17 @@ export class NPCSystem {
     if (npc?.questIds && npc.questIds.length > 0) {
       const questId = npc.questIds[0];
       if (dialogueId.includes('quest_start') && !this.getFlag(npcId, 'quest_given')) {
-        QuestSystem.startQuest(questId);
-        this.setFlag(npcId, 'quest_given', true);
+        const started = QuestSystem.startQuest(questId);
+        if (started) {
+          this.setFlag(npcId, 'quest_given', true);
+        }
       } else if (dialogueId.includes('quest_complete')) {
         const state = QuestSystem.getQuestState(questId);
         if (state?.status === 'completed') {
-          QuestSystem.turnInQuest(questId);
-          this.setFlag(npcId, 'quest_done', true);
+          const turnedIn = QuestSystem.turnInQuest(questId);
+          if (turnedIn) {
+            this.setFlag(npcId, 'quest_done', true);
+          }
         }
       }
     }

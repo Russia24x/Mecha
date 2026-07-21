@@ -475,7 +475,8 @@ export class GameScene extends Phaser.Scene {
       onNewGame: () => {
         SaveSystem.clear();
         CheckpointSystem.clear();
-        QuestSystem.reset();  // clear quest state so New Game truly resets
+        QuestSystem.reset();
+        QuestSystem.init();  // re-initialize from cleared save data
         this.setState('hub');
       },
       // CONTINUE = resume directly at last checkpoint (skip hub)
