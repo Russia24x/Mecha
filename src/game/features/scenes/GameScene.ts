@@ -473,6 +473,12 @@ export class GameScene extends Phaser.Scene {
         CheckpointSystem.clear();
         QuestSystem.reset();
         QuestSystem.init();
+        // Debug: verify quest state after reset
+        console.log('[QUEST-DEBUG] New Game — quest status:', QuestSystem.getStatus('quest_kill_drones'));
+        console.log('[QUEST-DEBUG] New Game — quest flag:', SaveSystem.getQuestFlag('quest_kill_drones'));
+        console.log('[QUEST-DEBUG] New Game — npc met:', SaveSystem.getNpcFlag('engineer_kara', 'met'));
+        console.log('[QUEST-DEBUG] New Game — npc quest_given:', SaveSystem.getNpcFlag('engineer_kara', 'quest_given'));
+        console.log('[QUEST-DEBUG] New Game — npc quest_done:', SaveSystem.getNpcFlag('engineer_kara', 'quest_done'));
         this.setState('hub');
       },
       // CONTINUE = resume directly at last checkpoint (skip hub)
