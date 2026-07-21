@@ -22,6 +22,12 @@ export class QuestSystem {
   private static quests: Map<string, QuestState> = new Map();
   private static initialized = false;
 
+  /** Reset quest system — called on New Game to clear all quest state. */
+  static reset(): void {
+    this.quests.clear();
+    this.initialized = false;
+  }
+
   /** Initialize quest system — load state from save + subscribe to events. */
   static init(): void {
     if (this.initialized) return;
