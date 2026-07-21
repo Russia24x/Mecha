@@ -238,6 +238,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('EMP_PULSE', this.onEmpPulse, this);
     EventBus.on('EMP_HIT', this.onEmpHit, this);
     EventBus.on('HACK_COMPLETE', this.onHackComplete, this);
+    EventBus.on('QUEST_UPDATED', this.onQuestUpdated, this);
 
     // Performance overlay (F3 toggle)
     this.perfOverlay = new PerformanceOverlay(this);
@@ -1047,6 +1048,21 @@ export class GameScene extends Phaser.Scene {
     }
   };
 
+  private onQuestUpdated = (payload: unknown): void => {
+    const data = payload as { questId: string; status: string };
+    const isFa = getLocale() === 'fa';
+    if (data.status === 'active') {
+      this.hud?.toast(isFa ? '▶ ماموریت جدید فعال شد' : '▶ NEW MISSION ACTIVE');
+      AudioSystem.play('uiClick');
+    } else if (data.status === 'completed') {
+      this.hud?.toast(isFa ? '✓ ماموریت کامل شد — برای پاداش برگردید' : '✓ MISSION COMPLETE — Return to turn in');
+      AudioSystem.play('skillUnlock');
+    } else if (data.status === 'turned_in') {
+      this.hud?.toast(isFa ? '★ ماموریت تحویل داده شد' : '★ MISSION TURNED IN');
+      AudioSystem.play('uiClick');
+    }
+  };
+
   // ================ GAMEOVER / VICTORY ================
 
   private buildGameOver(): void {
@@ -1151,6 +1167,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.off('EMP_PULSE', this.onEmpPulse, this);
     EventBus.off('EMP_HIT', this.onEmpHit, this);
     EventBus.off('HACK_COMPLETE', this.onHackComplete, this);
+    EventBus.off('QUEST_UPDATED', this.onQuestUpdated, this);
     OverlayManager.destroy();
     InputSystem.destroy();
   }
