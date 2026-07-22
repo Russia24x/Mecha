@@ -569,11 +569,12 @@ export class GameScene extends Phaser.Scene {
         }
       },
       onBack: () => {
+        // Hide profile select UI first (destroys overlay container)
         profileUI.hide();
-        // Rebuild menu
-        this.stateContainer!.removeAll(true);
-        this.menuNav!.reset();
-        this.buildMenu();
+        // Rebuild menu from scratch via setState('menu') — this creates a fresh
+        // stateContainer + shared UIController + menuNav, avoiding the stale
+        // container reference that profileUI.show() left in menuNav.
+        this.setState('menu');
       },
     });
 
