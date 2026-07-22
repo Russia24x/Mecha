@@ -1,96 +1,200 @@
 /**
- * MECHA: LAST PROTOCOL — Save System v3
- * Versioned, migrates old saves. Stores full game state.
+ * MECHA: LAST PROTOCOL — Save System v4 (Façade)
+ *
+ * REWRITE (Phase 3): same public API as v3, but internal storage switched
+ * from localStorage to IndexedDB via ProfileManager. The cache stays
+ * in-memory for fast reads; persistence is delegated to AutoSaveManager
+ * (Phase 4) via the dirty flag.
+ *
+ * Contract:
+ *   - `persist()` is now O(1) — only marks cache dirty. Does NOT write
+ *     to IndexedDB or localStorage.
+ *   - AutoSaveManager calls `flushToIndexedDB()` every 30s + on checkpoints
+ *     + on visibilitychange/beforeunload.
+ *   - On slot switch, `selectSlot()` loads the new slot's data from
+ *     IndexedDB and replaces the in-memory cache.
+ *
+ * SaveData v4 adds `stages: Record<number, StageProgress>` field (ported
+ * from old shared/Save.ts which had unique stage data in v2 localStorage).
+ *
+ * Migration: ProfileManager (Phase 6) reads old localStorage keys
+ * (v2, v2_skills_v2, v3) and merges them into slot 0 in IndexedDB.
+ *
+ * API surface: 100% backward-compatible with v3. All 40+ existing methods
+ * keep the same signature and return type. New methods are clearly marked.
  */
+
 import type { SaveData, GameSettings, CheckpointData, PlayerState, InventoryItem } from '../data/types';
+import { ProfileManager, DEFAULT_SAVE, DEFAULT_SETTINGS, DEFAULT_PLAYER, SAVE_VERSION, type StageProgress } from './ProfileManager';
 
-const SAVE_VERSION = 3;
-const STORAGE_KEY = 'mecha_last_protocol_save_v3';
+// Re-export StageProgress + SAVE_VERSION so existing imports from SaveSystem keep working
+export type { StageProgress };
+export { SAVE_VERSION };
 
-const DEFAULT_SETTINGS: GameSettings = {
-  locale: 'en',
-  masterVolume: 0.7,
-  musicVolume: 0.4,
-  sfxVolume: 0.8,
-  muted: false,
-  brightness: 0.85,
-  quality: 'high',
-  fullscreen: false,
-};
-
-const DEFAULT_PLAYER: PlayerState = {
-  level: 1,
-  xp: 0,
-  skillPoints: 0,
-  totalKills: 0,
-  bossesKilled: 0,
-  unlockedSkills: [],
-  unlockedWeapons: ['assault_rifle'],
-  currentWeapon: 'assault_rifle',
-  weaponLevels: { assault_rifle: 1 },
-  inventory: [],
-  abilities: [],
-  collectedCollectibles: [],
-  openedShortcuts: [],
-  // Hangar defaults
-  selectedChassis: 'assault',
-  selectedPaint: 'factory_gray',
-  unlockedChassis: ['scout', 'assault', 'titan'],
-  unlockedPaints: ['factory_gray'],
-  unlockedCompanions: [],
-  selectedCompanion: null,
-};
-
-const DEFAULT_SAVE: SaveData = {
-  version: SAVE_VERSION,
-  player: { ...DEFAULT_PLAYER },
-  checkpoint: null,
-  bestBossTimes: {},
-  settings: { ...DEFAULT_SETTINGS },
-  questFlags: {},
-  questProgress: {},  // N2 fix: quest objective progress persistence
-  npcFlags: {},
-  unlockedAreas: ['abandoned_factory', 'toxic_forest'],
-  discoveredAreas: [],
-};
+// Internal type: SaveData v4 (extends v3 SaveData with stages field)
+type SaveDataV4 = SaveData & { stages: Record<number, StageProgress> };
 
 export class SaveSystem {
-  private static cache: SaveData | null = null;
-  // ── Performance: in-memory Sets for per-frame lookups (avoid array.includes every frame) ──
+  /** In-memory cache of the currently-selected profile's SaveData. */
+  private static cache: SaveDataV4 | null = null;
+  /** Performance: in-memory Sets for per-frame lookups. */
   private static collectedCache: Set<string> | null = null;
   private static shortcutsCache: Set<string> | null = null;
+  /** Dirty flag — set by persist(), cleared by flushToIndexedDB(). */
+  private static dirty: boolean = false;
+  /** Whether init() has been called. */
+  private static initialized: boolean = false;
 
-  private static load(): SaveData {
-    if (this.cache) return this.cache;
-    try {
-      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(STORAGE_KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SaveData>;
-        this.cache = this.migrate(parsed);
-      } else {
-        this.cache = { ...DEFAULT_SAVE, player: { ...DEFAULT_PLAYER }, settings: { ...DEFAULT_SETTINGS } };
-      }
-    } catch {
-      this.cache = { ...DEFAULT_SAVE, player: { ...DEFAULT_PLAYER }, settings: { ...DEFAULT_SETTINGS } };
+  // ──────────────────────────────────────────────────────────────
+  //  INIT / SLOT MANAGEMENT (NEW in v4 — required before any other call)
+  // ──────────────────────────────────────────────────────────────
+
+  /**
+   * Initialize the save system. MUST be called once on game boot, after
+   * ProfileManager.init().
+   *
+   * - If a slot is selected in ProfileManager, loads its data into cache.
+   * - If no slot is selected, cache stays null (will be loaded on selectSlot).
+   *
+   * Returns the currently-selected slot ID (or null).
+   */
+  static async init(): Promise<number | null> {
+    if (this.initialized) return ProfileManager.getCurrentSlotId();
+    this.initialized = true;
+    const slotId = ProfileManager.getCurrentSlotId();
+    if (slotId !== null) {
+      await this.loadFromSlot(slotId);
     }
+    return slotId;
+  }
+
+  /**
+   * Switch to a different profile slot. Loads the new slot's data into
+   * cache, REPLACING the current cache. The previous slot's dirty data
+   * is flushed to IndexedDB before switching (best-effort).
+   *
+   * Used by ProfileSelectUI (Phase 5) when user picks a different slot.
+   */
+  static async selectSlot(slotId: number): Promise<void> {
+    // Flush current slot before switching (best-effort)
+    if (this.dirty && ProfileManager.getCurrentSlotId() !== null) {
+      await this.flushToIndexedDB();
+    }
+    await ProfileManager.selectSlot(slotId as 0 | 1 | 2);
+    await this.loadFromSlot(slotId);
+  }
+
+  /**
+   * Load cache from a profile slot. Rebuilds the Set caches from arrays.
+   */
+  private static async loadFromSlot(slotId: number): Promise<void> {
+    const data = await ProfileManager.readProfileData(slotId as 0 | 1 | 2);
+    if (data) {
+      this.cache = this.migrate(data);
+    } else {
+      // Slot doesn't exist or is empty — use defaults
+      this.cache = this.deepCloneDefault();
+    }
+    // Rebuild Set caches
+    this.collectedCache = new Set(this.cache.player.collectedCollectibles ?? []);
+    this.shortcutsCache = new Set(this.cache.player.openedShortcuts ?? []);
+    this.dirty = false;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  PERSIST / DIRTY (REWRITTEN in v4)
+  // ──────────────────────────────────────────────────────────────
+
+  /**
+   * Mark the cache as dirty. Does NOT write to IndexedDB.
+   * AutoSaveManager handles actual persistence.
+   *
+   * This method is called by every mutator below.
+   */
+  private static persist(): void {
+    this.dirty = true;
+  }
+
+  /** Whether there are unsaved changes in the cache. */
+  static isDirty(): boolean {
+    return this.dirty;
+  }
+
+  /** Clear the dirty flag (called by AutoSaveManager after successful flush). */
+  static clearDirty(): void {
+    this.dirty = false;
+  }
+
+  /**
+   * Serialize the current cache for AutoSaveManager to write to IndexedDB.
+   * Returns a deep clone so the caller can't mutate the cache.
+   */
+  static serialize(): SaveDataV4 | null {
+    if (!this.cache) return null;
+    return JSON.parse(JSON.stringify(this.cache)) as SaveDataV4;
+  }
+
+  /**
+   * Write the current cache to IndexedDB via ProfileManager.
+   * Called by AutoSaveManager (Phase 4). Clears the dirty flag on success.
+   */
+  static async flushToIndexedDB(): Promise<void> {
+    if (!this.cache) return;
+    const slotId = ProfileManager.getCurrentSlotId();
+    if (slotId === null) return; // No slot selected — nothing to flush
+    await ProfileManager.writeProfileData(slotId, this.cache);
+    this.dirty = false;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  CACHE LOAD (REWRITTEN — uses in-memory cache, not localStorage)
+  // ──────────────────────────────────────────────────────────────
+
+  /**
+   * Get the cache, loading it if necessary.
+   * In v4, the cache is loaded by init()/selectSlot(), so this is mostly
+   * a null-check. If cache is null (no slot selected), returns defaults.
+   */
+  private static load(): SaveDataV4 {
+    if (this.cache) return this.cache;
+    // No slot selected — use in-memory defaults (won't be persisted)
+    this.cache = this.deepCloneDefault();
+    this.collectedCache = new Set();
+    this.shortcutsCache = new Set();
     return this.cache;
   }
 
-  private static persist(): void {
-    if (typeof window === 'undefined') return;
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.cache)); } catch { /* */ }
+  /** Deep-clone the DEFAULT_SAVE so each instance is independent. */
+  private static deepCloneDefault(): SaveDataV4 {
+    return {
+      ...DEFAULT_SAVE,
+      player: { ...DEFAULT_PLAYER },
+      settings: { ...DEFAULT_SETTINGS },
+      bestBossTimes: {},
+      questFlags: {},
+      questProgress: {},
+      npcFlags: {},
+      unlockedAreas: [...DEFAULT_SAVE.unlockedAreas],
+      discoveredAreas: [],
+      stages: {},
+    };
   }
 
-  private static migrate(old: Partial<SaveData>): SaveData {
-    const migrated: SaveData = {
+  /**
+   * Migrate old save format to v4. Adds `stages` field if missing
+   * (porting from v3 which didn't have it).
+   */
+  private static migrate(old: Partial<SaveDataV4>): SaveDataV4 {
+    const migrated: SaveDataV4 = {
       ...DEFAULT_SAVE,
       ...old,
       player: { ...DEFAULT_PLAYER, ...old.player },
       settings: { ...DEFAULT_SETTINGS, ...old.settings },
     };
+    // Ensure all nested structures exist (defensive — same as v3 migrate)
     if (!migrated.bestBossTimes) migrated.bestBossTimes = {};
     if (!migrated.questFlags) migrated.questFlags = {};
-    if (!migrated.questProgress) migrated.questProgress = {};  // N2 fix: add to old saves
+    if (!migrated.questProgress) migrated.questProgress = {};
     if (!migrated.npcFlags) migrated.npcFlags = {};
     if (!migrated.unlockedAreas) migrated.unlockedAreas = ['abandoned_factory', 'toxic_forest'];
     if (!migrated.discoveredAreas) migrated.discoveredAreas = [];
@@ -109,11 +213,17 @@ export class SaveSystem {
     if (migrated.player.selectedCompanion === undefined) migrated.player.selectedCompanion = null;
     if (!migrated.settings.quality) migrated.settings.quality = 'high';
     if (migrated.settings.fullscreen === undefined) migrated.settings.fullscreen = false;
+    // NEW in v4: stages field (ported from old shared/Save.ts)
+    if (!migrated.stages) migrated.stages = {};
     migrated.version = SAVE_VERSION;
     return migrated;
   }
 
-  static get(): Readonly<SaveData> { return this.load(); }
+  // ──────────────────────────────────────────────────────────────
+  //  PUBLIC API (unchanged from v3 — same signatures, same behavior)
+  // ──────────────────────────────────────────────────────────────
+
+  static get(): Readonly<SaveDataV4> { return this.load(); }
   static getPlayer(): Readonly<PlayerState> { return this.load().player; }
   static getSettings(): GameSettings { return this.load().settings; }
 
@@ -194,8 +304,8 @@ export class SaveSystem {
       if (!data.player.weaponLevels[weaponId]) {
         data.player.weaponLevels[weaponId] = 1;
       }
+      this.persist();
     }
-    this.persist();
   }
 
   static isWeaponUnlocked(weaponId: string): boolean {
@@ -206,8 +316,8 @@ export class SaveSystem {
     const data = this.load();
     if (!data.player.abilities.includes(ability)) {
       data.player.abilities.push(ability);
+      this.persist();
     }
-    this.persist();
   }
 
   // ── Metroidvania: Collectibles + Shortcuts ──
@@ -338,16 +448,16 @@ export class SaveSystem {
     const data = this.load();
     if (!data.unlockedAreas.includes(areaId)) {
       data.unlockedAreas.push(areaId);
+      this.persist();
     }
-    this.persist();
   }
 
   static discoverArea(areaId: string): void {
     const data = this.load();
     if (!data.discoveredAreas.includes(areaId)) {
       data.discoveredAreas.push(areaId);
+      this.persist();
     }
-    this.persist();
   }
 
   static setQuestFlag(questId: string, flag: boolean): void {
@@ -402,11 +512,48 @@ export class SaveSystem {
     this.persist();
   }
 
-  static clear(): void {
-    this.cache = { ...DEFAULT_SAVE, player: { ...DEFAULT_PLAYER }, settings: { ...DEFAULT_SETTINGS } };
-    this.collectedCache = null;  // N1 fix: reset cache Sets so isCollectibleCollected returns false after clear
-    this.shortcutsCache = null;
+  // ── NEW in v4: Stages (ported from old shared/Save.ts) ──
+
+  /** Record completion of a stage. Stores best time per stage. */
+  static recordStageComplete(stageId: number, timeMs: number): void {
+    const data = this.load();
+    if (!data.stages[stageId]) data.stages[stageId] = { completed: false, bestTimeMs: null };
+    data.stages[stageId].completed = true;
+    if (data.stages[stageId].bestTimeMs === null || timeMs < data.stages[stageId].bestTimeMs!) {
+      data.stages[stageId].bestTimeMs = timeMs;
+    }
     this.persist();
+  }
+
+  /** Check if a stage is unlocked (previous stage must be completed). */
+  static isStageUnlocked(stageId: number): boolean {
+    if (stageId === 1) return true;
+    const data = this.load();
+    return data.stages[stageId - 1]?.completed ?? false;
+  }
+
+  /** Get all stage progress (for UI display). */
+  static getStages(): Record<number, StageProgress> {
+    return this.load().stages;
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  //  RESET
+  // ──────────────────────────────────────────────────────────────
+
+  /**
+   * Reset the cache to defaults. Does NOT delete the IndexedDB record —
+   * use ProfileManager.deleteProfile() for that.
+   *
+   * After clear(), the cache is in-memory only. The next persist() will
+   * mark it dirty, and AutoSaveManager will eventually flush it to IndexedDB
+   * (overwriting the existing record in the current slot).
+   */
+  static clear(): void {
+    this.cache = this.deepCloneDefault();
+    this.collectedCache = null;  // N1 fix: reset cache Sets
+    this.shortcutsCache = null;
+    this.dirty = true;  // Mark dirty so AutoSaveManager persists the reset
   }
 }
 

@@ -1,0 +1,7493 @@
+[
+  {
+    "step": 1,
+    "method": "clear",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {},
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 2,
+    "method": "setQuestFlag",
+    "args": [
+      "main_quest_1",
+      true
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true
+      },
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 3,
+    "method": "setQuestFlag",
+    "args": [
+      "side_quest_3",
+      false
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 4,
+    "method": "getQuestFlag",
+    "args": [
+      "main_quest_1"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 5,
+    "method": "getQuestFlag",
+    "args": [
+      "side_quest_3"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 6,
+    "method": "getQuestFlag",
+    "args": [
+      "never_set_quest"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {},
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 7,
+    "method": "setQuestProgress",
+    "args": [
+      "main_quest_1",
+      [
+        1,
+        0,
+        2
+      ]
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ]
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 8,
+    "method": "getQuestProgress",
+    "args": [
+      "main_quest_1"
+    ],
+    "returnValue": [
+      1,
+      0,
+      2
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ]
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 9,
+    "method": "setQuestProgress",
+    "args": [
+      "empty_quest",
+      []
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 10,
+    "method": "getQuestProgress",
+    "args": [
+      "empty_quest"
+    ],
+    "returnValue": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 11,
+    "method": "getQuestProgress",
+    "args": [
+      "never_set_progress"
+    ],
+    "returnValue": null,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 12,
+    "method": "saveCheckpoint",
+    "args": [
+      {
+        "actId": 1,
+        "regionId": "factory_region",
+        "areaId": "abandoned_factory",
+        "section": 3,
+        "x": 100,
+        "y": 200,
+        "timestamp": 0
+      }
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": {
+        "actId": 1,
+        "regionId": "factory_region",
+        "areaId": "abandoned_factory",
+        "section": 3,
+        "x": 100,
+        "y": 200,
+        "timestamp": 0
+      },
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 13,
+    "method": "hasCheckpoint",
+    "args": [],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": {
+        "actId": 1,
+        "regionId": "factory_region",
+        "areaId": "abandoned_factory",
+        "section": 3,
+        "x": 100,
+        "y": 200,
+        "timestamp": 0
+      },
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 14,
+    "method": "clearCheckpoint",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 15,
+    "method": "hasCheckpoint",
+    "args": [],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 0,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 16,
+    "method": "recordKill",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 1,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 17,
+    "method": "recordKill",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 2,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 18,
+    "method": "recordKill",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 0,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {},
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 19,
+    "method": "recordBossKill",
+    "args": [
+      "guardian_ax09",
+      45000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 1,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 45000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 20,
+    "method": "recordBossKill",
+    "args": [
+      "guardian_ax09",
+      30000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 2,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 21,
+    "method": "recordBossKill",
+    "args": [
+      "guardian_ax09",
+      60000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 3,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 22,
+    "method": "recordBossKill",
+    "args": [
+      "neural_overseer",
+      60000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 1,
+        "xp": 0,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 23,
+    "method": "awardXp",
+    "args": [
+      150
+    ],
+    "returnValue": {
+      "leveledUp": true,
+      "newLevel": 2
+    },
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 24,
+    "method": "unlockSkill",
+    "args": [
+      "combat.damage1"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 25,
+    "method": "unlockSkill",
+    "args": [
+      "combat.damage1"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 26,
+    "method": "unlockSkill",
+    "args": [
+      "movement.speed1"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 27,
+    "method": "unlockWeapon",
+    "args": [
+      "plasma_cannon"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 28,
+    "method": "unlockWeapon",
+    "args": [
+      "plasma_cannon"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 29,
+    "method": "isWeaponUnlocked",
+    "args": [
+      "plasma_cannon"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 30,
+    "method": "isWeaponUnlocked",
+    "args": [
+      "railgun"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "assault_rifle",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 31,
+    "method": "setWeapon",
+    "args": [
+      "shotgun"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 32,
+    "method": "setWeaponLevel",
+    "args": [
+      "shotgun",
+      2
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 33,
+    "method": "unlockAbility",
+    "args": [
+      "wallJump"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 34,
+    "method": "unlockAbility",
+    "args": [
+      "wallJump"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 1,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 35,
+    "method": "grantSkillPoint",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 2,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 36,
+    "method": "grantSkillPoint",
+    "args": [],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 3,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 37,
+    "method": "setSkillPoints",
+    "args": [
+      5
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 5,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 38,
+    "method": "setSkillPoints",
+    "args": [
+      0
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 39,
+    "method": "setSkillPoints",
+    "args": [
+      -10
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "assault",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 40,
+    "method": "setSelectedChassis",
+    "args": [
+      "titan"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 41,
+    "method": "unlockChassis",
+    "args": [
+      "scout"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 42,
+    "method": "isChassisUnlocked",
+    "args": [
+      "scout"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 43,
+    "method": "isChassisUnlocked",
+    "args": [
+      "titan"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "factory_gray",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 44,
+    "method": "setSelectedPaint",
+    "args": [
+      "military_green"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 45,
+    "method": "unlockPaint",
+    "args": [
+      "rust"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 46,
+    "method": "unlockPaint",
+    "args": [
+      "rust"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 47,
+    "method": "isPaintUnlocked",
+    "args": [
+      "rust"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 48,
+    "method": "isPaintUnlocked",
+    "args": [
+      "protocol_white"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 49,
+    "method": "markCollectibleCollected",
+    "args": [
+      "coll_001"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001"
+        ],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 50,
+    "method": "markCollectibleCollected",
+    "args": [
+      "coll_001"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001"
+        ],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 51,
+    "method": "markCollectibleCollected",
+    "args": [
+      "coll_002"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 52,
+    "method": "isCollectibleCollected",
+    "args": [
+      "coll_001"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 53,
+    "method": "isCollectibleCollected",
+    "args": [
+      "coll_999"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 54,
+    "method": "markShortcutOpened",
+    "args": [
+      "shortcut_01"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 55,
+    "method": "markShortcutOpened",
+    "args": [
+      "shortcut_01"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 56,
+    "method": "isShortcutOpened",
+    "args": [
+      "shortcut_01"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 57,
+    "method": "isShortcutOpened",
+    "args": [
+      "shortcut_99"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 58,
+    "method": "addItem",
+    "args": [
+      "weapon_part",
+      5
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 59,
+    "method": "addItem",
+    "args": [
+      "weapon_part",
+      3
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 8
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 60,
+    "method": "hasItem",
+    "args": [
+      "weapon_part",
+      10
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 8
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 61,
+    "method": "hasItem",
+    "args": [
+      "weapon_part",
+      8
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 8
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 62,
+    "method": "removeItem",
+    "args": [
+      "weapon_part",
+      3
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 63,
+    "method": "removeItem",
+    "args": [
+      "weapon_part",
+      100
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 64,
+    "method": "addItem",
+    "args": [
+      "key_card",
+      1
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          },
+          {
+            "itemId": "key_card",
+            "amount": 1
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 65,
+    "method": "removeItem",
+    "args": [
+      "key_card",
+      1
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 66,
+    "method": "unlockArea",
+    "args": [
+      "neon_district"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 67,
+    "method": "unlockArea",
+    "args": [
+      "neon_district"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": []
+    }
+  },
+  {
+    "step": 68,
+    "method": "discoverArea",
+    "args": [
+      "neon_district"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 69,
+    "method": "discoverArea",
+    "args": [
+      "neon_district"
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {},
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 70,
+    "method": "setNpcFlag",
+    "args": [
+      "kara",
+      "met",
+      true
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 71,
+    "method": "setNpcFlag",
+    "args": [
+      "kara",
+      "quest_done",
+      false
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 72,
+    "method": "setNpcFlag",
+    "args": [
+      "kara",
+      "shop_open",
+      true
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 73,
+    "method": "getNpcFlag",
+    "args": [
+      "kara",
+      "met"
+    ],
+    "returnValue": true,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 74,
+    "method": "getNpcFlag",
+    "args": [
+      "kara",
+      "quest_done"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 75,
+    "method": "getNpcFlag",
+    "args": [
+      "unknown_npc",
+      "anything"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 76,
+    "method": "getNpcFlag",
+    "args": [
+      "kara",
+      "never_set"
+    ],
+    "returnValue": false,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.7,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": false,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 77,
+    "method": "saveSettings",
+    "args": [
+      {
+        "masterVolume": 0.5,
+        "muted": true
+      }
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0.85,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 78,
+    "method": "saveSettings",
+    "args": [
+      {
+        "brightness": 0
+      }
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 79,
+    "method": "getSettings",
+    "args": [],
+    "returnValue": {
+      "locale": "en",
+      "masterVolume": 0.5,
+      "musicVolume": 0.4,
+      "sfxVolume": 0.8,
+      "muted": true,
+      "brightness": 0,
+      "quality": "high",
+      "fullscreen": false
+    },
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 80,
+    "method": "recordStageComplete",
+    "args": [
+      1,
+      120000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 81,
+    "method": "recordStageComplete",
+    "args": [
+      1,
+      90000
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 82,
+    "method": "isStageUnlocked",
+    "args": [
+      2
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 83,
+    "method": "isStageUnlocked",
+    "args": [
+      3
+    ],
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 84,
+    "method": "getPlayer",
+    "args": [],
+    "returnValue": {
+      "level": 2,
+      "xp": 25,
+      "skillPoints": 0,
+      "totalKills": 3,
+      "bossesKilled": 4,
+      "unlockedSkills": [
+        "combat.damage1",
+        "movement.speed1"
+      ],
+      "unlockedWeapons": [
+        "assault_rifle",
+        "plasma_cannon"
+      ],
+      "currentWeapon": "shotgun",
+      "weaponLevels": {
+        "assault_rifle": 1,
+        "plasma_cannon": 1,
+        "shotgun": 2
+      },
+      "inventory": [
+        {
+          "itemId": "weapon_part",
+          "amount": 5
+        }
+      ],
+      "abilities": [
+        "wallJump"
+      ],
+      "collectedCollectibles": [
+        "coll_001",
+        "coll_002"
+      ],
+      "openedShortcuts": [
+        "shortcut_01"
+      ],
+      "selectedChassis": "titan",
+      "selectedPaint": "military_green",
+      "unlockedChassis": [
+        "scout",
+        "assault",
+        "titan"
+      ],
+      "unlockedPaints": [
+        "factory_gray",
+        "rust"
+      ],
+      "unlockedCompanions": [],
+      "selectedCompanion": null
+    },
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 85,
+    "method": "get",
+    "args": [],
+    "returnValue": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 25,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    },
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 50,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  },
+  {
+    "step": 86,
+    "method": "applyDeathPenalty",
+    "args": [],
+    "returnValue": 25,
+    "stateAfter": {
+      "version": 3,
+      "player": {
+        "level": 2,
+        "xp": 25,
+        "skillPoints": 0,
+        "totalKills": 3,
+        "bossesKilled": 4,
+        "unlockedSkills": [
+          "combat.damage1",
+          "movement.speed1"
+        ],
+        "unlockedWeapons": [
+          "assault_rifle",
+          "plasma_cannon"
+        ],
+        "currentWeapon": "shotgun",
+        "weaponLevels": {
+          "assault_rifle": 1,
+          "plasma_cannon": 1,
+          "shotgun": 2
+        },
+        "inventory": [
+          {
+            "itemId": "weapon_part",
+            "amount": 5
+          }
+        ],
+        "abilities": [
+          "wallJump"
+        ],
+        "collectedCollectibles": [
+          "coll_001",
+          "coll_002"
+        ],
+        "openedShortcuts": [
+          "shortcut_01"
+        ],
+        "selectedChassis": "titan",
+        "selectedPaint": "military_green",
+        "unlockedChassis": [
+          "scout",
+          "assault",
+          "titan"
+        ],
+        "unlockedPaints": [
+          "factory_gray",
+          "rust"
+        ],
+        "unlockedCompanions": [],
+        "selectedCompanion": null
+      },
+      "checkpoint": null,
+      "bestBossTimes": {
+        "guardian_ax09": 30000,
+        "neural_overseer": 60000
+      },
+      "settings": {
+        "locale": "en",
+        "masterVolume": 0.5,
+        "musicVolume": 0.4,
+        "sfxVolume": 0.8,
+        "muted": true,
+        "brightness": 0,
+        "quality": "high",
+        "fullscreen": false
+      },
+      "questFlags": {
+        "main_quest_1": true,
+        "side_quest_3": false
+      },
+      "questProgress": {
+        "main_quest_1": [
+          1,
+          0,
+          2
+        ],
+        "empty_quest": []
+      },
+      "npcFlags": {
+        "kara": {
+          "met": true,
+          "quest_done": false,
+          "shop_open": true
+        }
+      },
+      "unlockedAreas": [
+        "abandoned_factory",
+        "toxic_forest",
+        "neon_district"
+      ],
+      "discoveredAreas": [
+        "neon_district"
+      ]
+    }
+  }
+]
