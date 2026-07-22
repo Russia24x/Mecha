@@ -139,6 +139,10 @@ export class SettingsUI extends NavigableOverlay {
     const catIdx = CATEGORIES.findIndex(c => c.id === this.selectedCategory);
     this.getController()?.setCurrentTab(catIdx >= 0 ? catIdx : 0);
     this.refreshCategories();
+    // Clean up slider pointerdown listeners BEFORE destroying objects
+    // (otherwise destroyed valueText/handle cause 'null glTexture' errors)
+    const cleanups = (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups;
+    if (cleanups) { cleanups.forEach(c => c()); (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups = []; }
     // *** FIX: destroy ALL option objects (was only destroying bg + text)
     this.optionElements.forEach(e => {
       e.objects.forEach(o => { if (o && o.active) o.destroy(); });
@@ -272,6 +276,48 @@ export class SettingsUI extends NavigableOverlay {
     };
     sliderBg.setData('sliderData', sliderData);
 
+    // Gamepad slider control: check every frame if this slider is focused
+    // and left/right stick is held. This runs via scene.events.on('preupdate')
+    // because OverlayManager calls ctrl.update() directly (not handleNavigation).
+    const preUpdateHandler = () => {
+      // Guard: if slider objects destroyed, remove listener
+      if (!valueText.active || !handle.active) {
+        this.scene.events.off('preupdate', preUpdateHandler);
+        return;
+      }
+      const ctrl = this.getController();
+      if (!ctrl || ctrl.isVisible) return; // Skip in cursor mode
+
+      // Check if THIS slider is the focused element
+      const focusables = (ctrl as unknown as { focusables: Array<{ bg: Phaser.GameObjects.Shape }> }).focusables;
+      const focusIndex = (ctrl as unknown as { focusIndex: number }).focusIndex;
+      const currentFocus = focusables?.[focusIndex];
+      if (currentFocus?.bg !== sliderBg) return; // Not focused on this slider
+
+      const input = InputSystem.getState();
+      const leftStickX = input.leftStickX;
+      const heldLeft = input.heldLeft;
+      const heldRight = input.heldRight;
+
+      if (heldLeft || leftStickX < -0.3) {
+        const newV = Math.max(0, sliderData.getValue() - 0.02);
+        sliderData.setValue(newV);
+        // Mark that slider is being adjusted — UIController.update() should
+        // NOT process leftStickX for tab switching this frame.
+        (ctrl as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = true;
+      } else if (heldRight || leftStickX > 0.3) {
+        const newV = Math.min(1, sliderData.getValue() + 0.02);
+        sliderData.setValue(newV);
+        (ctrl as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = true;
+      }
+    };
+    this.scene.events.on('preupdate', preUpdateHandler);
+    // Store cleanup for this listener too
+    (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups ??= [];
+    (this as unknown as { _sliderCleanups: Array<() => void> })._sliderCleanups.push(() => {
+      this.scene.events.off('preupdate', preUpdateHandler);
+    });
+
     // Slider: register with UIController for D-pad focus + A button nudge.
     // registerNav wires setInteractive + pointerover + pointerdown (plays uiClick + onSelect).
     // For mouse click, we need click-to-jump (localX) — so we override pointerdown
@@ -293,6 +339,8 @@ export class SettingsUI extends NavigableOverlay {
     // sliderBg in all cases. This approach checks if the click is within the
     // slider's bounds and handles it directly.
     const clickToJump = (pointer: Phaser.Input.Pointer) => {
+      // Guard: if any slider object is destroyed, skip (prevents null glTexture error)
+      if (!valueText.active || !handle.active || !fill.active) return;
       // Check if pointer is within slider hit area (340x36 centered at x,y)
       const px = pointer.x;
       const py = pointer.y;
@@ -313,6 +361,8 @@ export class SettingsUI extends NavigableOverlay {
     // emits 'pointerdown' on the hovered object when A is pressed in cursor mode).
     // We need to handle the case where pointer/localX may be undefined.
     sliderBg.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      // Guard: if any slider object is destroyed, skip
+      if (!valueText.active || !handle.active || !fill.active) return;
       // Use pointer world position (cursor position in cursor mode)
       const px = p?.x ?? (this.scene.input.activePointer?.x ?? x);
       AudioSystem.play('uiClick');
@@ -487,54 +537,13 @@ export class SettingsUI extends NavigableOverlay {
 
   /**
    * Override handleNavigation to add gamepad slider control.
-   * When a slider is focused (focus mode, not cursor mode), left/right stick
-   * adjusts the value (not navigation between focusables).
-   * When a non-slider is focused, or in cursor mode, default behavior applies.
+   * Note: OverlayManager calls ctrl.update() directly, not handleNavigation().
+   * So this method is NOT called by OverlayManager. Instead, slider gamepad
+   * control is handled via scene.events.on('preupdate') in makeSlider().
+   *
+   * Kept for backward compat (in case any code calls handleNavigation directly).
    */
   handleNavigation(): void {
-    const input = InputSystem.getState();
-    const ctrl = this.getController();
-
-    // Only handle slider adjustment in FOCUS mode (not cursor mode)
-    // Cursor mode is active when right stick is being used.
-    const rightStickActive = Math.abs(input.rightStickX) > 0.05 || Math.abs(input.rightStickY) > 0.05;
-    const cursorVisible = ctrl.isVisible;
-
-    if (!rightStickActive && !cursorVisible) {
-      // Focus mode — check if current focused element is a slider
-      const focusables = (ctrl as unknown as { focusables: Array<{ bg: Phaser.GameObjects.Shape; onSelect: () => void }> }).focusables;
-      const focusIndex = (ctrl as unknown as { focusIndex: number }).focusIndex;
-      const currentFocus = focusables?.[focusIndex];
-
-      // Check if this focusable's bg is a slider (we mark sliders by storing sliderData on bg)
-      const sliderData = currentFocus?.bg?.getData('sliderData') as {
-        getValue: () => number;
-        setValue: (v: number) => void;
-      } | null;
-
-      if (sliderData) {
-        // Slider is focused — handle left/right as value adjustment
-        const leftStickX = input.leftStickX;
-        const heldLeft = input.heldLeft;
-        const heldRight = input.heldRight;
-
-        if (heldLeft || leftStickX < -0.3) {
-          const newV = Math.max(0, sliderData.getValue() - 0.02);
-          sliderData.setValue(newV);
-          AudioSystem.play('uiHover');
-          return; // Don't call super — we handled it
-        }
-        if (heldRight || leftStickX > 0.3) {
-          const newV = Math.min(1, sliderData.getValue() + 0.02);
-          sliderData.setValue(newV);
-          AudioSystem.play('uiHover');
-          return;
-        }
-        // A button (nudge 5%) — handled by registerNav's onSelect, let super run
-      }
-    }
-
-    // Default: delegate to UIController
     super.handleNavigation();
   }
 

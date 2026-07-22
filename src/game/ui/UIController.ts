@@ -298,8 +298,12 @@ export class UIController {
     // ── Focus mode: D-pad/stick + A button ──
     if (this.navCooldown > 0) return;
 
+    // Slider adjustment flag: if a slider is being adjusted via left/right stick,
+    // skip tab switching (set by SettingsUI's preUpdateHandler).
+    const sliderAdjusting = (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting;
+
     // Tab switching (L1/R1, stick left/right)
-    if (this.tabs.length > 0) {
+    if (this.tabs.length > 0 && !sliderAdjusting) {
       // B2 fix: use gpWeaponPrevPressed (gamepad-only) for tab switching.
       // Keyboard Q/E is handled by keyHandler (not here) to avoid double-fire.
       if (input.gpWeaponPrevPressed || input.leftStickX < -0.3) {
@@ -349,6 +353,11 @@ export class UIController {
         this.navCooldown = 300;
       }
     }
+
+    // Clear slider adjustment flag (set by SettingsUI's preUpdateHandler).
+    // This must be cleared AFTER tab-switching check above so that the flag
+    // is only effective for the frame it was set.
+    (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = false;
   }
 
   /** Clear focus highlight on all buttons (when entering cursor mode). */
