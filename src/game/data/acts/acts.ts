@@ -283,30 +283,183 @@ export const ACTS: ActData[] = [
             id: 'drowned_wastes_1',
             nameKey: 'area.drowned_wastes_1.name',
             regionId: 'wastes',
-            totalWidth: 7680,
-            sectionWidth: 1280,
+            totalWidth: 9216,
+            sectionWidth: 1536,
             bgColor: 0x0a0e08,
             checkpointSections: [2, 5],
             unlockedByDefault: false,
             sections: [
+              // ═══════════════════════════════════════════════════════════════
+              // Section 1: THE SHORE (entry)
+              // Design: Wide muddy plain, first sight of fallen mechs.
+              // Player emerges from Act I exit into vast swamp.
+              // Memory Layer: A 50-meter mech half-buried, only head visible.
+              // ═══════════════════════════════════════════════════════════════
               { id: 1, nameKey: 'section.wastes.1.name', x: 0, enemies: [], platforms: [
-                { x: 400, y: 560, w: 200, h: 20 },
+                // Muddy shore — low platforms, half-submerged
+                { x: 300, y: 560, w: 180, h: 24 },
+                { x: 620, y: 500, w: 120, h: 20 },
+                { x: 860, y: 560, w: 160, h: 24 },
+                // Rusted metal bridge remnants (elevated)
+                { x: 520, y: 360, w: 200, h: 16 },
+                { x: 900, y: 300, w: 140, h: 16 },
+                // Far wall (blocks S1→S2)
+                { x: 1440, y: 380, w: 40, h: 180 },
+                { x: 1440, y: 540, w: 40, h: 160 },
+              ], loreObjects: [
+                { id: 'lore_w1_mech_head', type: 'terminal', x: 200, y: 580, titleKey: 'lore.w1.mech_head.title', textKey: 'lore.w1.mech_head.text' },
+              ], landmarks: [
+                // Giant fallen mech — only head visible above mud (Memory Layer)
+                { id: 'lm_w1_giant_mech', type: 'crashed_mech', x: 160, y: 560, w: 200, h: 160, color: 0x2a3a20 },
+              ], collectibles: [
+                // Energy fragment on elevated bridge (requires double jump)
+                { id: 'col_w1_energy', type: 'energy_fragment', x: 900, y: 270, requiredAbility: 'doubleJump' },
+              ], shortcuts: [
+                { id: 'sc_w1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
-              { id: 2, nameKey: 'section.wastes.2.name', x: 1280, enemies: [], platforms: [
-                { x: 1480, y: 520, w: 100, h: 20 },
+
+              // ═══════════════════════════════════════════════════════════════
+              // Section 2: SHALLOW WATERS (first combat)
+              // Design: Waterlogged terrain, wading through shallows.
+              // 3x drowned_walkers emerge from water.
+              // Checkpoint 1.
+              // ═══════════════════════════════════════════════════════════════
+              { id: 2, nameKey: 'section.wastes.2.name', x: 1536, enemies: ['drowned_walker', 'drowned_walker', 'drowned_walker'], platforms: [
+                // Wading platforms — low, slippery
+                { x: 1700, y: 540, w: 140, h: 20 },
+                { x: 1960, y: 480, w: 100, h: 20 },
+                { x: 2200, y: 540, w: 120, h: 20 },
+                { x: 2480, y: 460, w: 140, h: 20 },
+                { x: 2780, y: 520, w: 100, h: 20 },
+                // Elevated safe platform (retreat from combat)
+                { x: 1900, y: 280, w: 200, h: 16 },
+                { x: 2500, y: 260, w: 180, h: 16 },
+              ], hazards: [
+                // Toxic swamp pools
+                { type: 'lava', x: 2100, y: 660, w: 80, h: 20, damage: 15 },
+                { type: 'lava', x: 2600, y: 660, w: 100, h: 20, damage: 15 },
+              ], loreObjects: [
+                { id: 'lore_w2_log', type: 'terminal', x: 1900, y: 270, titleKey: 'lore.w2.log.title', textKey: 'lore.w2.log.text' },
+              ], collectibles: [
+                { id: 'col_w2_health', type: 'health_fragment', x: 2500, y: 230, requiredAbility: 'doubleJump' },
               ]},
-              { id: 3, nameKey: 'section.wastes.3.name', x: 2560, enemies: [], platforms: [
-                { x: 2660, y: 580, w: 200, h: 20 },
+
+              // ═══════════════════════════════════════════════════════════════
+              // Section 3: THE FOG (mosquito territory)
+              // Design: Low visibility, vertical platforming over deep water.
+              // 4x mosquito_drones patrol in fog.
+              // Memory Layer: Names carved into a mech's hull by hand.
+              // ═══════════════════════════════════════════════════════════════
+              { id: 3, nameKey: 'section.wastes.3.name', x: 3072, enemies: ['mosquito_drone', 'mosquito_drone', 'mosquito_drone', 'mosquito_drone'], platforms: [
+                // Stepping stones over deep water
+                { x: 3220, y: 500, w: 80, h: 20 },
+                { x: 3400, y: 420, w: 80, h: 20 },
+                { x: 3580, y: 500, w: 80, h: 20 },
+                { x: 3760, y: 380, w: 80, h: 20 },
+                { x: 3940, y: 460, w: 80, h: 20 },
+                { x: 4120, y: 360, w: 80, h: 20 },
+                { x: 4300, y: 480, w: 100, h: 20 },
+                // Upper route (wall jump)
+                { x: 3400, y: 220, w: 160, h: 16 },
+                { x: 3800, y: 180, w: 120, h: 16 },
+                { x: 4100, y: 220, w: 160, h: 16 },
+              ], hazards: [
+                // Deep water (full-width hazard at bottom)
+                { type: 'lava', x: 3200, y: 660, w: 200, h: 20, damage: 20 },
+                { type: 'lava', x: 3500, y: 660, w: 160, h: 20, damage: 20 },
+                { type: 'lava', x: 3800, y: 660, w: 200, h: 20, damage: 20 },
+                { type: 'lava', x: 4100, y: 660, w: 180, h: 20, damage: 20 },
+              ], loreObjects: [
+                // Names carved into mech hull (Memory Layer)
+                { id: 'lore_w3_names', type: 'corpse', x: 3400, y: 210, titleKey: 'lore.w3.names.title', textKey: 'lore.w3.names.text' },
+              ], collectibles: [
+                // Skill point on highest platform (requires wall jump + double jump)
+                { id: 'col_w3_skill', type: 'skill_point', x: 3800, y: 150, requiredAbility: 'wallJump' },
               ]},
-              { id: 4, nameKey: 'section.wastes.4.name', x: 3840, enemies: [], platforms: [
-                { x: 4040, y: 480, w: 80, h: 20 },
+
+              // ═══════════════════════════════════════════════════════════════
+              // Section 4: THE WRECKAGE (mixed combat)
+              // Design: Maze of fallen mech parts, tight corridors.
+              // 5x enemies: drowned_walkers + mosquito_drones.
+              // Memory Layer: A mech still standing, panel blinking "AWAITING ORDER".
+              // ═══════════════════════════════════════════════════════════════
+              { id: 4, nameKey: 'section.wastes.4.name', x: 4608, enemies: ['drowned_walker', 'drowned_walker', 'mosquito_drone', 'mosquito_drone', 'drowned_walker'], platforms: [
+                // Mech wreckage creates walls and platforms
+                { x: 4780, y: 500, w: 120, h: 20 },
+                { x: 5020, y: 400, w: 100, h: 20 },
+                { x: 5240, y: 520, w: 80, h: 20 },
+                { x: 5440, y: 380, w: 120, h: 20 },
+                { x: 5680, y: 480, w: 100, h: 20 },
+                { x: 5900, y: 400, w: 100, h: 20 },
+                // Vertical wall (mech leg — wall jump surface)
+                { x: 5100, y: 300, w: 30, h: 200 },
+                { x: 5600, y: 280, w: 30, h: 220 },
+                // Upper catwalk
+                { x: 4800, y: 220, w: 200, h: 16 },
+                { x: 5300, y: 180, w: 160, h: 16 },
+                { x: 5800, y: 220, w: 180, h: 16 },
+              ], hazards: [
+                { type: 'spike', x: 5240, y: 640, w: 80, h: 20, damage: 12 },
+                { type: 'spike', x: 5680, y: 640, w: 80, h: 20, damage: 12 },
+              ], loreObjects: [
+                // Mech still standing with blinking panel (Memory Layer)
+                { id: 'lore_w4_awaiting', type: 'terminal', x: 5300, y: 170, titleKey: 'lore.w4.awaiting.title', textKey: 'lore.w4.awaiting.text' },
+              ], landmarks: [
+                // Standing mech (still upright, aged)
+                { id: 'lm_w4_standing_mech', type: 'control_room', x: 5050, y: 420, w: 80, h: 200, color: 0x3a4a30 },
+              ], collectibles: [
+                { id: 'col_w4_weapon', type: 'weapon_part', x: 5800, y: 190 },
               ]},
-              { id: 5, nameKey: 'section.wastes.5.name', x: 5120, enemies: [], platforms: [
-                { x: 5360, y: 560, w: 140, h: 20 },
+
+              // ═══════════════════════════════════════════════════════════════
+              // Section 5: THE APPROACH (checkpoint, pre-boss)
+              // Design: Calm before the storm. Wide platform, save point.
+              // Memory Layer: Family photo still in a cockpit.
+              // Checkpoint 2.
+              // ═══════════════════════════════════════════════════════════════
+              { id: 5, nameKey: 'section.wastes.5.name', x: 6144, enemies: [], platforms: [
+                // Wide safe platform
+                { x: 6400, y: 520, w: 300, h: 24 },
+                { x: 6800, y: 460, w: 200, h: 20 },
+                { x: 7100, y: 380, w: 160, h: 20 },
+                // Upper ledge (lore access)
+                { x: 6600, y: 280, w: 200, h: 16 },
+                // Walls blocking S5→S6 (boss arena entrance)
+                { x: 7580, y: 360, w: 40, h: 200 },
+                { x: 7580, y: 540, w: 40, h: 160 },
+              ], loreObjects: [
+                // Family photo in cockpit (Memory Layer)
+                { id: 'lore_w5_photo', type: 'corpse', x: 6600, y: 270, titleKey: 'lore.w5.photo.title', textKey: 'lore.w5.photo.text' },
+                // Last mission recording
+                { id: 'lore_w5_recording', type: 'terminal', x: 7100, y: 350, titleKey: 'lore.w5.recording.title', textKey: 'lore.w5.recording.text' },
+              ], collectibles: [
+                { id: 'col_w5_health', type: 'health_fragment', x: 7100, y: 350 },
+              ], shortcuts: [
+                { id: 'sc_w5_to_s6', x: 7580, y: 650, w: 40, h: 60, toSection: 6, opensFrom: 'left' },
               ]},
-              { id: 6, nameKey: 'section.wastes.6.name', x: 6400, enemies: [], platforms: [
-                { x: 6480, y: 440, w: 40, h: 240 },
-                { x: 7600, y: 440, w: 40, h: 240 },
+
+              // ═══════════════════════════════════════════════════════════════
+              // Section 6: LEVIATHAN'S REST (boss arena)
+              // Design: Open arena at the base of a giant 80-meter mech.
+              // Boss: THE LEVIATHAN HULK
+              // Memory Layer: She is still standing. Still protecting.
+              // ═══════════════════════════════════════════════════════════════
+              { id: 6, nameKey: 'section.wastes.6.name', x: 7680, enemies: [], bossId: 'leviathan_hulk', platforms: [
+                // Arena floor (wide, flat)
+                { x: 7900, y: 560, w: 400, h: 24 },
+                { x: 8400, y: 560, w: 400, h: 24 },
+                // Side platforms (combat positioning)
+                { x: 7950, y: 400, w: 120, h: 20 },
+                { x: 8350, y: 400, w: 120, h: 20 },
+                { x: 8150, y: 300, w: 120, h: 20 },
+                // Arena walls
+                { x: 7680, y: 380, w: 40, h: 200 },
+                { x: 7680, y: 540, w: 40, h: 160 },
+                { x: 9140, y: 380, w: 40, h: 200 },
+                { x: 9140, y: 540, w: 40, h: 160 },
+              ], landmarks: [
+                // The Leviathan herself — towering silhouette
+                { id: 'lm_w6_leviathan', type: 'tower', x: 8300, y: 300, w: 200, h: 300, color: 0x3a4a30 },
               ]},
             ],
           },
