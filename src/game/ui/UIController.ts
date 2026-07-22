@@ -245,13 +245,7 @@ export class UIController {
   // ================ Per-frame update ================
 
   update(): void {
-    // Wrap in try/finally to ensure _sliderAdjusting flag is always reset,
-    // even if an exception occurs mid-update (prevents UI lockup).
-    try {
-      this._updateInternal();
-    } finally {
-      (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = false;
-    }
+    this._updateInternal();
   }
 
   private _updateInternal(): void {
@@ -308,15 +302,19 @@ export class UIController {
     // ── Focus mode: D-pad/stick + A button ──
     if (this.navCooldown > 0) return;
 
-    // Slider adjustment flag: if a slider is being adjusted via left/right stick,
-    // skip tab switching (set by SettingsUI's preUpdateHandler).
-    const sliderAdjusting = (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting;
-
     // Tab switching (L1/R1, stick left/right)
-    if (this.tabs.length > 0 && !sliderAdjusting) {
+    // Skip leftStickX-based tab switching when a slider is focused —
+    // leftStickX is used for slider adjustment instead.
+    // Check if current focusable has sliderData (set by SettingsUI.makeSlider).
+    const currentFocused = this.focusables[this.focusIndex];
+    const isSliderFocused = !!(currentFocused?.bg as unknown as { getData?: (k: string) => unknown })?.getData?.('sliderData');
+
+    if (this.tabs.length > 0 && !isSliderFocused) {
       // B2 fix: use gpWeaponPrevPressed (gamepad-only) for tab switching.
       // Keyboard Q/E is handled by keyHandler (not here) to avoid double-fire.
-      if (input.gpWeaponPrevPressed || input.leftStickX < -0.3) {
+      // When slider is focused, leftStickX is used for slider adjustment,
+      // NOT tab switching — so we only use gpWeaponPrevPressed here.
+      if (input.gpWeaponPrevPressed) {
         this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
         this.tabs[this.currentTabIndex].onSelect();
         AudioSystem.play('uiClick');
@@ -324,7 +322,22 @@ export class UIController {
         return;
       }
       // B2 fix: use gpWeaponNextPressed (gamepad-only) for tab switching.
-      if (input.gpWeaponNextPressed || input.leftStickX > 0.3) {
+      if (input.gpWeaponNextPressed) {
+        this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
+        this.tabs[this.currentTabIndex].onSelect();
+        AudioSystem.play('uiClick');
+        this.navCooldown = 200;
+        return;
+      }
+      // leftStickX tab switching (only when NOT on a slider)
+      if (input.leftStickX < -0.3) {
+        this.currentTabIndex = (this.currentTabIndex - 1 + this.tabs.length) % this.tabs.length;
+        this.tabs[this.currentTabIndex].onSelect();
+        AudioSystem.play('uiClick');
+        this.navCooldown = 200;
+        return;
+      }
+      if (input.leftStickX > 0.3) {
         this.currentTabIndex = (this.currentTabIndex + 1) % this.tabs.length;
         this.tabs[this.currentTabIndex].onSelect();
         AudioSystem.play('uiClick');
@@ -363,7 +376,6 @@ export class UIController {
         this.navCooldown = 300;
       }
     }
-    // _sliderAdjusting flag is reset in update()'s finally block
   }
 
   /** Clear focus highlight on all buttons (when entering cursor mode). */

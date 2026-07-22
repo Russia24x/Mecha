@@ -230,15 +230,12 @@ export class SettingsUI extends NavigableOverlay {
     }
 
     // After rebuilding options, focus the first slider/option so D-pad
-    // navigation starts from the top of the options list (not categories).
+    // navigation starts from the top of the options list (not back button).
+    // focusables order: [back, slider1, slider2, ...] (back is registered first)
+    // So index 1 = first slider.
     const ctrl = this.getController();
     if (ctrl) {
-      // Find first focusable that's NOT the back button (back is last)
-      const focusables = (ctrl as unknown as { focusables: Array<{ bg: Phaser.GameObjects.Shape }> }).focusables;
-      // focusIndex 0 = first option (slider/selector), last = back button
-      // Categories are no longer in focusable list, so index 0 = first option
-      (ctrl as unknown as { focusIndex: number }).focusIndex = 0;
-      // Trigger focus visual update
+      (ctrl as unknown as { focusIndex: number }).focusIndex = 1;
       (ctrl as unknown as { updateFocusVisual: () => void }).updateFocusVisual?.();
     }
   }
@@ -313,9 +310,17 @@ export class SettingsUI extends NavigableOverlay {
       const focusIndex = (ctrl as unknown as { focusIndex: number }).focusIndex;
       const currentFocus = focusables?.[focusIndex];
 
+      const input = InputSystem.getState();
+      const leftStickActive = input.leftStickX < -0.3 || input.leftStickX > 0.3;
+      if (leftStickActive) {
+        console.log('[Slider] preUpdateHandler: leftStickX=', input.leftStickX.toFixed(2),
+          '| focusIndex=', focusIndex,
+          '| focusMatch=', currentFocus?.bg === sliderBg,
+          '| focusables.length=', focusables?.length);
+      }
+
       if (currentFocus?.bg !== sliderBg) return; // Not focused on this slider
 
-      const input = InputSystem.getState();
       const leftStickX = input.leftStickX;
       const heldLeft = input.heldLeft;
       const heldRight = input.heldRight;
@@ -323,13 +328,9 @@ export class SettingsUI extends NavigableOverlay {
       if (heldLeft || leftStickX < -0.3) {
         const newV = Math.max(0, sliderData.getValue() - 0.02);
         sliderData.setValue(newV);
-        // Mark that slider is being adjusted — UIController.update() should
-        // NOT process leftStickX for tab switching this frame.
-        (ctrl as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = true;
       } else if (heldRight || leftStickX > 0.3) {
         const newV = Math.min(1, sliderData.getValue() + 0.02);
         sliderData.setValue(newV);
-        (ctrl as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = true;
       }
     };
     this.scene.events.on('preupdate', preUpdateHandler);
