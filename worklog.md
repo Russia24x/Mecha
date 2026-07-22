@@ -2018,3 +2018,33 @@ Stage Summary:
 - No crashes, no console errors, core gameplay functional
 - Save system refactor COMPLETE and verified at runtime
 - Ready for Acts II/III/V content work
+
+---
+Task ID: menu-fix-load-game
+Agent: main
+Task: Fix menu — add LOAD GAME button so players can switch profiles after starting. CONTINUE was also broken (always disabled after SaveSystem.clear()).
+
+Work Log:
+- MenuBuilder: added onLoadGame callback to MenuCallbacks interface
+- MenuBuilder: reordered buttons:
+  1. CONTINUE (only enabled if active profile + checkpoint exists)
+  2. LOAD GAME (always enabled — opens profile select to switch profiles)
+  3. NEW GAME (always enabled — opens profile select in new game mode)
+  4. SETTINGS
+  5. HOW TO PLAY
+- MenuBuilder: added canContinue() method — checks ProfileManager.getCurrentSlotId() !== null AND SaveSystem.hasCheckpoint()
+- GameScene.buildMenu(): wired onContinue → continueCurrentProfile() (resumes active profile)
+- GameScene.buildMenu(): wired onLoadGame → showProfileSelect(false) (continue mode)
+- GameScene.continueCurrentProfile(): resumes active profile at checkpoint (skips profile select)
+
+Visual verification via agent-browser:
+- Main menu now shows 4 buttons (CONTINUE hidden when no active profile with checkpoint)
+- LOAD GAME works (Enter key) → ProfileSelectUI opens
+- Created profile on slot 1 → entered hub → entered gameplay
+- Profile data persisted (PILOT 01, Level 1, 0 kills shown in slot)
+
+Stage Summary:
+- LOAD GAME button added — players can now switch profiles
+- CONTINUE fixed — resumes active profile (was broken by SaveSystem.clear() in new game flow)
+- Menu order: CONTINUE / LOAD GAME / NEW GAME / SETTINGS / HOW TO PLAY
+- tsc: 4 errors (unchanged, all in examples/skills)

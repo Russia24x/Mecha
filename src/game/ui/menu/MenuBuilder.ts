@@ -18,11 +18,13 @@ import { t, fixTextStyle, getLocale } from '../../systems/LocalizationSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { InputSchemeManager } from '../../systems/InputSchemeManager';
 import { SaveSystem } from '../../systems/SaveSystem';
+import { ProfileManager } from '../../systems/ProfileManager';
 import { MenuNavHelper } from '../shared/MenuNavHelper';
 
 export interface MenuCallbacks {
-  onNewGame: () => void;    // Clear save, start fresh from hub
-  onContinue: () => void;   // Resume directly at last checkpoint (skip hub)
+  onNewGame: () => void;    // Open profile select in "new game" mode (create new profile)
+  onContinue: () => void;   // Resume the currently-active profile at last checkpoint (skip profile select)
+  onLoadGame: () => void;   // Open profile select in "continue" mode (switch to existing profile)
   onOpenSettings: () => void;
 }
 
@@ -154,17 +156,26 @@ export class MenuBuilder {
     this.scene.tweens.add({ targets: protocolText, alpha: { from: 0.6, to: 1 }, duration: 2500, yoyo: true, repeat: -1 });
 
     // === Small minimal buttons ===
-    const btnY = h * 0.55;
-    const btnGap = 44;
-    // NEW GAME = clear save, start fresh from hub
-    this.nav.makeMenuBtn(w / 2, btnY, (getLocale() === 'fa' ? 'بازی جدید' : 'NEW GAME'), () => { AudioSystem.play('uiClick'); this.callbacks.onNewGame(); });
-    // CONTINUE = resume directly at last checkpoint (skip hub)
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap, t('menu.continue'), () => {
+    const btnY = h * 0.5;
+    const btnGap = 42;
+    // CONTINUE = resume the currently-active profile at last checkpoint (skip profile select)
+    // Only enabled if there's an active profile WITH a checkpoint.
+    this.nav.makeMenuBtn(w / 2, btnY, t('menu.continue'), () => {
       AudioSystem.play('uiClick');
       this.callbacks.onContinue();
-    }, !this.hasCheckpoint());
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 2, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.callbacks.onOpenSettings(); });
-    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
+    }, !this.canContinue());
+    // LOAD GAME = open profile select to switch to a different existing profile
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap, (getLocale() === 'fa' ? 'بارگذاری بازی' : 'LOAD GAME'), () => {
+      AudioSystem.play('uiClick');
+      this.callbacks.onLoadGame();
+    });
+    // NEW GAME = open profile select in "new game" mode (create new profile)
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 2, (getLocale() === 'fa' ? 'بازی جدید' : 'NEW GAME'), () => {
+      AudioSystem.play('uiClick');
+      this.callbacks.onNewGame();
+    });
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 3, t('menu.settings'), () => { AudioSystem.play('uiClick'); this.callbacks.onOpenSettings(); });
+    this.nav.makeMenuBtn(w / 2, btnY + btnGap * 4, t('menu.how_to_play'), () => { AudioSystem.play('uiClick'); this.showHowToPlay(); });
 
     // === Footer ===
     c.add(this.scene.add.text(w / 2, h - 25, t('game.version') + '  ·  PHASER 4.2 · MATTER.JS', {
@@ -246,7 +257,21 @@ export class MenuBuilder {
     this.nav.setupNav();
   }
 
-  /** Check if a checkpoint exists (for Continue button enabled state). */
+  /**
+   * Check if CONTINUE is available:
+   *   - There must be a currently-active profile (ProfileManager.getCurrentSlotId() !== null)
+   *   - That profile must have a checkpoint
+   * This allows CONTINUE to resume the last-played profile without going through profile select.
+   */
+  private canContinue(): boolean {
+    // ProfileManager.init() is called in GameScene.createAsync() before menu is built,
+    // so by the time build() runs, getCurrentSlotId() is accurate.
+    const currentSlot = ProfileManager.getCurrentSlotId();
+    if (currentSlot === null) return false;
+    return SaveSystem.hasCheckpoint();
+  }
+
+  /** Check if a checkpoint exists (kept for backward compat). */
   private hasCheckpoint(): boolean {
     return SaveSystem.hasCheckpoint();
   }

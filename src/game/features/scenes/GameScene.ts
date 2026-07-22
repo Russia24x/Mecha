@@ -488,16 +488,40 @@ export class GameScene extends Phaser.Scene {
     // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
     this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
       onNewGame: () => {
-        // Phase 6: NEW GAME now opens profile select to pick/create a slot
-        this.showProfileSelect(true); // true = new game mode
+        // NEW GAME: open profile select in "new game" mode (create new profile)
+        this.showProfileSelect(true);
       },
-      // CONTINUE = pick a profile to resume
       onContinue: () => {
-        this.showProfileSelect(false); // false = continue mode
+        // CONTINUE: resume the currently-active profile at last checkpoint (skip profile select)
+        this.continueCurrentProfile();
+      },
+      onLoadGame: () => {
+        // LOAD GAME: open profile select in "continue" mode (switch to existing profile)
+        this.showProfileSelect(false);
       },
       onOpenSettings: () => this.openOverlay('settings'),
     });
     this.menuBuilder.build();
+  }
+
+  /**
+   * CONTINUE: resume the currently-active profile at its last checkpoint.
+   * Called when user clicks CONTINUE (only enabled if there's an active profile with checkpoint).
+   */
+  private async continueCurrentProfile(): Promise<void> {
+    const { SaveSystem } = await import('../../systems/SaveSystem');
+    const { CheckpointSystem } = await import('../../world/CheckpointSystem');
+    const { WorldSystem } = await import('../../world/WorldSystem');
+
+    // SaveSystem is already initialized with the active profile's cache
+    if (CheckpointSystem.hasCheckpoint()) {
+      CheckpointSystem.init();
+      WorldSystem.initFromSave();
+      this.setState('play');
+    } else {
+      // No checkpoint — fall back to hub
+      this.setState('hub');
+    }
   }
 
   /**
