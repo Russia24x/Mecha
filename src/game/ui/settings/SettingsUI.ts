@@ -310,17 +310,9 @@ export class SettingsUI extends NavigableOverlay {
       const focusIndex = (ctrl as unknown as { focusIndex: number }).focusIndex;
       const currentFocus = focusables?.[focusIndex];
 
-      const input = InputSystem.getState();
-      const leftStickActive = input.leftStickX < -0.3 || input.leftStickX > 0.3;
-      if (leftStickActive) {
-        console.log('[Slider] preUpdateHandler: leftStickX=', input.leftStickX.toFixed(2),
-          '| focusIndex=', focusIndex,
-          '| focusMatch=', currentFocus?.bg === sliderBg,
-          '| focusables.length=', focusables?.length);
-      }
-
       if (currentFocus?.bg !== sliderBg) return; // Not focused on this slider
 
+      const input = InputSystem.getState();
       const leftStickX = input.leftStickX;
       const heldLeft = input.heldLeft;
       const heldRight = input.heldRight;
