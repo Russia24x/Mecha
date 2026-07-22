@@ -269,18 +269,27 @@ export class ProfileSelectUI {
 
   /** Rebuild the overlay (after create/delete changes the slot list). */
   private async refresh(): Promise<void> {
-    this.hide();
+    // Preserve confirmDeleteSlot across refresh — it's set when the user
+    // clicks DELETE and needs to survive the rebuild so CONFIRM? shows.
+    const savedConfirm = this.confirmDeleteSlot;
+    this.hideInternal();
+    this.confirmDeleteSlot = savedConfirm;
     await this.show();
   }
 
-  /** Hide and destroy the overlay. */
+  /** Hide and destroy the overlay. Resets all state including confirmDeleteSlot. */
   hide(): void {
+    this.hideInternal();
+    this.confirmDeleteSlot = null;
+  }
+
+  /** Internal: destroy container + reset nav, but preserve confirmDeleteSlot. */
+  private hideInternal(): void {
     if (this.container) {
       this.container.destroy(true);
       this.container = null;
     }
     this.nav.reset();
-    this.confirmDeleteSlot = null;
   }
 
   /** Localization helper. */
