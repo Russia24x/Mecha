@@ -1399,3 +1399,77 @@ Stage Summary:
 - New bug discovered: mouse click on nav buttons may not work
 - Both need separate investigation
 - Commit 59c183b pushed to origin/main (fast-forward a3e260b..59c183b)
+
+---
+Task ID: phase0-audit
+Agent: main
+Task: Phase 0 — Audit shared/Save.ts, shared/SaveManager.ts, shared/SkillTree.ts before refactor to determine if they're alive, what they store, and how migration must cover them.
+
+Work Log:
+- Grep'd import sites for each of the 3 files across src/
+  - shared/SaveManager.ts: 0 imports → DEAD (safe to delete)
+  - shared/Save.ts: 5 imports (VictoryScene, MenuScene, FactoryStage, MapScene, TestSuite) → ALIVE
+  - shared/SkillTree.ts: 9 imports (VictoryScene, FactoryStage, MapScene, SkillTreeScene, TestSuite, HUD, PlayerController, Player, PlayerCombat) → ALIVE
+- Read all 3 files + canonical SaveSystem.ts + SkillTreeSystem.ts + Constants.ts
+- Identified 3 active localStorage keys:
+  - mecha_last_protocol_save_v2 (Save.ts + dead SaveManager.ts — KEY COLLISION between two different shapes!)
+  - mecha_last_protocol_save_v2_skills_v2 (SkillTree.ts)
+  - mecha_last_protocol_save_v3 (SaveSystem.ts)
+- Confirmed KEYS.SAVE_KEY = 'mecha_last_protocol_save_v2' (literal v2) but SaveSystem uses literal v3 — confirms old inconsistency
+- Documented 5 dual-writer bugs:
+  - totalKills written by 3 paths (EnemyEntity→SaveSystem v3, FactoryStage→Save v2, FactoryStage→SkillTree v2_skills_v2)
+  - checkpoint written by CheckpointSystem (v3) AND FactoryStage (v2)
+  - bossesKilled written by BossEntity (v3) AND SkillTree.recordBossKill (v2_skills_v2)
+  - bestBossTime written by BossEntity (v3 map) AND FactoryStage.Save.recordBossTime (v2 single)
+  - unlockedSkills: SkillTreeScene writes old IDs (combat.damage1 etc.) to v2_skills_v2, SkillTreeUI writes new IDs (from data/skills/skills.ts) to v3 — INCOMPATIBLE ID systems
+- Discovered parallel skill system: SkillTreeSystem.ts (uses SaveSystem v3, 6 trees, data-driven) is used by SkillTreeUI for display, but actual gameplay stat computation uses old SkillTree.getPlayerModifiers (v2, 3 trees, hardcoded 12 skills)
+- Verified SkillTreeScene still alive (called from Victory + Map)
+- Verified SkillTreeUI still alive (called from somewhere in hangar)
+- Documented Option A (keep SkillTree.ts as façade over SaveSystem, recommended) vs Option B (full unification with SkillTreeSystem, deferred)
+- Clarified persist()/dirty contract: persist() only calls markDirty(); real IndexedDB writes via AutoSaveManager every 30s + checkpoints + visibilitychange + beforeunload
+- Migration conflict resolution table defined (MAX of totalKills, v3 wins for checkpoint, v2_skills_v2 wins for level/xp, MERGE for unlockedSkills)
+- Phase 7 estimate revised: 30 min → 6.5-9.5 h (but Option A reduces to ~2 h after refactor)
+- Wrote full audit to download/PHASE0-AUDIT.md
+
+Stage Summary:
+- SaveManager.ts: DEAD — safe to delete
+- Save.ts: ALIVE — 5 callers, uses v2 key, has unique 'stages' field that needs new home
+- SkillTree.ts: ALIVE — 9 callers, uses v2_skills_v2 key, drives player stat computation
+- THREE parallel save keys + TWO parallel skill systems found
+- Migration script MUST read all 3 keys and merge per conflict rules table
+- Phase 7 revised from 30 min to 6.5-9.5 h (Option A) — Phase 0 saved a major production incident
+- Open decision needed: skill tree unification (Option A recommended, B deferred)
+- SaveSystem.ts API unchanged; persist() becomes pure cache+markDirty, no IndexedDB on every mutator
+- visibilitychange + beforeunload hooks added to AutoSaveManager for tab-close safety
+- KEYS.SAVE_KEY will be removed entirely after migration
+
+---
+Task ID: phase0.5-skill-disconnect
+Agent: main
+Task: Investigate user's concern: does computeStats() read from old SkillTree (12 hardcoded skills), making the new 29-skill/6-tree/83-SP system decorative?
+
+Work Log:
+- Grepped computeStats() usages — found PlayerEntity.computeStats (private) at line 202 of entities/player/PlayerEntity.ts
+- Read PlayerEntity.computeStats implementation (lines 202-252):
+  * Reads `save.unlockedSkills` where `save = SaveSystem.getPlayer()` (v3 key)
+  * Iterates IDs, looks up each via `getSkill()` from `data/skills/skills.ts` (NEW tree, 29 skills, 6 trees)
+  * Applies effect.multiplier or effect.additive to base stats
+  * Then applies chassis multipliers
+- Verified PlayerEntity.refreshStats() (line 235, 259) re-reads from SaveSystem on skill unlock
+- Found SkillTreeSystem.computeStats exists (line 93 of systems/SkillTreeSystem.ts) but is NOT called by PlayerEntity — PlayerEntity has its own identical implementation
+- Read data/skills/skills.ts: 29 skills across 6 trees (Combat 6, Weapon 5, Movement 6, Energy 5, Protocol 3, Survival 5) with tier 0/1/2 structure
+- Grepped SkillTree.getPlayerModifiers() callers: features/player/Player.ts, PlayerController.ts, PlayerCombat.ts
+- These appear to be DEAD code paths — real entity is entities/player/PlayerEntity.ts (under src/game/entities/player/)
+- features/player/* uses old SkillTree.getPlayerModifiers() which reads v2_skills_v2 (old hardcoded 12 skills)
+- Verified totalKills is NEVER used as unlock condition (only displayed in HUD, Hub, Victory, Map, TestSuite) — MAX(totalKills) migration rule is safe
+- Wrote download/PHASE0.5-SKILL-DISCONNECT.md with full investigation
+
+Stage Summary:
+- USER'S CONCERN PARTIALLY CONFIRMED: There IS a disconnect, but narrower than feared
+- NEW UI path (SkillTreeUI → SkillTreeSystem.unlock → SaveSystem v3 → PlayerEntity.computeStats) IS WORKING
+- OLD UI path (SkillTreeScene → SkillTree.unlock → v2_skills_v2 → nowhere) IS BROKEN — skills unlocked here have no gameplay effect
+- features/player/* (Player.ts, PlayerController.ts, PlayerCombat.ts) likely DEAD — uses old SkillTree.getPlayerModifiers()
+- 10 action items logged for post-migration cleanup (3-4h total)
+- Skill ID migration table defined (mobility→movement, survival.energy1→energy.max1, survival.regen1→energy.regen1, combat.melee1 dropped)
+- Migration Option A confirmed SAFE — proceed with save system refactor
+- totalKills confirmed DISPLAY-ONLY — MAX(v3, v2, v2_skills_v2) rule safe
