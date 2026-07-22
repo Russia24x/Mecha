@@ -176,6 +176,13 @@ export class GameScene extends Phaser.Scene {
   constructor() { super({ key: 'GameScene' }); }
 
   create(): void {
+    // Phase 6: async init of ProfileManager + SaveSystem + AutoSaveManager.
+    // These must complete before any SaveSystem call, so we defer the rest
+    // of create() to createAsync().
+    void this.createAsync();
+  }
+
+  private async createAsync(): Promise<void> {
     // Init audio
     AudioSystem.init();
     AudioSystem.resume();
@@ -187,7 +194,19 @@ export class GameScene extends Phaser.Scene {
     // Bind OverlayManager to this scene
     OverlayManager.bind(this);
 
-    // Load settings
+    // ── Phase 6: Profile + Save system init ──
+    // Migration: if old localStorage keys exist, migrate them to IndexedDB slot 0.
+    const { ProfileManager } = await import('../../systems/ProfileManager');
+    const { SaveSystem } = await import('../../systems/SaveSystem');
+    const { autoSaveManager } = await import('../../systems/AutoSaveManager');
+    const { migrateOldSaves } = await import('../../systems/migrate');
+
+    await migrateOldSaves();
+    await ProfileManager.init();
+    await SaveSystem.init();
+    autoSaveManager.start();
+
+    // Load settings (now from IndexedDB-backed cache)
     const settings = SaveSystem.getSettings();
     AudioSystem.setMasterVolume(settings.masterVolume);
     AudioSystem.setSfxVolume(settings.sfxVolume);
@@ -469,23 +488,72 @@ export class GameScene extends Phaser.Scene {
     // Delegate to MenuBuilder — see src/game/ui/menu/MenuBuilder.ts
     this.menuBuilder = new MenuBuilder(this, this.stateContainer!, this.menuNav!, {
       onNewGame: () => {
-        SaveSystem.clear();
-        CheckpointSystem.clear();
-        QuestSystem.reset();
-        QuestSystem.init();
-        this.setState('hub');
+        // Phase 6: NEW GAME now opens profile select to pick/create a slot
+        this.showProfileSelect(true); // true = new game mode
       },
-      // CONTINUE = resume directly at last checkpoint (skip hub)
+      // CONTINUE = pick a profile to resume
       onContinue: () => {
-        if (CheckpointSystem.hasCheckpoint()) {
-          CheckpointSystem.init();
-          WorldSystem.initFromSave();
-          this.setState('play');
-        }
+        this.showProfileSelect(false); // false = continue mode
       },
       onOpenSettings: () => this.openOverlay('settings'),
     });
     this.menuBuilder.build();
+  }
+
+  /**
+   * Phase 6: Show the ProfileSelectUI overlay.
+   * Called from NEW GAME or CONTINUE menu buttons.
+   * @param isNewGame true = user clicked NEW GAME, false = CONTINUE
+   */
+  private async showProfileSelect(isNewGame: boolean): Promise<void> {
+    const { ProfileSelectUI } = await import('../../ui/profile/ProfileSelectUI');
+    const { SaveSystem } = await import('../../systems/SaveSystem');
+    const { CheckpointSystem } = await import('../../world/CheckpointSystem');
+    const { QuestSystem } = await import('../../systems/QuestSystem');
+    const { WorldSystem } = await import('../../world/WorldSystem');
+
+    // Hide menu content while profile select is open
+    this.menuBuilder?.destroy();
+    this.stateContainer!.removeAll(true);
+    this.menuNav!.reset();
+
+    const profileUI = new ProfileSelectUI(this, this.menuNav!, {
+      onSelect: async (slotId) => {
+        // Hide profile select UI first
+        profileUI.hide();
+
+        // Switch SaveSystem to the selected slot
+        await SaveSystem.selectSlot(slotId);
+
+        if (isNewGame) {
+          // Clear save data for this slot, start fresh from hub
+          SaveSystem.clear();
+          CheckpointSystem.clear();
+          QuestSystem.reset();
+          QuestSystem.init();
+          this.setState('hub');
+        } else {
+          // CONTINUE: resume at last checkpoint (if any)
+          if (CheckpointSystem.hasCheckpoint()) {
+            CheckpointSystem.init();
+            WorldSystem.initFromSave();
+            this.setState('play');
+          } else {
+            // No checkpoint — fall back to hub
+            this.setState('hub');
+          }
+        }
+      },
+      onBack: () => {
+        profileUI.hide();
+        // Rebuild menu
+        this.stateContainer!.removeAll(true);
+        this.menuNav!.reset();
+        this.buildMenu();
+      },
+    });
+
+    await profileUI.show();
   }
 
   // ================ HUB (World Map + Menu Access) ================
@@ -1151,6 +1219,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    // Phase 6: stop AutoSaveManager + flush pending dirty state
+    void import('../../systems/AutoSaveManager').then(({ autoSaveManager }) => {
+      void autoSaveManager.stop();
+    });
     EventBus.off('PLAYER_DEAD', this.onPlayerDied, this);
     EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
     EventBus.off('BOSS_DEAD', this.onBossDied, this);

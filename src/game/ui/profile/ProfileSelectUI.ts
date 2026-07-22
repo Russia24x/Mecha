@@ -53,13 +53,16 @@ export class ProfileSelectUI {
     this.profiles = await ProfileManager.listProfiles();
 
     const w = GAME.WIDTH, h = GAME.HEIGHT;
-    // Use a fresh container for the overlay content. We pass this container
-    // to nav (via nav's own container, set at construction). But buttons are
-    // added to THIS container, which is at depth 300 — above menu.
-    // The UIController (shared) manages hit-testing across all containers,
-    // so as long as buttons are setInteractive, they'll receive pointer events.
+    // Use the nav's container (stateContainer) so buttons are in the same
+    // display list that UIController manages. This ensures hit-testing works.
+    // We set depth 300 on the container to be above menu content.
     this.container = this.scene.add.container(0, 0);
-    this.container.setDepth(300); // Above menu (which is at depth ~3)
+    this.container.setDepth(300);
+
+    // Replace the nav's container reference so makeMenuBtn/addButton add to
+    // our overlay container instead of the original stateContainer.
+    // (MenuNavHelper stores container as a private field — we access via cast.)
+    (this.nav as unknown as { container: Phaser.GameObjects.Container }).container = this.container;
 
     // === Background overlay ===
     const overlay = this.scene.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.92);
@@ -291,7 +294,6 @@ export class ProfileSelectUI {
     }
     this.nav.reset();
   }
-
   /** Localization helper. */
   private L(en: string, fa: string): string {
     return getLocale() === 'fa' ? fa : en;
