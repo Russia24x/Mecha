@@ -31,7 +31,7 @@
 
 ---
 
-## Current State (2026-07-15)
+## Current State (2026-07-23)
 
 ### What's Working
 - **Act I** (The Fallen Foundry) — fully designed, 6 sections, 9216px, ~15-20 min gameplay
@@ -44,14 +44,15 @@
 - **3 Chassis** (scout/assault/titan) with stat multipliers
 - **4 Paints** (1 unlocked, 3 locked)
 - **7 Companions** (defined but CompanionSystem not implemented)
-- **1 Quest** (defined but not wired to NPCSystem — can't be started)
+- **1 Quest** (defined, wired to NPCSystem, working with toast notifications)
 - **2 NPCs** (Engineer Kara, Ghost Operator — both in Act I)
 - **Metroidvania**: 7 collectibles, 2 shortcuts, 1 EMP door, 2 grapple anchors (Act I only)
-- **Save System**: v3, localStorage, quest progress persisted, migration support
-- **Full UI**: HUD, Pause, Settings, Inventory, SkillTree, Quest, Map, Hangar, Dialogue, Lore
+- **Save System**: v4, IndexedDB-backed, 3 profile slots, auto-save (30s + checkpoint + beforeunload), migration from old localStorage keys, ProfileSelectUI
+- **Full UI**: HUD, Pause, Settings (gamepad+mouse sliders working), Inventory, SkillTree, Quest, Map, Hangar, Profile Select, Dialogue, Lore
 - **Input**: keyboard + gamepad + mouse, all working with unified UIController
 - **Audio**: procedural SFX (19 sounds), ambient drone, 8 categories — no music tracks
 - **Localization**: ~287 keys, EN + FA
+- **Menu**: CONTINUE (resume active profile), LOAD GAME (switch profile), NEW GAME (create profile), Settings, How To Play
 
 ### What's Missing
 - **Acts II, III, V** — empty stubs (1-2 platforms per section, no content)
@@ -59,11 +60,11 @@
 - **Music** — 0 tracks (AUDIO_BIBLE specifies 10% of mix)
 - **ShopSystem** — Kara has shopId but no ShopSystem exists
 - **CompanionSystem** — 7 companions defined but no AI/behavior system
-- **Quest wiring** — NPCSystem doesn't call QuestSystem.startQuest()
 - **3 weapons unobtainable** — plasma_cannon, laser, energy_blade (unlockCondition never checked)
 - **3 paints unobtainable** — military_green, protocol_white, rust (no unlock path)
 - **Elite enemy** — defined but only spawns as mini-boss, not in regular enemy lists
 - **Ending** — no Act V content, no truth reveal, no binary choice
+- **SkillTreeScene** (legacy, deleted) — old UI path was broken (skills unlocked via SkillTreeScene had no gameplay effect). New SkillTreeUI (Hangar overlay) works correctly.
 
 ---
 
@@ -75,25 +76,23 @@ src/game/
 ├── GAME_VARIABLES.md          — All tunable variables reference
 │
 ├── features/
-│   ├── scenes/
-│   │   ├── BootScene.ts       — Preload + splash
-│   │   ├── GameScene.ts       — Main scene, state machine (1146 lines)
-│   │   ├── UIScene.ts         — Stub (stops immediately)
-│   │   ├── PlayController.ts  — Play state builder
-│   │   ├── CollisionController.ts — Collision routing
-│   │   ├── FactoryStage.ts    — Legacy (pre-refactor, dead code)
-│   │   └── TestSuite.ts       — Legacy test (F2)
-│   ├── boss/                  — Legacy boss files (dead code)
-│   ├── combat/                — Legacy combat files (dead code)
-│   ├── physics/               — Legacy physics files (dead code)
-│   ├── player/                — Legacy player files (dead code)
-│   ├── rendering/             — Legacy render files (dead code)
-│   └── ui/                    — Legacy UI files (dead code)
+│   └── scenes/
+│       ├── BootScene.ts       — Preload + splash
+│       ├── GameScene.ts       — Main scene, state machine (1269 lines)
+│       └── UIScene.ts         — Stub (stops immediately)
+│
+├── controllers/
+│   ├── PlayController.ts      — Play state builder
+│   └── CollisionController.ts — Collision routing
 │
 ├── systems/
 │   ├── InputSystem.ts         — Keyboard + gamepad (421 lines)
 │   ├── AudioSystem.ts         — Procedural SFX, 8 categories
-│   ├── SaveSystem.ts          — localStorage v3, cache, migration
+│   ├── SaveSystem.ts          — IndexedDB v4 façade, cache, markDirty
+│   ├── ProfileDB.ts           — IndexedDB wrapper (3 slots + global store)
+│   ├── ProfileManager.ts      — Slot lifecycle (create/select/delete/list)
+│   ├── AutoSaveManager.ts     — 30s timer + visibilitychange + beforeunload
+│   ├── migrate.ts             — Migration from old localStorage keys (v2/v3 → v4)
 │   ├── LocalizationSystem.ts  — EN/FA, ~287 keys
 │   ├── RenderSystem.ts        — Brightness, lights, darkness overlay
 │   ├── PhysicsSystem.ts       — Matter.js wrapper
@@ -105,7 +104,7 @@ src/game/
 │   ├── SkillTreeSystem.ts     — Skill unlock, effect application
 │   ├── InventorySystem.ts     — Items, materials, consumables
 │   ├── WeaponUpgradeSystem.ts — Weapon level upgrades
-│   ├── QuestSystem.ts         — Quest tracking (1 quest, not wired)
+│   ├── QuestSystem.ts         — Quest tracking (1 quest, wired)
 │   ├── NPCSystem.ts           — NPC dialogue routing
 │   ├── DialogueSystem.ts      — Dialogue tree state
 │   ├── LoreSystem.ts          — Lore discovery (4 entries)
@@ -117,20 +116,21 @@ src/game/
 │   └── QualityManager.ts      — Low/medium/high presets
 │
 ├── ui/
-│   ├── UIController.ts        — Unified nav (focusables, cursor, tabs)
+│   ├── UIController.ts        — Unified nav (focusables, cursor, tabs, slider-aware)
 │   ├── NavigableOverlay.ts    — Abstract base for overlay UIs
 │   ├── OverlayManager.ts      — Overlay stack management
 │   ├── shared/MenuNavHelper.ts — Thin wrapper for shared controller
 │   ├── Theme.ts               — Colors, helpers (corner brackets, scanlines)
 │   ├── hud/HUDUI.ts           — Health, energy, weapon, level
 │   ├── pause/PauseMenuUI.ts   — 10-button grid
-│   ├── settings/SettingsUI.ts — Audio/display/language tabs
+│   ├── settings/SettingsUI.ts — Audio/display/language tabs (gamepad+mouse sliders)
 │   ├── inventory/InventoryUI.ts — 4-tab grid
 │   ├── skilltree/SkillTreeUI.ts — 6-tree diamond nodes
 │   ├── quest/QuestUI.ts       — Quest list (read-only)
 │   ├── map/WorldMapUI.ts      — Hex-grid travel
 │   ├── hangar/HangarUI.ts     — Chassis/loadout/companion/paint
-│   ├── menu/MenuBuilder.ts    — Title screen + How To Play
+│   ├── profile/ProfileSelectUI.ts — 3-slot profile select (create/select/delete)
+│   ├── menu/MenuBuilder.ts    — Title screen (CONTINUE/LOAD GAME/NEW GAME/SETTINGS/HOW TO PLAY)
 │   ├── hub/HubBuilder.ts      — Mission select + nav bar
 │   ├── dialogue/DialogueUI.ts — Bottom box, RTL support
 │   ├── lore/LoreController.ts — In-world lore panel

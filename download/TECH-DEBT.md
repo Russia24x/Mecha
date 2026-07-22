@@ -106,3 +106,56 @@ SaveSystem منطق خالص است (بدون Phaser/canvas). چند تست unit
 - N25 (migration)
 
 این تست‌ها در چند ثانیه، بدون مرورگر، اجرا می‌شوند و از رگرسیون جلوگیری می‌کنند.
+
+---
+
+## موارد فیکس‌شده (جلسه 2026-07-22 تا 2026-07-23) ✅
+
+| # | مورد | فایل | کامیت | روش تأیید |
+|---|------|------|-------|-----------|
+| Save-v4 | Save System v4 — IndexedDB migration | ProfileDB, ProfileManager, SaveSystem, AutoSaveManager, migrate.ts | 6778496-4cc9eb7 | 86-step snapshot diff + migration test (28/28) + leak test + browser verification |
+| Legacy-42 | حذف ۴۲ فایل dead code | features/ (全部), shared/Save.ts, shared/SkillTree.ts, shared/SaveManager.ts | 400680b | tsc 159→4, full build, runtime playthrough |
+| Menu-LOAD | منو: LOAD GAME + CONTINUE fix | MenuBuilder.ts, GameScene.ts | c201a67 | browser test |
+| Menu-BACK | باگ BACK از profile select (منو خالی) | GameScene.ts | c98edc1 | browser test |
+| Slider-Null | اسلایدر null glTexture crash | SettingsUI.ts | ced9d2a | error reproduction + fix |
+| Slider-Mouse | اسلایدر موس: click-to-jump + drag | SettingsUI.ts | dccaecb | browser test |
+| Slider-Gamepad | اسلایدر گیم‌پد: تنظیم پیوسته | SettingsUI.ts, UIController.ts | 1fe03b4, 443d521, 4cc9eb7 | physical gamepad test (5/5 pass) |
+| Slider-Nav | حذف categories از focusable list | SettingsUI.ts | 1fe03b4 | code analysis + gamepad test |
+| Slider-Arch | isSliderFocused check مستقیم (حذف flag) | UIController.ts | 443d521 | gamepad test + code analysis |
+| SkillTreeScene | حذف SkillTreeScene legacy (مسیر شکسته) | features/scenes/SkillTreeScene.ts | 400680b | Phase 0.5 investigation |
+| Race-Cond | SaveSystem flushToIndexedDB race condition | SaveSystem.ts | 0fb5657 | debug logging + code analysis |
+| Write-Fail | SaveSystem write failure recovery | SaveSystem.ts | 421eedb | monkey-patch test (test 9) |
+
+---
+
+## موارد باقی‌مانده (اولویت P0 — محتوا)
+
+| # | مورد | توضیح | اولویت |
+|---|------|--------|--------|
+| Content-II | Act II (The Drowned Wastes) | empty stub — نیاز به level design، enemies، boss | P0 |
+| Content-III | Act III (The Lost City) | empty stub | P0 |
+| Content-V | Act V (Digital Desert) + Ending | empty stub + truth reveal + binary choice | P0 |
+| Boss-3 | Leviathan Hulk (Act II) | referenced in WORLD_BIBLE، کد ندارد | P0 |
+| Boss-4 | Iron Magistrate (Act III) | referenced in WORLD_BIBLE، کد ندارد | P0 |
+| Boss-5 | The Architect (Act V) | referenced in WORLD_BIBLE، کد ندارد | P0 |
+| Quest-2+ | Quest‌های بیشتر | فقط ۱ quest تعریف شده | P1 |
+| ShopSystem | سیستم فروشگاه | Kara has shopId but no ShopSystem | P1 |
+| CompanionAI | سیستم AI companion | ۷ companion تعریف شده، CompanionEntity فقط بصری | P1 |
+| Music | موسیقی | 0 tracks (AUDIO_BIBLE specifies 10%) | P1 |
+| Weapon-Unlock | 3 سلاح unobtainable | plasma_cannon, laser, energy_blade | P1 |
+| Paint-Unlock | 3 paint unobtainable | military_green, protocol_white, rust | P1 |
+
+---
+
+## موارد باقی‌مانده (اولویت P2 — polish)
+
+| # | مورد | توضیح |
+|---|------|--------|
+| TD1 | navCooldown فرض 60fps | UIController.ts:247 |
+| TD2 | focusables leak در NavigableOverlay subclasses | Settings/Inventory/SkillTree |
+| TD3 | Double show در OverlayManager | OverlayManager.ts:79,84 |
+| TD4 | Tab double-registration | Settings/Inventory/SkillTree (categories هم tab هم focusable — Settings fixed) |
+| TD5 | F3 listener leak | GameScene.ts:247 |
+| TD6 | processCursorHover Phaser internals | UIController.ts:404 |
+| GodClass-GameScene | GameScene 1269 lines | قابل قبول ولی monitor |
+| GodClass-PlayerEntity | PlayerEntity 1090 lines | نیاز به refactor در آینده |

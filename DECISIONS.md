@@ -97,3 +97,39 @@
 ## ۲۰. حذف removeInteractive از clearFocusables (S1 fix)
 **تصمیم:** clearFocusables فقط bg.off() صدا می‌زند، نه removeInteractive()
 **دلیل:** removeInteractive() در Phaser 4 حالت داخلی InputPlugin را خراب می‌کند وقتی mid-event صدا زده شود.
+
+## ۲۱. Save System v4 — IndexedDB
+**تصمیم:** مهاجرت از localStorage به IndexedDB با ۳ profile slot
+**دلیل:** پشتیبانی از چندین profile، ذخیره‌سازی بزرگ‌تر، async non-blocking
+**وضعیت:** ✅ پیاده‌سازی شده (ProfileDB + ProfileManager + SaveSystem façade + AutoSaveManager + migrate.ts)
+**تاریخ:** 2026-07-22
+
+## ۲۲. persist() = markDirty فقط
+**تصمیم:** SaveSystem.persist() فقط dirty flag ست می‌کند، نه IndexedDB write
+**دلیل:** جلوگیری از صدها write در دقیقه هنگام گیم‌پلی فعال. IndexedDB write فقط توسط AutoSaveManager (۳۰ثانیه + checkpoint + beforeunload).
+**تاریخ:** 2026-07-22
+
+## ۲۳. Race condition fix — snapshot قبل از write
+**تصمیم:** flushToIndexedDB اول snapshot می‌گیرد، بعد dirty=false ست می‌کند، بعد write می‌کند
+**دلیل:** جلوگیری از data loss وقتی mutation وسط async write اتفاق می‌افتد. اگه mutation رخ دهد، persist() دوباره dirty=true می‌کند.
+**تاریخ:** 2026-07-22
+
+## ۲۴. حذف ۴۲ فایل legacy
+**تصمیم:** حذف تمام features/ به‌جز BootScene/GameScene/UIScene + shared/Save.ts + shared/SkillTree.ts + shared/SaveManager.ts
+**دلیل:** این فایل‌ها dead code بودن — هیچ‌کدوم تو مسیر فعال بازی import نمی‌شدن. tsc errors از ۱۵۹ به ۴ کاهش یافت.
+**تاریخ:** 2026-07-22
+
+## ۲۵. Menu structure — CONTINUE/LOAD GAME/NEW GAME
+**تصمیم:** منو ۵ دکمه دارد: CONTINUE (resume active profile) / LOAD GAME (switch profile) / NEW GAME (create profile) / SETTINGS / HOW TO PLAY
+**دلیل:** بازیکن باید بتونه بین profileها سوییچ کنه. CONTINUE فقط وقتی فعال هست که profile فعالی با checkpoint وجود داشته باشه.
+**تاریخ:** 2026-07-23
+
+## ۲۶. Settings slider — isSliderFocused check
+**تصمیم:** به‌جای flag global (_sliderAdjusting)، UIController.update() مستقیم چک می‌کند آیا focusable فعلی slider هست (via getData('sliderData'))
+**دلیل:** flag global coupling بین پنل‌ها ایجاد می‌کرد و timing-dependent بود. چک مستقیم از fact واقعی (focus state) ساده‌تر و پایدارتره.
+**تاریخ:** 2026-07-23
+
+## ۲۷. Settings categories — tab-only (نه focusable)
+**تصمیم:** category‌ها فقط از طریق tabs (L1/R1) قابل‌تعویض هستند، نه D-pad up/down
+**دلیل:** وقتی category‌ها هم focusable بودن، D-pad بین‌شون حرکت می‌کرد و به slider‌ها (ستون راست) نمی‌رسید. حذف از focusable list مشکل navigation رو حل کرد.
+**تاریخ:** 2026-07-23
