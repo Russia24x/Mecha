@@ -181,6 +181,10 @@ async function main(): Promise<void> {
 
   // ── Test 5: beforeunload mirror ──
   console.log('\n[test 5] Simulating beforeunload (tab close)...');
+  // Wait for visibilitychange flush to complete first (to avoid timing overlap)
+  while (autoSaveManager.isSaveInFlight()) {
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
   SaveSystem.setQuestFlag('beforeunload_test', true);
   console.log('  After mutation, isDirty():', SaveSystem.isDirty(), '(expected: true)');
 

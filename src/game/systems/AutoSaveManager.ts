@@ -101,11 +101,11 @@ class AutoSaveManager {
     }
 
     // Wait for any in-flight save to complete.
-    // Important: the in-flight save may have captured a STALE cache snapshot
-    // (fake-indexeddb defers structured clone until transaction commit, unlike
-    // real browsers which clone synchronously on put()). After waiting, we
-    // re-check dirty and flush again to ensure the latest state is persisted.
-    const hadInFlightSave = this.saveInFlight;
+    // The in-flight save uses a snapshot of the cache (taken at flush start),
+    // so it won't capture mutations that happen during the write. After waiting,
+    // we check dirty — if mutations happened during the write, dirty will be
+    // true (because flushToIndexedDB sets dirty=false BEFORE writing, and
+    // persist() re-sets it if mutations occur).
     let waitCount = 0;
     while (this.saveInFlight && waitCount < 1000) {
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -115,17 +115,8 @@ class AutoSaveManager {
       console.warn('[AutoSaveManager] saveInFlight still true after 10s wait — giving up');
     }
 
-    // After waiting for in-flight save, dirty may have been cleared by that
-    // save (but the save captured stale data, particularly in test environments
-    // like fake-indexeddb which defers structured clone). If dirty is still
-    // true OR if we just waited for an in-flight save that may have captured
-    // stale data, force a final saveNow() to ensure the LATEST cache state
-    // is persisted.
-    // Note: in real browsers, structured clone is synchronous on put(), so
-    // this re-save is a no-op if dirty is false. We do it anyway for safety.
-    if (SaveSystem.isDirty() || hadInFlightSave) {
-      await this.saveNow();
-    }
+    // Final flush — writes the latest cache state if dirty.
+    await this.flushIfDirty();
   }
 
   /**

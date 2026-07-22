@@ -137,13 +137,43 @@ export class SaveSystem {
   /**
    * Write the current cache to IndexedDB via ProfileManager.
    * Called by AutoSaveManager (Phase 4). Clears the dirty flag on success.
+   *
+   * RACE CONDITION FIX: We snapshot the cache BEFORE writing, and set dirty=false
+   * BEFORE the write. If any mutation happens during the async write, persist()
+   * will re-set dirty=true, and the next flush will write the latest state.
+   *
+   * This prevents a race where:
+   *   1. flush A starts (in-flight), captures snapshot S1
+   *   2. mutation M happens (sets dirty=true)
+   *   3. flush A completes, sets dirty=false — but S1 doesn't contain M!
+   *   4. flush B (from stop()) sees dirty=false, skips — M is lost
+   *
+   * With the fix:
+   *   1. flush A starts, snapshots S1, sets dirty=false
+   *   2. mutation M happens, persist() sets dirty=true
+   *   3. flush A completes writing S1 (without M) — dirty is still true
+   *   4. flush B (from stop()) sees dirty=true, snapshots S2 (with M), writes it
+   *
+   * This race is REAL in both fake-indexeddb and real browsers — it's caused
+   * by the async gap between snapshot and write completion, not by any
+   * simulator-specific behavior.
    */
   static async flushToIndexedDB(): Promise<void> {
     if (!this.cache) return;
     const slotId = ProfileManager.getCurrentSlotId();
-    if (slotId === null) return; // No slot selected — nothing to flush
-    await ProfileManager.writeProfileData(slotId, this.cache);
+    if (slotId === null) return;
+
+    // Snapshot the cache state. We write THIS snapshot, not the live cache.
+    const snapshot = JSON.parse(JSON.stringify(this.cache)) as SaveDataV4;
+
+    // Mark dirty=false BEFORE the write. If any mutation happens during the
+    // await, persist() will re-set dirty=true.
     this.dirty = false;
+
+    await ProfileManager.writeProfileData(slotId, snapshot);
+
+    // If dirty was re-set during the write (mutation occurred), leave it set
+    // so the next flush picks it up. No action needed here.
   }
 
   // ──────────────────────────────────────────────────────────────
