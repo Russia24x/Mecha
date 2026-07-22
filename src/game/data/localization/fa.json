@@ -286,5 +286,7 @@
   "section.orbital.3.name": "هسته سرور",
   "section.orbital.4.name": "اتاق تکامل",
   "section.orbital.5.name": "عرشه مشاهده",
-  "section.orbital.6.name": "معمار"
+  "section.orbital.6.name": "معمار",
+  "enemy.drowned_walker.name": "راه‌روی غرق‌شده",
+  "enemy.mosquito_drone.name": "پهپاد پشه"
 }

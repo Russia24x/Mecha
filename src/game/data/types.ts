@@ -168,7 +168,7 @@ export interface SkillEffect {
 }
 
 // ================ ENEMIES ================
-export type EnemyTypeId = 'drone' | 'spider' | 'heavy' | 'sniper' | 'flying_ai' | 'elite';
+export type EnemyTypeId = 'drone' | 'spider' | 'heavy' | 'sniper' | 'flying_ai' | 'elite' | 'drowned_walker' | 'mosquito_drone';
 export type EnemyState = 'patrol' | 'aggro' | 'attack' | 'stagger';
 
 export type EnemyAttackType = 'shoot' | 'lunge' | 'charge' | 'snipe';

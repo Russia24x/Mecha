@@ -286,5 +286,7 @@
   "section.orbital.3.name": "Server Core",
   "section.orbital.4.name": "Evolution Chamber",
   "section.orbital.5.name": "Observation Deck",
-  "section.orbital.6.name": "The Architect"
+  "section.orbital.6.name": "The Architect",
+  "enemy.drowned_walker.name": "Drowned Walker",
+  "enemy.mosquito_drone.name": "Mosquito Drone"
 }

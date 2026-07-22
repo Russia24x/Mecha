@@ -968,6 +968,206 @@ export class MechaSpriteFactory {
       destroy: () => { parts.forEach(p => { if (p && p.active) p.destroy(); }); if (container && container.active) container.destroy(); },
     };
   }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  //  ACT II — The Drowned Wastes: Assimilated family
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Build a DROWNED WALKER — waterlogged bipedal mech, emerges from water.
+   * Visual: rusted, moss-covered, dripping, hunched posture.
+   * Attack: lunge from water (ambush predator).
+   */
+  static buildDrownedWalker(scene: Phaser.Scene, color: number): MechVisualHandle {
+    const container = scene.add.container(0, 0);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+
+    // Shadow (wider — heavy, waterlogged)
+    const shadow = scene.add.ellipse(0, 22, 48, 10, 0x000000, 0.5);
+    shadow.setDepth(-1);
+    parts.push(shadow);
+
+    // Water drip trail (subtle, behind body)
+    const dripGlow = scene.add.circle(0, 16, 12, 0x3a5a40, 0.12);
+    dripGlow.setBlendMode(Phaser.BlendModes.ADD);
+    dripGlow.setDepth(1);
+    parts.push(dripGlow);
+    scene.tweens.add({ targets: dripGlow, alpha: { from: 0.08, to: 0.18 }, scale: { from: 0.8, to: 1.2 }, duration: 1500, yoyo: true, repeat: -1 });
+
+    // Body — hunched, rusted, moss-covered
+    const body = scene.add.graphics();
+    body.setDepth(5);
+    // Torso (dark, waterlogged metal)
+    body.fillStyle(0x1a2a18, 1);
+    body.fillRoundedRect(-16, -14, 32, 28, 4);
+    // Rusted patches (orange-brown)
+    body.fillStyle(0x5a3a1a, 0.6);
+    body.fillCircle(-8, -8, 4);
+    body.fillCircle(6, 4, 3);
+    body.fillCircle(-4, 8, 3);
+    // Moss layer (green top)
+    body.fillStyle(0x3a5a28, 0.7);
+    body.fillRoundedRect(-16, -14, 32, 5, 3);
+    // Moss spots
+    body.fillStyle(0x4a6a30, 0.5);
+    body.fillCircle(-10, -12, 2);
+    body.fillCircle(4, -13, 1.5);
+    body.fillCircle(10, -11, 2);
+    // Outline (dark)
+    body.lineStyle(1, 0x0a1a08, 0.8);
+    body.strokeRoundedRect(-16, -14, 32, 28, 4);
+    parts.push(body);
+
+    // Head — small, hunched forward, single dim eye
+    const head = scene.add.graphics();
+    head.setDepth(6);
+    head.fillStyle(0x1a2a18, 1);
+    head.fillRoundedRect(-6, -20, 12, 8, 2);
+    head.fillStyle(0x3a5a28, 0.6);
+    head.fillRoundedRect(-6, -20, 12, 3, 2);
+    head.lineStyle(1, 0x0a1a08, 0.8);
+    head.strokeRoundedRect(-6, -20, 12, 8, 2);
+    parts.push(head);
+
+    // Single dim eye (sickly green)
+    const eyeGlow = scene.add.circle(0, -16, 5, 0x40ff60, 0.12);
+    eyeGlow.setBlendMode(Phaser.BlendModes.ADD);
+    eyeGlow.setDepth(7);
+    parts.push(eyeGlow);
+    const eye = scene.add.circle(0, -16, 2, 0x60ff80, 0.8);
+    eye.setBlendMode(Phaser.BlendModes.ADD);
+    eye.setDepth(8);
+    parts.push(eye);
+    scene.tweens.add({ targets: eyeGlow, alpha: { from: 0.06, to: 0.18 }, duration: 1200, yoyo: true, repeat: -1 });
+
+    // Arms — stubby, corroded, hanging forward
+    for (const side of [-1, 1]) {
+      const arm = scene.add.graphics();
+      arm.setDepth(4);
+      arm.fillStyle(0x1a2a18, 1);
+      arm.fillRoundedRect(side * 14 - 3, -8, 6, 16, 2);
+      arm.fillStyle(0x5a3a1a, 0.5);
+      arm.fillCircle(side * 14, -2, 2);
+      arm.lineStyle(1, 0x0a1a08, 0.6);
+      arm.strokeRoundedRect(side * 14 - 3, -8, 6, 16, 2);
+      parts.push(arm);
+    }
+
+    // Legs — thick, waterlogged (no animation, static)
+    for (const side of [-1, 1]) {
+      const leg = scene.add.graphics();
+      leg.setDepth(3);
+      leg.fillStyle(0x1a2a18, 1);
+      leg.fillRoundedRect(side * 8 - 4, 10, 8, 14, 2);
+      leg.fillStyle(0x3a5a28, 0.4);
+      leg.fillRoundedRect(side * 8 - 4, 10, 8, 3, 2);
+      leg.lineStyle(1, 0x0a1a08, 0.6);
+      leg.strokeRoundedRect(side * 8 - 4, 10, 8, 14, 2);
+      parts.push(leg);
+    }
+
+    container.add(parts);
+    container.setDepth(14);
+
+    return {
+      container,
+      setFacing: (facing: 1 | -1) => container.setScale(facing, 1),
+      setCorePulse: (b: number) => eye.setAlpha(0.5 + b * 0.4),
+      setThrusterIntensity: (_i: number) => {},
+      destroy: () => { parts.forEach(p => { if (p && p.active) p.destroy(); }); if (container && container.active) container.destroy(); },
+    };
+  }
+
+  /**
+   * Build a MOSQUITO DRONE — thin, agile flying unit that hunts in fog.
+   * Visual: needle-nosed, spindly wings, sickly yellow-green glow.
+   * Attack: shoot (rapid, weak projectiles from needle tip).
+   */
+  static buildMosquitoDrone(scene: Phaser.Scene, color: number): MechVisualHandle {
+    const container = scene.add.container(0, 0);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+
+    // Shadow
+    const shadow = scene.add.ellipse(0, 18, 24, 5, 0x000000, 0.3);
+    shadow.setDepth(-1);
+    parts.push(shadow);
+
+    // Wings (rapid flutter — 2 thin ellipses)
+    for (const side of [-1, 1]) {
+      const wing = scene.add.ellipse(side * 8, -4, 16, 4, 0x9ab060, 0.15);
+      wing.setBlendMode(Phaser.BlendModes.ADD);
+      wing.setDepth(2);
+      parts.push(wing);
+      scene.tweens.add({
+        targets: wing,
+        scaleY: { from: 0.3, to: 1 },
+        alpha: { from: 0.08, to: 0.2 },
+        duration: 50, yoyo: true, repeat: -1,
+      });
+    }
+
+    // Body — thin needle shape
+    const body = scene.add.graphics();
+    body.setDepth(5);
+    // Needle nose (pointing forward)
+    body.fillStyle(0x2a3a1a, 1);
+    body.fillTriangle(14, 0, 6, -3, 6, 3);
+    // Main body (thin)
+    body.fillStyle(0x1a2a12, 1);
+    body.fillRoundedRect(-8, -4, 16, 8, 3);
+    // Segmented body lines
+    body.lineStyle(1, 0x3a4a20, 0.4);
+    body.beginPath();
+    body.moveTo(-4, -4); body.lineTo(-4, 4);
+    body.moveTo(0, -4); body.lineTo(0, 4);
+    body.strokePath();
+    // Outline
+    body.lineStyle(1, 0x0a1a08, 0.7);
+    body.strokeRoundedRect(-8, -4, 16, 8, 3);
+    // Rust spots
+    body.fillStyle(0x5a3a1a, 0.4);
+    body.fillCircle(-3, -1, 1.5);
+    body.fillCircle(2, 1, 1);
+    parts.push(body);
+
+    // Eye — single sickly yellow-green dot at needle tip
+    const eyeGlow = scene.add.circle(10, 0, 4, 0xaaff40, 0.15);
+    eyeGlow.setBlendMode(Phaser.BlendModes.ADD);
+    eyeGlow.setDepth(6);
+    parts.push(eyeGlow);
+    const eye = scene.add.circle(10, 0, 1.5, 0xccff60, 0.9);
+    eye.setBlendMode(Phaser.BlendModes.ADD);
+    eye.setDepth(7);
+    parts.push(eye);
+    scene.tweens.add({ targets: eyeGlow, alpha: { from: 0.08, to: 0.22 }, scale: { from: 0.7, to: 1.3 }, duration: 300, yoyo: true, repeat: -1 });
+
+    // Rear stinger (small)
+    const stinger = scene.add.graphics();
+    stinger.setDepth(5);
+    stinger.fillStyle(0x2a3a1a, 1);
+    stinger.fillTriangle(-8, 0, -14, -2, -14, 2);
+    parts.push(stinger);
+
+    // Floating hover bob (subtle vertical movement)
+    scene.tweens.add({
+      targets: container,
+      y: { from: -2, to: 2 },
+      duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+
+    container.add(parts);
+    container.setDepth(14);
+
+    return {
+      container,
+      setFacing: (facing: 1 | -1) => container.setScale(facing, 1),
+      setCorePulse: (b: number) => eye.setAlpha(0.6 + b * 0.4),
+      setThrusterIntensity: (i: number) => {
+        // Wing flutter speed scales with intensity
+      },
+      destroy: () => { parts.forEach(p => { if (p && p.active) p.destroy(); }); if (container && container.active) container.destroy(); },
+    };
+  }
 }
 
 export default MechaSpriteFactory;

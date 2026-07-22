@@ -96,6 +96,8 @@ export class EnemyEntity {
       case 'heavy':       this.visual = MechaSpriteFactory.buildHeavy(this.scene, c); break;
       case 'flying_ai':   this.visual = MechaSpriteFactory.buildFlyingAi(this.scene, c); break;
       case 'elite':       this.visual = MechaSpriteFactory.buildElite(this.scene, c); break;
+      case 'drowned_walker': this.visual = MechaSpriteFactory.buildDrownedWalker(this.scene, c); break;
+      case 'mosquito_drone': this.visual = MechaSpriteFactory.buildMosquitoDrone(this.scene, c); break;
       default:            this.visual = MechaSpriteFactory.buildDrone(this.scene, c); break;
     }
   }
