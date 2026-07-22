@@ -142,21 +142,18 @@ export class SaveSystem {
    * BEFORE the write. If any mutation happens during the async write, persist()
    * will re-set dirty=true, and the next flush will write the latest state.
    *
-   * This prevents a race where:
-   *   1. flush A starts (in-flight), captures snapshot S1
-   *   2. mutation M happens (sets dirty=true)
-   *   3. flush A completes, sets dirty=false — but S1 doesn't contain M!
-   *   4. flush B (from stop()) sees dirty=false, skips — M is lost
+   * WRITE FAILURE HANDLING: If the write throws (quota exceeded, IndexedDB
+   * unavailable, transaction aborted), we restore dirty=true so the next
+   * flush cycle retries. Without this, a failed write would silently lose
+   * data — dirty would stay false, but the data was never persisted.
    *
-   * With the fix:
-   *   1. flush A starts, snapshots S1, sets dirty=false
-   *   2. mutation M happens, persist() sets dirty=true
-   *   3. flush A completes writing S1 (without M) — dirty is still true
-   *   4. flush B (from stop()) sees dirty=true, snapshots S2 (with M), writes it
-   *
-   * This race is REAL in both fake-indexeddb and real browsers — it's caused
-   * by the async gap between snapshot and write completion, not by any
-   * simulator-specific behavior.
+   * Flow:
+   *   1. Snapshot cache (S1)
+   *   2. Set dirty=false
+   *   3. await writeProfileData(slotId, S1)
+   *      - If mutation M happens here, persist() sets dirty=true
+   *   4a. On success: if dirty was re-set (M happened), leave it for next flush
+   *   4b. On failure: set dirty=true (retry next cycle), rethrow to caller
    */
   static async flushToIndexedDB(): Promise<void> {
     if (!this.cache) return;
@@ -170,10 +167,18 @@ export class SaveSystem {
     // await, persist() will re-set dirty=true.
     this.dirty = false;
 
-    await ProfileManager.writeProfileData(slotId, snapshot);
-
-    // If dirty was re-set during the write (mutation occurred), leave it set
-    // so the next flush picks it up. No action needed here.
+    try {
+      await ProfileManager.writeProfileData(slotId, snapshot);
+      // Success. If dirty was re-set during the write (mutation occurred),
+      // leave it set so the next flush picks it up. No action needed here.
+    } catch (err) {
+      // Write failed — restore dirty=true so the next flush retries.
+      // The snapshot S1 was never persisted, so the cache state (which may
+      // have additional mutations on top of S1) needs to be re-flushed.
+      this.dirty = true;
+      console.error('[SaveSystem] flushToIndexedDB write failed, will retry:', err);
+      throw err; // Re-throw so AutoSaveManager can log/handle if needed
+    }
   }
 
   // ──────────────────────────────────────────────────────────────

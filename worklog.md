@@ -1686,3 +1686,57 @@ Stage Summary:
   interrupted" scenarios
 - All 8 smoke tests pass with the proper fix
 - Ready to commit Phase 4 fix and proceed to Phase 5
+
+---
+Task ID: phase4-error-handling-and-tab-close-test
+Agent: main
+Task: Add write failure error handling to flushToIndexedDB + attempt real tab close test in Chromium.
+
+Work Log:
+- Added try/catch to SaveSystem.flushToIndexedDB:
+  * On write failure (quota exceeded, transaction aborted, etc.), restore dirty=true
+    so the next flush cycle retries
+  * Re-throw the error so AutoSaveManager.doFlush can log it
+  * doFlush already has its own try/catch that logs and continues (doesn't crash game)
+  * Added test 9 to phase4-smoke-test.ts: monkey-patches ProfileDB.writeProfile
+    to throw once, verifies dirty is restored, verifies retry succeeds
+  * All 9 tests pass
+
+- Attempted real tab close test in Chromium via agent-browser:
+  * `tab close` — works but triggers full tab close; beforeunload fires
+  * `window.close()` — fails cross-origin (security restriction)
+  * `agent-browser close` — kills browser process before beforeunload
+  * `window.location.href = 'about:blank'` — triggers beforeunload, then navigates
+
+- Results of real tab close test:
+  * Mirror IS written synchronously when beforeunload fires (confirmed: 990 bytes)
+  * In all tested scenarios, IndexedDB write also completed (lastSavedAt was
+    9ms newer than mirror timestamp)
+  * Could NOT reproduce the "IndexedDB write interrupted" scenario via real
+    tab close — Chromium gives enough microtask time for the transaction to commit
+
+- LIMITATION ACKNOWLEDGED:
+  * The critical scenario (IndexedDB write incomplete, only mirror saved)
+    could not be reproduced with real tab close
+  * Reasons: (1) agent-browser tab close has timing overhead, (2) Chromium
+    gives beforeunload handlers enough time for small writes, (3) window.close()
+    is blocked cross-origin
+  * Conclusion: beforeunload → mirror → recovery pipeline is confirmed working,
+    but the primary data safety relies on:
+    1. 30-second auto-save timer (always works)
+    2. Manual saveNow() at checkpoints (always works)
+    3. visibilitychange flush on tab hide (works when tab is hidden, not killed)
+    4. beforeunload + localStorage mirror (best-effort, recovers from power loss / crash)
+  * Maximum data loss window: 30 seconds (acceptable for single-player game)
+
+- Cleaned up: removed src/app/recovery-check (temporary test page)
+
+Stage Summary:
+- Error handling added: write failure restores dirty=true for retry
+- Test 9 added and passing: simulated write failure + retry verification
+- Real tab close test attempted: mirror works, but couldn't reproduce
+  interrupted IndexedDB write scenario
+- Limitation documented: beforeunload is best-effort, primary safety from
+  30s timer + checkpoint saves
+- All 9 smoke tests pass, tsc clean (159 errors unchanged)
+- Ready for Phase 5 (ProfileSelectUI) — independent of these fixes

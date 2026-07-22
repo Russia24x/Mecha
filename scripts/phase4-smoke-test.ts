@@ -271,6 +271,60 @@ async function main(): Promise<void> {
   }
   await autoSaveManager.stop();
 
+  // ── Test 9: write failure restores dirty flag ──
+  console.log('\n[test 9] Testing write failure restores dirty flag...');
+  await autoSaveManager.start();
+
+  // Monkey-patch ProfileDB.writeProfile to throw once
+  const originalWriteProfile = ProfileDB.writeProfile;
+  let throwNext = true;
+  (ProfileDB as unknown as { writeProfile: typeof ProfileDB.writeProfile }).writeProfile = async function(slotId, saveData, displayName) {
+    if (throwNext) {
+      throwNext = false;
+      throw new Error('SIMULATED_WRITE_FAILURE');
+    }
+    return originalWriteProfile.call(this, slotId, saveData, displayName);
+  };
+
+  SaveSystem.setQuestFlag('failure_test', true);
+  console.log('  After mutation, isDirty:', SaveSystem.isDirty(), '(expected: true)');
+
+  try {
+    await autoSaveManager.saveNow();
+    console.log('  saveNow() completed (should have caught the error internally)');
+  } catch (err) {
+    console.log('  saveNow() threw (unexpected — doFlush should catch):', String(err));
+  }
+
+  console.log('  After failed write, isDirty:', SaveSystem.isDirty(), '(expected: true — dirty restored)');
+  if (!SaveSystem.isDirty()) {
+    console.error('FAIL: dirty should be true after write failure (was restored for retry)');
+    process.exit(1);
+  }
+
+  // Restore original writeProfile
+  (ProfileDB as unknown as { writeProfile: typeof ProfileDB.writeProfile }).writeProfile = originalWriteProfile;
+
+  // Now retry — should succeed
+  await autoSaveManager.saveNow();
+  console.log('  After retry saveNow(), isDirty:', SaveSystem.isDirty(), '(expected: false — write succeeded)');
+  if (SaveSystem.isDirty()) {
+    console.error('FAIL: dirty should be false after successful retry');
+    process.exit(1);
+  }
+
+  // Verify data reached IndexedDB
+  const finalRecord2 = await ProfileDB.readProfile(slotId as 0 | 1 | 2);
+  const finalData2 = finalRecord2?.saveData as { questFlags: Record<string, boolean> };
+  console.log('  IndexedDB questFlags.failure_test:', finalData2.questFlags.failure_test, '(expected: true)');
+  if (!finalData2.questFlags.failure_test) {
+    console.error('FAIL: failure_test flag did not reach IndexedDB after retry');
+    process.exit(1);
+  }
+  console.log('  ✓ Write failure correctly restored dirty flag for retry');
+
+  await autoSaveManager.stop();
+
   // Cleanup
   await ProfileManager._wipeAll();
   console.log('\n[cleanup] Wiped all profile data.');
