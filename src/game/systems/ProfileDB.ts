@@ -74,9 +74,15 @@ export class ProfileNotFoundError extends Error {
 // ── IndexedDB availability check ──
 
 function getIDB(): IDBFactory | null {
-  if (typeof window === 'undefined') return null;
-  if (typeof window.indexedDB === 'undefined') return null;
-  return window.indexedDB;
+  // Check both `globalThis` (works in Node + browser) and `window` (legacy).
+  // In browser, both refer to the same object. In Node, only `globalThis`
+  // exists (after `import 'fake-indexeddb/auto'` sets globalThis.indexedDB).
+  const g = globalThis as unknown as { indexedDB?: IDBFactory };
+  if (typeof g.indexedDB !== 'undefined') return g.indexedDB;
+  if (typeof window !== 'undefined' && typeof window.indexedDB !== 'undefined') {
+    return window.indexedDB;
+  }
+  return null;
 }
 
 // ── Connection management ──

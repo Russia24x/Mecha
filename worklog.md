@@ -1473,3 +1473,48 @@ Stage Summary:
 - Skill ID migration table defined (mobility→movement, survival.energy1→energy.max1, survival.regen1→energy.regen1, combat.melee1 dropped)
 - Migration Option A confirmed SAFE — proceed with save system refactor
 - totalKills confirmed DISPLAY-ONLY — MAX(v3, v2, v2_skills_v2) rule safe
+
+---
+Task ID: phase2-profile-manager
+Agent: main
+Task: Create ProfileManager.ts (slot lifecycle: create/select/delete/list) with tsc + smoke test gate.
+
+Work Log:
+- Reviewed ProfileDB.ts API (already committed in phase1)
+- Read SaveData v4 shape from data/types.ts
+- Created src/game/systems/ProfileManager.ts (325 lines):
+  * DEFAULT_SETTINGS, DEFAULT_PLAYER, DEFAULT_SAVE (with NEW stages field for v4)
+  * SAVE_VERSION = 4
+  * StageProgress interface (ported from old shared/Save.ts)
+  * ProfileSummary interface (for UI display)
+  * ProfileManager object with: init(), getCurrentSlotId(), isInitialized(),
+    createProfile(), selectSlot(), clearSelection(), deleteProfile(),
+    renameProfile(), listProfiles(), readProfileData(), writeProfileData(),
+    isMigrationDone(), markMigrationDone(), _wipeAll()
+  * Module-private `state` object (currentSlotId, initialized flag)
+- Initial bug: used `private state` in object literal — TS doesn't allow.
+  Fixed by moving state to module-level const (non-exported).
+- Initial bug: ProfileDB.getIDB() only checked window.indexedDB — failed in Node test env.
+  Fixed by also checking globalThis.indexedDB (works with fake-indexeddb/auto).
+- GATE 1 (tsc): zero errors in ProfileDB.ts or ProfileManager.ts.
+  159 pre-existing errors in legacy files (features/boss/, features/combat/,
+  features/enemies/) — unrelated to this phase, all from pre-refactor code
+  that's not in the active execution path.
+- GATE 2 (smoke test): wrote scripts/phase2-smoke-test.ts using fake-indexeddb.
+  All 9 steps passed:
+    1. Create 3 profiles (ALPHA, BETA, GAMMA) → slots 0, 1, 2
+    2. listProfiles() returns all 3 with correct names + defaults
+    3. selectSlot(1) + verify persisted to global store
+    4. deleteProfile(1) (selected) → selection auto-cleared + global store cleared
+    5. listProfiles() shows only slots 0 and 2
+    6. createProfile('DELTA') reuses slot 1 (not slot 3)
+    7. renameProfile(0, 'OMEGA') works
+    8. 4th createProfile correctly throws "All 3 profile slots are full"
+    9. SaveData v4 shape verified (version=4, stages field present, defaults correct)
+
+Stage Summary:
+- ProfileManager.ts created and verified
+- All 9 smoke test scenarios passed with real console output
+- SaveData v4 default shape is the single source of truth (will be imported by SaveSystem in Phase 3)
+- stages field successfully ported from old shared/Save.ts to v4 schema
+- Ready for Phase 3 (SaveSystem façade rewrite — highest risk phase)
