@@ -236,8 +236,11 @@ export class SettingsUI extends NavigableOverlay {
     })).setOrigin(0, 0.5);
     objects.push(valueText);
 
-    // Slider hit area
-    const sliderBg = this.scene.add.rectangle(x, y, 320, 24, 0x000000, 0);
+    // Slider hit area — use alpha=0.01 (not 0) to ensure hit-test works.
+    // Some Phaser versions skip hit-test for alpha=0 objects.
+    // Width 340 (slightly wider than track 300) for easier clicking.
+    const sliderBg = this.scene.add.rectangle(x, y, 340, 36, 0x000000, 0.01);
+    sliderBg.setInteractive({ useHandCursor: true });
     objects.push(sliderBg);
 
     // Handle: draggable (manual — slider-specific behavior)
@@ -268,27 +271,49 @@ export class SettingsUI extends NavigableOverlay {
       valueText.setText(`${Math.round(v * 100)}%`);
       onChange(v);
     }, { insertAt: backIdx });
-    // Override pointerdown: replace registerNav's generic handler with click-to-jump
-    sliderBg.off('pointerdown');
-    sliderBg.on('pointerdown', (p: Phaser.Input.Pointer, localX: number) => {
-      AudioSystem.play('uiClick');
-      // S2 fix: when cursor mode clicks via emit('pointerdown'), localX is undefined.
-      // Fall back to cursor position relative to slider center.
-      let v: number;
-      if (localX !== undefined && !isNaN(localX)) {
-        v = Phaser.Math.Clamp((localX + 150) / 300, 0, 1);
-      } else {
-        // Cursor mode: use UIController cursor X (not mouse activePointer which may be stale)
-        const ctrl = this.getController();
-        const cursorX = ctrl?.isVisible ? ctrl.cursorPositionX : (this.scene.input.activePointer?.x ?? x);
-        const relX = cursorX - (x - 150);
-        v = Phaser.Math.Clamp(relX / 300, 0, 1);
+
+    // Override pointerdown: click-to-jump on slider track.
+    // We use scene.input.on('pointerdown') instead of sliderBg.on('pointerdown')
+    // because the UIController's hit-test may not reliably detect the transparent
+    // sliderBg in all cases. This approach checks if the click is within the
+    // slider's bounds and handles it directly.
+    const clickToJump = (pointer: Phaser.Input.Pointer) => {
+      // Check if pointer is within slider hit area (340x36 centered at x,y)
+      const px = pointer.x;
+      const py = pointer.y;
+      if (px < x - 170 || px > x + 170 || py < y - 18 || py > y + 18) {
+        return; // Not on this slider
       }
+      console.log('[Slider] pointerdown fired! pointer.x:', px, 'value:', valueText.text);
+      AudioSystem.play('uiClick');
+      const relX = px - (x - 150);
+      const v = Phaser.Math.Clamp(relX / 300, 0, 1);
       handle.x = x - 150 + 300 * v;
       fill.setDisplaySize(300 * v, 8);
       valueText.setText(`${Math.round(v * 100)}%`);
       onChange(v);
+      console.log('[Slider] pointerdown handled! new value:', v);
+    };
+    // Register on scene input — will be cleaned up when overlay closes
+    this.scene.input.on('pointerdown', clickToJump);
+    // Store cleanup reference so we can remove it when overlay closes
+    (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups ??= [];
+    (this as unknown as { _sliderCleanups: Array<() => void> })._sliderCleanups.push(() => {
+      this.scene.input.off('pointerdown', clickToJump);
     });
+
+    // Also enable drag on the sliderBg (so dragging anywhere on the track works,
+    // not just on the small handle)
+    this.scene.input.setDraggable(sliderBg);
+    sliderBg.on('drag', (_p: Phaser.Input.Pointer, dragX: number) => {
+      const clamped = Phaser.Math.Clamp(dragX, x - 150, x + 150);
+      handle.x = clamped;
+      const v = (clamped - (x - 150)) / 300;
+      fill.setDisplaySize(300 * v, 8);
+      valueText.setText(`${Math.round(v * 100)}%`);
+      onChange(v);
+    });
+
     this.optionElements.push({ objects, bg: sliderBg, text: labelEl, onSelect: () => {} });
   }
 
@@ -436,6 +461,9 @@ export class SettingsUI extends NavigableOverlay {
   destroy(): void {
     // N5 fix: unsubscribe from FullscreenManager before destroying
     if (this.fullscreenUnsub) { this.fullscreenUnsub(); this.fullscreenUnsub = null; }
+    // Clean up slider pointerdown listeners
+    const cleanups = (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups;
+    if (cleanups) { cleanups.forEach(c => c()); (this as unknown as { _sliderCleanups?: Array<() => void> })._sliderCleanups = []; }
     super.destroy();
   }
 }
