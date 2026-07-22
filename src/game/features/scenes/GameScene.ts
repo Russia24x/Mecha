@@ -1021,6 +1021,11 @@ export class GameScene extends Phaser.Scene {
       EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'laser' });
       this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: لیزر' : 'NEW WEAPON: Laser');
     }
+    // Act I boss: Guardian AX-09 → unlock Act II (Drowned Wastes)
+    if (data.id === 'guardian_ax09') {
+      SaveSystem.unlockArea('drowned_wastes_1');
+      this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: باتلاق غرق‌شده' : 'NEW AREA: The Drowned Wastes');
+    }
     // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
