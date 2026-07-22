@@ -1935,3 +1935,53 @@ Stage Summary:
 - Integrated test: NEW GAME → CREATE NEW → HUB transition confirmed in real browser
 - All 4 GATE criteria met
 - Ready for Phase 7 (cleanup)
+
+---
+Task ID: phase7-cleanup-complete
+Agent: main
+Task: Full cleanup per original SAVE-SYSTEM-DESIGN.md checklist (not just SaveManager.ts + temp pages). Delete all dead legacy code that was masking the real error count.
+
+Work Log:
+- Phase 7a: Verified shared/SaveManager.ts has 0 callers → deleted.
+- Phase 7b: Deleted 3 temporary test pages (profile-test, autosave-test, profile-ui-test).
+- Phase 7c: Investigated legacy scenes:
+  * PhaserGame.ts registers ONLY BootScene, GameScene, UIScene
+  * All other scenes (FactoryStage, MapScene, MenuScene, SettingsScene, SkillTreeScene, VictoryScene, ComingSoonScene) are NOT registered → dead code
+  * PauseMenu.ts (not PauseMenuUI) has 0 callers → dead
+  * features/player/* (Player, PlayerController, PlayerCombat) — confirmed dead per Phase 0.5
+  * features/ui/* (HUD, BossBar, FloatingText, TestSuite) — only imported by other dead features/ files
+  * features/boss/*, features/combat/*, features/enemies/*, features/physics/*, features/rendering/* — only imported by other dead features/ files
+  * Verified: NO active code (GameScene, entities/, systems/, ui/) imports from features/ except the 3 registered scenes
+
+- Phase 7d: Deleted 39 legacy files from features/ (all except BootScene, GameScene, UIScene):
+  * features/scenes/: ComingSoonScene, FactoryStage, MapScene, MenuScene, SettingsScene, SkillTreeScene, VictoryScene
+  * features/player/: Player, PlayerCombat, PlayerController
+  * features/ui/: BossBar, FloatingText, HUD, PauseMenu, TestSuite
+  * features/boss/: Boss, BossStateMachine, GuardianBoss
+  * features/combat/: DamageSystem, Destructible, HitEffects, Hitscan, Projectile, Ragdoll, Weapons
+  * features/enemies/: Drone, Enemy, EnemyTypes, Heavy, Spider
+  * features/physics/: CollisionLayers, PhysicsWorld, Raycast
+  * features/rendering/: Graphics, Lighting, Parallax, RenderInfo, Shaders, StageAtmosphere
+  * Cleaned empty directories
+
+- Phase 7e: After callers deleted, verified shared/Save.ts and shared/SkillTree.ts have 0 callers → deleted both.
+- Removed KEYS.SAVE_KEY from Constants.ts (was only used by deleted files).
+
+GATE RESULTS:
+- tsc errors: 159 → 4 (97.5% reduction!)
+  * All 4 remaining errors are in examples/ and skills/ (not src/game/)
+  * ZERO errors in src/game/ (was 155 of 159 before)
+- Full build (next build): SUCCESS — compiled in 13.3s, all pages generated
+- grep verification: 0 references to any deleted file
+
+Stage Summary:
+- 42 files deleted total:
+  * 3 temporary test pages
+  * 39 legacy features/ files (scenes, player, ui, boss, combat, enemies, physics, rendering)
+  * shared/Save.ts, shared/SaveManager.ts, shared/SkillTree.ts
+- KEYS.SAVE_KEY removed from Constants.ts (old v2/v3 inconsistency finally closed)
+- tsc: 159 → 4 errors (all remaining are pre-existing examples/skills, not game code)
+- Full build passes
+- Save system refactor COMPLETE: IndexedDB-backed, 3 profile slots, migration from old keys,
+  auto-save with dirty flag + race condition fix + write failure recovery,
+  ProfileSelectUI wired into MenuBuilder

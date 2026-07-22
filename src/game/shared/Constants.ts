@@ -93,6 +93,5 @@ export const COLORS = {
   RUST:         0x8a4a2a,
 } as const;
 
-export const KEYS = {
-  SAVE_KEY: 'mecha_last_protocol_save_v2',
-} as const;
+// KEYS.SAVE_KEY removed in Phase 7 — save system now uses IndexedDB via ProfileManager.
+// The old 'mecha_last_protocol_save_v2' localStorage key is migrated by migrate.ts.
