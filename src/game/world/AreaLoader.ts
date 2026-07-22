@@ -13,6 +13,7 @@ import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, L
 import { AreaStrategy, type HazardVisualData, type PlatformType } from './strategies/AreaStrategy';
 import { FactoryAreaStrategy } from './strategies/FactoryAreaStrategy';
 import { ForestAreaStrategy } from './strategies/ForestAreaStrategy';
+import { WastesAreaStrategy } from './strategies/WastesAreaStrategy';
 
 export interface LoadedArea {
   solids: Phaser.Physics.Matter.Image[];
@@ -52,6 +53,7 @@ export class AreaLoader {
   private createStrategy(regionId: string): AreaStrategy {
     const tweenFn = (config: Phaser.Types.Tweens.TweenBuilderConfig) => this.trackedTween(config);
     if (regionId === 'forest') return new ForestAreaStrategy(this.scene, tweenFn);
+    if (regionId === 'wastes') return new WastesAreaStrategy(this.scene, tweenFn);
     // Default: factory
     return new FactoryAreaStrategy(this.scene, tweenFn);
   }
