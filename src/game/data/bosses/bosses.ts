@@ -48,6 +48,31 @@ export const BOSSES: Record<string, BossData> = {
       { itemId: 'ai_chip', chance: 1.0, minAmount: 3, maxAmount: 5 },
     ],
   },
+  leviathan_hulk: {
+    id: 'leviathan_hulk',
+    nameKey: 'boss.leviathan_hulk.name',
+    maxHealth: 2400,
+    contactDamage: 32,
+    phases: [
+      // Phase 1: Defensive — slow, protective. She's still "guarding."
+      { healthPct: 1.0, speed: 0.7, fireRateMs: 2200, attacks: ['shoot', 'lunge'] },
+      // Phase 2: Aggressive — the city is gone, she has nothing left to protect.
+      { healthPct: 0.45, speed: 1.4, fireRateMs: 900, attacks: ['shoot', 'lunge', 'beam'] },
+    ],
+    lore: [
+      'boss.leviathan_hulk.lore.1',
+      'boss.leviathan_hulk.lore.2',
+      'boss.leviathan_hulk.lore.3',
+    ],
+    arenaWidth: 1280,
+    arenaHeight: 720,
+    musicTrack: 'boss_fight',
+    drops: [
+      { itemId: 'leviathan_core', chance: 1.0, minAmount: 1, maxAmount: 1 },
+      { itemId: 'armor_plate', chance: 1.0, minAmount: 3, maxAmount: 6 },
+      { itemId: 'scrap_metal', chance: 1.0, minAmount: 5, maxAmount: 10 },
+    ],
+  },
 };
 
 export function getBoss(id: string): BossData {

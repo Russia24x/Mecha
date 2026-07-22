@@ -43,6 +43,14 @@ export const ITEMS: Record<string, ItemData> = {
     id: 'overseer_eye', nameKey: 'item.overseer_eye.name', descriptionKey: 'item.overseer_eye.desc',
     type: 'key_item', stackable: false, maxStack: 1,
   },
+  leviathan_core: {
+    id: 'leviathan_core', nameKey: 'item.leviathan_core.name', descriptionKey: 'item.leviathan_core.desc',
+    type: 'key_item', stackable: false, maxStack: 1,
+  },
+  corroded_circuit: {
+    id: 'corroded_circuit', nameKey: 'item.corroded_circuit.name', descriptionKey: 'item.corroded_circuit.desc',
+    type: 'material', stackable: true, maxStack: 99,
+  },
 
   // Consumables
   health_pack: {

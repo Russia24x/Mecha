@@ -1015,6 +1015,12 @@ export class GameScene extends Phaser.Scene {
       EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'energy_blade' });
       this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: تیغ انرژی' : 'NEW WEAPON: Energy Blade');
     }
+    // Act II boss: Leviathan Hulk → unlock laser
+    if (data.id === 'leviathan_hulk' && !SaveSystem.isWeaponUnlocked('laser')) {
+      SaveSystem.unlockWeapon('laser');
+      EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'laser' });
+      this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: لیزر' : 'NEW WEAPON: Laser');
+    }
     // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);

@@ -300,5 +300,13 @@
   "lore.w5.photo.title": "Family Photo",
   "lore.w5.photo.text": "A faded photo in the cockpit. A woman and a child. The child is laughing. The woman is looking at something off-camera.",
   "lore.w5.recording.title": "Last Recording",
-  "lore.w5.recording.text": "\"This is Pilot First Class Yara Vel. Mission: hold position until evacuation complete. Evacuation confirmed. Awaiting order to stand down.\" A pause. \"Any order. Please.\""
+  "lore.w5.recording.text": "\"This is Pilot First Class Yara Vel. Mission: hold position until evacuation complete. Evacuation confirmed. Awaiting order to stand down.\" A pause. \"Any order. Please.\"",
+  "boss.leviathan_hulk.name": "The Leviathan Hulk",
+  "boss.leviathan_hulk.lore.1": "She was the city's shield. Eighty meters of armor and purpose. When the evacuation order came, she held the line. The city emptied. The transports left.",
+  "boss.leviathan_hulk.lore.2": "But no one sent the stand-down order. The commander forgot. Or died. Or didn't care. So she stayed. For a thousand years, she stood in the water, watching for an enemy that would never come.",
+  "boss.leviathan_hulk.lore.3": "You are the first thing she has seen move in centuries. She does not know you are not a threat. She only knows: protect the city. The city is gone. But the order remains.",
+  "item.leviathan_core.name": "Leviathan Core",
+  "item.leviathan_core.desc": "The heart of the Leviathan Hulk. Still warm. Still waiting for orders.",
+  "item.corroded_circuit.name": "Corroded Circuit",
+  "item.corroded_circuit.desc": "A waterlogged circuit board from the Drowned Wastes. Barely functional."
 }
