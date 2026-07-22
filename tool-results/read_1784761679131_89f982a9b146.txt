@@ -1,0 +1,1370 @@
+     1→/**
+     2→ * MECHA: LAST PROTOCOL — Area Loader
+     3→ * Converts AreaData into Matter physics bodies + visual rectangles + triggers.
+     4→ * Reads platform/hazard data from AreaData.sections.
+     5→ * Independent of entities — just builds the physical world.
+     6→ */
+     7→import Phaser from 'phaser';
+     8→import { GAME, COLORS } from '../shared/Constants';
+     9→import { PhysicsSystem } from '../systems/PhysicsSystem';
+    10→import { WorldSystem } from './WorldSystem';
+    11→import { t } from '../systems/LocalizationSystem';
+    12→import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, LandmarkData } from '../data/types';
+    13→
+    14→export interface LoadedArea {
+    15→  solids: Phaser.Physics.Matter.Image[];
+    16→  sectionTriggers: Phaser.Physics.Matter.Image[];
+    17→  checkpointTriggers: Phaser.Physics.Matter.Image[];
+    18→  bossEntryTrigger: Phaser.Physics.Matter.Image | null;
+    19→  hazardTriggers: Phaser.Physics.Matter.Image[];
+    20→  visualRects: Phaser.GameObjects.Rectangle[];
+    21→  loreObjects: Phaser.GameObjects.Container[];
+    22→  landmarks: Phaser.GameObjects.Container[];
+    23→  grappleAnchors: Phaser.GameObjects.Container[];
+    24→  empDoors: Phaser.GameObjects.Container[];
+    25→  shortcuts: Phaser.GameObjects.Container[];
+    26→  collectibles: Phaser.GameObjects.Container[];
+    27→}
+    28→
+    29→export class AreaLoader {
+    30→  private scene: Phaser.Scene;
+    31→  private physics: PhysicsSystem;
+    32→  private regionId: string = 'factory';
+    33→  private activeTweens: Phaser.Tweens.Tween[] = [];
+    34→
+    35→  constructor(scene: Phaser.Scene, physics: PhysicsSystem) {
+    36→    this.scene = scene;
+    37→    this.physics = physics;
+    38→  }
+    39→
+    40→  /** Create a tween and track it for cleanup on unload. */
+    41→  private trackedTween(config: Phaser.Types.Tweens.TweenBuilderConfig): Phaser.Tweens.Tween {
+    42→    const t = this.scene.tweens.add(config);
+    43→    this.activeTweens.push(t);
+    44→    return t;
+    45→  }
+    46→
+    47→  /**
+    48→   * Build the full area: floor, ceiling, per-section platforms, hazards,
+    49→   * section triggers, checkpoint triggers, boss entry trigger.
+    50→   * RegionId controls ALL visual styling — factory vs forest are completely separate.
+    51→   */
+    52→  load(area: AreaData): LoadedArea {
+    53→    this.regionId = area.regionId;  // ── Store region for all visual decisions
+    54→    const result: LoadedArea = {
+    55→      solids: [],
+    56→      sectionTriggers: [],
+    57→      checkpointTriggers: [],
+    58→      bossEntryTrigger: null,
+    59→      hazardTriggers: [],
+    60→      visualRects: [],
+    61→      loreObjects: [],
+    62→      landmarks: [],
+    63→      grappleAnchors: [],
+    64→      empDoors: [],
+    65→      shortcuts: [],
+    66→      collectibles: [],
+    67→    };
+    68→
+    69→    // Floor (spans entire area)
+    70→    this.addSolid(result, area.totalWidth / 2, GAME.HEIGHT, area.totalWidth, 80);
+    71→    // Ceiling
+    72→    this.addSolid(result, area.totalWidth / 2, -20, area.totalWidth, 40);
+    73→
+    74→    // Per-section platforms + hazards
+    75→    for (const section of area.sections) {
+    76→      this.buildSection(result, section, area.sectionWidth);
+    77→    }
+    78→
+    79→    // Section triggers (at start of each section)
+    80→    for (let i = 0; i < area.sections.length; i++) {
+    81→      const sec = area.sections[i];
+    82→      const trigger = this.physics.addSensor(sec.x + 80, GAME.HEIGHT / 2, 40, GAME.HEIGHT, `section-${sec.id}`);
+    83→      trigger.setData('sectionId', sec.id);
+    84→      result.sectionTriggers.push(trigger);
+    85→    }
+    86→
+    87→    // Checkpoint triggers
+    88→    for (const secId of area.checkpointSections) {
+    89→      const cpX = (secId - 1) * area.sectionWidth + 640;
+    90→      const cp = this.physics.addSensor(cpX, GAME.HEIGHT - 80, 60, 60, `checkpoint-${secId}`);
+    91→      cp.setData('isCheckpoint', true);
+    92→      cp.setData('checkpointSection', secId);
+    93→      result.checkpointTriggers.push(cp);
+    94→    }
+    95→
+    96→    // Boss entry trigger (section 6 = last section with bossId)
+    97→    const bossSection = area.sections.find(s => s.bossId);
+    98→    if (bossSection) {
+    99→      const bossX = bossSection.x + 400;
+   100→      const trigger = this.physics.addSensor(bossX, GAME.HEIGHT - 100, 40, 200, 'boss-entry');
+   101→      trigger.setData('isBossEntry', true);
+   102→      trigger.setData('bossId', bossSection.bossId);
+   103→      result.bossEntryTrigger = trigger;
+   104→    }
+   105→
+   106→    return result;
+   107→  }
+   108→
+   109→  private buildSection(result: LoadedArea, section: SectionData, sectionWidth: number): void {
+   110→    if (section.platforms) {
+   111→      for (const plat of section.platforms) {
+   112→        this.addSolid(result, plat.x, plat.y, plat.w, plat.h);
+   113→      }
+   114→    }
+   115→    // Hazards
+   116→    if (section.hazards) {
+   117→      for (const hazard of section.hazards) {
+   118→        const trigger = this.physics.addSensor(hazard.x, hazard.y, hazard.w, hazard.h, `hazard-${hazard.type}`);
+   119→        trigger.setData('isHazard', true);
+   120→        trigger.setData('hazardDamage', hazard.damage);
+   121→        result.hazardTriggers.push(trigger);
+   122→        // ── Graphical hazard visuals per type ──
+   123→        const hazardVis = this.createHazardVisual(hazard);
+   124→        result.visualRects.push(hazardVis as unknown as Phaser.GameObjects.Rectangle);
+   125→      }
+   126→    }
+   127→    // Lore Objects — interactable environmental storytelling
+   128→    if (section.loreObjects) {
+   129→      for (const lore of section.loreObjects) {
+   130→        const container = this.createLoreObject(lore);
+   131→        result.loreObjects.push(container);
+   132→      }
+   133→    }
+   134→    // Landmarks — large visual structures
+   135→    if (section.landmarks) {
+   136→      for (const lm of section.landmarks) {
+   137→        const container = this.createLandmark(lm);
+   138→        result.landmarks.push(container);
+   139→      }
+   140→    }
+   141→    // Grapple Anchors — ability-gated (Metroidvania)
+   142→    if (section.grappleAnchors) {
+   143→      for (const anchor of section.grappleAnchors) {
+   144→        const container = this.createGrappleAnchor(anchor);
+   145→        result.grappleAnchors.push(container);
+   146→      }
+   147→    }
+   148→    // EMP Doors — ability-gated (Metroidvania)
+   149→    if (section.empDoors) {
+   150→      for (const door of section.empDoors) {
+   151→        const container = this.createEmpDoor(door);
+   152→        result.empDoors.push(container);
+   153→      }
+   154→    }
+   155→    // Shortcuts — one-way doors (Dark Souls style backtracking)
+   156→    if (section.shortcuts) {
+   157→      for (const sc of section.shortcuts) {
+   158→        const container = this.createShortcut(sc);
+   159→        result.shortcuts.push(container);
+   160→      }
+   161→    }
+   162→    // Collectibles — pickups (health/energy fragments, skill points)
+   163→    if (section.collectibles) {
+   164→      for (const col of section.collectibles) {
+   165→        const container = this.createCollectible(col);
+   166→        result.collectibles.push(container);
+   167→      }
+   168→    }
+   169→  }
+   170→
+   171→  /** Create a grapple anchor — glowing ring that the player can grapple to. */
+   172→  private createGrappleAnchor(anchor: { id: string; x: number; y: number }): Phaser.GameObjects.Container {
+   173→    const container = this.scene.add.container(anchor.x, anchor.y);
+   174→    // Outer glow ring (pulsing cyan)
+   175→    const glow = this.scene.add.circle(0, 0, 14, 0x66f0ff, 0.15);
+   176→    glow.setBlendMode(Phaser.BlendModes.ADD);
+   177→    container.add(glow);
+   178→    this.trackedTween({
+   179→      targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.2 },
+   180→      duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+   181→    });
+   182→    // Inner ring (solid)
+   183→    const ring = this.scene.add.circle(0, 0, 8, 0x66f0ff, 0);
+   184→    ring.setStrokeStyle(2, 0x66f0ff, 0.8);
+   185→    container.add(ring);
+   186→    // Center dot
+   187→    const dot = this.scene.add.circle(0, 0, 2, 0x66f0ff, 0.9);
+   188→    dot.setBlendMode(Phaser.BlendModes.ADD);
+   189→    container.add(dot);
+   190→    // Rotating spokes (4 small lines)
+   191→    for (let i = 0; i < 4; i++) {
+   192→      const angle = (i / 4) * Math.PI * 2;
+   193→      const spoke = this.scene.add.rectangle(
+   194→        Math.cos(angle) * 6, Math.sin(angle) * 6, 4, 1, 0x66f0ff, 0.6
+   195→      );
+   196→      spoke.setRotation(angle);
+   197→      spoke.setBlendMode(Phaser.BlendModes.ADD);
+   198→      container.add(spoke);
+   199→    }
+   200→    // Slow rotation
+   201→    this.trackedTween({ targets: container, rotation: Math.PI * 2, duration: 4000, repeat: -1, ease: 'Linear' });
+   202→    container.setDepth(6);
+   203→    container.setData('grappleAnchorId', anchor.id);
+   204→    container.setData('isGrappleAnchor', true);
+   205→    return container;
+   206→  }
+   207→
+   208→  /** Create an EMP door — locked barrier that opens when hit by EMP pulse. */
+   209→  private createEmpDoor(door: { id: string; x: number; y: number; w: number; h: number }): Phaser.GameObjects.Container {
+   210→    const container = this.scene.add.container(door.x, door.y);
+   211→    // Door body (magenta barrier)
+   212→    const body = this.scene.add.rectangle(0, 0, door.w, door.h, 0x602080, 0.6);
+   213→    body.setStrokeStyle(2, 0xc060ff, 0.8);
+   214→    container.add(body);
+   215→    // Energy field lines (horizontal, animated)
+   216→    for (let i = 0; i < 3; i++) {
+   217→      const line = this.scene.add.rectangle(0, -door.h / 4 + i * door.h / 4, door.w - 4, 1, 0xc060ff, 0.5);
+   218→      line.setBlendMode(Phaser.BlendModes.ADD);
+   219→      container.add(line);
+   220→      this.trackedTween({
+   221→        targets: line, alpha: { from: 0.2, to: 0.7 }, duration: 600 + i * 200, yoyo: true, repeat: -1,
+   222→      });
+   223→    }
+   224→    // Lock indicator (small icon)
+   225→    const lock = this.scene.add.text(0, 0, '🔒', { fontSize: '10px', color: '#c060ff' }).setOrigin(0.5);
+   226→    container.add(lock);
+   227→    container.setDepth(7);
+   228→    container.setData('empDoorId', door.id);
+   229→    container.setData('isEmpDoor', true);
+   230→    container.setData('empDoorOpen', false);
+   231→    container.setSize(door.w, door.h);
+   232→    // ── FIX Bug 1: Add physics body so the door actually blocks the player ──
+   233→    const physicsBody = this.physics.addStaticRect(door.x, door.y, door.w, door.h);
+   234→    physicsBody.setData('isEmpDoorBody', true);
+   235→    physicsBody.setData('empDoorId', door.id);
+   236→    container.setData('physicsBody', physicsBody);
+   237→    return container;
+   238→  }
+   239→
+   240→  /** Create a shortcut door — one-way, opens from one side and stays open. */
+   241→  private createShortcut(sc: { id: string; x: number; y: number; w: number; h: number; toSection: number; opensFrom: string }): Phaser.GameObjects.Container {
+   242→    const container = this.scene.add.container(sc.x, sc.y);
+   243→    // Door frame (amber, industrial)
+   244→    const frame = this.scene.add.rectangle(0, 0, sc.w + 8, sc.h + 8, 0x1a1814, 0.9);
+   245→    frame.setStrokeStyle(2, 0xffc040, 0.6);
+   246→    container.add(frame);
+   247→    // Door body (closed = solid, open = transparent)
+   248→    const body = this.scene.add.rectangle(0, 0, sc.w, sc.h, 0x2a2018, 0.85);
+   249→    body.setStrokeStyle(1, 0xffc040, 0.4);
+   250→    container.add(body);
+   251→    // "Opens from" indicator — small arrow on the correct side
+   252→    const arrowColor = 0xffc040;
+   253→    let arrowX = 0, arrowY = 0, arrowRot = 0;
+   254→    switch (sc.opensFrom) {
+   255→      case 'left':  arrowX = -sc.w / 2 - 8; arrowRot = Math.PI; break;
+   256→      case 'right': arrowX = sc.w / 2 + 8;  arrowRot = 0; break;
+   257→      case 'top':   arrowY = -sc.h / 2 - 8; arrowRot = Math.PI / 2; break;
+   258→      case 'bottom': arrowY = sc.h / 2 + 8; arrowRot = -Math.PI / 2; break;
+   259→    }
+   260→    const arrow = this.scene.add.triangle(arrowX, arrowY, -4, -4, 4, -4, 0, 4, arrowColor, 0.8);
+   261→    arrow.setRotation(arrowRot);
+   262→    container.add(arrow);
+   263→    // Label
+   264→    const label = this.scene.add.text(0, 0, '⇌', { fontSize: '12px', color: '#ffc040' }).setOrigin(0.5);
+   265→    container.add(label);
+   266→
+   267→    container.setDepth(6);
+   268→    container.setData('shortcutId', sc.id);
+   269→    container.setData('isShortcut', true);
+   270→    container.setData('shortcutOpen', false);
+   271→    container.setData('opensFrom', sc.opensFrom);
+   272→    container.setData('toSection', sc.toSection);
+   273→    container.setSize(sc.w, sc.h);
+   274→    // ── FIX Bug 1: Add physics body so the shortcut door actually blocks the player ──
+   275→    const physicsBody = this.physics.addStaticRect(sc.x, sc.y, sc.w, sc.h);
+   276→    physicsBody.setData('isShortcutBody', true);
+   277→    physicsBody.setData('shortcutId', sc.id);
+   278→    container.setData('physicsBody', physicsBody);
+   279→    return container;
+   280→  }
+   281→
+   282→  /** Create a collectible pickup — glowing orb that grants a reward. */
+   283→  private createCollectible(col: { id: string; type: string; x: number; y: number; requiredAbility?: string }): Phaser.GameObjects.Container {
+   284→    const container = this.scene.add.container(col.x, col.y);
+   285→    // Color per type
+   286→    const colors: Record<string, number> = {
+   287→      health_fragment: 0x40d070,
+   288→      energy_fragment: 0x4090ff,
+   289→      skill_point: 0xffc040,
+   290→      weapon_part: 0xff80ff,
+   291→    };
+   292→    const color = colors[col.type] ?? 0xffffff;
+   293→
+   294→    // Outer glow (pulsing)
+   295→    const glow = this.scene.add.circle(0, 0, 16, color, 0.15);
+   296→    glow.setBlendMode(Phaser.BlendModes.ADD);
+   297→    container.add(glow);
+   298→    this.trackedTween({
+   299→      targets: glow, alpha: { from: 0.08, to: 0.25 }, scale: { from: 0.9, to: 1.3 },
+   300→      duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+   301→    });
+   302→
+   303→    // Core orb
+   304→    const orb = this.scene.add.circle(0, 0, 5, color, 0.9);
+   305→    orb.setBlendMode(Phaser.BlendModes.ADD);
+   306→    container.add(orb);
+   307→
+   308→    // Type-specific icon (small shape inside)
+   309→    let icon: Phaser.GameObjects.Shape;
+   310→    if (col.type === 'health_fragment') {
+   311→      // Plus sign
+   312→      icon = this.scene.add.rectangle(0, 0, 6, 2, 0xffffff, 0.9);
+   313→      container.add(icon);
+   314→      const icon2 = this.scene.add.rectangle(0, 0, 2, 6, 0xffffff, 0.9);
+   315→      container.add(icon2);
+   316→    } else if (col.type === 'energy_fragment') {
+   317→      // Diamond
+   318→      icon = this.scene.add.polygon(0, 0, [0, -4, 4, 0, 0, 4, -4, 0], 0xffffff, 0.9);
+   319→      container.add(icon);
+   320→    } else if (col.type === 'skill_point') {
+   321→      // Star (approximated with triangle)
+   322→      icon = this.scene.add.triangle(0, 0, -4, 3, 4, 3, 0, -4, 0xffffff, 0.9);
+   323→      container.add(icon);
+   324→    } else {
+   325→      // weapon_part — small square
+   326→      icon = this.scene.add.rectangle(0, 0, 4, 4, 0xffffff, 0.9);
+   327→      container.add(icon);
+   328→    }
+   329→
+   330→    // Float animation
+   331→    this.trackedTween({
+   332→      targets: container, y: col.y - 6, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+   333→    });
+   334→    // Slow rotation on the glow
+   335→    this.trackedTween({
+   336→      targets: glow, rotation: Math.PI * 2, duration: 3000, repeat: -1, ease: 'Linear',
+   337→    });
+   338→
+   339→    container.setDepth(8);
+   340→    container.setData('collectibleId', col.id);
+   341→    container.setData('isCollectible', true);
+   342→    container.setData('collectibleType', col.type);
+   343→    container.setData('collected', false);
+   344→    container.setData('requiredAbility', col.requiredAbility || null);  // ── FIX Bug 5 ──
+   345→    container.setSize(20, 20);
+   346→    container.setInteractive({ useHandCursor: false });
+   347→    return container;
+   348→  }
+   349→
+   350→  private addSolid(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   351→    const s = this.physics.addStaticRect(x, y, w, h);
+   352→    const g = this.scene.add.graphics();
+   353→    g.setDepth(5);
+   354→
+   355→    // ── Region-specific platform rendering ──
+   356→    const isWall = h > 80 && w < 100;
+   357→    const isFloor = h <= 30 && w >= 100;
+   358→    const isLedge = h <= 30 && w < 100;
+   359→    const isPillar = h > 80 && w >= 100;
+   360→
+   361→    if (this.regionId === 'forest') {
+   362→      this.drawForestPlatform(g, w, h);
+   363→    } else {
+   364→      // Factory (default)
+   365→      if (isWall) this.drawWall(g, w, h);
+   366→      else if (isFloor) this.drawFloor(g, w, h);
+   367→      else if (isLedge) this.drawLedge(g, w, h);
+   368→      else if (isPillar) this.drawPillar(g, w, h);
+   369→      else this.drawGeneric(g, w, h);
+   370→    }
+   371→
+   372→    g.setPosition(x, y);
+   373→    result.solids.push(s);
+   374→    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+   375→
+   376→    // ── Region-specific depth decorations ──
+   377→    if (this.regionId === 'factory') {
+   378→      if (isFloor && w >= 120) this.addFloorDecorations(result, x, y, w, h);
+   379→      if (isWall && h > 150) this.addWallDecorations(result, x, y, w, h);
+   380→      if (isFloor && w >= 100) {
+   381→        if (Math.random() < 0.25) this.addElectricalSparks(result, x + (Math.random() - 0.5) * w * 0.6, y + h / 2 + 6);
+   382→        if (Math.random() < 0.15) this.addFireHazard(result, x + (Math.random() - 0.5) * w * 0.5, y + h / 2 - 2);
+   383→        if (Math.random() < 0.20) this.addSteamVent(result, x + (Math.random() - 0.5) * w * 0.6, y - h / 2 - 4);
+   384→      }
+   385→      // ── Visual supports for floating platforms (Issue #4 fix) ──
+   386→      // Add cables/pipes hanging DOWN from platform bottom to make it look
+   387→      // supported rather than floating in mid-air.
+   388→      if ((isFloor || isLedge) && y < GAME.HEIGHT - 100) {
+   389→        this.addPlatformSupports(result, x, y, w, h);
+   390→      }
+   391→    } else if (this.regionId === 'forest') {
+   392→      if (isFloor && w >= 100) this.addForestDecorations(result, x, y, w, h);
+   393→      if (isWall && h > 100) this.addForestWallDecorations(result, x, y, w, h);
+   394→    }
+   395→  }
+   396→
+   397→  /**
+   398→   * Add visual supports (hanging cables + thin pipes) below floating platforms.
+   399→   * This makes platforms look anchored rather than floating in mid-air.
+   400→   * Purely cosmetic — no physics body.
+   401→   */
+   402→  private addPlatformSupports(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   403→    const g = this.scene.add.graphics();
+   404→    g.setDepth(4);  // slightly behind platform (depth 5)
+   405→    const bottomY = y + h / 2;
+   406→
+   407→    // Hanging cables from platform bottom — 2-3 thin vertical lines
+   408→    const cableCount = w >= 200 ? 3 : 2;
+   409→    for (let i = 0; i < cableCount; i++) {
+   410→      const cx = x - w / 2 + (w / (cableCount + 1)) * (i + 1);
+   411→      const cableLen = 20 + Math.random() * 40;
+   412→      // Cable (dark thin line)
+   413→      g.lineStyle(2, 0x1a1e28, 0.8);
+   414→      g.beginPath();
+   415→      g.moveTo(cx, bottomY);
+   416→      g.lineTo(cx, bottomY + cableLen);
+   417→      g.strokePath();
+   418→      // Cable end cap (small circle)
+   419→      g.fillStyle(0x2a3040, 0.7);
+   420→      g.fillCircle(cx, bottomY + cableLen, 2);
+   421→    }
+   422→
+   423→    // Thin support strut at each end (diagonal brace to wall or ground)
+   424→    const strutLen = Math.min(60, (GAME.HEIGHT - 80) - bottomY);
+   425→    if (strutLen > 20) {
+   426→      const leftX = x - w / 2 + 4;
+   427→      const rightX = x + w / 2 - 4;
+   428→      // Left strut (diagonal going down-out)
+   429→      g.lineStyle(3, 0x2a3040, 0.6);
+   430→      g.beginPath();
+   431→      g.moveTo(leftX, bottomY);
+   432→      g.lineTo(leftX - 8, bottomY + strutLen);
+   433→      g.strokePath();
+   434→      // Right strut
+   435→      g.beginPath();
+   436→      g.moveTo(rightX, bottomY);
+   437→      g.lineTo(rightX + 8, bottomY + strutLen);
+   438→      g.strokePath();
+   439→    }
+   440→
+   441→    g.setPosition(0, 0);
+   442→    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+   443→  }
+   444→
+   445→  /** Forest platform — mossy stone/wood, completely different from factory metal. */
+   446→  private drawForestPlatform(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   447→    // Body — dark mossy stone
+   448→    g.fillStyle(0x1a2a14, 1);
+   449→    g.fillRoundedRect(-w / 2, -h / 2, w, h, 3);
+   450→    // Top surface — moss layer (green)
+   451→    g.fillStyle(0x2a4a20, 0.8);
+   452→    g.fillRoundedRect(-w / 2, -h / 2, w, 4, 2);
+   453→    // Moss highlights
+   454→    g.fillStyle(0x4a6a30, 0.4);
+   455→    for (let mx = -w / 2 + 6; mx < w / 2 - 4; mx += 10) {
+   456→      g.fillCircle(mx, -h / 2 + 2, 1 + Math.random());
+   457→    }
+   458→    // Root tendrils (dangling from bottom)
+   459→    g.fillStyle(0x3a2a14, 0.6);
+   460→    for (let rx = -w / 2 + 15; rx < w / 2 - 10; rx += 25) {
+   461→      const len = 4 + Math.random() * 8;
+   462→      g.fillRect(rx, h / 2 - 2, 2, len);
+   463→    }
+   464→    // Border (dark earth)
+   465→    g.lineStyle(1, 0x2a3a18, 0.5);
+   466→    g.strokeRoundedRect(-w / 2, -h / 2, w, h, 3);
+   467→    // Small mushrooms (rare)
+   468→    if (w >= 100 && Math.random() < 0.3) {
+   469→      const mx = (Math.random() - 0.5) * w * 0.6;
+   470→      g.fillStyle(0x8a4a6a, 0.5);
+   471→      g.fillCircle(mx, -h / 2 - 2, 3);
+   472→      g.fillStyle(0x4a2a3a, 0.7);
+   473→      g.fillRect(mx - 1, -h / 2, 2, 4);
+   474→    }
+   475→  }
+   476→
+   477→  /** Forest wall decorations — moss, vines, glowing fungi. */
+   478→  private addForestWallDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   479→    const g = this.scene.add.graphics();
+   480→    g.setDepth(6);
+   481→    // Moss patches on wall
+   482→    for (let i = 0; i < 4; i++) {
+   483→      const mx = x + (Math.random() - 0.5) * w * 0.6;
+   484→      const my = y + (Math.random() - 0.5) * h * 0.6;
+   485→      g.fillStyle(0x2a4a20, 0.4 + Math.random() * 0.3);
+   486→      g.fillEllipse(mx, my, 14 + Math.random() * 10, 8 + Math.random() * 6);
+   487→    }
+   488→    // Glowing fungi (bioluminescent — green-cyan)
+   489→    if (Math.random() < 0.5) {
+   490→      const fx = x + (Math.random() - 0.5) * w * 0.5;
+   491→      const fy = y + (Math.random() - 0.5) * h * 0.5;
+   492→      const glow = this.scene.add.circle(fx, fy, 6, 0x40ff80, 0.15);
+   493→      glow.setBlendMode(Phaser.BlendModes.ADD);
+   494→      glow.setDepth(6);
+   495→      result.visualRects.push(glow as unknown as Phaser.GameObjects.Rectangle);
+   496→      this.trackedTween({
+   497→        targets: glow, alpha: { from: 0.08, to: 0.2 }, scale: { from: 0.8, to: 1.2 },
+   498→        duration: 2000 + Math.random() * 1000, yoyo: true, repeat: -1,
+   499→      });
+   500→    }
+   501→    g.setPosition(0, 0);
+   502→    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+   503→  }
+   504→
+   505→  /** Forest floor decorations — spore clouds, small plants. */
+   506→  private addForestDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   507→    // Spore cloud (ambient particle puff)
+   508→    if (Math.random() < 0.3) {
+   509→      const sx = x + (Math.random() - 0.5) * w * 0.5;
+   510→      const sy = y + h / 2 + 5;
+   511→      const spore = this.scene.add.circle(sx, sy, 3 + Math.random() * 3, 0x80ff80, 0.3);
+   512→      spore.setBlendMode(Phaser.BlendModes.ADD);
+   513→      spore.setDepth(4);
+   514→      result.visualRects.push(spore as unknown as Phaser.GameObjects.Rectangle);
+   515→      this.trackedTween({
+   516→        targets: spore,
+   517→        y: sy - 30, alpha: 0, scale: 2,
+   518→        duration: 2000 + Math.random() * 1000, repeat: -1,
+   519→        delay: Math.random() * 2000,
+   520→      });
+   521→    }
+   522→    // Small glowing plant (occasional)
+   523→    if (Math.random() < 0.2) {
+   524→      const px = x + (Math.random() - 0.5) * w * 0.6;
+   525→      const py = y + h / 2 - 3;
+   526→      const plant = this.scene.add.circle(px, py, 2, 0x40c080, 0.6);
+   527→      plant.setBlendMode(Phaser.BlendModes.ADD);
+   528→      plant.setDepth(6);
+   529→      result.visualRects.push(plant as unknown as Phaser.GameObjects.Rectangle);
+   530→      this.trackedTween({
+   531→        targets: plant, alpha: { from: 0.3, to: 0.7 }, duration: 1500, yoyo: true, repeat: -1,
+   532→      });
+   533→    }
+   534→  }
+   535→
+   536→  /** Wide floor platform — the main walking surface. Looks like industrial metal grating. */
+   537→  private drawFloor(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   538→    // Body — dark metal
+   539→    g.fillStyle(COLORS.METAL_DARK, 1);
+   540→    g.fillRect(-w / 2, -h / 2, w, h);
+   541→    // Top walking surface — lighter metal strip with anti-slip texture
+   542→    g.fillStyle(0x3a4050, 1);
+   543→    g.fillRect(-w / 2, -h / 2, w, 4);
+   544→    // Anti-slip grating pattern (small diagonal lines on top)
+   545→    g.fillStyle(0x4a5060, 0.4);
+   546→    for (let gx = -w / 2 + 4; gx < w / 2 - 4; gx += 8) {
+   547→      g.fillRect(gx, -h / 2 + 1, 4, 1);
+   548→    }
+   549→    // Bottom shadow
+   550→    g.fillStyle(0x1a1e28, 0.9);
+   551→    g.fillRect(-w / 2, h / 2 - 4, w, 4);
+   552→    // Side panels (every 80px) — gives "modular" factory feel
+   553→    g.lineStyle(1, 0x2a3040, 0.7);
+   554→    g.strokeRect(-w / 2, -h / 2, w, h);
+   555→    for (let px = -w / 2 + 80; px < w / 2 - 20; px += 80) {
+   556→      g.lineStyle(1, 0x1a1e28, 0.8);
+   557→      g.beginPath();
+   558→      g.moveTo(px, -h / 2 + 4);
+   559→      g.lineTo(px, h / 2 - 4);
+   560→      g.strokePath();
+   561→    }
+   562→    // Rivets along the top edge
+   563→    g.fillStyle(0x6a7080, 0.7);
+   564→    for (let rx = -w / 2 + 10; rx < w / 2 - 5; rx += 24) {
+   565→      g.fillCircle(rx, -h / 2 + 7, 1.5);
+   566→      g.fillStyle(0x2a3040, 0.8);
+   567→      g.fillCircle(rx, -h / 2 + 7, 0.8);
+   568→      g.fillStyle(0x6a7080, 0.7);
+   569→    }
+   570→    // Rust stains (random, subtle)
+   571→    g.fillStyle(0x6a3a1a, 0.25);
+   572→    const rustCount = Math.floor(w / 100);
+   573→    for (let i = 0; i < rustCount; i++) {
+   574→      const rx = -w / 2 + 20 + Math.random() * (w - 40);
+   575→      g.fillEllipse(rx, h / 2 - 6, 14 + Math.random() * 12, 4);
+   576→    }
+   577→    // Edge warning stripes (yellow/black) — only on the very ends
+   578→    g.fillStyle(0xffcc00, 0.5);
+   579→    g.fillRect(-w / 2, -h / 2, 8, 4);
+   580→    g.fillRect(w / 2 - 8, -h / 2, 8, 4);
+   581→    g.fillStyle(0x1a1e28, 0.6);
+   582→    g.fillRect(-w / 2 + 4, -h / 2, 4, 4);
+   583→    g.fillRect(w / 2 - 8, -h / 2, 4, 4);
+   584→  }
+   585→
+   586→  /** Small ledge — narrow platform, simpler detail. */
+   587→  private drawLedge(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   588→    g.fillStyle(COLORS.METAL_DARK, 1);
+   589→    g.fillRect(-w / 2, -h / 2, w, h);
+   590→    g.fillStyle(0x3a4050, 1);
+   591→    g.fillRect(-w / 2, -h / 2, w, 3);
+   592→    g.fillStyle(0x1a1e28, 0.9);
+   593→    g.fillRect(-w / 2, h / 2 - 2, w, 2);
+   594→    g.lineStyle(1, 0x2a3040, 0.7);
+   595→    g.strokeRect(-w / 2, -h / 2, w, h);
+   596→    // Single rivet at each end
+   597→    g.fillStyle(0x6a7080, 0.7);
+   598→    g.fillCircle(-w / 2 + 5, 0, 1.2);
+   599→    g.fillCircle(w / 2 - 5, 0, 1.2);
+   600→  }
+   601→
+   602→  /** Tall narrow wall — industrial barrier with warning stripes. */
+   603→  private drawWall(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   604→    // Body
+   605→    g.fillStyle(0x1a1e28, 1);
+   606→    g.fillRect(-w / 2, -h / 2, w, h);
+   607→    // Vertical highlight on left edge
+   608→    g.fillStyle(0x3a4050, 0.8);
+   609→    g.fillRect(-w / 2, -h / 2, 3, h);
+   610→    // Vertical shadow on right edge
+   611→    g.fillStyle(0x0a0e14, 0.9);
+   612→    g.fillRect(w / 2 - 3, -h / 2, 3, h);
+   613→    // Border
+   614→    g.lineStyle(1, 0x2a3040, 0.6);
+   615→    g.strokeRect(-w / 2, -h / 2, w, h);
+   616→    // Industrial hazard stripes (yellow/black) at top and bottom 20px
+   617→    const stripeZone = 20;
+   618→    for (let sy = -h / 2; sy < -h / 2 + stripeZone; sy += 8) {
+   619→      g.fillStyle(0xffcc00, 0.5);
+   620→      g.fillRect(-w / 2, sy, w, 4);
+   621→      g.fillStyle(0x1a1e28, 0.7);
+   622→      g.fillRect(-w / 2, sy + 4, w, 4);
+   623→    }
+   624→    for (let sy = h / 2 - stripeZone; sy < h / 2; sy += 8) {
+   625→      g.fillStyle(0xffcc00, 0.5);
+   626→      g.fillRect(-w / 2, sy, w, 4);
+   627→      g.fillStyle(0x1a1e28, 0.7);
+   628→      g.fillRect(-w / 2, sy + 4, w, 4);
+   629→    }
+   630→    // Center section — panel lines
+   631→    g.lineStyle(1, 0x2a3040, 0.5);
+   632→    for (let sy = -h / 2 + stripeZone + 20; sy < h / 2 - stripeZone - 20; sy += 40) {
+   633→      g.beginPath();
+   634→      g.moveTo(-w / 2 + 2, sy);
+   635→      g.lineTo(w / 2 - 2, sy);
+   636→      g.strokePath();
+   637→    }
+   638→    // Center rivet column
+   639→    g.fillStyle(0x6a7080, 0.7);
+   640→    for (let sy = -h / 2 + 30; sy < h / 2 - 30; sy += 40) {
+   641→      g.fillCircle(0, sy, 1.5);
+   642→      g.fillStyle(0x2a3040, 0.8);
+   643→      g.fillCircle(0, sy, 0.8);
+   644→      g.fillStyle(0x6a7080, 0.7);
+   645→    }
+   646→  }
+   647→
+   648→  /** Large pillar/block — chunky industrial machinery housing. */
+   649→  private drawPillar(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   650→    // Main body
+   651→    g.fillStyle(0x1a1e28, 1);
+   652→    g.fillRect(-w / 2, -h / 2, w, h);
+   653→    // Top edge highlight
+   654→    g.fillStyle(0x3a4050, 1);
+   655→    g.fillRect(-w / 2, -h / 2, w, 4);
+   656→    // Bottom shadow
+   657→    g.fillStyle(0x0a0e14, 1);
+   658→    g.fillRect(-w / 2, h / 2 - 4, w, 4);
+   659→    // Border
+   660→    g.lineStyle(2, 0x2a3040, 0.8);
+   661→    g.strokeRect(-w / 2, -h / 2, w, h);
+   662→    // Faux control panel (rectangle with rivets) — center
+   663→    g.fillStyle(0x0a0e14, 0.8);
+   664→    g.fillRect(-w / 2 + 8, -10, w - 16, 20);
+   665→    g.lineStyle(1, 0x2a3040, 0.6);
+   666→    g.strokeRect(-w / 2 + 8, -10, w - 16, 20);
+   667→    // Indicator lights on panel
+   668→    g.fillStyle(0xff4030, 0.8);
+   669→    g.fillCircle(-w / 2 + 14, -4, 1.5);
+   670→    g.fillStyle(0xffcc00, 0.8);
+   671→    g.fillCircle(-w / 2 + 14, 4, 1.5);
+   672→    // Rivets at all corners
+   673→    g.fillStyle(0x6a7080, 0.7);
+   674→    const ro = 6;
+   675→    const corners = [
+   676→      { x: -w / 2 + ro, y: -h / 2 + ro },
+   677→      { x: w / 2 - ro, y: -h / 2 + ro },
+   678→      { x: -w / 2 + ro, y: h / 2 - ro },
+   679→      { x: w / 2 - ro, y: h / 2 - ro },
+   680→    ];
+   681→    for (const pos of corners) {
+   682→      g.fillCircle(pos.x, pos.y, 2);
+   683→      g.fillStyle(0x2a3040, 0.8);
+   684→      g.fillCircle(pos.x, pos.y, 1);
+   685→      g.fillStyle(0x6a7080, 0.7);
+   686→    }
+   687→    // Rust streaks from rivets
+   688→    g.fillStyle(0x6a3a1a, 0.2);
+   689→    for (const pos of corners) {
+   690→      g.fillRect(pos.x - 1, pos.y, 2, 20);
+   691→    }
+   692→  }
+   693→
+   694→  /** Generic fallback (uncategorized shape). */
+   695→  private drawGeneric(g: Phaser.GameObjects.Graphics, w: number, h: number): void {
+   696→    g.fillStyle(COLORS.METAL_DARK, 1);
+   697→    g.fillRect(-w / 2, -h / 2, w, h);
+   698→    g.fillStyle(0x3a4050, 0.8);
+   699→    g.fillRect(-w / 2, -h / 2, w, 3);
+   700→    g.fillStyle(0x1a1e28, 0.8);
+   701→    g.fillRect(-w / 2, h / 2 - 3, w, 3);
+   702→    g.lineStyle(1, 0x2a3040, 0.6);
+   703→    g.strokeRect(-w / 2, -h / 2, w, h);
+   704→  }
+   705→
+   706→  /** Add decorations BELOW a floor platform: hanging cables, pipes, dripping. */
+   707→  private addFloorDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   708→    const g = this.scene.add.graphics();
+   709→    g.setDepth(4);  // just below the platform itself (depth 5)
+   710→    // Hanging cables from the bottom of the platform
+   711→    const cableCount = Math.max(1, Math.floor(w / 80));
+   712→    for (let i = 0; i < cableCount; i++) {
+   713→      const cx = -w / 2 + (i + 0.5) * (w / cableCount);
+   714→      const cableLen = 20 + Math.random() * 40;
+   715→      g.lineStyle(1.5, 0x2a2820, 0.6);
+   716→      g.beginPath();
+   717→      g.moveTo(cx, h / 2);
+   718→      let cy = h / 2;
+   719→      for (let s = 0; s < 4; s++) {
+   720→        cy += cableLen / 4;
+   721→        g.lineTo(cx + Math.sin(s) * 3, cy);
+   722→      }
+   723→      g.strokePath();
+   724→      // End fitting (small plug)
+   725→      g.fillStyle(0x3a3830, 0.7);
+   726→      g.fillCircle(cx + Math.sin(3) * 3, cy, 2);
+   727→    }
+   728→    // A broken pipe stub on one side
+   729→    if (w >= 160) {
+   730→      const pipeX = -w / 2 + 20;
+   731→      g.fillStyle(0x2a2820, 0.7);
+   732→      g.fillRect(pipeX, h / 2 + 4, 8, 14);
+   733→      g.fillStyle(0x1a1814, 0.9);
+   734→      g.fillRect(pipeX + 2, h / 2 + 16, 4, 4);
+   735→    }
+   736→    g.setPosition(x, y);
+   737→    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+   738→
+   739→    // Random sparkles near the platform (rare, gives "live wire" feel)
+   740→    if (Math.random() < 0.3) {
+   741→      const sparkX = x + (Math.random() - 0.5) * w * 0.6;
+   742→      const sparkY = y + h / 2 + 8;
+   743→      const spark = this.scene.add.circle(sparkX, sparkY, 1.5, 0xffc040, 0);
+   744→      spark.setBlendMode(Phaser.BlendModes.ADD);
+   745→      spark.setDepth(6);
+   746→      this.trackedTween({
+   747→        targets: spark, alpha: { from: 0, to: 0.8 }, duration: 80, yoyo: true, repeat: -1,
+   748→        delay: Math.random() * 4000, repeatDelay: 3000 + Math.random() * 4000,
+   749→      });
+   750→      result.visualRects.push(spark as unknown as Phaser.GameObjects.Rectangle);
+   751→    }
+   752→  }
+   753→
+   754→  /** Add decorations ON a wall: mounted junction boxes, warning signs. */
+   755→  private addWallDecorations(result: LoadedArea, x: number, y: number, w: number, h: number): void {
+   756→    const g = this.scene.add.graphics();
+   757→    g.setDepth(6);  // slightly above wall
+   758→    // Junction box (small rectangle) mounted on wall
+   759→    const boxY = y - h / 4;
+   760→    g.fillStyle(0x2a2820, 0.9);
+   761→    g.fillRect(x - 8, boxY - 8, 16, 16);
+   762→    g.lineStyle(1, 0x3a3830, 0.7);
+   763→    g.strokeRect(x - 8, boxY - 8, 16, 16);
+   764→    // Indicator light on box (pulsing amber)
+   765→    g.fillStyle(0xffc040, 0.9);
+   766→    g.fillCircle(x, boxY, 1.5);
+   767→    // Warning sign (triangle with !) — lower on wall
+   768→    const signY = y + h / 4;
+   769→    g.fillStyle(0xffcc00, 0.7);
+   770→    g.fillTriangle(x - 6, signY + 5, x + 6, signY + 5, x, signY - 5);
+   771→    g.fillStyle(0x1a1e28, 1);
+   772→    g.fillRect(x - 0.5, signY - 2, 1, 4);
+   773→    g.fillCircle(x, signY + 3, 0.8);
+   774→    result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
+   775→  }
+   776→
+   777→  /** Electrical short — broken wire with arcing blue-white sparks. */
+   778→  private addElectricalSparks(result: LoadedArea, x: number, y: number): void {
+   779→    // Broken wire stub
+   780→    const wire = this.scene.add.graphics();
+   781→    wire.setDepth(6);
+   782→    wire.lineStyle(2, 0x2a2820, 0.8);
+   783→    wire.beginPath();
+   784→    wire.moveTo(x, y - 8);
+   785→    wire.lineTo(x + 2, y);
+   786→    wire.strokePath();
+   787→    // Exposed copper end
+   788→    wire.fillStyle(0xcc8030, 0.9);
+   789→    wire.fillCircle(x + 2, y, 2);
+   790→    result.visualRects.push(wire as unknown as Phaser.GameObjects.Rectangle);
+   791→
+   792→    // Arcing spark burst (recurring — every 2-4 seconds)
+   793→    const sparkBurst = () => {
+   794→      if (!wire.active) return;
+   795→      // Main flash
+   796→      const flash = this.scene.add.circle(x + 2, y, 4 + Math.random() * 3, 0xc0e0ff, 0.9);
+   797→      flash.setBlendMode(Phaser.BlendModes.ADD);
+   798→      flash.setDepth(7);
+   799→      this.trackedTween({
+   800→        targets: flash, alpha: 0, scale: 2, duration: 100,
+   801→        onComplete: () => flash.destroy(),
+   802→      });
+   803→      // Lightning bolt zig-zag (2-3 segments)
+   804→      const bolt = this.scene.add.graphics();
+   805→      bolt.setDepth(7);
+   806→      bolt.lineStyle(1.5, 0xc0e0ff, 0.9);
+   807→      bolt.beginPath();
+   808→      bolt.moveTo(x + 2, y);
+   809→      let bx = x + 2, by = y;
+   810→      const segments = 2 + Math.floor(Math.random() * 2);
+   811→      for (let s = 0; s < segments; s++) {
+   812→        bx += (Math.random() - 0.5) * 12;
+   813→        by += (Math.random() - 0.5) * 8;
+   814→        bolt.lineTo(bx, by);
+   815→      }
+   816→      bolt.strokePath();
+   817→      bolt.setBlendMode(Phaser.BlendModes.ADD);
+   818→      this.trackedTween({
+   819→        targets: bolt, alpha: 0, duration: 80,
+   820→        onComplete: () => bolt.destroy(),
+   821→      });
+   822→      // Scattered spark particles
+   823→      for (let i = 0; i < 4; i++) {
+   824→        const px = x + 2 + (Math.random() - 0.5) * 8;
+   825→        const py = y + (Math.random() - 0.5) * 6;
+   826→        const p = this.scene.add.circle(px, py, 1, 0xc0e0ff, 1);
+   827→        p.setBlendMode(Phaser.BlendModes.ADD).setDepth(7);
+   828→        this.trackedTween({
+   829→          targets: p,
+   830→          x: px + (Math.random() - 0.5) * 20,
+   831→          y: py + 4 + Math.random() * 8,
+   832→          alpha: 0, duration: 300,
+   833→          onComplete: () => p.destroy(),
+   834→        });
+   835→      }
+   836→    };
+   837→
+   838→    // Schedule recurring sparks
+   839→    const sparkTimer = this.scene.time.addEvent({
+   840→      delay: 1500 + Math.random() * 2500,
+   841→      loop: true,
+   842→      callback: sparkBurst,
+   843→    });
+   844→    // Store the timer on the wire so it gets cleaned up when wire is destroyed
+   845→    (wire as unknown as { __sparkTimer?: Phaser.Time.TimerEvent }).__sparkTimer = sparkTimer;
+   846→    // Initial spark
+   847→    this.scene.time.delayedCall(500 + Math.random() * 1000, sparkBurst);
+   848→  }
+   849→
+   850→  /** Small fire hazard — oil leak that ignited. Flickering orange flames + smoke. */
+   851→  private addFireHazard(result: LoadedArea, x: number, y: number): void {
+   852→    // Oil stain on the ground
+   853→    const oil = this.scene.add.ellipse(x, y + 2, 24, 6, 0x1a0a05, 0.8);
+   854→    oil.setDepth(5);
+   855→    result.visualRects.push(oil as unknown as Phaser.GameObjects.Rectangle);
+   856→
+   857→    // Flame cluster (3 overlapping flickering triangles)
+   858→    const flames: Phaser.GameObjects.Triangle[] = [];
+   859→    for (let i = 0; i < 3; i++) {
+   860→      const fx = x + (i - 1) * 4;
+   861→      const fy = y - 2;
+   862→      const flameColor = i === 1 ? 0xff8030 : 0xffa040;  // center is hotter
+   863→      const flame = this.scene.add.triangle(fx, fy, -3, 4, 3, 4, 0, -8 - Math.random() * 4, flameColor, 0.85);
+   864→      flame.setBlendMode(Phaser.BlendModes.ADD);
+   865→      flame.setDepth(6);
+   866→      flames.push(flame);
+   867→      result.visualRects.push(flame as unknown as Phaser.GameObjects.Rectangle);
+   868→
+   869→      // Flicker: scale + alpha oscillation
+   870→      this.trackedTween({
+   871→        targets: flame,
+   872→        scaleX: { from: 0.7, to: 1.2 },
+   873→        scaleY: { from: 0.8, to: 1.3 },
+   874→        alpha: { from: 0.5, to: 0.9 },
+   875→        duration: 80 + Math.random() * 80,
+   876→        yoyo: true, repeat: -1,
+   877→        ease: 'Sine.inOut',
+   878→      });
+   879→    }
+   880→
+   881→    // Glow halo
+   882→    const glow = this.scene.add.circle(x, y - 4, 20, 0xff6020, 0.15);
+   883→    glow.setBlendMode(Phaser.BlendModes.ADD);
+   884→    glow.setDepth(5);
+   885→    result.visualRects.push(glow as unknown as Phaser.GameObjects.Rectangle);
+   886→    this.trackedTween({
+   887→      targets: glow, alpha: { from: 0.1, to: 0.2 }, scale: { from: 0.9, to: 1.1 },
+   888→      duration: 200, yoyo: true, repeat: -1,
+   889→    });
+   890→
+   891→    // Rising smoke particles (occasional)
+   892→    const smokeTimer = this.scene.time.addEvent({
+   893→      delay: 400 + Math.random() * 300,
+   894→      loop: true,
+   895→      callback: () => {
+   896→        if (!oil.active) { smokeTimer.remove(); return; }
+   897→        const smoke = this.scene.add.circle(x + (Math.random() - 0.5) * 10, y - 8, 3 + Math.random() * 2, 0x3a3a3a, 0.3);
+   898→        smoke.setDepth(7);
+   899→        this.trackedTween({
+   900→          targets: smoke,
+   901→          y: y - 40 - Math.random() * 20,
+   902→          x: x + (Math.random() - 0.5) * 20,
+   903→          alpha: 0, scale: 2.5,
+   904→          duration: 2000 + Math.random() * 1000,
+   905→          onComplete: () => smoke.destroy(),
+   906→        });
+   907→      },
+   908→    });
+   909→    (oil as unknown as { __smokeTimer?: Phaser.Time.TimerEvent }).__smokeTimer = smokeTimer;
+   910→  }
+   911→
+   912→  /** Steam vent — hissing pipe releasing white steam upward. */
+   913→  private addSteamVent(result: LoadedArea, x: number, y: number): void {
+   914→    // Pipe stub (horizontal, with crack)
+   915→    const pipe = this.scene.add.graphics();
+   916→    pipe.setDepth(5);
+   917→    pipe.fillStyle(0x2a2820, 0.9);
+   918→    pipe.fillRect(x - 12, y, 24, 6);
+   919→    pipe.fillStyle(0x3a3830, 0.7);
+   920→    pipe.fillRect(x - 12, y, 24, 1);
+   921→    pipe.fillStyle(0x1a1814, 1);
+   922→    pipe.fillRect(x - 2, y + 4, 4, 2);  // crack
+   923→    result.visualRects.push(pipe as unknown as Phaser.GameObjects.Rectangle);
+   924→
+   925→    // Steam emission (recurring puffs)
+   926→    const steamTimer = this.scene.time.addEvent({
+   927→      delay: 200 + Math.random() * 200,
+   928→      loop: true,
+   929→      callback: () => {
+   930→        if (!pipe.active) { steamTimer.remove(); return; }
+   931→        const steam = this.scene.add.circle(
+   932→          x + (Math.random() - 0.5) * 4,
+   933→          y + 2,
+   934→          2 + Math.random() * 2,
+   935→          0xa0a0b0, 0.4,
+   936→        );
+   937→        steam.setDepth(6);
+   938→        this.trackedTween({
+   939→          targets: steam,
+   940→          y: y - 30 - Math.random() * 20,
+   941→          x: x + (Math.random() - 0.5) * 30,
+   942→          alpha: 0, scale: 3,
+   943→          duration: 1200 + Math.random() * 800,
+   944→          onComplete: () => steam.destroy(),
+   945→        });
+   946→      },
+   947→    });
+   948→    (pipe as unknown as { __steamTimer?: Phaser.Time.TimerEvent }).__steamTimer = steamTimer;
+   949→  }
+   950→
+   951→  /**
+   952→   * Create a graphical hazard visual based on hazard type.
+   953→   * - spike: jagged metal spikes pointing up
+   954→   * - lava/molten: glowing orange-red molten metal with bubbles + glow
+   955→   * - laser: horizontal energy beam with flicker
+   956→   */
+   957→  private createHazardVisual(hazard: { type: string; x: number; y: number; w: number; h: number; damage: number }): Phaser.GameObjects.Container {
+   958→    const container = this.scene.add.container(hazard.x, hazard.y);
+   959→    container.setDepth(5);
+   960→
+   961→    // ── Region-specific hazard visuals ──
+   962→    if (this.regionId === 'forest') {
+   963→      // FOREST: thorns, poison pools, spore vents (NOT metal spikes/lava/laser)
+   964→      if (hazard.type === 'spike') {
+   965→        // Poison thorns — organic, green-tipped
+   966→        const base = this.scene.add.rectangle(0, hazard.h / 2 - 4, hazard.w, 4, 0x1a2a14, 1);
+   967→        base.setStrokeStyle(1, 0x2a3a18, 0.6);
+   968→        container.add(base);
+   969→        const thornCount = Math.floor(hazard.w / 12);
+   970→        const spacing = hazard.w / thornCount;
+   971→        for (let i = 0; i < thornCount; i++) {
+   972→          const sx = -hazard.w / 2 + (i + 0.5) * spacing;
+   973→          const thorn = this.scene.add.triangle(sx, 0, -4, hazard.h / 2, 4, hazard.h / 2, 0, -hazard.h / 2 + 2, 0x3a5a28, 0.9);
+   974→          thorn.setStrokeStyle(1, 0x4a6a30, 0.5);
+   975→          container.add(thorn);
+   976→          // Poison tip (green glow)
+   977→          const tip = this.scene.add.circle(sx, -hazard.h / 2 + 3, 1.5, 0x40ff80, 0.6);
+   978→          tip.setBlendMode(Phaser.BlendModes.ADD);
+   979→          container.add(tip);
+   980→        }
+   981→      } else if (hazard.type === 'lava') {
+   982→        // Poison pool — toxic green liquid
+   983→        const glow = this.scene.add.rectangle(0, 0, hazard.w + 16, hazard.h + 8, 0x40ff40, 0.1);
+   984→        glow.setBlendMode(Phaser.BlendModes.ADD);
+   985→        container.add(glow);
+   986→        this.trackedTween({ targets: glow, alpha: { from: 0.05, to: 0.15 }, duration: 1000, yoyo: true, repeat: -1 });
+   987→        const surface = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0x40a020, 0.7);
+   988→        surface.setBlendMode(Phaser.BlendModes.ADD);
+   989→        container.add(surface);
+   990→        const base = this.scene.add.rectangle(0, hazard.h / 4, hazard.w, hazard.h / 2, 0x1a3a08, 0.8);
+   991→        container.add(base);
+   992→        // Toxic bubbles
+   993→        for (let i = 0; i < 4; i++) {
+   994→          const bx = (Math.random() - 0.5) * hazard.w * 0.7;
+   995→          const bubble = this.scene.add.circle(bx, 0, 2 + Math.random() * 2, 0x80ff40, 0.7);
+   996→          bubble.setBlendMode(Phaser.BlendModes.ADD);
+   997→          container.add(bubble);
+   998→          this.trackedTween({
+   999→            targets: bubble, y: { from: hazard.h / 4, to: -hazard.h / 4 },
+  1000→            scale: { from: 0.5, to: 1.5 }, alpha: { from: 0.7, to: 0 },
+  1001→            duration: 1200 + Math.random() * 600, repeat: -1, delay: Math.random() * 1500,
+  1002→          });
+  1003→        }
+  1004→      } else {
+  1005→        // Default forest hazard
+  1006→        const vis = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0x40a020, 0.3);
+  1007→        vis.setStrokeStyle(1, 0x40ff40, 0.5);
+  1008→        container.add(vis);
+  1009→      }
+  1010→      return container;
+  1011→    }
+  1012→
+  1013→    // ── FACTORY hazards (original) ──
+  1014→    if (hazard.type === 'spike') {
+  1015→      const base = this.scene.add.rectangle(0, hazard.h / 2 - 4, hazard.w, 4, 0x1a1e28, 1);
+  1016→      base.setStrokeStyle(1, 0x2a3040, 0.8);
+  1017→      container.add(base);
+  1018→      const spikeCount = Math.floor(hazard.w / 10);
+  1019→      const spikeSpacing = hazard.w / spikeCount;
+  1020→      for (let i = 0; i < spikeCount; i++) {
+  1021→        const sx = -hazard.w / 2 + (i + 0.5) * spikeSpacing;
+  1022→        const spike = this.scene.add.triangle(sx, 0, -4, hazard.h / 2, 4, hazard.h / 2, 0, -hazard.h / 2 + 2, 0x4a5060, 0.9);
+  1023→        spike.setStrokeStyle(1, 0x6a7080, 0.6);
+  1024→        container.add(spike);
+  1025→        const tip = this.scene.add.circle(sx, -hazard.h / 2 + 3, 1, 0x8a90a0, 0.8);
+  1026→        container.add(tip);
+  1027→      }
+  1028→      const warning = this.scene.add.rectangle(0, hazard.h / 2 - 1, hazard.w, 2, 0xffcc00, 0.4);
+  1029→      container.add(warning);
+  1030→
+  1031→    } else if (hazard.type === 'lava' || hazard.type === 'molten') {
+  1032→      const glow = this.scene.add.rectangle(0, 0, hazard.w + 20, hazard.h + 10, 0xff4020, 0.15);
+  1033→      glow.setBlendMode(Phaser.BlendModes.ADD);
+  1034→      container.add(glow);
+  1035→      this.trackedTween({ targets: glow, alpha: { from: 0.1, to: 0.25 }, duration: 800, yoyo: true, repeat: -1 });
+  1036→      const surface = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff6020, 0.7);
+  1037→      surface.setBlendMode(Phaser.BlendModes.ADD);
+  1038→      container.add(surface);
+  1039→      const base = this.scene.add.rectangle(0, hazard.h / 4, hazard.w, hazard.h / 2, 0x8a2010, 0.8);
+  1040→      container.add(base);
+  1041→      for (let i = 0; i < 4; i++) {
+  1042→        const cx = (Math.random() - 0.5) * hazard.w * 0.8;
+  1043→        const crack = this.scene.add.rectangle(cx, hazard.h / 4, 2 + Math.random() * 3, hazard.h / 2 - 2, 0xff8030, 0.6);
+  1044→        crack.setBlendMode(Phaser.BlendModes.ADD);
+  1045→        container.add(crack);
+  1046→      }
+  1047→      const bubbleCount = Math.max(3, Math.floor(hazard.w / 30));
+  1048→      for (let i = 0; i < bubbleCount; i++) {
+  1049→        const bx = (Math.random() - 0.5) * hazard.w * 0.8;
+  1050→        const bubble = this.scene.add.circle(bx, 0, 2 + Math.random() * 2, 0xffc040, 0.8);
+  1051→        bubble.setBlendMode(Phaser.BlendModes.ADD);
+  1052→        container.add(bubble);
+  1053→        this.trackedTween({
+  1054→          targets: bubble,
+  1055→          y: { from: hazard.h / 4, to: -hazard.h / 4 },
+  1056→          scale: { from: 0.5, to: 1.5 },
+  1057→          alpha: { from: 0.8, to: 0 },
+  1058→          duration: 1200 + Math.random() * 800, repeat: -1, delay: Math.random() * 2000,
+  1059→          onComplete: (_t, targets) => { (targets[0] as Phaser.GameObjects.Arc).setY(hazard.h / 4).setAlpha(0.8).setScale(0.5); },
+  1060→        });
+  1061→      }
+  1062→      for (let i = 0; i < 3; i++) {
+  1063→        const shimmer = this.scene.add.rectangle((Math.random() - 0.5) * hazard.w * 0.6, -hazard.h / 2 - 4 - i * 3, 8, 1, 0xff8040, 0.3);
+  1064→        shimmer.setBlendMode(Phaser.BlendModes.ADD);
+  1065→        container.add(shimmer);
+  1066→        this.trackedTween({ targets: shimmer, x: { from: shimmer.x - 6, to: shimmer.x + 6 }, alpha: { from: 0.1, to: 0.4 }, duration: 600 + i * 200, yoyo: true, repeat: -1 });
+  1067→      }
+  1068→
+  1069→    } else if (hazard.type === 'laser') {
+  1070→      const beam = this.scene.add.rectangle(0, 0, hazard.w, 3, 0x66f0ff, 0.9);
+  1071→      beam.setBlendMode(Phaser.BlendModes.ADD);
+  1072→      container.add(beam);
+  1073→      const beamGlow = this.scene.add.rectangle(0, 0, hazard.w, 8, 0x66f0ff, 0.3);
+  1074→      beamGlow.setBlendMode(Phaser.BlendModes.ADD);
+  1075→      container.add(beamGlow);
+  1076→      for (const ex of [-hazard.w / 2, hazard.w / 2]) {
+  1077→        const emitter = this.scene.add.rectangle(ex, 0, 6, 10, 0x1a3040, 0.9);
+  1078→        emitter.setStrokeStyle(1, 0x66f0ff, 0.7);
+  1079→        container.add(emitter);
+  1080→        const emitterGlow = this.scene.add.circle(ex, 0, 5, 0x66f0ff, 0.5);
+  1081→        emitterGlow.setBlendMode(Phaser.BlendModes.ADD);
+  1082→        container.add(emitterGlow);
+  1083→      }
+  1084→      this.trackedTween({ targets: [beam, beamGlow], alpha: { from: 0.7, to: 1 }, duration: 80, yoyo: true, repeat: -1 });
+  1085→
+  1086→    } else {
+  1087→      const vis = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0xff2030, 0.3);
+  1088→      vis.setStrokeStyle(1, 0xff4050, 0.5);
+  1089→      container.add(vis);
+  1090→    }
+  1091→
+  1092→    return container;
+  1093→  }
+  1094→
+  1095→  /** Create an interactable lore object — dramatic visual, not just a rectangle */
+  1096→  private createLoreObject(lore: LoreObjectData): Phaser.GameObjects.Container {
+  1097→    const container = this.scene.add.container(lore.x, lore.y);
+  1098→    const parts: Phaser.GameObjects.GameObject[] = [];
+  1099→
+  1100→    if (lore.type === 'terminal') {
+  1101→      // TERMINAL: Full mech-sized terminal station with glowing screen
+  1102→      // Base pedestal
+  1103→      const pedestal = this.scene.add.rectangle(0, 18, 44, 16, 0x1a1e28, 0.95);
+  1104→      pedestal.setStrokeStyle(1, 0x3a3040, 0.6);
+  1105→      parts.push(pedestal);
+  1106→      // Screen housing
+  1107→      const housing = this.scene.add.rectangle(0, -5, 36, 40, 0x12141c, 0.95);
+  1108→      housing.setStrokeStyle(2, 0x4a4030, 0.7);
+  1109→      parts.push(housing);
+  1110→      // Glowing screen (amber, pulsing)
+  1111→      const screen = this.scene.add.rectangle(0, -8, 28, 24, 0xffc040, 0.15);
+  1112→      screen.setBlendMode(Phaser.BlendModes.ADD);
+  1113→      parts.push(screen);
+  1114→      this.trackedTween({ targets: screen, alpha: { from: 0.08, to: 0.25 }, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  1115→      // Scan lines on screen
+  1116→      for (let i = 0; i < 4; i++) {
+  1117→        const line = this.scene.add.rectangle(0, -18 + i * 6, 24, 1, 0xffc040, 0.2);
+  1118→        parts.push(line);
+  1119→      }
+  1120→      // Ambient glow halo
+  1121→      const glow = this.scene.add.circle(0, -5, 50, 0xffc040, 0.04);
+  1122→      glow.setBlendMode(Phaser.BlendModes.ADD);
+  1123→      parts.push(glow);
+  1124→      this.trackedTween({ targets: glow, scale: { from: 0.9, to: 1.2 }, alpha: { from: 0.03, to: 0.08 }, duration: 2000, yoyo: true, repeat: -1 });
+  1125→      // Prompt
+  1126→      const label = this.scene.add.text(0, 32, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#ffc040', letterSpacing: 1 }).setOrigin(0.5);
+  1127→      parts.push(label);
+  1128→      this.trackedTween({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+  1129→
+  1130→    } else if (lore.type === 'corpse') {
+  1131→      // CORPSE: Full fallen mech — body, limbs, flickering core
+  1132→      // Main body (slumped)
+  1133→      const body = this.scene.add.rectangle(0, 0, 56, 28, 0x1a1820, 0.95);
+  1134→      body.setStrokeStyle(1, 0x3a2830, 0.5);
+  1135→      body.setAngle(-8);
+  1136→      parts.push(body);
+  1137→      // Arm outstretched
+  1138→      const arm = this.scene.add.rectangle(-22, 8, 28, 10, 0x1a1820, 0.9);
+  1139→      arm.setStrokeStyle(1, 0x2a2030, 0.4);
+  1140→      arm.setAngle(-25);
+  1141→      parts.push(arm);
+  1142→      // Head/unit (tilted)
+  1143→      const head = this.scene.add.rectangle(20, -10, 18, 16, 0x12101a, 0.95);
+  1144→      head.setStrokeStyle(1, 0x3a2030, 0.5);
+  1145→      head.setAngle(12);
+  1146→      parts.push(head);
+  1147→      // Flickering core light (dying)
+  1148→      const core = this.scene.add.circle(0, -2, 4, 0x6a3040, 0.6);
+  1149→      core.setBlendMode(Phaser.BlendModes.ADD);
+  1150→      parts.push(core);
+  1151→      this.trackedTween({ targets: core, alpha: { from: 0.1, to: 0.6 }, duration: 400 + Math.random() * 200, yoyo: true, repeat: -1 });
+  1152→      // Oil pool (dark ellipse)
+  1153→      const oil = this.scene.add.ellipse(0, 16, 60, 12, 0x050408, 0.6);
+  1154→      parts.push(oil);
+  1155→      // Prompt
+  1156→      const label = this.scene.add.text(0, 28, '▼ EXAMINE', { fontFamily: 'monospace', fontSize: '8px', color: '#6a5060', letterSpacing: 1 }).setOrigin(0.5);
+  1157→      parts.push(label);
+  1158→      this.trackedTween({ targets: label, alpha: { from: 0.3, to: 0.8 }, duration: 1000, yoyo: true, repeat: -1 });
+  1159→
+  1160→    } else {
+  1161→      // ECHO: Suspended speaker array with visible sound waves
+  1162→      // Speaker body
+  1163→      const speaker = this.scene.add.rectangle(0, 0, 30, 24, 0x101820, 0.9);
+  1164→      speaker.setStrokeStyle(2, 0x40c0ff, 0.5);
+  1165→      parts.push(speaker);
+  1166→      // Speaker cone
+  1167→      const cone = this.scene.add.circle(0, 0, 8, 0x0a1018, 0.8);
+  1168→      cone.setStrokeStyle(1, 0x40c0ff, 0.4);
+  1169→      parts.push(cone);
+  1170→      // Sound wave rings (expanding)
+  1171→      for (let i = 0; i < 3; i++) {
+  1172→        const wave = this.scene.add.circle(0, 0, 12 + i * 8, 0x40c0ff, 0);
+  1173→        wave.setStrokeStyle(1, 0x40c0ff, 0.3);
+  1174→        wave.setBlendMode(Phaser.BlendModes.ADD);
+  1175→        parts.push(wave);
+  1176→        this.trackedTween({
+  1177→          targets: wave, scale: { from: 1, to: 2.5 }, alpha: { from: 0.4, to: 0 },
+  1178→          duration: 2000, delay: i * 600, repeat: -1, ease: 'Sine.out',
+  1179→        });
+  1180→      }
+  1181→      // Mounting cable (from ceiling)
+  1182→      const cable = this.scene.add.rectangle(0, -18, 2, 20, 0x2a3040, 0.6);
+  1183→      parts.push(cable);
+  1184→      // Blue ambient glow
+  1185→      const glow = this.scene.add.circle(0, 0, 40, 0x40c0ff, 0.04);
+  1186→      glow.setBlendMode(Phaser.BlendModes.ADD);
+  1187→      parts.push(glow);
+  1188→      // Floating animation
+  1189→      this.trackedTween({ targets: container, y: lore.y - 5, duration: 2500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+  1190→      // Prompt
+  1191→      const label = this.scene.add.text(0, 24, '▼ LISTEN', { fontFamily: 'monospace', fontSize: '8px', color: '#40c0ff', letterSpacing: 1 }).setOrigin(0.5);
+  1192→      parts.push(label);
+  1193→      this.trackedTween({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+  1194→    }
+  1195→
+  1196→    container.add(parts);
+  1197→    container.setDepth(8);
+  1198→    container.setData('isLoreObject', true);
+  1199→    container.setData('loreId', lore.id);
+  1200→    container.setData('loreTitle', lore.titleKey);
+  1201→    container.setData('loreText', lore.textKey);
+  1202→    container.setSize(80, 80);
+  1203→    container.setInteractive({ useHandCursor: true });
+  1204→    return container;
+  1205→  }
+  1206→
+  1207→  /** Create a visual landmark — dramatic large structure */
+  1208→  private createLandmark(lm: LandmarkData): Phaser.GameObjects.Container {
+  1209→    const container = this.scene.add.container(lm.x, lm.y);
+  1210→
+  1211→    if (lm.type === 'crashed_mech') {
+  1212→      // CRASHED MECH: Full silhouette — body, head, broken leg, dead eye
+  1213→      // Main body (large, tilted)
+  1214→      const body = this.scene.add.rectangle(0, 0, lm.w, lm.h * 0.6, lm.color, 0.7);
+  1215→      body.setStrokeStyle(2, 0x4a4050, 0.3);
+  1216→      body.setAngle(-5);
+  1217→      container.add(body);
+  1218→      // Head (cockpit area)
+  1219→      const head = this.scene.add.rectangle(-lm.w * 0.3, -lm.h * 0.3, lm.w * 0.35, lm.h * 0.35, lm.color, 0.65);
+  1220→      head.setStrokeStyle(1, 0x3a3040, 0.3);
+  1221→      head.setAngle(-5);
+  1222→      container.add(head);
+  1223→      // Broken leg (sticking up)
+  1224→      const leg = this.scene.add.rectangle(lm.w * 0.25, lm.h * 0.15, 12, lm.h * 0.5, lm.color, 0.6);
+  1225→      leg.setAngle(35);
+  1226→      container.add(leg);
+  1227→      // Dead eye (dark red, barely visible)
+  1228→      const eye = this.scene.add.circle(-lm.w * 0.3, -lm.h * 0.3, 4, 0x3a1010, 0.4);
+  1229→      eye.setBlendMode(Phaser.BlendModes.ADD);
+  1230→      container.add(eye);
+  1231→      this.trackedTween({ targets: eye, alpha: { from: 0.1, to: 0.3 }, duration: 3000, yoyo: true, repeat: -1 });
+  1232→      // Dust particles around
+  1233→      for (let i = 0; i < 5; i++) {
+  1234→        const dust = this.scene.add.circle(
+  1235→          (Math.random() - 0.5) * lm.w * 1.2,
+  1236→          (Math.random() - 0.5) * lm.h,
+  1237→          1 + Math.random(), 0x6a6a7a, 0.1 + Math.random() * 0.1
+  1238→        );
+  1239→        dust.setBlendMode(Phaser.BlendModes.ADD);
+  1240→        container.add(dust);
+  1241→        this.trackedTween({
+  1242→          targets: dust, y: dust.y - 20 - Math.random() * 30, alpha: 0,
+  1243→          duration: 3000 + Math.random() * 2000, repeat: -1, delay: Math.random() * 2000,
+  1244→        });
+  1245→      }
+  1246→
+  1247→    } else if (lm.type === 'assembly_line') {
+  1248→      // ASSEMBLY LINE: Hall with hanging mechs on conveyor
+  1249→      // Conveyor base
+  1250→      const conveyor = this.scene.add.rectangle(0, lm.h / 2 - 10, lm.w, 8, 0x2a2530, 0.5);
+  1251→      container.add(conveyor);
+  1252→      // Hanging mech silhouettes (3 of them, half-built)
+  1253→      for (let i = 0; i < 3; i++) {
+  1254→        const x = -lm.w * 0.3 + i * lm.w * 0.3;
+  1255→        // Body
+  1256→        const mechBody = this.scene.add.rectangle(x, -10, 24, 36, lm.color, 0.5);
+  1257→        mechBody.setStrokeStyle(1, 0x3a3040, 0.3);
+  1258→        container.add(mechBody);
+  1259→        // Head
+  1260→        const mechHead = this.scene.add.rectangle(x, -32, 14, 12, lm.color, 0.5);
+  1261→        container.add(mechHead);
+  1262→        // Missing arm (only one side)
+  1263→        if (i % 2 === 0) {
+  1264→          const arm = this.scene.add.rectangle(x + 14, -8, 8, 20, lm.color, 0.4);
+  1265→          container.add(arm);
+  1266→        }
+  1267→        // Hanging cable
+  1268→        const cable = this.scene.add.rectangle(x, -60, 2, 24, 0x2a2530, 0.4);
+  1269→        container.add(cable);
+  1270→        // Faint spark (random)
+  1271→        if (Math.random() < 0.5) {
+  1272→          const spark = this.scene.add.circle(x, -20, 2, 0xffc040, 0.3);
+  1273→          spark.setBlendMode(Phaser.BlendModes.ADD);
+  1274→          container.add(spark);
+  1275→          this.trackedTween({ targets: spark, alpha: { from: 0, to: 0.4 }, duration: 200, yoyo: true, repeat: -1, delay: Math.random() * 3000 });
+  1276→        }
+  1277→      }
+  1278→
+  1279→    } else if (lm.type === 'tower') {
+  1280→      // TOWER: Massive door frame with flickering light
+  1281→      // Left pillar
+  1282→      const leftP = this.scene.add.rectangle(-lm.w / 2 + 8, 0, 16, lm.h, lm.color, 0.7);
+  1283→      leftP.setStrokeStyle(1, 0x4a3040, 0.3);
+  1284→      container.add(leftP);
+  1285→      // Right pillar
+  1286→      const rightP = this.scene.add.rectangle(lm.w / 2 - 8, 0, 16, lm.h, lm.color, 0.7);
+  1287→      rightP.setStrokeStyle(1, 0x4a3040, 0.3);
+  1288→      container.add(rightP);
+  1289→      // Top arch
+  1290→      const arch = this.scene.add.rectangle(0, -lm.h / 2 + 10, lm.w, 20, lm.color, 0.6);
+  1291→      container.add(arch);
+  1292→      // Light at top (flickering amber)
+  1293→      const light = this.scene.add.circle(0, -lm.h / 2 + 10, 8, 0xffc040, 0.3);
+  1294→      light.setBlendMode(Phaser.BlendModes.ADD);
+  1295→      container.add(light);
+  1296→      this.trackedTween({ targets: light, alpha: { from: 0.1, to: 0.5 }, scale: { from: 0.8, to: 1.3 }, duration: 1500, yoyo: true, repeat: -1 });
+  1297→      // Light cone (shining down)
+  1298→      const cone = this.scene.add.triangle(0, 0, -30, -lm.h / 2, 30, -lm.h / 2, 0, 0, 0xffc040, 0.02);
+  1299→      cone.setBlendMode(Phaser.BlendModes.ADD);
+  1300→      container.add(cone);
+  1301→      // Caption text (faded, near bottom)
+  1302→      const caption = this.scene.add.text(0, lm.h / 2 - 15, 'GUARDIAN POST', {
+  1303→        fontFamily: 'monospace', fontSize: '9px', color: '#3a3020', letterSpacing: 3,
+  1304→      }).setOrigin(0.5);
+  1305→      container.add(caption);
+  1306→    }
+  1307→
+  1308→    container.setDepth(3);
+  1309→    return container;
+  1310→  }
+  1311→
+  1312→  /** Destroy all loaded area objects. */
+  1313→  unload(loaded: LoadedArea): void {
+  1314→    // ── Stop all tracked tweens (sparks, fire, steam, lore pulses, etc.) ──
+  1315→    this.activeTweens.forEach(t => { if (t && t.isPlaying()) t.stop(); });
+  1316→    this.activeTweens = [];
+  1317→    // Clean up hazard timers (electrical sparks, fire smoke, steam) before destroying visuals
+  1318→    loaded.visualRects.forEach(v => {
+  1319→      if (!v) return;
+  1320→      const obj = v as unknown as { __sparkTimer?: Phaser.Time.TimerEvent; __smokeTimer?: Phaser.Time.TimerEvent; __steamTimer?: Phaser.Time.TimerEvent };
+  1321→      obj.__sparkTimer?.remove();
+  1322→      obj.__smokeTimer?.remove();
+  1323→      obj.__steamTimer?.remove();
+  1324→      if (v.active) v.destroy();
+  1325→    });
+  1326→    loaded.solids.forEach(s => { if (s && s.active) s.destroy(); });
+  1327→    loaded.sectionTriggers.forEach(t => { if (t && t.active) t.destroy(); });
+  1328→    loaded.checkpointTriggers.forEach(t => { if (t && t.active) t.destroy(); });
+  1329→    loaded.hazardTriggers.forEach(t => { if (t && t.active) t.destroy(); });
+  1330→    loaded.bossEntryTrigger?.destroy();
+  1331→    loaded.loreObjects.forEach(l => { if (l && l.active) l.destroy(); });
+  1332→    loaded.landmarks.forEach(l => { if (l && l.active) l.destroy(); });
+  1333→    loaded.grappleAnchors.forEach(a => { if (a && a.active) a.destroy(); });
+  1334→    // ── FIX Bug 1: Clean up physics bodies from EMP doors + shortcuts (not auto-destroyed) ──
+  1335→    loaded.empDoors.forEach(d => {
+  1336→      if (!d) return;
+  1337→      const pb = d.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+  1338→      if (pb && pb.active) {
+  1339→        try { this.scene.matter.world.remove(pb.body as MatterJS.Body); } catch { /* */ }
+  1340→        pb.destroy();
+  1341→      }
+  1342→      if (d.active) d.destroy();
+  1343→    });
+  1344→    loaded.shortcuts.forEach(s => {
+  1345→      if (!s) return;
+  1346→      const pb = s.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+  1347→      if (pb && pb.active) {
+  1348→        try { this.scene.matter.world.remove(pb.body as MatterJS.Body); } catch { /* */ }
+  1349→        pb.destroy();
+  1350→      }
+  1351→      if (s.active) s.destroy();
+  1352→    });
+  1353→    loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
+  1354→    loaded.solids = [];
+  1355→    loaded.sectionTriggers = [];
+  1356→    loaded.checkpointTriggers = [];
+  1357→    loaded.hazardTriggers = [];
+  1358→    loaded.bossEntryTrigger = null;
+  1359→    loaded.visualRects = [];
+  1360→    loaded.loreObjects = [];
+  1361→    loaded.landmarks = [];
+  1362→    loaded.grappleAnchors = [];
+  1363→    loaded.empDoors = [];
+  1364→    loaded.shortcuts = [];
+  1365→    loaded.collectibles = [];
+  1366→  }
+  1367→}
+  1368→
+  1369→export default AreaLoader;
+  1370→

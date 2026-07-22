@@ -2048,3 +2048,63 @@ Stage Summary:
 - CONTINUE fixed — resumes active profile (was broken by SaveSystem.clear() in new game flow)
 - Menu order: CONTINUE / LOAD GAME / NEW GAME / SETTINGS / HOW TO PLAY
 - tsc: 4 errors (unchanged, all in examples/skills)
+
+---
+Task ID: refactor-2
+Agent: subagent
+Task: Extract FactoryAreaStrategy from AreaLoader
+
+Work Log:
+- Read worklog.md (previous overlay-fix work by main agent)
+- Read AreaStrategy.ts abstract base class — constructor receives (scene, trackedTween function reference); declares abstract drawPlatform, addDecorations, createHazardVisual
+- Read AreaLoader.ts focusing on addSolid (lines 350-394 factory branch dispatching) and the 12 factory methods listed in task spec
+- Verified Constants.ts exports GAME and COLORS at top level (used by drawFloor/drawGeneric/addPlatformSupports)
+- Created src/game/world/strategies/FactoryAreaStrategy.ts extending AreaStrategy:
+  - Constructor calls super(scene, trackedTween)
+  - drawPlatform(g, w, h, type): switch dispatches to drawFloor/drawLedge/drawWall/drawPillar/drawGeneric
+  - addDecorations(result, x, y, w, h, type): replicates AreaLoader.addSolid factory branch lines 377-394 — addFloorDecorations (floor & w>=120), addWallDecorations (wall & h>150), random sparks/fire/steam (floor & w>=100), addPlatformSupports (floor|ledge & y < GAME.HEIGHT - 100)
+  - createHazardVisual(hazard): factory branch only — spike, lava/molten, laser, default
+  - Private methods copied verbatim from AreaLoader: addPlatformSupports, drawFloor, drawLedge, drawWall, drawPillar, drawGeneric, addFloorDecorations, addWallDecorations, addElectricalSparks, addFireHazard, addSteamVent
+  - Imports: { GAME, COLORS } from ../../shared/Constants, type LoadedArea from ../AreaLoader, AreaStrategy + types { HazardVisualData, PlatformType } from ./AreaStrategy
+  - this.trackedTween(...) calls work directly since base class exposes it as a function reference (not a method)
+  - All rendering code preserved EXACTLY — only the class wrapper changed
+- Did NOT modify AreaLoader.ts (per task instructions — that will happen in a separate step)
+- Verified: `npx tsc --noEmit 2>&1 | grep FactoryAreaStrategy` → 0 errors. Remaining 4 tsc errors are all in unrelated examples/ and skills/ directories (socket.io-client, socket.io, image-edit, stock-analysis-skill).
+
+Stage Summary:
+- FactoryAreaStrategy.ts (525 lines) created at src/game/world/strategies/FactoryAreaStrategy.ts
+- All 12 factory-specific rendering methods extracted verbatim into a single Strategy class
+- 3 public abstract implementations: drawPlatform, addDecorations, createHazardVisual — with dispatch logic mirroring AreaLoader's addSolid factory branch
+- 9 private methods preserved unchanged
+- Type-check passes — file is type-clean (AreaLoader still has its old methods, but those don't interfere with FactoryAreaStrategy's own type-checking)
+- Ready for next step: refactor AreaLoader.addSolid and AreaLoader.createHazardVisual to delegate to a FactoryAreaStrategy instance (will remove the duplication)
+
+---
+Task ID: refactor-area-loader
+Agent: main
+Task: Extract Factory + Forest rendering to Strategy pattern. AreaLoader delegates region-specific drawing/decorations/hazards to strategy.
+
+Work Log:
+- Created src/game/world/strategies/AreaStrategy.ts (70 lines) — abstract base class with drawPlatform, addDecorations, createHazardVisual
+- Created src/game/world/strategies/FactoryAreaStrategy.ts (645 lines) — all factory rendering extracted verbatim from AreaLoader
+- Created src/game/world/strategies/ForestAreaStrategy.ts (191 lines) — all forest rendering extracted verbatim from AreaLoader
+- Modified AreaLoader.ts:
+  * Added strategy field + createStrategy() factory method
+  * load() now creates strategy based on regionId
+  * addSolid() delegates to strategy.drawPlatform() + strategy.addDecorations()
+  * createHazardVisual() delegates to strategy.createHazardVisual()
+  * Removed 14 dead methods (556 lines removed)
+- AreaLoader: 1369 → 675 lines (51% reduction)
+- Total strategy code: 906 lines (Factory 645 + Forest 191 + base 70)
+
+GATE:
+- tsc: 4 errors (unchanged, all in examples/skills)
+- Browser test: Factory level renders correctly (platforms, cables, hazards, decorations all visible)
+- Console: 0 errors
+- VLM confirmed: "platforms", "cables", "hazard indicators", "dark dystopian industrial cityscape" — all factory visuals present
+
+Stage Summary:
+- Strategy pattern established — adding new region = adding new Strategy class
+- AreaLoader is now 675 lines (was 1369) — under 700-line guideline
+- Factory and Forest rendering preserved byte-for-byte — no visual regression
+- Ready for Act II (WastesAreaStrategy) to be written directly as a Strategy class
