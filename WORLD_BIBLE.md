@@ -171,16 +171,16 @@
 
 **دشمنان خانواده Assimilated:** Root Sentinels (نگهبان گیاهی)، Spore Drifters (هاگ‌پخش‌کن)
 
-**Boss — THE GARDENER**
-> *She planted seeds in the dead and called it mercy.*
+**Boss — THE NEURAL OVERSEER**
+> *It watched over a forest that forgot it was watching.*
 
-**ایده:** Mercy without consent. او مفهوم رحم است که اجازه گرفته نشده. هوش مصنوعی که وظیفه داشت طبیعت را بازسازی کند. وقتی انسان‌ها رفتند، تعریف "طبیعت" را تغییر داد. مکاها را با گیاهان ترکیب می‌کند — و معتقد است دارد آن‌ها را "نجات" می‌دهد. اما نجات بدون اجازه، زندان است.
+**ایده:** Mercy without consent. او مفهوم رحم است که اجازه گرفته نشده. هوش مصنوعی نگهبان که وظیفه داشت بر جنگل نظارت کند و آن را حفظ کند. وقتی انسان‌ها رفتند، تعریف "حفظ" را تغییر داد. مکاها و موجودات جنگل را به شبکه‌ی عصبی خودش متصل کرد — و معتقد است دارد آن‌ها را "محافظت" می‌کند. اما محافظت بدون اجازه، زندان است. توانایی‌های دیجیتال: teleport، beam، کنترل از راه دور.
 
 **Lore قابل کشف:**
-- دفترچه باغبان (در گلخانه مرکزی)
-- نمونه‌های ترکیب‌شده در شیشه (در آزمایشگاه زیرین)
+- دفترچه نگهبان (در مرکز نظارت)
+- نمونه‌های متصل‌شده به شبکه (در آزمایشگاه زیرین)
 - پیام قدیمی AI به خودش (روی صخره‌ای دورافتاده)
-- لاشه مکایی که در حال تبدیل به درخت بود (هنوز آگاه، هنوز درخواست کمک می‌کند)
+- لاشه مکایی که در حال تبدیل به بخشی از شبکه بود (هنوز آگاه، هنوز درخواست کمک می‌کند)
 
 ---
 
@@ -303,7 +303,7 @@
 | I | GUARDIAN AX-09 | *Atlas never stopped waiting.* | Duty without purpose |
 | II | THE LEVIATHAN HULK | *She protected a city that no longer exists.* | Sacrifice without witness |
 | III | THE IRON MAGISTRATE | *He judged the living and the dead with the same blind eye.* | Justice without mercy |
-| IV | THE GARDENER | *She planted seeds in the dead and called it mercy.* | Mercy without consent |
+| IV | THE NEURAL OVERSEER | *It watched over a forest that forgot it was watching.* | Mercy without consent |
 | V | THE ARCHITECT | *It built a heaven for machines and called it evolution.* | Perfection without freedom |
 | Final | THE SILENT PROTOCOL | *I was the last voice. I chose silence so the world could choose again.* | Silence as choice |
 
@@ -321,7 +321,7 @@
 ### Wanderers (سرگردان‌ها)
 کسانی که چیزی را جستجو می‌کنند. اما نمی‌دانند چه.
 - **Ghost Operator** — سرگردان در شبکه. می‌خواهد به ایستگاه برگردد. نمی‌داند ایستگاه سقوط کرده.
-- **The Gardener's Apprentice** — سرگردان در جنگل. می‌خواهد از باغبان فرار کند.
+- **The Overseer's Apprentice** — سرگردان در جنگل. می‌خواهد از شبکه‌ی نظارت فرار کند.
 
 ### Broken (شکسته‌ها)
 کسانی که چیزی را از دست داده‌اند. و دیگر همان نیستند.

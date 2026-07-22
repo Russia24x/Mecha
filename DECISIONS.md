@@ -133,3 +133,19 @@
 **تصمیم:** category‌ها فقط از طریق tabs (L1/R1) قابل‌تعویض هستند، نه D-pad up/down
 **دلیل:** وقتی category‌ها هم focusable بودن، D-pad بین‌شون حرکت می‌کرد و به slider‌ها (ستون راست) نمی‌رسید. حذف از focusable list مشکل navigation رو حل کرد.
 **تاریخ:** 2026-07-23
+
+## ۲۸. Final Act جداگانه
+**تصمیم:** Final Act (The Last Protocol) به‌عنوان Act ششم جداگانه ساخته می‌شه — نه ادغام در Act V
+**دلیل:** Act V مجبور نباشه هم سطح کامل باشه هم افشا هم پایان. Final Act یه فضای کوچک ولی واقعی داره (۱-۲ section، boss encounter، binary choice).
+**تاریخ:** 2026-07-23
+
+## ۲۹. Boss Act IV — Neural Overseer (نه Gardener)
+**تصمیم:** BIBLE به‌روز شد تا با کد هماهنگ بشه. Boss Act IV = THE NEURAL OVERSEER (نه The Gardener)
+**دلیل:** طراحی فعلی boss دیجیتال/AI هست (teleport, beam) که با مفهوم Neural Overseer همخوانه، نه Gardener. به‌جای بازنویسی کد، BIBLE رو اصلاح کردیم.
+**تغییرات:** WORLD_BIBLE — The Gardener → The Neural Overseer، lore بازنویسی شد، NPC "Gardener's Apprentice" → "Overseer's Apprentice"
+**تاریخ:** 2026-07-23
+
+## ۳۰. Weapon unlock status
+**تصمیم:** plasma_cannon و energy_blade حل شدن (boss-gated). فقط laser هنوز unobtainable هست.
+**وضعیت:** plasma_cannon = Guardian AX-09 شکست → unlock. energy_blade = Neural Overseer شکست → unlock. laser = نیاز به مسیر unlock.
+**تاریخ:** 2026-07-23

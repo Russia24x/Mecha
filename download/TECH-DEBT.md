@@ -134,15 +134,17 @@ SaveSystem منطق خالص است (بدون Phaser/canvas). چند تست unit
 |---|------|--------|--------|
 | Content-II | Act II (The Drowned Wastes) | empty stub — نیاز به level design، enemies، boss | P0 |
 | Content-III | Act III (The Lost City) | empty stub | P0 |
-| Content-V | Act V (Digital Desert) + Ending | empty stub + truth reveal + binary choice | P0 |
+| Content-V | Act V (Orbital Descent) | empty stub — truth reveal، The Architect | P0 |
+| Content-Final | Final Act (The Last Protocol) | separate small act — The Silent Protocol، binary choice ending | P0 |
 | Boss-3 | Leviathan Hulk (Act II) | referenced in WORLD_BIBLE، کد ندارد | P0 |
 | Boss-4 | Iron Magistrate (Act III) | referenced in WORLD_BIBLE، کد ندارد | P0 |
 | Boss-5 | The Architect (Act V) | referenced in WORLD_BIBLE، کد ندارد | P0 |
+| Boss-6 | The Silent Protocol (Final Act) | referenced in WORLD_BIBLE، کد ندارد | P0 |
 | Quest-2+ | Quest‌های بیشتر | فقط ۱ quest تعریف شده | P1 |
 | ShopSystem | سیستم فروشگاه | Kara has shopId but no ShopSystem | P1 |
 | CompanionAI | سیستم AI companion | ۷ companion تعریف شده، CompanionEntity فقط بصری | P1 |
 | Music | موسیقی | 0 tracks (AUDIO_BIBLE specifies 10%) | P1 |
-| Weapon-Unlock | 3 سلاح unobtainable | plasma_cannon, laser, energy_blade | P1 |
+| Weapon-Unlock | 1 سلاح unobtainable | laser (no unlock path). plasma_cannon + energy_blade boss-gated ✓ | P1 |
 | Paint-Unlock | 3 paint unobtainable | military_green, protocol_white, rust | P1 |
 
 ---

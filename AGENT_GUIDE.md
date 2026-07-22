@@ -40,7 +40,7 @@
 - **6 Enemy types**: drone, spider, heavy, sniper, flying_ai, elite — all with FSM AI
 - **2 Bosses**: Guardian AX-09 (Act I), Neural Overseer (Act IV) — phased combat
 - **29 Skills** across 6 trees (combat/weapon/movement/energy/protocol/survival)
-- **8 Weapons** (5 unlockable via skills, 3 with broken unlock paths)
+- **8 Weapons** (5 unlockable via skills/boss, 1 unobtainable: laser)
 - **3 Chassis** (scout/assault/titan) with stat multipliers
 - **4 Paints** (1 unlocked, 3 locked)
 - **7 Companions** (defined but CompanionSystem not implemented)
@@ -55,12 +55,12 @@
 - **Menu**: CONTINUE (resume active profile), LOAD GAME (switch profile), NEW GAME (create profile), Settings, How To Play
 
 ### What's Missing
-- **Acts II, III, V** — empty stubs (1-2 platforms per section, no content)
-- **3 Bosses** — Leviathan Hulk, Iron Magistrate, The Architect (referenced in WORLD_BIBLE but absent from code)
+- **Acts II, III, V, Final** — empty stubs (1-2 platforms per section, no content). Final Act is a separate small act per design decision.
+- **4 Bosses** — Leviathan Hulk (Act II), Iron Magistrate (Act III), The Architect (Act V), The Silent Protocol (Final Act) — referenced in WORLD_BIBLE but absent from code
 - **Music** — 0 tracks (AUDIO_BIBLE specifies 10% of mix)
 - **ShopSystem** — Kara has shopId but no ShopSystem exists
 - **CompanionSystem** — 7 companions defined but no AI/behavior system
-- **3 weapons unobtainable** — plasma_cannon, laser, energy_blade (unlockCondition never checked)
+- **1 weapon unobtainable** — laser (no unlock path). plasma_cannon and energy_blade ARE obtainable (boss-gated: Guardian AX-09 → plasma_cannon, Neural Overseer → energy_blade)
 - **3 paints unobtainable** — military_green, protocol_white, rust (no unlock path)
 - **Elite enemy** — defined but only spawns as mini-boss, not in regular enemy lists
 - **Ending** — no Act V content, no truth reveal, no binary choice
