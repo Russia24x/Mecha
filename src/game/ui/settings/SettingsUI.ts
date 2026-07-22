@@ -86,7 +86,14 @@ export class SettingsUI extends NavigableOverlay {
       this.categoryBgs.push(bg);
       this.categoryTexts.push(label);
       this.categoryIcons.push(icon);
-      this.registerNav(bg, label, () => {
+      // Categories are clickable (mouse) but NOT in the focusable list.
+      // D-pad up/down navigates between sliders only; L1/R1 switches categories.
+      // This prevents the "D-pad stuck on categories, can't reach sliders" issue.
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => {
+        AudioSystem.play('uiHover');
+      });
+      bg.on('pointerdown', () => {
         this.selectedCategory = cat.id;
         this.refreshOptions();
         AudioSystem.play('uiClick');
@@ -147,9 +154,9 @@ export class SettingsUI extends NavigableOverlay {
     this.optionElements.forEach(e => {
       e.objects.forEach(o => { if (o && o.active) o.destroy(); });
     });
-    // Remove old option nav elements (keep categories + back)
-    const numCats = CATEGORIES.length;
-    const numKeep = numCats + 1; // categories + back
+    // Remove old option nav elements (keep only back button — categories
+    // are no longer in the focusable list, they're tab-only now)
+    const numKeep = 1; // back button only
     this.navElements.splice(numKeep);
     this.optionElements = [];
 
@@ -220,6 +227,19 @@ export class SettingsUI extends NavigableOverlay {
         });
     } else if (this.selectedCategory === 'language') {
       this.makeLanguageToggle(rightX, optStartY);
+    }
+
+    // After rebuilding options, focus the first slider/option so D-pad
+    // navigation starts from the top of the options list (not categories).
+    const ctrl = this.getController();
+    if (ctrl) {
+      // Find first focusable that's NOT the back button (back is last)
+      const focusables = (ctrl as unknown as { focusables: Array<{ bg: Phaser.GameObjects.Shape }> }).focusables;
+      // focusIndex 0 = first option (slider/selector), last = back button
+      // Categories are no longer in focusable list, so index 0 = first option
+      (ctrl as unknown as { focusIndex: number }).focusIndex = 0;
+      // Trigger focus visual update
+      (ctrl as unknown as { updateFocusVisual: () => void }).updateFocusVisual?.();
     }
   }
 
