@@ -245,6 +245,16 @@ export class UIController {
   // ================ Per-frame update ================
 
   update(): void {
+    // Wrap in try/finally to ensure _sliderAdjusting flag is always reset,
+    // even if an exception occurs mid-update (prevents UI lockup).
+    try {
+      this._updateInternal();
+    } finally {
+      (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = false;
+    }
+  }
+
+  private _updateInternal(): void {
     const input = InputSystem.getState();
     this.navCooldown -= 16;
     this.clickCooldown -= 16;
@@ -353,11 +363,7 @@ export class UIController {
         this.navCooldown = 300;
       }
     }
-
-    // Clear slider adjustment flag (set by SettingsUI's preUpdateHandler).
-    // This must be cleared AFTER tab-switching check above so that the flag
-    // is only effective for the frame it was set.
-    (this as unknown as { _sliderAdjusting?: boolean })._sliderAdjusting = false;
+    // _sliderAdjusting flag is reset in update()'s finally block
   }
 
   /** Clear focus highlight on all buttons (when entering cursor mode). */

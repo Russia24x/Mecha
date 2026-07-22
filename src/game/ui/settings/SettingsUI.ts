@@ -292,6 +292,7 @@ export class SettingsUI extends NavigableOverlay {
       const focusables = (ctrl as unknown as { focusables: Array<{ bg: Phaser.GameObjects.Shape }> }).focusables;
       const focusIndex = (ctrl as unknown as { focusIndex: number }).focusIndex;
       const currentFocus = focusables?.[focusIndex];
+
       if (currentFocus?.bg !== sliderBg) return; // Not focused on this slider
 
       const input = InputSystem.getState();
