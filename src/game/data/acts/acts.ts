@@ -323,8 +323,7 @@ export const ACTS: ActData[] = [
                 { x: 1900, y: 280, w: 200, h: 16 },
                 { x: 2500, y: 260, w: 180, h: 16 },
               ], hazards: [
-                { type: 'lava', x: 2100, y: 660, w: 80, h: 20, damage: 15 },
-                { type: 'lava', x: 2600, y: 660, w: 100, h: 20, damage: 15 },
+                                { type: 'lava', x: 2600, y: 660, w: 100, h: 20, damage: 15 },
               ], loreObjects: [
                 { id: 'lore_w2_log', type: 'terminal', x: 1900, y: 270, titleKey: 'lore.w2.log.title', textKey: 'lore.w2.log.text' },
               ], collectibles: [
@@ -427,8 +426,7 @@ export const ACTS: ActData[] = [
               ], hazards: [
                 // Deep water flooding the hangar
                 { type: 'lava', x: 7900, y: 660, w: 300, h: 20, damage: 18 },
-                { type: 'lava', x: 8400, y: 660, w: 200, h: 20, damage: 18 },
-                { type: 'lava', x: 8800, y: 660, w: 300, h: 20, damage: 18 },
+                                { type: 'lava', x: 8800, y: 660, w: 300, h: 20, damage: 18 },
               ], loreObjects: [
                 { id: 'lore_w6_nameplate', type: 'corpse', x: 8500, y: 170, titleKey: 'lore.w6.nameplate.title', textKey: 'lore.w6.nameplate.text' },
               ], collectibles: [

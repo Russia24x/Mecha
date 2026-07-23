@@ -77,51 +77,61 @@ export class ParallaxBackground {
 
   // ─── SKY ────────────────────────────────────────────────────────────────
   private buildSky(): void {
-    const sky = this.scene.add.graphics();
-    sky.setDepth(-2); sky.setScrollFactor(0);
+    // Generate sky as a texture ONCE (not 720 fillRect calls per render)
     const w = GAME.WIDTH, h = GAME.HEIGHT;
+    const g = this.scene.add.graphics();
+
     if (this.theme === 'factory') {
       // Smoggy amber-brown gradient
-      for (let y = 0; y < h; y++) {
+      for (let y = 0; y < h; y += 2) {  // step by 2 = half the draw calls
         const t = y / h;
         const r = Math.floor(8 + t * 20);
-        const g = Math.floor(7 + t * 10);
+        const gg = Math.floor(7 + t * 10);
         const b = Math.floor(13 - t * 5);
-        sky.fillStyle((r << 16) | (g << 8) | b, 1);
-        sky.fillRect(0, y, w, 1);
+        g.fillStyle((r << 16) | (gg << 8) | b, 1);
+        g.fillRect(0, y, w, 2);
       }
-      // Faint horizon glow (amber — distant fires)
-      sky.fillStyle(0xffc040, 0.04);
-      sky.fillCircle(w * 0.7, h * 0.75, 200);
-      sky.fillStyle(0xff6020, 0.03);
-      sky.fillCircle(w * 0.3, h * 0.7, 180);
+      g.fillStyle(0xffc040, 0.04);
+      g.fillCircle(w * 0.7, h * 0.75, 200);
+      g.fillStyle(0xff6020, 0.03);
+      g.fillCircle(w * 0.3, h * 0.7, 180);
     } else if (this.theme === 'forest') {
-      // Deep green-teal gradient
-      for (let y = 0; y < h; y++) {
+      for (let y = 0; y < h; y += 2) {
         const t = y / h;
         const r = Math.floor(5 + t * 8);
-        const g = Math.floor(15 + t * 20);
+        const gg = Math.floor(15 + t * 20);
         const b = Math.floor(10 + t * 5);
-        sky.fillStyle((r << 16) | (g << 8) | b, 1);
-        sky.fillRect(0, y, w, 1);
+        g.fillStyle((r << 16) | (gg << 8) | b, 1);
+        g.fillRect(0, y, w, 2);
       }
-      // Misty glow
-      sky.fillStyle(0x40ff80, 0.025);
-      sky.fillCircle(w * 0.5, h * 0.4, 250);
+      g.fillStyle(0x40ff80, 0.025);
+      g.fillCircle(w * 0.5, h * 0.4, 250);
     } else {
-      // Wastes / generic — sickly green-gray gradient
-      for (let y = 0; y < h; y++) {
+      // Wastes — sickly green-gray gradient
+      for (let y = 0; y < h; y += 2) {
         const t = y / h;
         const r = Math.floor(8 + t * 10);
-        const g = Math.floor(12 + t * 8);
+        const gg = Math.floor(12 + t * 8);
         const b = Math.floor(6 + t * 4);
-        sky.fillStyle((r << 16) | (g << 8) | b, 1);
-        sky.fillRect(0, y, w, 1);
+        g.fillStyle((r << 16) | (gg << 8) | b, 1);
+        g.fillRect(0, y, w, 2);
       }
-      // Sickly fog glow (green-gray)
-      sky.fillStyle(0x4a5a40, 0.03);
-      sky.fillCircle(w * 0.5, h * 0.5, 300);
+      g.fillStyle(0x4a5a40, 0.03);
+      g.fillCircle(w * 0.5, h * 0.5, 300);
     }
+
+    // Generate texture from graphics — rendered once, reused as image
+    g.generateTexture('__sky_' + this.theme, w, h);
+    g.destroy();
+
+    // Create image from texture — much cheaper to render than Graphics
+    // Sky is ABOVE background art (depth -1.4 vs background -1.5) so it
+    // acts as a color overlay/tint on the background images.
+    const sky = this.scene.add.image(0, 0, '__sky_' + this.theme);
+    sky.setOrigin(0, 0);
+    sky.setDepth(-1.4);  // above background (-1.5), below far layer (-1)
+    sky.setScrollFactor(0);
+    sky.setAlpha(0.3);   // semi-transparent tint over background
     this.layers.push(sky);
   }
 

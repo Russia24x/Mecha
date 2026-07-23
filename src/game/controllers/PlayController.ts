@@ -367,6 +367,26 @@ export class PlayController {
       r.targetRegistry.unregisterBoss();
     }
 
+    // ── Physics culling — sleep/wake bodies based on camera viewport ──
+    // Matter.js checks ALL bodies every frame. Sleeping off-screen bodies
+    // dramatically reduces collision check complexity on large worlds.
+    if (r.loadedArea && r.scene.time.now % 500 < 16) {  // check every ~500ms
+      const cam = r.scene.cameras.main;
+      const viewLeft = cam.scrollX - 200;
+      const viewRight = cam.scrollX + cam.width + 200;
+      for (const body of r.loadedArea.solids) {
+        if (!body || !body.active) continue;
+        const bx = body.x;
+        const matterBody = body.body as unknown as { isSleeping?: boolean };
+        if (!matterBody) continue;
+        if (bx < viewLeft || bx > viewRight) {
+          if (!matterBody.isSleeping) matterBody.isSleeping = true;
+        } else {
+          if (matterBody.isSleeping) matterBody.isSleeping = false;
+        }
+      }
+    }
+
     // ── Out of bounds ──
     if (r.player.sprite.y > GAME.HEIGHT + 80) {
       r.player.takeDamage(25);
