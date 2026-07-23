@@ -61,8 +61,11 @@ export class AtmosphereSystem {
 
   // ─── FOG ────────────────────────────────────────────────────────────────
   private buildFog(): void {
-    const fogColor = this.theme === 'forest' ? 0x40a060 : 0x6a5a4a;
-    const fogCount = 4;
+    const fogColor = this.theme === 'forest' ? 0x40a060
+      : this.theme === 'wastes' ? 0x4a5a40  // sickly green-gray for swamps
+      : 0x6a5a4a;
+    // Wastes get denser fog (6 layers vs 4)
+    const fogCount = this.theme === 'wastes' ? 6 : 4;
     for (let i = 0; i < fogCount; i++) {
       const g = this.scene.add.graphics();
       g.setDepth(80 - i * 2);
@@ -155,9 +158,11 @@ export class AtmosphereSystem {
   private createParticle(): Particle {
     const color = this.theme === 'forest'
       ? [0x80ff80, 0xa0ffc0, 0x40ff80][Math.floor(Math.random() * 3)]
-      : this.theme === 'factory'
-        ? [0xffc040, 0xff8040, 0xffaa30][Math.floor(Math.random() * 3)]
-        : 0xa0a0a0;
+      : this.theme === 'wastes'
+        ? [0x6a8a50, 0x5a7a40, 0x8a9a60][Math.floor(Math.random() * 3)]  // sickly green-gray
+        : this.theme === 'factory'
+          ? [0xffc040, 0xff8040, 0xffaa30][Math.floor(Math.random() * 3)]
+          : 0xa0a0a0;
     const size = 0.8 + Math.random() * 1.6;
     const go = this.scene.add.circle(-100, -100, size, color, 0);
     go.setBlendMode(Phaser.BlendModes.ADD);
@@ -194,7 +199,9 @@ export class AtmosphereSystem {
 
   // ─── DEPTH HAZE (subtle distance fade) ──────────────────────────────────
   private buildDepthHaze(): void {
-    const hazeColor = this.theme === 'forest' ? 0x0a1a10 : 0x0a0805;
+    const hazeColor = this.theme === 'forest' ? 0x0a1a10
+      : this.theme === 'wastes' ? 0x0a1208  // dark murky green
+      : 0x0a0805;
     this.haze = this.scene.add.rectangle(
       GAME.WIDTH / 2, GAME.HEIGHT / 2,
       GAME.WIDTH, GAME.HEIGHT,

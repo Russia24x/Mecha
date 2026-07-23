@@ -166,6 +166,40 @@ export class ParallaxBackground {
         img.setFlipX(true);
       }
       container.add(img);
+
+      // ── Cover seams between tiles with decorative overlays ──
+      // Place a fog wisp or dark gradient at each tile boundary to hide the hard edge
+      if (i > 0) {
+        const seamX = x;
+        // Dark gradient strip at seam (blends left and right tiles)
+        const seam = this.scene.add.graphics();
+        seam.setDepth(-1.4);  // slightly above background
+        seam.fillStyle(0x000000, 0.3);
+        seam.fillRect(seamX - 30, 0, 60, GAME.HEIGHT);
+        // Gradient fade
+        for (let g = 0; g < 6; g++) {
+          seam.fillStyle(0x000000, 0.15 - g * 0.02);
+          seam.fillRect(seamX - 30 + g * 10, 0, 10, GAME.HEIGHT);
+          seam.fillRect(seamX + 30 - g * 10, 0, 10, GAME.HEIGHT);
+        }
+        container.add(seam);
+
+        // Fog wisp at seam (for wastes theme — extra atmospheric cover)
+        if (this.theme === 'wastes') {
+          const fogSeam = this.scene.add.circle(seamX, GAME.HEIGHT * 0.4, 60, 0x5a6a50, 0.08);
+          fogSeam.setBlendMode(Phaser.BlendModes.ADD);
+          fogSeam.setDepth(-1.3);
+          container.add(fogSeam);
+          this.tweens.push(this.scene.tweens.add({
+            targets: fogSeam,
+            alpha: { from: 0.04, to: 0.12 },
+            scale: { from: 0.8, to: 1.3 },
+            y: { from: GAME.HEIGHT * 0.35, to: GAME.HEIGHT * 0.45 },
+            duration: 4000 + Math.random() * 2000,
+            yoyo: true, repeat: -1, ease: 'Sine.inOut',
+          }));
+        }
+      }
     }
     this.layers.push(container);
 
