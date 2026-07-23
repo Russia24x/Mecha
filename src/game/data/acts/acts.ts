@@ -283,10 +283,10 @@ export const ACTS: ActData[] = [
             id: 'drowned_wastes_1',
             nameKey: 'area.drowned_wastes_1.name',
             regionId: 'wastes',
-            totalWidth: 18432,   // 12 sections × 1536 = doubled from 9216
+            totalWidth: 15360,   // 10 sections × 1536 = 15% shorter than 18432
             sectionWidth: 1536,
             bgColor: 0x0a0e08,
-            checkpointSections: [2, 5, 8, 11],
+            checkpointSections: [2, 5, 8],
             unlockedByDefault: false,
             sections: [
               // ═══════════════════════════════════════════════════════════════
@@ -468,151 +468,92 @@ export const ACTS: ActData[] = [
               ]},
 
               // ═══════════════════════════════════════════════════════════════
-              // Section 8: THE CONDUIT (NEW — checkpoint 3, puzzle platforming)
-              // Rusted energy conduits, exposed wiring, intermittent sparks.
-              // 3x mosquito_drones in tight space.
-              // Checkpoint 3.
-              // ═══════════════════════════════════════════════════════════════
-              { id: 8, nameKey: 'section.wastes.8.name', x: 10752, enemies: ['mosquito_drone', 'mosquito_drone', 'mosquito_drone'], platforms: [
-                // Tight platforming over exposed conduits
-                { x: 10900, y: 520, w: 100, h: 20 },
-                { x: 11120, y: 440, w: 80, h: 20 },
-                { x: 11300, y: 360, w: 80, h: 20 },
-                { x: 11480, y: 440, w: 80, h: 20 },
-                { x: 11660, y: 520, w: 100, h: 20 },
-                // Wall jump shafts (conduit pillars)
-                { x: 11200, y: 280, w: 30, h: 180 },
-                { x: 11500, y: 280, w: 30, h: 180 },
-                // Upper route
-                { x: 11000, y: 220, w: 200, h: 16 },
-                { x: 11500, y: 200, w: 160, h: 16 },
-              ], hazards: [
-                // Exposed wire hazards (laser type = energy conduit)
-                { type: 'laser', x: 11100, y: 480, w: 80, h: 6, damage: 14 },
-                { type: 'laser', x: 11400, y: 400, w: 80, h: 6, damage: 14 },
-                // Toxic water below
-                { type: 'lava', x: 10900, y: 660, w: 400, h: 20, damage: 18 },
-                { type: 'lava', x: 11400, y: 660, w: 300, h: 20, damage: 18 },
-              ], collectibles: [
-                { id: 'col_w8_health', type: 'health_fragment', x: 11500, y: 170, requiredAbility: 'wallJump' },
-              ]},
-
-              // ═══════════════════════════════════════════════════════════════
-              // Section 9: THE DEPTHS (NEW — darkest section, heavy atmosphere)
-              // Descending into the deepest part of the swamp.
-              // 6x enemies: all types, intense combat.
-              // Memory Layer: A recording playing on loop from a submerged speaker.
-              // ═══════════════════════════════════════════════════════════════
-              { id: 9, nameKey: 'section.wastes.9.name', x: 12288, enemies: ['drowned_walker', 'drowned_walker', 'mosquito_drone', 'mosquito_drone', 'drowned_walker', 'mosquito_drone'], platforms: [
-                // Descending platforms into darkness
-                { x: 12460, y: 500, w: 120, h: 20 },
-                { x: 12700, y: 540, w: 100, h: 20 },
-                { x: 12920, y: 580, w: 120, h: 24 },
-                { x: 13160, y: 540, w: 100, h: 20 },
-                { x: 13400, y: 500, w: 120, h: 20 },
-                { x: 13640, y: 540, w: 100, h: 20 },
-                // Upper escape route
-                { x: 12500, y: 300, w: 160, h: 16 },
-                { x: 13000, y: 260, w: 140, h: 16 },
-                { x: 13500, y: 300, w: 160, h: 16 },
-              ], hazards: [
-                { type: 'lava', x: 12400, y: 660, w: 300, h: 20, damage: 22 },
-                { type: 'lava', x: 13000, y: 660, w: 300, h: 20, damage: 22 },
-                { type: 'lava', x: 13500, y: 660, w: 200, h: 20, damage: 22 },
-                { type: 'spike', x: 12920, y: 640, w: 60, h: 20, damage: 14 },
-              ], loreObjects: [
-                { id: 'lore_w9_speaker', type: 'terminal', x: 13000, y: 250, titleKey: 'lore.w9.speaker.title', textKey: 'lore.w9.speaker.text' },
-              ], collectibles: [
-                { id: 'col_w9_weapon', type: 'weapon_part', x: 13500, y: 270 },
-              ]},
-
-              // ═══════════════════════════════════════════════════════════════
-              // Section 10: THE SHADOW (NEW — silhouette of the Leviathan)
+              // Section 8: THE SHADOW (silhouette of the Leviathan)
               // First glimpse of the Leviathan Hulk in the distance.
               // 4x drowned_walkers, gauntlet before final approach.
               // Memory Layer: She is visible now. Still standing. Still waiting.
               // ═══════════════════════════════════════════════════════════════
-              { id: 10, nameKey: 'section.wastes.10.name', x: 13824, enemies: ['drowned_walker', 'drowned_walker', 'drowned_walker', 'drowned_walker'], platforms: [
+              { id: 8, nameKey: 'section.wastes.8.name', x: 10752, enemies: ['drowned_walker', 'drowned_walker', 'drowned_walker', 'drowned_walker'], platforms: [
                 // Long narrow pathway toward the Leviathan
-                { x: 14000, y: 540, w: 200, h: 24 },
-                { x: 14300, y: 480, w: 120, h: 20 },
-                { x: 14560, y: 420, w: 100, h: 20 },
-                { x: 14800, y: 480, w: 120, h: 20 },
-                { x: 15060, y: 540, w: 200, h: 24 },
+                { x: 10928, y: 540, w: 200, h: 24 },
+                { x: 11228, y: 480, w: 120, h: 20 },
+                { x: 11488, y: 420, w: 100, h: 20 },
+                { x: 11728, y: 480, w: 120, h: 20 },
+                { x: 11988, y: 540, w: 200, h: 24 },
                 // Elevated sniper perch
-                { x: 14400, y: 280, w: 160, h: 16 },
-                { x: 14900, y: 260, w: 140, h: 16 },
+                { x: 11328, y: 280, w: 160, h: 16 },
+                { x: 11828, y: 260, w: 140, h: 16 },
               ], hazards: [
-                { type: 'lava', x: 14200, y: 660, w: 200, h: 20, damage: 20 },
-                { type: 'lava', x: 14700, y: 660, w: 200, h: 20, damage: 20 },
+                { type: 'lava', x: 11128, y: 660, w: 200, h: 20, damage: 20 },
+                { type: 'lava', x: 11628, y: 660, w: 200, h: 20, damage: 20 },
               ], loreObjects: [
-                { id: 'lore_w10_shadow', type: 'terminal', x: 14400, y: 270, titleKey: 'lore.w10.shadow.title', textKey: 'lore.w10.shadow.text' },
+                { id: 'lore_w8_shadow', type: 'terminal', x: 14400, y: 270, titleKey: 'lore.w10.shadow.title', textKey: 'lore.w10.shadow.text' },
               ], landmarks: [
                 // Distant Leviathan silhouette (first sighting)
-                { id: 'lm_w10_leviathan_silhouette', type: 'tower', x: 16000, y: 100, w: 300, h: 500, color: 0x1a2a18 },
+                { id: 'lm_w8_leviathan_silhouette', type: 'tower', x: 12928, y: 100, w: 300, h: 500, color: 0x1a2a18 },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
-              // Section 11: THE VIGIL (checkpoint 4, final calm before boss)
+              // Section 9: THE VIGIL (checkpoint 3, final calm before boss)
               // At the feet of the Leviathan. Quiet. Overwhelming scale.
               // Memory Layer: The pilot's log — the last recording before the fight.
               // Checkpoint 4.
               // ═══════════════════════════════════════════════════════════════
-              { id: 11, nameKey: 'section.wastes.11.name', x: 15360, enemies: [], platforms: [
+              { id: 9, nameKey: 'section.wastes.9.name', x: 12288, enemies: [], platforms: [
                 // Wide platform at the base of the Leviathan
-                { x: 15600, y: 520, w: 400, h: 24 },
-                { x: 16100, y: 460, w: 200, h: 20 },
-                { x: 16400, y: 380, w: 160, h: 20 },
+                { x: 12528, y: 520, w: 400, h: 24 },
+                { x: 13028, y: 460, w: 200, h: 20 },
+                { x: 13328, y: 380, w: 160, h: 20 },
                 // Upper ledge (lore access — the cockpit)
-                { x: 15800, y: 280, w: 200, h: 16 },
-                { x: 16200, y: 220, w: 160, h: 16 },
+                { x: 12728, y: 280, w: 200, h: 16 },
+                { x: 13128, y: 220, w: 160, h: 16 },
                 // Walls blocking S11→S12 (boss arena entrance)
-                { x: 16860, y: 360, w: 40, h: 200 },
+                { x: 13788, y: 360, w: 40, h: 200 },
                 { x: 16860, y: 540, w: 40, h: 160 },
               ], loreObjects: [
                 // The pilot's final log — in the cockpit
-                { id: 'lore_w11_cockpit', type: 'terminal', x: 15800, y: 270, titleKey: 'lore.w11.cockpit.title', textKey: 'lore.w11.cockpit.text' },
+                { id: 'lore_w9_cockpit', type: 'terminal', x: 15800, y: 270, titleKey: 'lore.w11.cockpit.title', textKey: 'lore.w11.cockpit.text' },
                 // Names list — all the pilots who served under her
-                { id: 'lore_w11_names', type: 'corpse', x: 16200, y: 210, titleKey: 'lore.w11.names.title', textKey: 'lore.w11.names.text' },
+                { id: 'lore_w9_names', type: 'corpse', x: 16200, y: 210, titleKey: 'lore.w11.names.title', textKey: 'lore.w11.names.text' },
               ], collectibles: [
-                { id: 'col_w11_health', type: 'health_fragment', x: 16400, y: 350 },
+                { id: 'col_w9_health', type: 'health_fragment', x: 16400, y: 350 },
               ], shortcuts: [
-                { id: 'sc_w11_to_s12', x: 16860, y: 650, w: 40, h: 60, toSection: 12, opensFrom: 'left' },
+                { id: 'sc_w9_to_s10', x: 16860, y: 650, w: 40, h: 60, toSection: 10, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════
-              // Section 12: LEVIATHAN'S REST (boss arena — redesigned)
+              // Section 10: LEVIATHAN'S REST (boss arena — redesigned)
               // At the base of the 80-meter mech. She towers above.
               // The arena is surrounded by her body parts — legs like walls,
               // hands like platforms. Water pools at her feet.
               // Boss: THE LEVIATHAN HULK
               // Memory Layer: She is still standing. Still protecting.
               // ═══════════════════════════════════════════════════════════════
-              { id: 12, nameKey: 'section.wastes.12.name', x: 16896, enemies: [], bossId: 'leviathan_hulk', platforms: [
+              { id: 10, nameKey: 'section.wastes.10.name', x: 13824, enemies: [], bossId: 'leviathan_hulk', platforms: [
                 // Arena floor — wide, flat, at her feet
-                { x: 17100, y: 560, w: 600, h: 24 },
-                { x: 17800, y: 560, w: 600, h: 24 },
+                { x: 14028, y: 560, w: 600, h: 24 },
+                { x: 14728, y: 560, w: 600, h: 24 },
                 // Leviathan's legs as side walls (tall, imposing)
-                { x: 16940, y: 200, w: 60, h: 380 },   // left leg
-                { x: 18380, y: 200, w: 60, h: 380 },   // right leg
+                { x: 13868, y: 200, w: 60, h: 380 },   // left leg
+                { x: 15308, y: 200, w: 60, h: 380 },   // right leg
                 // Her fallen hand as a platform (right side, mid-height)
-                { x: 18000, y: 400, w: 200, h: 24 },
+                { x: 14928, y: 400, w: 200, h: 24 },
                 // Her other hand (left side, lower)
-                { x: 17200, y: 460, w: 180, h: 24 },
+                { x: 14128, y: 460, w: 180, h: 24 },
                 // Knee platform (center, high — for dodging beam)
-                { x: 17550, y: 320, w: 150, h: 20 },
+                { x: 14478, y: 320, w: 150, h: 20 },
                 // Shoulder ledge (highest — for collectible/lore after fight)
-                { x: 17600, y: 200, w: 200, h: 16 },
+                { x: 14528, y: 200, w: 200, h: 16 },
                 // Water pools at her feet (hazards)
               ], hazards: [
                 // Shallow toxic water on arena floor edges
-                { type: 'lava', x: 17100, y: 660, w: 100, h: 20, damage: 10 },
-                { type: 'lava', x: 18300, y: 660, w: 100, h: 20, damage: 10 },
+                { type: 'lava', x: 14028, y: 660, w: 100, h: 20, damage: 10 },
+                { type: 'lava', x: 15228, y: 660, w: 100, h: 20, damage: 10 },
               ], landmarks: [
                 // The Leviathan herself — massive tower silhouette
-                { id: 'lm_w12_leviathan_body', type: 'tower', x: 17400, y: 100, w: 400, h: 500, color: 0x2a3a20 },
+                { id: 'lm_w10_leviathan_body', type: 'tower', x: 14328, y: 100, w: 400, h: 500, color: 0x2a3a20 },
                 // Her head — visible at the very top
-                { id: 'lm_w12_leviathan_head', type: 'control_room', x: 17500, y: 50, w: 200, h: 100, color: 0x3a4a30 },
+                { id: 'lm_w10_leviathan_head', type: 'control_room', x: 14428, y: 50, w: 200, h: 100, color: 0x3a4a30 },
               ]},
             ],
           },

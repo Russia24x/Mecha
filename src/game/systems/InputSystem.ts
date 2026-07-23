@@ -358,6 +358,8 @@ export class InputSystem {
         // (was: only grapple/emp, which UI never reads)
         if (edge(12)) { this.kbEdge.grapple = true; if (!this.gameplayBlocked) this.callbacks.grapple?.(); }
         if (edge(13)) { this.kbEdge.emp = true; if (!this.gameplayBlocked) this.callbacks.emp?.(); }
+        // D-pad Left (button 14) = Repair kit (heal flask)
+        if (edge(14)) { this.kbEdge.repair = true; }
         // D-pad Up/Down for UI navigation (same as keyboard Arrow Up/Down)
         if (held(12)) this.state.heldUp = true; else if (!this.kbHeld.up) this.state.heldUp = false;
         if (held(13)) this.state.heldDown = true; else if (!this.kbHeld.down) this.state.heldDown = false;

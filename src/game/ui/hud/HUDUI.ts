@@ -35,6 +35,9 @@ export class HUDUI {
   private checkpointText: Phaser.GameObjects.Text;
   private scene: Phaser.Scene;
   private lowHpVignette: Phaser.GameObjects.Rectangle;
+  // Repair kit display
+  private repairContainers: Phaser.GameObjects.Container[] = [];
+  private repairCountText: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, private player: PlayerEntity) {
     this.scene = scene;
@@ -73,6 +76,46 @@ export class HUDUI {
       fontFamily: 'monospace', fontSize: '10px', color: '#4090ff', stroke: '#000', strokeThickness: 2,
     })).setOrigin(0, 0.5);
     this.container.add([eBg, this.energyBarFg, this.energyText]);
+
+    // === REPAIR KIT DISPLAY (below energy bar) ===
+    // Two hexagonal charge indicators — filled = available, empty = used.
+    // Inspired by Dark Souls Estus Flask icons but mech-themed (circuit nodes).
+    this.container.add(scene.add.text(30, 80, 'REPAIR', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM, letterSpacing: 2,
+    })));
+    for (let i = 0; i < 2; i++) {
+      const rcX = 32 + i * 22;
+      const rcY = 96;
+      const rc = scene.add.container(rcX, rcY);
+      // Hexagon outline (circuit node style)
+      const hex = scene.add.polygon(0, 0, [
+        0, -7, 6, -3.5, 6, 3.5, 0, 7, -6, 3.5, -6, -3.5,
+      ], 0x051008, 1);
+      hex.setStrokeStyle(1, 0x40ff60, 0.6);
+      hex.setDepth(1);
+      rc.add(hex);
+      // Inner glow (filled when charge available)
+      const glow = scene.add.circle(0, 0, 4, 0x40ff60, 0.4);
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      glow.setDepth(2);
+      rc.add(glow);
+      // Pulsing animation when charged
+      scene.tweens.add({
+        targets: glow,
+        alpha: { from: 0.2, to: 0.5 },
+        scale: { from: 0.8, to: 1.1 },
+        duration: 1200 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      });
+      rc.setData('glow', glow);
+      rc.setData('hex', hex);
+      this.repairContainers.push(rc);
+      this.container.add(rc);
+    }
+    // Key hint (R / D-pad Left)
+    this.repairCountText = scene.add.text(80, 96, '[R]', fixTextStyle({
+      fontFamily: 'monospace', fontSize: '8px', color: THEME.TEXT_DIM,
+    })).setOrigin(0, 0.5);
+    this.container.add(this.repairCountText);
 
     // === CENTER: Sector name ===
     this.sectionText = scene.add.text(w / 2, 30, t('section.1.name'), fixTextStyle({
@@ -173,6 +216,24 @@ export class HUDUI {
     const sp = ExperienceSystem.getSkillPoints();
     this.levelText.setText(`LV.${level}  ${xp}/${xpNeeded}  ◆${sp}`);
     this.xpBarFg.setDisplaySize(168 * ExperienceSystem.getLevelProgress(), 3);
+
+    // Repair kit charges
+    const charges = this.player.getRepairCharges();
+    const maxCharges = this.player.getMaxRepairCharges();
+    for (let i = 0; i < this.repairContainers.length; i++) {
+      const rc = this.repairContainers[i];
+      const glow = rc.getData('glow') as Phaser.GameObjects.Arc;
+      const hex = rc.getData('hex') as Phaser.GameObjects.Polygon;
+      if (i < charges) {
+        // Charged — glow visible, hex bright
+        glow.setVisible(true);
+        hex.setStrokeStyle(1, 0x40ff60, 0.8);
+      } else {
+        // Empty — glow hidden, hex dim
+        glow.setVisible(false);
+        hex.setStrokeStyle(1, 0x2a3a20, 0.4);
+      }
+    }
   }
 
   setSection(nameKey: string): void {
