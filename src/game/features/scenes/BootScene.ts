@@ -22,6 +22,9 @@ export class BootScene extends Phaser.Scene {
     // ── Load background art assets (user-provided images) ──
     this.load.image('factory_bg_1', '/game-assets/backgrounds/factory_bg_1.png');
     this.load.image('factory_bg_2', '/game-assets/backgrounds/factory_bg_2.png');
+    this.load.image('wastes_bg_1', '/game-assets/backgrounds/wastes_bg_1.png');
+    this.load.image('wastes_bg_2', '/game-assets/backgrounds/wastes_bg_2.png');
+    this.load.image('wastes_bg_3', '/game-assets/backgrounds/wastes_bg_3.png');
 
     // Loading bar.
     const w = GAME.WIDTH;

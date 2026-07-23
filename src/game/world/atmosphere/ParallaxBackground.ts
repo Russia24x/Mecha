@@ -122,13 +122,24 @@ export class ParallaxBackground {
    * painted/artistic backdrop instead of just procedural graphics.
    */
   private buildBackgroundArt(): void {
-    if (this.theme !== 'factory') return;  // only factory has art for now
+    // Only factory and wastes have art for now
+    if (this.theme !== 'factory' && this.theme !== 'wastes') return;
 
-    // Check if textures are loaded
-    if (!this.scene.textures.exists('factory_bg_1')) return;
-    if (!this.scene.textures.exists('factory_bg_2')) return;
+    // Determine texture keys based on theme
+    const bgKeys: string[] = [];
+    if (this.theme === 'factory') {
+      if (!this.scene.textures.exists('factory_bg_1')) return;
+      bgKeys.push('factory_bg_1');
+      if (this.scene.textures.exists('factory_bg_2')) bgKeys.push('factory_bg_2');
+    } else if (this.theme === 'wastes') {
+      if (!this.scene.textures.exists('wastes_bg_1')) return;
+      bgKeys.push('wastes_bg_1');
+      if (this.scene.textures.exists('wastes_bg_2')) bgKeys.push('wastes_bg_2');
+      if (this.scene.textures.exists('wastes_bg_3')) bgKeys.push('wastes_bg_3');
+    }
+    if (bgKeys.length === 0) return;
 
-    const textureKey = 'factory_bg_1';
+    const textureKey = bgKeys[0];
     const tex = this.scene.textures.get(textureKey);
     const imgW = tex.getSourceImage().width;
     const imgH = tex.getSourceImage().height;
@@ -141,17 +152,15 @@ export class ParallaxBackground {
     const container = this.scene.add.container(0, 0);
     container.setDepth(-1.5);  // between sky (-2) and far layer (-1)
     container.setScrollFactor(0.15, 0.05);  // slow parallax
-    container.setAlpha(0.65);  // semi-transparent so it blends with sky
+    container.setAlpha(this.theme === 'wastes' ? 0.7 : 0.65);  // wastes slightly more visible
 
     for (let i = 0; i < tileCount; i++) {
       const x = i * tileW;
-      const img = this.scene.add.image(x, GAME.HEIGHT / 2, textureKey);
+      // Cycle through available textures for variety
+      const key = bgKeys[i % bgKeys.length];
+      const img = this.scene.add.image(x, GAME.HEIGHT / 2, key);
       img.setOrigin(0, 0.5);
       img.setScale(scale);
-      // Alternate between the two images for variety
-      if (i % 2 === 1 && this.scene.textures.exists('factory_bg_2')) {
-        img.setTexture('factory_bg_2');
-      }
       // Flip every other tile for seamless tiling
       if (i % 2 === 1) {
         img.setFlipX(true);

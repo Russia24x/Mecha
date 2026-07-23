@@ -22,7 +22,7 @@ import { CheckpointSystem } from '../world/CheckpointSystem';
 import { WorldSystem } from '../world/WorldSystem';
 import { resetEnemyIds } from '../entities/enemies/EnemyEntity';
 import { AreaLoader, type LoadedArea } from '../world/AreaLoader';
-import { ParallaxBackground } from '../world/atmosphere/ParallaxBackground';
+import { ParallaxBackground, type RegionTheme } from '../world/atmosphere/ParallaxBackground';
 import { AtmosphereSystem } from '../world/atmosphere/AtmosphereSystem';
 import { ForestEnvironmentSystem } from '../world/atmosphere/ForestEnvironmentSystem';
 import { MetroidvaniaController } from '../world/MetroidvaniaController';
@@ -168,10 +168,12 @@ export class PlayController {
     const stageStartTime = scene.time.now;
 
     // ── Parallax + atmosphere + forest environment ──
-    const theme = (area.regionId === 'forest') ? 'forest' : 'factory';
-    const parallax = new ParallaxBackground(scene, theme as 'factory' | 'forest', area.totalWidth);
+    const theme = (area.regionId === 'forest') ? 'forest'
+      : (area.regionId === 'wastes') ? 'wastes'
+      : 'factory';
+    const parallax = new ParallaxBackground(scene, theme as RegionTheme, area.totalWidth);
     parallax.build();
-    const atmosphere = new AtmosphereSystem(scene, theme as 'factory' | 'forest', area.totalWidth);
+    const atmosphere = new AtmosphereSystem(scene, theme as 'factory' | 'forest' | 'wastes', area.totalWidth);
     atmosphere.build();
     const forestEnv = theme === 'forest' ? new ForestEnvironmentSystem(scene, area.totalWidth) : null;
     forestEnv?.build();
