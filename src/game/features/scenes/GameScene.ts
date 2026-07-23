@@ -184,6 +184,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private async createAsync(): Promise<void> {
+    // ── Performance: cap TweenManager tick rate to 60fps ──
+    // Per Phaser 4 tweens skill: default is 240fps (4x per render frame).
+    // This is overkill for visual tweens and wastes CPU on large worlds.
+    // 60fps matches display refresh rate — visually identical, 4x cheaper.
+    this.tweens.setFps(60);
+
     // Init audio
     AudioSystem.init();
     AudioSystem.resume();

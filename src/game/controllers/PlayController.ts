@@ -40,6 +40,7 @@ import { BossEntity } from '../entities/boss/BossEntity';
 import { Projectile } from '../entities/combat/Projectile';
 import { TargetRegistry } from '../entities/combat/TargetRegistry';
 import { CollisionController } from './CollisionController';
+import { VisualCuller } from '../systems/VisualCuller';
 import type { CameraSystem } from '../systems/CameraSystem';
 import type { PhysicsSystem } from '../systems/PhysicsSystem';
 import type { ParticleSystem } from '../systems/ParticleSystem';
@@ -390,6 +391,17 @@ export class PlayController {
       PlayController.cullAccumulator = 0;
       PlayController.runCulling(r);
     }
+
+    // ── Visual culling — setVisible(false) for off-screen GameObjects ──
+    // Per Phaser 4 sprites-and-images skill: Phaser does NOT automatically
+    // cull GameObjects outside the camera viewport. Every object on the
+    // display list is processed each frame (matrix transform + batch submit),
+    // even if off-screen. This is the #1 cause of FPS drops in large Acts.
+    //
+    // VisualCuller handles: visualRects (platforms/decorations/hazards),
+    // loreObjects, landmarks, grappleAnchors, empDoors, shortcuts, collectibles.
+    // It self-throttles to ~4x per second and uses camera.worldView for accuracy.
+    VisualCuller.update(deltaMs, r.loadedArea, r.scene);
 
     // ── Out of bounds ──
     if (r.player.sprite.y > GAME.HEIGHT + 80) {
