@@ -152,7 +152,10 @@ export class ForestEnvironmentSystem {
       const y = 100 + Math.random() * 80;
       const container = this.scene.add.container(x, y);
       container.setDepth(1);
-      container.setScrollFactor(0.3, 0.1);  // parallax
+      // ⚠️ Propagate scrollFactor to children (trunk, branches, leaves).
+      // Without `true`, the container parallaxes but its children stay at
+      // scrollFactor=1 — trees appear "detached" from their own trunks.
+      container.setScrollFactor(0.3, 0.1, true);  // parallax
       // Trunk
       const trunk = this.scene.add.graphics();
       trunk.fillStyle(0x1a2a14, 0.7);

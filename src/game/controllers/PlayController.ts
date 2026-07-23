@@ -370,21 +370,25 @@ export class PlayController {
     // ── Physics culling — sleep/wake bodies based on camera viewport ──
     // Matter.js checks ALL bodies every frame. Sleeping off-screen bodies
     // dramatically reduces collision check complexity on large worlds.
-    if (r.loadedArea && r.scene.time.now % 500 < 16) {  // check every ~500ms
-      const cam = r.scene.cameras.main;
-      const viewLeft = cam.scrollX - 200;
-      const viewRight = cam.scrollX + cam.width + 200;
-      for (const body of r.loadedArea.solids) {
-        if (!body || !body.active) continue;
-        const bx = body.x;
-        const matterBody = body.body as unknown as { isSleeping?: boolean };
-        if (!matterBody) continue;
-        if (bx < viewLeft || bx > viewRight) {
-          if (!matterBody.isSleeping) matterBody.isSleeping = true;
-        } else {
-          if (matterBody.isSleeping) matterBody.isSleeping = false;
-        }
-      }
+    //
+    // Per Phaser 4 physics-matter skill: setting body.isSleeping = true
+    // causes Matter.js to skip the body in its broad-phase collision pass.
+    // We wake it back up when the camera viewport approaches.
+    //
+    // ⚠️ NOTE on the previous implementation:
+    //   The old code used `if (scene.time.now % 500 < 16)` which is
+    //   UNRELIABLE — Phaser's time.now advances by variable delta per frame
+    //   (16.67ms at 60fps, but can be 33ms at 30fps, or larger on hitches),
+    //   so the modulo window can be SKIPPED ENTIRELY. With a delta of 33ms
+    //   on a low-end device, every 500ms tick is jumped over. Result: the
+    //   culling code NEVER ran in practice on slow machines (the very
+    //   machines that need it most).
+    //
+    //   The fix below uses a proper accumulator that survives any delta.
+    PlayController.cullAccumulator += deltaMs;
+    if (PlayController.cullAccumulator >= PlayController.CULL_INTERVAL_MS) {
+      PlayController.cullAccumulator = 0;
+      PlayController.runCulling(r);
     }
 
     // ── Out of bounds ──
@@ -412,6 +416,68 @@ export class PlayController {
   }
 
   constructor(private refs: PlayControllerRefs) {}
+
+  // ── Physics culling state ──
+  // Cull interval: how often (in ms) we re-evaluate body sleep state.
+  // 500ms is a good balance — short enough that bodies wake before the
+  // camera reaches them (player moves ~5px/frame at walk speed = 80px in
+  // 500ms, well within the 200px viewport margin), long enough that we
+  // don't burn CPU re-iterating the body list every frame.
+  //
+  // NOTE: static because PlayController.update() is static (stateless
+  // delegation pattern — see class doc). The accumulator persists across
+  // frames for the lifetime of the play session.
+  private static readonly CULL_INTERVAL_MS = 500;
+  private static cullAccumulator = 0;
+
+  /**
+   * Sleep/wake Matter bodies based on whether they're inside (or near)
+   * the camera viewport. Sleeping bodies are skipped by Matter's broad-phase
+   * collision pass, saving CPU on large worlds with many platforms/hazards.
+   *
+   * Culls three categories:
+   *   1. solids       — platforms/walls/floor (most numerous)
+   *   2. hazardTriggers — spike/lava/laser sensors (heavy on collision checks
+   *                       because they're sensors that fire overlap events)
+   *   3. sectionTriggers — section-entry sensors (lightweight but numerous)
+   *
+   * Per Phaser 4 physics-matter skill: setting body.isSleeping = true is the
+   * supported way to skip a body. We use a 200px margin around the viewport
+   * so bodies wake slightly before they become visible (prevents pop-in of
+   * collision when the player dashes into a screen-edge platform).
+   *
+   * NOTE: checkpointTriggers are NOT culled — they are few in number (4 per
+   * area) and we want them always-active so the player can't miss a save by
+   * dashing through it during a cull cycle.
+   */
+  private static runCulling(r: PlayUpdateRefs): void {
+    if (!r.loadedArea) return;
+    const cam = r.scene.cameras.main;
+    const margin = 200;  // px beyond viewport edges
+    const viewLeft = cam.scrollX - margin;
+    const viewRight = cam.scrollX + cam.width + margin;
+
+    const cullList: Phaser.Physics.Matter.Image[] = [
+      ...r.loadedArea.solids,
+      ...r.loadedArea.hazardTriggers,
+      ...r.loadedArea.sectionTriggers,
+    ];
+
+    for (const body of cullList) {
+      if (!body || !body.active) continue;
+      const bx = body.x;
+      // Cast through to the Matter body — Phaser 4's MatterImage stores
+      // its physics body on .body, but TS types hide isSleeping.
+      const matterBody = body.body as unknown as { isSleeping?: boolean };
+      if (!matterBody) continue;
+      const offscreen = bx < viewLeft || bx > viewRight;
+      if (offscreen && !matterBody.isSleeping) {
+        matterBody.isSleeping = true;
+      } else if (!offscreen && matterBody.isSleeping) {
+        matterBody.isSleeping = false;
+      }
+    }
+  }
 
   /**
    * Destroy the play state — MUST be called in this exact order.

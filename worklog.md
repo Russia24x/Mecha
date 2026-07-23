@@ -2108,3 +2108,62 @@ Stage Summary:
 - AreaLoader is now 675 lines (was 1369) — under 700-line guideline
 - Factory and Forest rendering preserved byte-for-byte — no visual regression
 - Ready for Act II (WastesAreaStrategy) to be written directly as a Strategy class
+
+---
+Task ID: polish-fps-gameover-parallax
+Agent: main
+Task: Execute the comprehensive review-recommended polish items: (1) fix RETRY wiping checkpoint, (2) fix culling accumulator unreliability, (3) propagate scrollFactor to container children, (4) extract GameOverUI to standalone file, (5) clean dead i18n folder, (6) check SpriteGPULayer suitability. Use Phaser 4.2.1 skill guidance throughout.
+
+Work Log:
+- Loaded skills: groups-and-containers (confirmed setScrollFactor needs `true` 3rd arg for propagation), v4-new-features (reviewed SpriteGPULayer criteria).
+- Created src/game/ui/gameover/GameOverUI.ts (standalone component, 130 lines):
+  * Extracted from GameScene.buildGameOver() inline implementation.
+  * Accepts container + menuNav + lostXp + hasCheckpoint + callbacks.
+  * Added new "checkpoint status hint" line ("FROM LAST CHECKPOINT" or "FROM AREA START") so player knows where RETRY will put them.
+  * Critical: RETRY does NOT call CheckpointSystem.clear(). Player returns to last checkpoint (or area start if none, via CheckpointSystem.getRespawnPosition() fallback).
+- GameScene.buildGameOver() now delegates to GameOverUI (35 lines → 22 lines).
+- Fixed PlayController culling bug:
+  * OLD: `if (scene.time.now % 500 < 16)` — UNRELIABLE because time.now advances by variable delta (16.67ms at 60fps, 33ms at 30fps). On slow machines the modulo window is SKIPPED entirely, so culling NEVER ran.
+  * NEW: proper static accumulator `cullAccumulator += deltaMs; if (cullAccumulator >= CULL_INTERVAL_MS)`. Survives any delta.
+  * Extended culling to hazardTriggers + sectionTriggers (was solids-only). Now culls 3 categories.
+  * Verified at runtime via agent-browser: of 49 solids in tutorial area, 42 are sleeping and 7 are awake when camera is at scrollX=0 — exactly the expected behavior.
+- Fixed ParallaxBackground scrollFactor propagation (5 containers):
+  * buildBackgroundArt container (0.15, 0.05)
+  * buildFactoryMid container (cfg.scrollX, cfg.scrollY)
+  * buildFactoryNear container
+  * buildForestMid container
+  * buildForestNear container
+  All now pass `true` as 3rd arg so child Images/Graphics inherit the parallax factor. Previously children kept scrollFactor=1 (full camera follow) causing them to "swim" relative to the container.
+- Same fix applied to ForestEnvironmentSystem.buildTrees() container (was missing `true`).
+- Removed dead i18n folder (src/game/i18n/{en,fa,index.ts}). Confirmed no imports anywhere in src/ — the project uses src/game/data/localization/{en,fa}.json + LocalizationSystem instead.
+- SpriteGPULayer investigation (per v4-new-features skill):
+  * SpriteGPULayer is designed for "very large numbers of quads (up to millions) in a single draw call".
+  * Our use case: ~6-8 background tiles per act, multiple textures, runtime scale/flip changes, alpha tweens, seam cover layers.
+  * Verdict: NOT suitable. SpriteGPULayer supports single-texture only, requires static buffer (runtime mutations expensive), WebGL-only (no Canvas fallback). The Container+Image approach with the setScrollFactor fix is already optimal for our scale.
+- Cleanup: also soft-reset an accidental commit `1bc5f34` (was unpushed, contained tool-results/ scratch files with meaningless commit message). Soft-reset preserved all working tree changes; re-staging only the legitimate code changes.
+- Wastes lore objects audit (cross-referenced WORLD_BIBLE.md):
+  * Already complete — all 5 WORLD_BIBLE-specified lore objects are implemented in acts.ts:
+    - lore_w3_names (carved pilot names on hull)
+    - lore_w4_awaiting (AWAITING ORDER panel)
+    - lore_w5_photo (family photo in cockpit)
+    - lore_w5_recording (last recording)
+    - lore_w11_cockpit (pilot's log)
+    - lore_w11_names (crew list — 47 names)
+  * All have EN + FA localization. No additional work needed.
+
+GATE:
+- tsc --strict: 4 errors (all pre-existing in examples/skills, 0 in src/game/)
+- Browser test: HTTP 200, game loads, menu renders, profile create → hub → enter play all functional
+- Runtime verification: culling working (42/49 solids sleeping at scrollX=0)
+- Console: 0 errors, 0 warnings
+- VLM confirmed: parallax layers moving coherently, no detached visual elements
+- Performance: FPS 150, frame time 3.1ms (measured via PerformanceOverlay F3)
+
+Stage Summary:
+- 6 polish items addressed, 1 explicitly declined with documented rationale (SpriteGPULayer)
+- GameOverUI extracted to standalone file (consistent with MenuBuilder/HubBuilder pattern)
+- RETRY now returns player to last checkpoint (matches Pause menu's "CHECKPOINT" button behaviour)
+- Culling actually runs now (was silently no-op on slow machines)
+- Parallax children correctly follow their containers (visual "swimming" fixed)
+- 3 files removed (dead i18n folder) — small reduction in codebase noise
+- Ready for next iteration: Act III (The Last City), or focus on Abilities implementation (wallJump, grapple, hover, EMP, hack per GDD priority list)

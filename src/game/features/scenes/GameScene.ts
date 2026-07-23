@@ -91,6 +91,7 @@ import { HangarUI } from '../../ui/hangar/HangarUI';
 import { OverlayManager, type OverlayId, type OverlayUI, type OverlayParent } from '../../ui/OverlayManager';
 import { ControlHintsUI } from '../../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../../ui/boss/BossHealthBarUI';
+import { GameOverUI } from '../../ui/gameover/GameOverUI';
 import { LoreController } from '../../ui/lore/LoreController';
 import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
 import { UIController } from '../../ui/UIController';
@@ -1167,40 +1168,26 @@ export class GameScene extends Phaser.Scene {
   // ================ GAMEOVER / VICTORY ================
 
   private buildGameOver(): void {
-    const c = this.stateContainer!;
-    const w = GAME.WIDTH, h = GAME.HEIGHT;
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000, 0.88).setDepth(200);
-    c.add(overlay);
-    c.add(this.add.text(w / 2, h * 0.3, t('gameover.title'), fixTextStyle({
-      fontFamily: 'monospace', fontSize: '56px', color: '#ff4040', stroke: '#000', strokeThickness: 8,
-    })).setOrigin(0.5).setDepth(201));
-    const statsLine = getLocale() === 'fa'
-      ? `سطح ${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} کشته`
-      : `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`;
-    c.add(this.add.text(w / 2, h * 0.42, statsLine, fixTextStyle({
-      fontFamily: 'monospace', fontSize: '14px', color: '#5a6470',
-    })).setOrigin(0.5).setDepth(201));
-    // ── Phase 3: Death penalty display — show lost XP ──
-    if (this.lastLostXp > 0) {
-      const lostLine = getLocale() === 'fa'
-        ? `جریمه مرگ: -${this.lastLostXp} XP`
-        : `DEATH PENALTY: -${this.lastLostXp} XP`;
-      c.add(this.add.text(w / 2, h * 0.48, lostLine, fixTextStyle({
-        fontFamily: 'monospace', fontSize: '12px', color: '#ff4040', stroke: '#000', strokeThickness: 3,
-      })).setOrigin(0.5).setDepth(201));
-    }
-    // Retry button — restarts the stage
-    this.menuNav!.makeMenuBtn(w / 2, h * 0.55, t('gameover.retry'), () => {
-      AudioSystem.play('uiClick');
-      CheckpointSystem.clear();
-      this.setState('play');
+    // Delegate to standalone GameOverUI component (extracted from GameScene
+    // for separation of concerns + easier UX iteration).
+    //
+    // CRITICAL DESIGN DECISION (per DESIGN_PILLARS "Punishing but fair"):
+    //   RETRY must NOT call CheckpointSystem.clear(). The -50% XP death
+    //   penalty (applied in onPlayerDied) is already the punishment. Forcing
+    //   the player to replay from area start on top of that is double
+    //   jeopardy. CheckpointSystem.getRespawnPosition() already falls back
+    //   to area start (200, 420) when no checkpoint exists, so this is safe.
+    const ui = new GameOverUI(this, {
+      container: this.stateContainer!,
+      menuNav: this.menuNav!,
+      lostXp: this.lastLostXp,
+      hasCheckpoint: CheckpointSystem.hasCheckpoint(),
+      callbacks: {
+        onRetry: () => this.setState('play'),
+        onQuit: () => this.setState('menu'),
+      },
     });
-    // Quit button — back to main menu (user: "if defeated → game over with retry/restart")
-    this.menuNav!.makeMenuBtn(w / 2, h * 0.65, t('gameover.quit'), () => {
-      AudioSystem.play('uiClick');
-      this.setState('menu');
-    });
-    // setupNav removed — UIController handles keyboard
+    ui.build();
   }
 
   private async buildVictory(): Promise<void> {

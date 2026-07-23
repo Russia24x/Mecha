@@ -171,7 +171,12 @@ export class ParallaxBackground {
     const tileCount = Math.ceil(this.worldWidth / tileW) + 1;
     const container = this.scene.add.container(0, 0);
     container.setDepth(-1.5);  // between sky (-2) and far layer (-1)
-    container.setScrollFactor(0.15, 0.05);  // slow parallax
+    // ⚠️ Per Phaser 4 groups-and-containers skill: pass `true` as the 3rd arg
+    // so scrollFactor propagates to all child Images/Graphics. Without it,
+    // children keep scrollFactor=1 (full camera follow) and only the container
+    // itself parallaxes — children appear to "swim" relative to the container
+    // and parallax is broken in practice.
+    container.setScrollFactor(0.15, 0.05, true);  // slow parallax, propagate to children
     container.setAlpha(this.theme === 'wastes' ? 0.7 : 0.65);  // wastes slightly more visible
 
     for (let i = 0; i < tileCount; i++) {
@@ -285,7 +290,10 @@ export class ParallaxBackground {
   private buildFactoryMid(cfg: LayerConfig): void {
     const container = this.scene.add.container(0, 0);
     container.setDepth(cfg.depth); container.setAlpha(cfg.alpha);
-    container.setScrollFactor(cfg.scrollX, cfg.scrollY);
+    // ⚠️ Propagate scrollFactor to children (cables, pipes, drips, mechs, eyes).
+    // Without `true`, each child keeps scrollFactor=1 — children appear to
+    // "swim" relative to the container and parallax is broken in practice.
+    container.setScrollFactor(cfg.scrollX, cfg.scrollY, true);
 
     // Hanging cables (from ceiling)
     const cableCount = Math.ceil(this.worldWidth / 350);
@@ -370,7 +378,8 @@ export class ParallaxBackground {
   private buildFactoryNear(cfg: LayerConfig): void {
     const container = this.scene.add.container(0, 0);
     container.setDepth(cfg.depth); container.setAlpha(cfg.alpha);
-    container.setScrollFactor(cfg.scrollX, cfg.scrollY);
+    // ⚠️ Propagate scrollFactor to children (pipes, stripes, sparks).
+    container.setScrollFactor(cfg.scrollX, cfg.scrollY, true);
 
     // Foreground broken pipes (large, bottom of screen)
     const pipeCount = Math.ceil(this.worldWidth / 400);
@@ -463,7 +472,8 @@ export class ParallaxBackground {
   private buildForestMid(cfg: LayerConfig): void {
     const container = this.scene.add.container(0, 0);
     container.setDepth(cfg.depth); container.setAlpha(cfg.alpha);
-    container.setScrollFactor(cfg.scrollX, cfg.scrollY);
+    // ⚠️ Propagate scrollFactor to children (vines, spores).
+    container.setScrollFactor(cfg.scrollX, cfg.scrollY, true);
 
     // Hanging vines (from ceiling)
     const vineCount = Math.ceil(this.worldWidth / 250);
@@ -515,7 +525,8 @@ export class ParallaxBackground {
   private buildForestNear(cfg: LayerConfig): void {
     const container = this.scene.add.container(0, 0);
     container.setDepth(cfg.depth); container.setAlpha(cfg.alpha);
-    container.setScrollFactor(cfg.scrollX, cfg.scrollY);
+    // ⚠️ Propagate scrollFactor to children (ferns, mushrooms, glow halos).
+    container.setScrollFactor(cfg.scrollX, cfg.scrollY, true);
 
     // Foreground ferns (silhouettes at bottom)
     const fernCount = Math.ceil(this.worldWidth / 180);
