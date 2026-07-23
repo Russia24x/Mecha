@@ -22,9 +22,14 @@ export class BootScene extends Phaser.Scene {
     // ── Load background art assets (user-provided images) ──
     this.load.image('factory_bg_1', '/game-assets/backgrounds/factory_bg_1.png');
     this.load.image('factory_bg_2', '/game-assets/backgrounds/factory_bg_2.png');
-    this.load.image('wastes_bg_1', '/game-assets/backgrounds/wastes_bg_1.png');
-    this.load.image('wastes_bg_2', '/game-assets/backgrounds/wastes_bg_2.png');
-    this.load.image('wastes_bg_3', '/game-assets/backgrounds/wastes_bg_3.png');
+    // ⚠️ TEMPORARY: Wastes background images disabled for FPS testing.
+    // User wants to test rendering without the 3 large painted PNGs to see
+    // if they're causing the FPS drop. Re-enable when test is done.
+    // Each wastes_bg_*.png is ~2.5MB — tiled across 15360px world width
+    // = ~8 tiles = 8 large Images drawn every frame at scrollFactor 0.15.
+    // this.load.image('wastes_bg_1', '/game-assets/backgrounds/wastes_bg_1.png');
+    // this.load.image('wastes_bg_2', '/game-assets/backgrounds/wastes_bg_2.png');
+    // this.load.image('wastes_bg_3', '/game-assets/backgrounds/wastes_bg_3.png');
 
     // Loading bar.
     const w = GAME.WIDTH;
