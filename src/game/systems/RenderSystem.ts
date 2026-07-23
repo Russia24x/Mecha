@@ -33,10 +33,7 @@ export class RenderSystem {
   private static _instances: RenderSystem[] = [];
 
   constructor(scene: Phaser.Scene) {
-    // ⚠️ TEMPORARY: darkness overlay disabled for FPS testing.
-    // Was: full-screen MULTIPLY-blend rect at depth 90, alpha ~0.012.
-    // Now: invisible (alpha 0) — still created for code that calls setBrightness.
-    const alpha = 0;  // was: (1 - RenderSystem.brightness) * RenderSystem.maxDarkness
+    const alpha = (1 - RenderSystem.brightness) * RenderSystem.maxDarkness;
     this.darkness = scene.add.rectangle(
       GAME.WIDTH / 2, GAME.HEIGHT / 2, GAME.WIDTH, GAME.HEIGHT, 0x000010, alpha
     );

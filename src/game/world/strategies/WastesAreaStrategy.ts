@@ -59,12 +59,21 @@ export class WastesAreaStrategy extends AreaStrategy {
     x: number, y: number, w: number, h: number,
     type: PlatformType,
   ): void {
-    // ⚠️ TEMPORARY: ALL decorations disabled for FPS testing.
-    // Was: water puddles, fog wisps (already off), dripping water,
-    //      wall decorations (moss/rust/pipes), rust debris on ledges.
-    // Re-enable after the test by removing this early-return.
-    void result; void x; void y; void w; void h; void type;
-    return;
+    // Floor decorations: water puddles, fog wisps, dripping water
+    // Heavily limited for performance — large worlds have many platforms
+    if (type === 'floor' && w >= 80) {
+      if (Math.random() < 0.3) this.addWaterPuddles(result, x, y, w, h);
+      if (Math.random() < 0.1) this.addFogWisp(result, x, y, w);
+      if (Math.random() < 0.08) this.addDrippingWater(result, x, y, w);
+    }
+    // Wall decorations: moss, rust streaks, exposed pipes
+    if (type === 'wall' && h > 100 && Math.random() < 0.4) {
+      this.addWastesWallDecorations(result, x, y, w, h);
+    }
+    // Rusted metal debris on ledges
+    if (type === 'ledge' && w >= 60) {
+      if (Math.random() < 0.4) this.addRustDebris(result, x, y, w, h);
+    }
   }
 
   createHazardVisual(hazard: HazardVisualData): Phaser.GameObjects.Container {

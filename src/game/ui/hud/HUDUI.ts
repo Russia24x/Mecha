@@ -187,9 +187,9 @@ export class HUDUI {
     if (hpPct < 0.3) {
       this.healthBarFg.setFillStyle(0xff4060);
       this.healthText.setColor(THEME.TEXT_RED);
-      // ⚠️ TEMPORARY: Low HP vignette pulse disabled for FPS testing.
-      // Was: this.lowHpVignette.setAlpha(0.15 + Math.sin(now * 0.008) * 0.1) every frame.
-      this.lowHpVignette.setAlpha(0);
+      // Low HP vignette pulse
+      const pulse = 0.15 + Math.sin(this.scene.time.now * 0.008) * 0.1;
+      this.lowHpVignette.setAlpha(pulse);
     } else if (hpPct < 0.6) {
       this.healthBarFg.setFillStyle(0xffc040);
       this.healthText.setColor(THEME.TEXT_AMBER);

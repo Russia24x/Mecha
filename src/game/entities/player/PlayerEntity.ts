@@ -1023,16 +1023,14 @@ export class PlayerEntity {
     this.tilt = Phaser.Math.Linear(this.tilt, targetTilt, 0.12);
 
     // ── Apply transform to visual container ──
-    // ⚠️ TEMPORARY: squash/stretch + tilt + bob disabled for FPS testing.
-    // Visual container just follows position, no sine bob, no rotation tilt, no squash.
-    // Restored original code is commented out below.
-    this.visual.container.setPosition(pos.x, pos.y - 4);  // no bob
-    this.visual.container.setRotation(0);                  // no tilt
-    this.visual.container.setScale(facing, 1);             // no squash
+    // Restore old body bob: subtle vertical sine when moving (old "mazze" feel)
+    const bob = isMoving ? Math.sin(this.animTime / 80) * 2 : 0;
+    this.visual.container.setPosition(pos.x, pos.y - 4 + bob);
+    this.visual.container.setRotation(this.tilt);
+    this.visual.container.setScale(facing * this.squashX, this.squashY);
     this.visual.setFacing(facing as 1 | -1);
 
     // ── Restore old leg swing animation (combined with new factory visual) ──
-    // (kept — this only updates an internal frame index, doesn't create tweens)
     if (this.visual.setWalkPhase) {
       this.visual.setWalkPhase(this.animTime / 100, isMoving, isJumping);
     }
@@ -1047,8 +1045,10 @@ export class PlayerEntity {
     }
 
     // ── Core pulse — brighten on dash, dim on low energy ──
-    // ⚠️ TEMPORARY: core pulse disabled for FPS testing (constant value).
-    this.visual.setCorePulse(0.5);
+    const energyPct = this.energy.current / this.energy.max;
+    const dashBoost = isDashing ? 0.4 : 0;
+    const pulseBrightness = 0.4 + Math.sin(this.animTime / 200) * 0.15 + dashBoost;
+    this.visual.setCorePulse(Math.min(1, pulseBrightness * (0.5 + energyPct * 0.5)));
 
     // ── Visual tier upgrade — mech evolves as player levels up ──
     // Tier 0 (Lv1-4): base, Tier 1 (Lv5-9): brighter core, Tier 2 (Lv10-14): shoulder cannons, Tier 3 (Lv15+): crest + big thrusters
@@ -1104,13 +1104,13 @@ export class PlayerEntity {
     this.lastVx = vx;
 
     // ── Flash while invulnerable ──
-    // ⚠️ TEMPORARY: invulnerability flash disabled for FPS testing.
-    // Just count down the timer (still controls the invuln window mechanically)
-    // but don't toggle container alpha every frame.
     if (this.flashTimer > 0) {
       this.flashTimer -= deltaMs;
+      const on = Math.floor(this.flashTimer / 80) % 2 === 0;
+      this.visual.container.setAlpha(on ? 0.4 : 1);
+    } else {
+      this.visual.container.setAlpha(1);
     }
-    this.visual.container.setAlpha(1);
   }
 
   destroy(): void {

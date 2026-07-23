@@ -155,10 +155,38 @@ export class EnemyEntity {
 
   /** Phase 3: Create/Update the posture bar above the enemy. */
   private updatePostureBar(): void {
-    // ⚠️ TEMPORARY: posture bar UI disabled for FPS testing.
-    // Was: per-frame position update + width/color change for every enemy.
-    // Posture mechanic still works (filling + stagger trigger), just no visual bar.
-    return;
+    if (!this.sprite || !this.sprite.active) return;
+    const x = this.sprite.x;
+    const y = this.sprite.y - this.data.size.h / 2 - 12;
+    const barW = 40;
+    const pct = this.posture / this.maxPosture;
+
+    // Create bar if it doesn't exist
+    if (!this.postureBarBg) {
+      this.postureBarBg = this.scene.add.rectangle(x, y, barW + 2, 5, 0x05080c, 0.8);
+      this.postureBarBg.setStrokeStyle(1, 0x2a3040, 0.6);
+      this.postureBarBg.setDepth(13);
+    }
+    if (!this.postureBar) {
+      this.postureBar = this.scene.add.rectangle(x - barW / 2, y, barW, 3, 0xffcc00, 0.9);
+      this.postureBar.setOrigin(0, 0.5);
+      this.postureBar.setDepth(14);
+    }
+
+    // Update position + width
+    this.postureBarBg.setPosition(x, y);
+    this.postureBar.setPosition(x - barW / 2, y);
+    this.postureBar.setDisplaySize(barW * pct, 3);
+
+    // Color: amber → red as posture fills
+    if (pct > 0.7) this.postureBar.setFillStyle(0xff4040, 0.9);
+    else if (pct > 0.4) this.postureBar.setFillStyle(0xff8030, 0.9);
+    else this.postureBar.setFillStyle(0xffcc00, 0.7);
+
+    // Hide bar when posture is 0 (no visual clutter)
+    const showBar = pct > 0.01;
+    this.postureBarBg.setVisible(showBar);
+    this.postureBar.setVisible(showBar);
   }
 
   private die(): void {
@@ -275,13 +303,7 @@ export class EnemyEntity {
   }
 
   private spawnTelegraph(): void {
-    // ⚠️ TEMPORARY: telegraph visual disabled for FPS testing.
-    // Was: per-enemy-type circle/beam with tween. Created + destroyed per attack cycle.
-    // Gameplay telegraph timing still works (attackPhase state machine intact),
-    // just no visual indicator that an attack is coming.
-    return;
-    // (original code below — kept for reference but unreachable)
-    /*
+    // Different telegraph styles per enemy type — teaches player to read danger
     if (this.type === 'sniper') {
       // SNIPER: laser sight line toward player — "learn to read the environment"
       // Red beam from sniper toward player direction
@@ -326,7 +348,6 @@ export class EnemyEntity {
         duration: this.data.timings.telegraphMs, ease: 'Quad.easeOut',
       });
     }
-    */
   }
 
   private inRange(playerPos: Phaser.Math.Vector2): boolean {
@@ -474,21 +495,37 @@ export class EnemyEntity {
 
     // Hacked enemies get a green tint to show they're friendly
     if (this.hacked) {
-      // ⚠️ TEMPORARY: hacked state per-frame scale pulse disabled for FPS testing.
-      // Just keep container at fixed alpha + scale; green sparks also disabled
-      // (ParticleSystem.sparks is a no-op during this test).
       this.visual.container.setAlpha(0.9);
       this.visual.setCorePulse(0.7);
-      this.visual.container.setScale(this.facing, 1);
+      // Green tint via scale pulse
+      const pulse = 1 + Math.sin(this.animTime / 200) * 0.05;
+      this.visual.container.setScale(this.facing * pulse, pulse);
+      // Periodic green spark
+      if (this.animTime % 60 < 16) {
+        this.particles.sparks(this.sprite.x, this.sprite.y, 0x40ff80, 1);
+      }
       return;
     }
 
-    // ⚠️ TEMPORARY: per-frame damage flash + hacked state scale pulse + telegraph
-    // visual pulse disabled for FPS testing. Visual container just stays at
-    // alpha 1, scale (facing, 1), corePulse 0.5 — no per-frame updates.
-    this.visual.container.setAlpha(1);
-    this.visual.setCorePulse(0.5);
-    this.visual.container.setScale(this.facing, 1);
+    // Damage flash — brighten + scale punch when recently hit
+    const inTelegraph = this.state === 'attack' && this.attackPhase === 'telegraph';
+    if (!inTelegraph) {
+      if (this.scene.time.now < this.flashUntil) {
+        this.visual.container.setAlpha(0.7);
+        this.visual.setCorePulse(1);  // brighten eye on hit
+        // Tiny scale punch
+        this.visual.container.setScale(this.facing * 1.15, 1.15);
+      } else {
+        this.visual.container.setAlpha(1);
+        this.visual.setCorePulse(0.5);
+        this.visual.container.setScale(this.facing, 1);
+      }
+    } else {
+      // Telegraph: brighten eye to max + slight pulse
+      this.visual.setCorePulse(1);
+      const pulse = 1 + Math.sin(this.animTime / 60) * 0.08;
+      this.visual.container.setScale(this.facing * pulse, pulse);
+    }
   }
 }
 

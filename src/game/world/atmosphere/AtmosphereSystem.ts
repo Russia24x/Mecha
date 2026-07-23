@@ -53,11 +53,6 @@ export class AtmosphereSystem {
   }
 
   build(): void {
-    // ⚠️ TEMPORARY: ALL atmosphere effects disabled for Wastes (Act II) — FPS test.
-    // User wants to determine which effects are causing frame drops.
-    // Re-enable individually after the test by removing this early-return.
-    if (this.theme === 'wastes') return;
-
     this.buildFog();
     this.buildGodRays();
     this.buildAmbientParticles();
@@ -66,17 +61,11 @@ export class AtmosphereSystem {
 
   // ─── FOG ────────────────────────────────────────────────────────────────
   private buildFog(): void {
-    // ⚠️ Wastes (Act II) intentionally has NO fog/vapor layer.
-    // User request: remove fog and vapor from Act II.
-    // Reasoning: the swamp backdrop art (wastes_bg_1/2/3) already provides
-    // atmosphere via the painted visuals — the procedural fog bands were
-    // visually redundant and competing with the background art.
-    // Other regions (factory, forest) keep their fog.
-    if (this.theme === 'wastes') return;
-
-    // After the early-return above, theme can only be 'factory' | 'forest' | 'generic'.
-    const fogColor = this.theme === 'forest' ? 0x40a060 : 0x6a5a4a;
-    const fogCount = 4;  // 4 layers for all non-wastes themes
+    const fogColor = this.theme === 'forest' ? 0x40a060
+      : this.theme === 'wastes' ? 0x4a5a40  // sickly green-gray for swamps (re-enabled)
+      : 0x6a5a4a;
+    // Wastes get slightly denser fog (5 layers vs 4)
+    const fogCount = this.theme === 'wastes' ? 5 : 4;
     for (let i = 0; i < fogCount; i++) {
       const g = this.scene.add.graphics();
       g.setDepth(80 - i * 2);
@@ -210,18 +199,9 @@ export class AtmosphereSystem {
 
   // ─── DEPTH HAZE (subtle distance fade) ──────────────────────────────────
   private buildDepthHaze(): void {
-    // ⚠️ Wastes (Act II) does NOT use the depth haze overlay.
-    // Reasoning: we have a user-provided painted background art that already
-    // encodes distance fade and atmospheric depth in the painting itself.
-    // Adding a MULTIPLY-blend dark green overlay (alpha 0.15) on top would
-    // double-darken the painted backdrop and mute its colors. Per user request,
-    // we keep the painted art as the artist intended.
-    //
-    // Other themes (factory, forest) keep their haze — they rely on procedural
-    // depth cues and need the help.
-    if (this.theme === 'wastes') return;
-
-    const hazeColor = this.theme === 'forest' ? 0x0a1a10 : 0x0a0805;
+    const hazeColor = this.theme === 'forest' ? 0x0a1a10
+      : this.theme === 'wastes' ? 0x0a1208  // dark murky green (re-enabled)
+      : 0x0a0805;
     this.haze = this.scene.add.rectangle(
       GAME.WIDTH / 2, GAME.HEIGHT / 2,
       GAME.WIDTH, GAME.HEIGHT,

@@ -38,8 +38,7 @@ export class CombatSystem {
     if (!entity?.takeDamage) return;
     const damaged = entity.takeDamage(event.amount);
     if (damaged) {
-      // ⚠️ TEMPORARY: visual effects + camera shake + hit-stop disabled for FPS testing.
-      // if (event.point) this.spawnHitFx(event.point.x, event.point.y);
+      if (event.point) this.spawnHitFx(event.point.x, event.point.y);
       if (event.knockback && !target.isStatic) {
         // *** FIX: use Phaser's matter.add.applyForce which wraps Matter.Body.applyForce
         // This avoids the typing issue with Phaser.Physics.Matter.Matter namespace.
@@ -49,24 +48,46 @@ export class CombatSystem {
           { x: event.knockback.x * 50, y: event.knockback.y * 50 }
         );
       }
-      // this.triggerHitStop(event.amount);
-      // this.scene.cameras.main.shake(80, 0.003 + Math.min(event.amount * 0.0008, 0.01));
+      this.triggerHitStop(event.amount);
+      this.scene.cameras.main.shake(80, 0.003 + Math.min(event.amount * 0.0008, 0.01));
     }
   }
 
   spawnSlash(x: number, y: number, dir: number): void {
-    // ⚠️ TEMPORARY: disabled for FPS testing.
-    void x; void y; void dir; return;
+    const slash = this.scene.add.arc(x, y, 20, 0, Math.PI, false, 0xffffff, 0.6);
+    slash.setDepth(18);
+    slash.setScale(dir, 1);
+    this.scene.tweens.add({
+      targets: slash, alpha: 0, scale: dir * 1.5,
+      duration: 150, onComplete: () => slash.destroy(),
+    });
   }
 
   private spawnHitFx(x: number, y: number): void {
-    // ⚠️ TEMPORARY: disabled for FPS testing.
-    void x; void y; return;
+    for (let i = 0; i < 5; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * 60;
+      const p = this.scene.add.circle(x, y, 1 + Math.random() * 2, 0xffd040, 0.9);
+      p.setDepth(20);
+      this.scene.tweens.add({
+        targets: p, x: x + Math.cos(a) * speed, y: y + Math.sin(a) * speed,
+        alpha: 0, scale: 0.3, duration: 200 + Math.random() * 150,
+        onComplete: () => p.destroy(),
+      });
+    }
   }
 
   private triggerHitStop(damage: number): void {
-    // ⚠️ TEMPORARY: hit-stop disabled for FPS testing.
-    void damage; return;
+    const now = this.scene.time.now;
+    if (now < this.hitStopUntil) return;
+    const duration = Math.min(40 + damage * 2, 120);
+    this.hitStopUntil = now + duration;
+    const engine = this.scene.matter.world.engine;
+    this.originalTimeScale = engine.timing.timeScale;
+    engine.timing.timeScale = 0.05;
+    this.scene.time.delayedCall(duration, () => {
+      engine.timing.timeScale = this.originalTimeScale;
+    });
   }
 }
 
