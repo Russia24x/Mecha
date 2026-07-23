@@ -383,6 +383,15 @@ export class AreaLoader {
     this.strategy?.drawPlatform(g, w, h, platformType);
 
     g.setPosition(x, y);
+    // ⚠️ Store width/height as custom data so VisualCuller can use
+    // bounding-box culling. Phaser 4 Graphics doesn't have setSize()
+    // (only ComputedSize, which Graphics doesn't include), so we store
+    // the platform dimensions on the data manager instead.
+    // Without this, culler uses center-point only — wide platforms
+    // (e.g. 600px floor) would be culled when their center is off-screen
+    // even though part of them is still visible.
+    g.setData('__cullW', w);
+    g.setData('__cullH', h);
     result.solids.push(s);
     result.visualRects.push(g as unknown as Phaser.GameObjects.Rectangle);
 
@@ -614,6 +623,11 @@ export class AreaLoader {
     }
 
     container.setDepth(3);
+    // ⚠️ Set size so VisualCuller can use bounding-box culling.
+    // Without this, container.width/height = 0 and culler uses center-point
+    // only — large landmarks (e.g. 400px tower) would be culled when their
+    // center is off-screen even though part of them is still visible.
+    container.setSize(lm.w, lm.h);
     return container;
   }
 

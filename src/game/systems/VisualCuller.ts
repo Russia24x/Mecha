@@ -68,6 +68,18 @@ export class VisualCuller {
     const inView = (x: number, y: number): boolean =>
       x >= viewLeft && x <= viewRight && y >= viewTop && y <= viewBottom;
 
+    // ── Helper: check if a bounding box overlaps the expanded viewport ──
+    // Used for wide objects (platforms, hazards) where center-point culling
+    // would incorrectly hide partially-visible objects.
+    // x, y = object center; w, h = object size.
+    const boxInView = (cx: number, cy: number, w: number, h: number): boolean => {
+      const halfW = w / 2;
+      const halfH = h / 2;
+      // AABB overlap test: object's right edge > view's left, etc.
+      return (cx + halfW >= viewLeft) && (cx - halfW <= viewRight) &&
+             (cy + halfH >= viewTop) && (cy - halfH <= viewBottom);
+    };
+
     // ── Helper: cull a single GameObject by position ──
     // setVisible() is idempotent — Phaser tracks the current state and
     // skips the work if the value hasn't changed.
@@ -78,12 +90,23 @@ export class VisualCuller {
     // invisible objects. Pausing tweens on off-screen objects saves
     // significant CPU on large worlds with many decoration tweens
     // (fog wisps, glow pulses, drift animations).
+    //
+    // Uses bounding-box test if the object has width/height set (e.g.
+    // landmarks, loreObjects via setSize) OR has __cullW/__cullH data
+    // (platforms stored as Graphics). Otherwise center-point test.
     const cullByPos = (go: Phaser.GameObjects.GameObject | null, x: number, y: number): void => {
       if (!go || !go.active) return;
-      const visible = go as unknown as { visible: boolean };
-      const shouldShow = inView(x, y);
-      if (visible.visible === shouldShow) return;  // no change → skip tween work
-      visible.visible = shouldShow;
+      const obj = go as unknown as { visible: boolean; width: number; height: number };
+      const dataObj = go as unknown as { getData?: (key: string) => unknown };
+      const dataW = dataObj.getData ? (dataObj.getData('__cullW') as number) : 0;
+      const dataH = dataObj.getData ? (dataObj.getData('__cullH') as number) : 0;
+      const w = dataW || obj.width || 0;
+      const h = dataH || obj.height || 0;
+      const shouldShow = (w > 0 && h > 0)
+        ? boxInView(x, y, w, h)
+        : inView(x, y);
+      if (obj.visible === shouldShow) return;  // no change → skip tween work
+      obj.visible = shouldShow;
       // Pause/resume tweens targeting this object AND its descendants
       // (for Containers like loreObjects/collectibles, tweens are usually
       // on the child glow circles, not the container itself)
@@ -103,27 +126,11 @@ export class VisualCuller {
     };
 
     // ── visualRects: platforms, decorations, hazards visuals ──
-    // These are spread across the world. Check by position.
-    // Also pause/resume tweens when visibility changes (same logic as cullByPos).
+    // Use cullByPos which handles bounding-box test via __cullW/__cullH data
+    // (platforms stored as Graphics) or width/height (Containers).
     for (const go of area.visualRects) {
-      if (!go || !go.active) continue;
-      const pos = go as unknown as { x: number; y: number; visible: boolean };
-      const shouldShow = inView(pos.x, pos.y);
-      if (pos.visible === shouldShow) continue;
-      pos.visible = shouldShow;
-      // visualRects are typically Graphics (no children), but check anyway
-      const containerLike = go as unknown as { list?: Phaser.GameObjects.GameObject[] };
-      const allTargets: Phaser.GameObjects.GameObject[] = [go as unknown as Phaser.GameObjects.GameObject];
-      if (containerLike.list) {
-        for (const child of containerLike.list) allTargets.push(child);
-      }
-      for (const target of allTargets) {
-        const tweens = scene.tweens.getTweensOf(target);
-        for (const tw of tweens) {
-          if (shouldShow && tw.isPaused()) tw.resume();
-          else if (!shouldShow && !tw.isPaused()) tw.pause();
-        }
-      }
+      const obj = go as unknown as { x: number; y: number };
+      cullByPos(go, obj.x, obj.y);
     }
 
     // ── loreObjects: terminals, corpses, echoes (depth 8) ──
