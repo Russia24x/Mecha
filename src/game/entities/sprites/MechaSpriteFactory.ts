@@ -416,9 +416,10 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const shadow = scene.add.ellipse(0, 18, 40, 8, 0x000000, 0.4);
-    shadow.setDepth(-1);
-    parts.push(shadow);
+    // ⚠️ Shadow disabled per user request — flat ellipse under enemy was visually noisy.
+    // const shadow = scene.add.ellipse(0, 18, 40, 8, 0x000000, 0.4);
+    // shadow.setDepth(-1);
+    // parts.push(shadow);
 
     const rotorPositions = [{ x: -14, y: -10 }, { x: 14, y: -10 }, { x: -14, y: 8 }, { x: 14, y: 8 }];
     for (const pos of rotorPositions) {
@@ -472,8 +473,9 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const shadow = scene.add.ellipse(0, 14, 50, 10, 0x000000, 0.5);
-    shadow.setDepth(-1); parts.push(shadow);
+    // ⚠️ Shadow disabled per user request.
+    // const shadow = scene.add.ellipse(0, 14, 50, 10, 0x000000, 0.5);
+    // shadow.setDepth(-1); parts.push(shadow);
 
     const legConfigs = [
       { x: -16, y: -4, ang: -0.4 },
@@ -535,8 +537,9 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const shadow = scene.add.ellipse(0, 20, 36, 8, 0x000000, 0.5);
-    shadow.setDepth(-1); parts.push(shadow);
+    // ⚠️ Shadow disabled per user request.
+    // const shadow = scene.add.ellipse(0, 20, 36, 8, 0x000000, 0.5);
+    // shadow.setDepth(-1); parts.push(shadow);
 
     const legs = scene.add.graphics();
     legs.setDepth(2);
@@ -592,8 +595,9 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const shadow = scene.add.ellipse(0, 26, 70, 14, 0x000000, 0.55);
-    shadow.setDepth(-1); parts.push(shadow);
+    // ⚠️ Shadow disabled per user request.
+    // const shadow = scene.add.ellipse(0, 26, 70, 14, 0x000000, 0.55);
+    // shadow.setDepth(-1); parts.push(shadow);
 
     const treadL = scene.add.graphics();
     treadL.setDepth(2);
@@ -734,8 +738,9 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    const shadow = scene.add.ellipse(0, 24, 60, 12, 0x000000, 0.55);
-    shadow.setDepth(-1); parts.push(shadow);
+    // ⚠️ Shadow disabled per user request.
+    // const shadow = scene.add.ellipse(0, 24, 60, 12, 0x000000, 0.55);
+    // shadow.setDepth(-1); parts.push(shadow);
 
     const footL = scene.add.circle(-12, 18, 5, color, 0);
     footL.setBlendMode(Phaser.BlendModes.ADD); footL.setDepth(0); parts.push(footL);
@@ -982,10 +987,11 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    // Shadow (wider — heavy, waterlogged)
-    const shadow = scene.add.ellipse(0, 22, 48, 10, 0x000000, 0.5);
-    shadow.setDepth(-1);
-    parts.push(shadow);
+    // ⚠️ Shadow disabled per user request (Drowned Walker — Act II).
+    // Was: wider ellipse (48×10, alpha 0.5) — heavy, waterlogged.
+    // const shadow = scene.add.ellipse(0, 22, 48, 10, 0x000000, 0.5);
+    // shadow.setDepth(-1);
+    // parts.push(shadow);
 
     // Water drip trail (subtle, behind body)
     const dripGlow = scene.add.circle(0, 16, 12, 0x3a5a40, 0.12);
@@ -1087,10 +1093,10 @@ export class MechaSpriteFactory {
     const container = scene.add.container(0, 0);
     const parts: Phaser.GameObjects.GameObject[] = [];
 
-    // Shadow
-    const shadow = scene.add.ellipse(0, 18, 24, 5, 0x000000, 0.3);
-    shadow.setDepth(-1);
-    parts.push(shadow);
+    // ⚠️ Shadow disabled per user request (Mosquito Drone — Act II).
+    // const shadow = scene.add.ellipse(0, 18, 24, 5, 0x000000, 0.3);
+    // shadow.setDepth(-1);
+    // parts.push(shadow);
 
     // Wings (rapid flutter — 2 thin ellipses)
     for (const side of [-1, 1]) {
