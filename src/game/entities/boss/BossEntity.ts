@@ -237,14 +237,15 @@ export class BossEntity {
     const phaseChanged = this.updatePhase();
     if (phaseChanged) {
       AudioSystem.play('phaseChange');
-      this.bossGfx?.setAlpha(0.3);
-      this.scene.time.delayedCall(200, () => { if (this.isAlive) this.bossGfx?.setAlpha(1); });
-      this.scene.cameras.main.flash(150, 255, 80, 80);
+      // ⚠️ TEMPORARY: phase-change visual flash + shake disabled for FPS testing.
+      // this.bossGfx?.setAlpha(0.3);
+      // this.scene.time.delayedCall(200, () => { if (this.isAlive) this.bossGfx?.setAlpha(1); });
+      // this.scene.cameras.main.flash(150, 255, 80, 80);
       // Leviathan: shield breaks on phase 2 (she has nothing left to protect)
       if (this.id === 'leviathan_hulk' && this.phase === 2) {
         this.shieldActive = false;
-        this.scene.cameras.main.flash(300, 255, 128, 0);
-        this.scene.cameras.main.shake(200, 0.01);
+        // this.scene.cameras.main.flash(300, 255, 128, 0);
+        // this.scene.cameras.main.shake(200, 0.01);
       }
     } else {
       AudioSystem.play('bossHit');
@@ -293,9 +294,10 @@ export class BossEntity {
     if (this.bossGfx) this.bossGfx.setPosition(this.sprite.x, this.sprite.y);
     if (this.bossCore) {
       this.bossCore.setPosition(this.sprite.x, this.sprite.y);
-      const pulse = 0.7 + Math.sin(now / 200) * 0.3;
-      this.bossCore.setAlpha(pulse);
-      this.bossCore.setRadius(8 + pulse * 6);
+      // ⚠️ TEMPORARY: bossCore pulse (per-frame alpha + radius change) disabled for FPS testing.
+      // const pulse = 0.7 + Math.sin(now / 200) * 0.3;
+      // this.bossCore.setAlpha(pulse);
+      // this.bossCore.setRadius(8 + pulse * 6);
     }
   }
 
@@ -329,13 +331,8 @@ export class BossEntity {
       });
       this.projectiles.push(proj);
     }
-    // Beam telegraph flash
-    if (this.bossGfx) {
-      this.bossGfx.setAlpha(0.3);
-      this.scene.tweens.add({
-        targets: this.bossGfx, alpha: 1, duration: 200,
-      });
-    }
+    // ⚠️ TEMPORARY: beam telegraph flash disabled for FPS testing.
+    // Was: this.bossGfx.setAlpha(0.3) + tweens.add for alpha 1 over 200ms.
   }
 
   private lunge(playerPos: Phaser.Math.Vector2): void {

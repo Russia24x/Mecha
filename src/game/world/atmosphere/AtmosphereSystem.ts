@@ -53,6 +53,11 @@ export class AtmosphereSystem {
   }
 
   build(): void {
+    // ⚠️ TEMPORARY: ALL atmosphere effects disabled for Wastes (Act II) — FPS test.
+    // User wants to determine which effects are causing frame drops.
+    // Re-enable individually after the test by removing this early-return.
+    if (this.theme === 'wastes') return;
+
     this.buildFog();
     this.buildGodRays();
     this.buildAmbientParticles();

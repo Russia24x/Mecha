@@ -746,10 +746,10 @@ export class GameScene extends Phaser.Scene {
     // Switch to boss ambient (tense, dissonant)
     AudioSystem.startAmbient('boss');
     AudioSystem.play('phaseChange');
-    this.particles.screenFlash(0xff3030, 0.35, 500);
-    // Phaser 4 camera effects: shake + flash for boss entrance (per cameras skill)
-    this.cameras.main.shake(400, 0.012);
-    this.cameras.main.flash(300, 255, 30, 30);
+    // ⚠️ TEMPORARY: boss entrance screenFlash + camera shake/flash disabled for FPS testing.
+    // this.particles.screenFlash(0xff3030, 0.35, 500);
+    // this.cameras.main.shake(400, 0.012);
+    // this.cameras.main.flash(300, 255, 30, 30);
     // Boss health bar — top center (per Design Pillars: 'Boss: every boss teaches something')
     this.createBossHealthBar(bossSection.bossId);
     // Note: boss circle light removed per user feedback — boss has its own glow via
