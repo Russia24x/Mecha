@@ -48,6 +48,7 @@ export interface InputState {
   backPressed: boolean;
   grapplePressed: boolean;
   empPressed: boolean;
+  repairPressed: boolean;  // Repair kit (heal flask) — Key R or D-pad up on gamepad
   // Gamepad-only edge flags (B2 fix: separate source for UI activation)
   // These mirror the mixed flags above but only reflect gamepad input.
   // UIController.update() reads these instead of the mixed flags so that
@@ -78,6 +79,7 @@ interface EdgeBuffer {
   back: boolean;
   grapple: boolean;
   emp: boolean;
+  repair: boolean;
 }
 
 /** Keyboard held-state (for auto-repeat prevention + held movement). */
@@ -96,6 +98,7 @@ interface KbHeldState {
   down: boolean;
   grapple: boolean;
   emp: boolean;
+  repair: boolean;
 }
 
 export class InputSystem {
@@ -104,7 +107,7 @@ export class InputSystem {
     jumpPressed: false, firePressed: false, meleePressed: false, dashPressed: false,
     weaponNextPressed: false, weaponPrevPressed: false, pausePressed: false, interactPressed: false,
     backPressed: false,
-    grapplePressed: false, empPressed: false,
+    grapplePressed: false, empPressed: false, repairPressed: false,
     gpJumpPressed: false, gpFirePressed: false,
     gpWeaponNextPressed: false, gpWeaponPrevPressed: false,
     gpBackPressed: false,
@@ -124,7 +127,7 @@ export class InputSystem {
   private static kbEdge: EdgeBuffer = {
     jump: false, fire: false, melee: false, dash: false,
     weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false,
-    grapple: false, emp: false,
+    grapple: false, emp: false, repair: false,
   };
 
   // Keyboard held state — tracks which keys are physically held (for auto-repeat prevention)
@@ -132,7 +135,7 @@ export class InputSystem {
     jump: false, fire: false, melee: false, dash: false,
     weaponNext: false, weaponPrev: false, pause: false, interact: false,
     left: false, right: false, up: false, down: false,
-    grapple: false, emp: false,
+    grapple: false, emp: false, repair: false,
   };
 
   static init(): void {
@@ -193,6 +196,13 @@ export class InputSystem {
             if (!this.gameplayBlocked) this.callbacks.emp?.();
           }
           break;
+        case 'KeyR':
+          // Repair kit (heal flask) — restore HP
+          if (!this.kbHeld.repair) {
+            this.kbHeld.repair = true;
+            this.kbEdge.repair = true;
+          }
+          break;
         case 'Escape':
           if (!this.kbHeld.pause) {
             this.kbHeld.pause = true;
@@ -238,6 +248,7 @@ export class InputSystem {
         case 'KeyQ': this.kbHeld.weaponPrev = false; break;
         case 'KeyF': this.kbHeld.grapple = false; break;
         case 'KeyG': this.kbHeld.emp = false; break;
+        case 'KeyR': this.kbHeld.repair = false; break;
         case 'Escape': this.kbHeld.pause = false; break;
         case 'ShiftLeft': case 'ShiftRight': this.kbHeld.dash = false; break;
         case 'KeyA': case 'ArrowLeft':
@@ -300,6 +311,7 @@ export class InputSystem {
     this.kbEdge.back = false;
     this.kbEdge.grapple = false;
     this.kbEdge.emp = false;
+    this.kbEdge.repair = false;
   }
 
   /**
@@ -389,6 +401,7 @@ export class InputSystem {
     this.state.backPressed = this.kbEdge.back || gpBack;
     this.state.grapplePressed = this.kbEdge.grapple;
     this.state.empPressed = this.kbEdge.emp;
+    this.state.repairPressed = this.kbEdge.repair;
 
     // B2 fix: gamepad-only edge flags for UI activation.
     // UIController.update() reads these (not the mixed flags above) so that
@@ -412,6 +425,7 @@ export class InputSystem {
     this.kbEdge.back = false;
     this.kbEdge.grapple = false;
     this.kbEdge.emp = false;
+    this.kbEdge.repair = false;
   }
 
   static getState(): Readonly<InputState> { return this.state; }
@@ -430,8 +444,8 @@ export class InputSystem {
     this.onGamepadConnected = null;
     this.onGamepadDisconnected = null;
     this.callbacks = {};
-    this.kbEdge = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false, grapple: false, emp: false };
-    this.kbHeld = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, left: false, right: false, up: false, down: false, grapple: false, emp: false };
+    this.kbEdge = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, back: false, grapple: false, emp: false, repair: false };
+    this.kbHeld = { jump: false, fire: false, melee: false, dash: false, weaponNext: false, weaponPrev: false, pause: false, interact: false, left: false, right: false, up: false, down: false, grapple: false, emp: false, repair: false };
   }
 
   static isGamepadAvailable(): boolean {

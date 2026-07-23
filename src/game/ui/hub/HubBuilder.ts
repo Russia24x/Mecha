@@ -174,7 +174,9 @@ export class HubBuilder {
         c.add(previewFrame);
 
         // Preview image
-        const previewTexture = area.regionId === 'forest' ? 'factory_bg_1' : 'factory_bg_2';
+        const previewTexture = area.regionId === 'forest' ? 'factory_bg_1'
+          : area.regionId === 'wastes' ? 'wastes_bg_1'
+          : 'factory_bg_2';
         if (this.scene.textures.exists(previewTexture)) {
           const previewImg = this.scene.add.image(actX, previewY, previewTexture);
           previewImg.setDepth(2.6);

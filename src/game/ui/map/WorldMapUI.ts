@@ -26,6 +26,7 @@ import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { t, getLocale, fixTextStyle } from '../../systems/LocalizationSystem';
 import { WorldMapSystem, type MapNode } from '../../world/WorldMapSystem';
+import { WorldSystem } from '../../world/WorldSystem';
 import { AudioSystem } from '../../systems/AudioSystem';
 import { NavigableOverlay } from '../NavigableOverlay';
 import { THEME, addCornerBrackets, addScanlines } from '../Theme';
@@ -84,12 +85,16 @@ export class WorldMapUI extends NavigableOverlay {
     this.container.add(mapPanel);
     this.container.add(addCornerBrackets(scene, w / 2, mapY + mapH / 2, mapW, mapH, THEME.CYAN, 10, 0.6));
 
-    // ── Map background art: use factory_bg_2 as the map preview ──
-    if (scene.textures.exists('factory_bg_2')) {
-      const mapBg = scene.add.image(w / 2, mapY + mapH / 2, 'factory_bg_2');
+    // ── Map background art: use the current area's region background ──
+    const currentArea = WorldSystem.getCurrent();
+    const regionBgKey = currentArea.regionId === 'forest' ? 'factory_bg_1'
+      : currentArea.regionId === 'wastes' ? 'wastes_bg_2'
+      : 'factory_bg_2';
+    if (scene.textures.exists(regionBgKey)) {
+      const mapBg = scene.add.image(w / 2, mapY + mapH / 2, regionBgKey);
       mapBg.setDepth(0.5);
       // Scale to fit map panel (cover fit)
-      const tex = scene.textures.get('factory_bg_2').getSourceImage();
+      const tex = scene.textures.get(regionBgKey).getSourceImage();
       const imgAR = tex.width / tex.height;
       const panelAR = mapW / mapH;
       let scale: number;

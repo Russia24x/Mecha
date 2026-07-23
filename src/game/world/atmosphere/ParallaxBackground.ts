@@ -185,7 +185,8 @@ export class ParallaxBackground {
         container.add(seam);
 
         // Fog wisp at seam (for wastes theme — extra atmospheric cover)
-        if (this.theme === 'wastes') {
+        // Limit to every 3rd seam to avoid excessive tweens on large worlds
+        if (this.theme === 'wastes' && i % 3 === 0) {
           const fogSeam = this.scene.add.circle(seamX, GAME.HEIGHT * 0.4, 60, 0x5a6a50, 0.08);
           fogSeam.setBlendMode(Phaser.BlendModes.ADD);
           fogSeam.setDepth(-1.3);

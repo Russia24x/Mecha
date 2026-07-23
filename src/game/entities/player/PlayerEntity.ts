@@ -496,6 +496,47 @@ export class PlayerEntity {
 
     // Continuous fire
     if (input.heldFire) this.tryFire();
+
+    // Repair kit (heal flask) — Key R
+    if (input.repairPressed) this.tryRepair();
+  }
+
+  // ── Repair Kit (heal flask) ──
+  // Dark Souls-style healing: 2 charges per stage, restores 50% max HP per use.
+  // Charges reset at checkpoints. Designed for future skill-tree integration
+  // (e.g. skills that increase charges, heal amount, or add effects).
+  private static MAX_REPAIR_CHARGES = 2;
+  private static REPAIR_HEAL_PCT = 0.5;  // 50% of max HP per use
+  private repairCharges = PlayerEntity.MAX_REPAIR_CHARGES;
+  private repairCooldown = 0;
+  private repairCooldownMs = 1000;  // 1s cooldown between uses
+
+  /** Get current repair charges (for HUD display). */
+  getRepairCharges(): number { return this.repairCharges; }
+
+  /** Get max repair charges (for HUD display). */
+  getMaxRepairCharges(): number { return PlayerEntity.MAX_REPAIR_CHARGES; }
+
+  /** Refill repair charges (called at checkpoints). */
+  refillRepair(): void {
+    this.repairCharges = PlayerEntity.MAX_REPAIR_CHARGES;
+    EventBus.emit('PLAYER_DAMAGED', { amount: 0, x: this.sprite.x, y: this.sprite.y, heal: true });
+  }
+
+  private tryRepair(): void {
+    if (this.repairCharges <= 0) return;
+    const now = this.scene.time.now;
+    if (now < this.repairCooldown) return;
+
+    this.repairCharges--;
+    this.repairCooldown = now + this.repairCooldownMs;
+
+    const healAmount = Math.floor(this.health.max * PlayerEntity.REPAIR_HEAL_PCT);
+    this.heal(healAmount);
+
+    // Visual feedback: green particle burst
+    this.particles.sparks(this.sprite.x, this.sprite.y, 0x40ff60, 12);
+    AudioSystem.play('levelUp');  // reuse level-up sound for now
   }
 
   private tryJump(): void {

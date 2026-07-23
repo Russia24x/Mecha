@@ -1086,6 +1086,8 @@ export class GameScene extends Phaser.Scene {
 
   private onCheckpointSaved = (): void => {
     this.hud?.toast(t('checkpoint.saved'));
+    // Refill repair kit charges at checkpoint
+    this.player?.refillRepair();
   };
 
   private onGameStateChanged = (p: unknown): void => {

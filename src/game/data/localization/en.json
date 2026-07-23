@@ -27,7 +27,7 @@
   "victory.boss_destroyed": "— GUARDIAN AX-09 DESTROYED —",
   "victory.return": "RETURN TO MENU",
   "mission.title": "MISSION SELECT",
-  "checkpoint.saved": "CHECKPOINT SAVED",
+  "checkpoint.saved": "Checkpoint reached. Repair kit refilled.",
   "levelup": "LEVEL UP!",
   "skill_unlocked": "SKILL UNLOCKED",
   "weapon_unlocked": "WEAPON UNLOCKED",
@@ -326,5 +326,6 @@
   "lore.w11.cockpit.title": "The Pilot's Log",
   "lore.w11.cockpit.text": "The cockpit is intact. Protected by the Leviathan's body. The last log entry: \"Mission status: HOLD. Evacuation status: COMPLETE. Stand-down order: PENDING. Note: It has been 847 days. I don't think the order is coming. But she hasn't moved. So I won't either.\"",
   "lore.w11.names.title": "The Crew List",
-  "lore.w11.names.text": "A list of names, etched into the interior hull. Forty-seven pilots served on the Leviathan. Forty-seven names. Some crossed out. Some not. The last one reads: \"Yara Vel — still here.\""
+  "lore.w11.names.text": "A list of names, etched into the interior hull. Forty-seven pilots served on the Leviathan. Forty-seven names. Some crossed out. Some not. The last one reads: \"Yara Vel — still here.\"",
+  "hud.repair": "REPAIR"
 }
