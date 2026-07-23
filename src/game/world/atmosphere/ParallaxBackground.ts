@@ -69,13 +69,10 @@ export class ParallaxBackground {
     else this.buildGenericMid(midCfg);
 
     // === NEAR layer (depth 1, scrollFactor 0.7) — in front of platforms, behind player ===
-    // ⚠️ TEMPORARY: Generic Near layer disabled for Wastes (FPS test).
-    // Was: dark band 40px tall at bottom of screen, scrollFactor 0.7, alpha 0.85.
-    // Factory and Forest keep their near layers.
     const nearCfg: LayerConfig = { scrollX: 0.7, scrollY: 0.3, depth: 1, alpha: 0.85 };
     if (this.theme === 'factory') this.buildFactoryNear(nearCfg);
     else if (this.theme === 'forest') this.buildForestNear(nearCfg);
-    else if (this.theme !== 'wastes') this.buildGenericNear(nearCfg);
+    else this.buildGenericNear(nearCfg);
   }
 
   // ─── SKY ────────────────────────────────────────────────────────────────
