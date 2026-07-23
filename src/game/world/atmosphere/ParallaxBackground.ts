@@ -51,10 +51,24 @@ export class ParallaxBackground {
   /** Build all parallax layers. Call once when entering play state. */
   build(): void {
     // === SKY (depth -2, fully static — base color wash) ===
+    // Skipped for Wastes (early return inside buildSky) — wastes has painted
+    // background art that already provides full-screen color, no tint needed.
     this.buildSky();
 
     // === BACKGROUND ART (user-provided images, tiled across world) ===
     this.buildBackgroundArt();
+
+    // === FAR / MID / NEAR procedural silhouette layers ===
+    // ⚠️ Wastes (Act II) does NOT use these. Reasoning:
+    //   - Wastes has user-provided painted background art (wastes_bg_1/2/3)
+    //     at depth -1.5 that already contains all the depth/silhouettes the
+    //     artist intended.
+    //   - The generic Far/Mid/Near fallbacks (dark rectangles) would render
+    //     ON TOP of the painted art (depths -1, 0, 1 are above -1.5),
+    //     creating visible flat dark bands that hide the painted backdrop.
+    //   - Factory and Forest keep these layers because they don't have full
+    //     painted backdrops — the procedural silhouettes are their only depth.
+    if (this.theme === 'wastes') return;
 
     // === FAR layer (depth -1, scrollFactor 0.1) ===
     const farCfg: LayerConfig = { scrollX: 0.1, scrollY: 0.05, depth: -1, alpha: 0.5 };
@@ -77,6 +91,17 @@ export class ParallaxBackground {
 
   // ─── SKY ────────────────────────────────────────────────────────────────
   private buildSky(): void {
+    // ⚠️ Wastes (Act II) does NOT use the procedural sky tint.
+    // Reasoning: we have user-provided painted background art (wastes_bg_1/2/3)
+    // at depth -1.5 that already provides the full atmospheric color. Adding a
+    // semi-transparent tint on top (depth -1.4, alpha 0.3) was over-darkening the
+    // painted backdrop and shifting its hue away from what the artist intended.
+    // Per user request: keep the painted art visible as-is.
+    //
+    // Other themes (factory, forest) keep their sky because they don't have
+    // full-screen painted backdrops yet.
+    if (this.theme === 'wastes') return;
+
     // Generate sky as a texture ONCE (not 720 fillRect calls per render)
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const g = this.scene.add.graphics();
@@ -107,7 +132,7 @@ export class ParallaxBackground {
       g.fillStyle(0x40ff80, 0.025);
       g.fillCircle(w * 0.5, h * 0.4, 250);
     } else {
-      // Wastes — sickly green-gray gradient
+      // Generic fallback (wastes is handled by early-return above)
       for (let y = 0; y < h; y += 2) {
         const t = y / h;
         const r = Math.floor(8 + t * 10);
@@ -125,8 +150,6 @@ export class ParallaxBackground {
     g.destroy();
 
     // Create image from texture — much cheaper to render than Graphics
-    // Sky is ABOVE background art (depth -1.4 vs background -1.5) so it
-    // acts as a color overlay/tint on the background images.
     const sky = this.scene.add.image(0, 0, '__sky_' + this.theme);
     sky.setOrigin(0, 0);
     sky.setDepth(-1.4);  // above background (-1.5), below far layer (-1)
@@ -192,8 +215,8 @@ export class ParallaxBackground {
       }
       container.add(img);
 
-      // ── Cover seams between tiles with decorative overlays ──
-      // Place a fog wisp or dark gradient at each tile boundary to hide the hard edge
+      // ── Cover seams between tiles with a dark gradient strip ──
+      // (Fog wisp overlay was removed per user request for Act II — no fog/vapor)
       if (i > 0) {
         const seamX = x;
         // Dark gradient strip at seam (blends left and right tiles)
@@ -209,22 +232,24 @@ export class ParallaxBackground {
         }
         container.add(seam);
 
-        // Fog wisp at seam (for wastes theme — extra atmospheric cover)
-        // Limit to every 3rd seam to avoid excessive tweens on large worlds
-        if (this.theme === 'wastes' && i % 3 === 0) {
-          const fogSeam = this.scene.add.circle(seamX, GAME.HEIGHT * 0.4, 60, 0x5a6a50, 0.08);
-          fogSeam.setBlendMode(Phaser.BlendModes.ADD);
-          fogSeam.setDepth(-1.3);
-          container.add(fogSeam);
-          this.tweens.push(this.scene.tweens.add({
-            targets: fogSeam,
-            alpha: { from: 0.04, to: 0.12 },
-            scale: { from: 0.8, to: 1.3 },
-            y: { from: GAME.HEIGHT * 0.35, to: GAME.HEIGHT * 0.45 },
-            duration: 4000 + Math.random() * 2000,
-            yoyo: true, repeat: -1, ease: 'Sine.inOut',
-          }));
-        }
+        // Fog wisp at seam — DISABLED for Wastes per user request (Act II has no fog/vapor).
+        // The seam cover (dark gradient strip above) is sufficient to hide tile edges.
+        // Other themes that get background art in the future can re-enable this if needed.
+        //
+        // if (this.theme === 'wastes' && i % 3 === 0) {
+        //   const fogSeam = this.scene.add.circle(seamX, GAME.HEIGHT * 0.4, 60, 0x5a6a50, 0.08);
+        //   fogSeam.setBlendMode(Phaser.BlendModes.ADD);
+        //   fogSeam.setDepth(-1.3);
+        //   container.add(fogSeam);
+        //   this.tweens.push(this.scene.tweens.add({
+        //     targets: fogSeam,
+        //     alpha: { from: 0.04, to: 0.12 },
+        //     scale: { from: 0.8, to: 1.3 },
+        //     y: { from: GAME.HEIGHT * 0.35, to: GAME.HEIGHT * 0.45 },
+        //     duration: 4000 + Math.random() * 2000,
+        //     yoyo: true, repeat: -1, ease: 'Sine.inOut',
+        //   }));
+        // }
       }
     }
     this.layers.push(container);

@@ -63,7 +63,9 @@ export class WastesAreaStrategy extends AreaStrategy {
     // Heavily limited for performance — large worlds have many platforms
     if (type === 'floor' && w >= 80) {
       if (Math.random() < 0.3) this.addWaterPuddles(result, x, y, w, h);
-      if (Math.random() < 0.1) this.addFogWisp(result, x, y, w);
+      // ⚠️ Fog wisps disabled for Wastes per user request (Act II has no fog/vapor).
+      // The swamp backdrop art already provides atmosphere; procedural fog was redundant.
+      // if (Math.random() < 0.1) this.addFogWisp(result, x, y, w);
       if (Math.random() < 0.08) this.addDrippingWater(result, x, y, w);
     }
     // Wall decorations: moss, rust streaks, exposed pipes

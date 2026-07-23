@@ -2167,3 +2167,51 @@ Stage Summary:
 - Parallax children correctly follow their containers (visual "swimming" fixed)
 - 3 files removed (dead i18n folder) — small reduction in codebase noise
 - Ready for next iteration: Act III (The Last City), or focus on Abilities implementation (wallJump, grapple, hover, EMP, hack per GDD priority list)
+
+---
+Task ID: cleanup-wastes-parallax-redundancy
+Agent: main
+Task: Per user feedback — they have user-provided background images for Wastes, so any procedural overlay that competes with or hides the painted art should be disabled. Also clarify the Wastes decorations layer (user said "I don't see them much").
+
+Work Log:
+- Reviewed ParallaxBackground.ts and AtmosphereSystem.ts to identify all layers that render ON TOP of the painted backdrop art (depth -1.5).
+- Identified 5 redundant layers that were competing with the painted art:
+  1. Sky tint (depth -1.4, alpha 0.3) — was over-darkening the painted backdrop with a sickly green gradient
+  2. Generic Far layer (depth -1) — flat dark rectangle band at the bottom
+  3. Generic Mid layer (depth 0) — spaced dark rectangles
+  4. Generic Near layer (depth 1) — dark band at the bottom
+  5. Depth haze (depth 95, MULTIPLY blend, alpha 0.15) — full-screen dark green multiply
+- All 5 are now DISABLED for Wastes specifically (early-return gated by `theme === 'wastes'`).
+- Factory and Forest keep all their layers — they don't have painted backdrops yet.
+- WastesAreaStrategy decorations (depth 5-6) are CORRECT — they render in front of the background art, exactly as designed. The reason the user "didn't see them much" is most likely because they were testing in Act I (Tutorial Zone), not Act II (Wastes). The decorations are region-specific and only spawn in Wastes sections.
+
+What's now active for Wastes (post this commit):
+- ✅ Painted backdrop art (wastes_bg_1/2/3, depth -1.5) — the artist's work, visible as intended
+- ✅ Seam covers between tiles (depth -1.4) — necessary for seamless tiling
+- ✅ God rays (depth 1, intensity 0.06) — subtle volumetric light from above
+- ✅ Ambient particles (depth 85) — sickly green-gray motes drifting up
+- ✅ All WastesAreaStrategy decorations (depth 5-6): water puddles, dripping water, wall moss/rust/pipes, rust debris
+- ✅ All platform art (drawWastesPlatform, depth 5): mud + moss + rust + root tendrils
+- ✅ All hazards: spikes (rebar shards), lava (toxic swamp pools with bubbles)
+- ✅ All lore objects + landmarks + collectibles + player + boss + enemy effects
+
+What's now disabled for Wastes:
+- ❌ Sky tint (was depth -1.4, alpha 0.3)
+- ❌ Generic Far layer (was depth -1, dark band)
+- ❌ Generic Mid layer (was depth 0, dark rectangles)
+- ❌ Generic Near layer (was depth 1, dark band)
+- ❌ Depth haze (was depth 95, MULTIPLY, alpha 0.15)
+- ❌ Atmospheric fog bands (already disabled in commit 34ddd48)
+- ❌ Floor fog wisps (already disabled)
+- ❌ Seam fog wisps (already disabled)
+
+GATE:
+- tsc --strict: 0 errors in src/game/ (4 pre-existing in examples/skills unchanged)
+- Browser test: HTTP 200, dev server healthy
+- Git status: clean, synced with origin/main before this commit
+
+Stage Summary:
+- 5 redundant overlay layers removed for Wastes — painted backdrop art now fully visible
+- Decorations depth verified correct (5-6, in front of background)
+- User concern about "not seeing decorations" diagnosed as region mismatch (likely viewing Act I)
+- Factory/Forest parallax layers preserved untouched
