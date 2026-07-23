@@ -71,6 +71,76 @@ export class BossEntity {
   }
 
   private buildVisual(): void {
+    if (this.id === 'leviathan_hulk') {
+      this.buildLeviathanVisual();
+    } else {
+      this.buildGenericBossVisual();
+    }
+  }
+
+  /** Leviathan Hulk — massive, rusted, waterlogged mech. */
+  private buildLeviathanVisual(): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(14);
+
+    // Main body — large rounded mass (80m mech, scaled down)
+    g.fillStyle(0x1a2a18, 1);
+    g.fillRoundedRect(-55, -45, 110, 90, 8);
+
+    // Rusted metal patches
+    g.fillStyle(0x5a3a1a, 0.6);
+    g.fillCircle(-20, -15, 12);
+    g.fillCircle(25, 10, 10);
+    g.fillCircle(-10, 25, 8);
+    g.fillCircle(30, -20, 7);
+
+    // Moss/algae on top
+    g.fillStyle(0x3a5a28, 0.7);
+    g.fillRoundedRect(-55, -45, 110, 12, 6);
+    g.fillStyle(0x4a6a30, 0.5);
+    g.fillCircle(-30, -40, 4);
+    g.fillCircle(0, -43, 3);
+    g.fillCircle(20, -41, 4);
+    g.fillCircle(35, -39, 3);
+
+    // Water dripping marks (vertical streaks)
+    g.fillStyle(0x2a4a18, 0.3);
+    g.fillRect(-35, -30, 2, 40);
+    g.fillRect(10, -25, 2, 35);
+    g.fillRect(30, -20, 2, 30);
+
+    // Outline — dark, corroded
+    g.lineStyle(2, 0x0a1a08, 0.9);
+    g.strokeRoundedRect(-55, -45, 110, 90, 8);
+
+    // Shoulder armor plates (massive, rusted)
+    g.fillStyle(0x2a3a20, 0.8);
+    g.fillRoundedRect(-60, -40, 20, 30, 3);
+    g.fillRoundedRect(40, -40, 20, 30, 3);
+    g.fillStyle(0x5a3a1a, 0.4);
+    g.fillCircle(-50, -25, 5);
+    g.fillCircle(50, -25, 5);
+
+    // Single eye — sickly amber (old command light, still on)
+    g.fillStyle(0xff8030, 0.15);
+    g.fillCircle(0, -10, 14);
+    this.bossCore = this.scene.add.circle(this.sprite.x, this.sprite.y, 8, 0xff8030, 0.8);
+    this.bossCore.setDepth(15);
+    this.bossCore.setBlendMode(Phaser.BlendModes.ADD);
+    g.fillStyle(0xffa040, 0.9);
+    g.fillCircle(0, -10, 5);
+    g.fillStyle(0xffd060, 1);
+    g.fillCircle(0, -10, 2);
+
+    // "AWAITING ORDER" text on chest (barely visible)
+    g.fillStyle(0xff6020, 0.2);
+    g.fillRect(-20, 15, 40, 6);
+
+    this.bossGfx = g;
+  }
+
+  /** Generic boss visual (Guardian, Neural Overseer). */
+  private buildGenericBossVisual(): void {
     const g = this.scene.add.graphics();
     g.setDepth(14);
     g.fillStyle(0x2a0a0a, 1);

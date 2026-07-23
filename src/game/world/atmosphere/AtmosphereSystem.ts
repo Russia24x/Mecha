@@ -64,8 +64,8 @@ export class AtmosphereSystem {
     const fogColor = this.theme === 'forest' ? 0x40a060
       : this.theme === 'wastes' ? 0x4a5a40  // sickly green-gray for swamps
       : 0x6a5a4a;
-    // Wastes get denser fog (6 layers vs 4)
-    const fogCount = this.theme === 'wastes' ? 6 : 4;
+    // Wastes get slightly denser fog (5 layers vs 4)
+    const fogCount = this.theme === 'wastes' ? 5 : 4;
     for (let i = 0; i < fogCount; i++) {
       const g = this.scene.add.graphics();
       g.setDepth(80 - i * 2);

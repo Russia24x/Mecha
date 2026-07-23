@@ -60,14 +60,14 @@ export class WastesAreaStrategy extends AreaStrategy {
     type: PlatformType,
   ): void {
     // Floor decorations: water puddles, fog wisps, dripping water
-    // Limit decoration frequency for performance on large worlds
+    // Heavily limited for performance — large worlds have many platforms
     if (type === 'floor' && w >= 80) {
-      if (Math.random() < 0.5) this.addWaterPuddles(result, x, y, w, h);
-      if (Math.random() < 0.2) this.addFogWisp(result, x, y, w);
-      if (Math.random() < 0.15) this.addDrippingWater(result, x, y, w);
+      if (Math.random() < 0.3) this.addWaterPuddles(result, x, y, w, h);
+      if (Math.random() < 0.1) this.addFogWisp(result, x, y, w);
+      if (Math.random() < 0.08) this.addDrippingWater(result, x, y, w);
     }
     // Wall decorations: moss, rust streaks, exposed pipes
-    if (type === 'wall' && h > 100 && Math.random() < 0.6) {
+    if (type === 'wall' && h > 100 && Math.random() < 0.4) {
       this.addWastesWallDecorations(result, x, y, w, h);
     }
     // Rusted metal debris on ledges

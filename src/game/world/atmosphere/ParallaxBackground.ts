@@ -109,8 +109,18 @@ export class ParallaxBackground {
       sky.fillStyle(0x40ff80, 0.025);
       sky.fillCircle(w * 0.5, h * 0.4, 250);
     } else {
-      sky.fillStyle(0x05070d, 1);
-      sky.fillRect(0, 0, w, h);
+      // Wastes / generic — sickly green-gray gradient
+      for (let y = 0; y < h; y++) {
+        const t = y / h;
+        const r = Math.floor(8 + t * 10);
+        const g = Math.floor(12 + t * 8);
+        const b = Math.floor(6 + t * 4);
+        sky.fillStyle((r << 16) | (g << 8) | b, 1);
+        sky.fillRect(0, y, w, 1);
+      }
+      // Sickly fog glow (green-gray)
+      sky.fillStyle(0x4a5a40, 0.03);
+      sky.fillCircle(w * 0.5, h * 0.5, 300);
     }
     this.layers.push(sky);
   }

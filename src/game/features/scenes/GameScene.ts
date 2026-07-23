@@ -1203,7 +1203,7 @@ export class GameScene extends Phaser.Scene {
     // setupNav removed — UIController handles keyboard
   }
 
-  private buildVictory(): void {
+  private async buildVictory(): Promise<void> {
     const c = this.stateContainer!;
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     // Background — dark void with subtle starfield
@@ -1220,22 +1220,35 @@ export class GameScene extends Phaser.Scene {
     c.add(this.add.text(w / 2, h * 0.3, t('victory.title'), fixTextStyle({
       fontFamily: 'monospace', fontSize: '56px', color: '#ffe060', stroke: '#000', strokeThickness: 8,
     })).setOrigin(0.5).setDepth(1));
-    // Boss lore — use the actual boss that was killed (not hardcoded)
-    const lore = this.killedBossId ? LoreSystem.getBossLore(this.killedBossId) : null;
-    if (lore) {
-      const lines = lore.lines.map(key => t(key));
+    // Boss lore — use the actual boss data (not LoreSystem which may not have all bosses)
+    const bossData = this.killedBossId
+      ? (await import('../../data/bosses/bosses')).getBoss(this.killedBossId)
+      : null;
+    if (bossData?.lore) {
+      const lines = bossData.lore.map(key => t(key));
       c.add(this.add.text(w / 2, h * 0.5, lines, fixTextStyle({
         fontFamily: 'monospace', fontSize: '14px', color: '#a0a0a0', align: 'center', lineSpacing: 6,
       })).setOrigin(0.5).setDepth(1));
     }
-    // Atlas quote — Persian-aware
-    const atlasQuote = getLocale() === 'fa'
-      ? '"اطلس هرگز منتظر ماند."'
-      : '"Atlas never stopped waiting."';
+    // Atlas quote — per boss (Persian-aware)
+    const bossQuotes: Record<string, { en: string; fa: string }> = {
+      guardian_ax09: { en: '"Atlas never stopped waiting."', fa: '"اطلس هرگز منتظر ماند."' },
+      neural_overseer: { en: '"It watched over a forest that forgot it was watching."', fa: '"او بر جنگلی نظارت می‌کرد که فراموش کرده بود نظارت می‌شود."' },
+      leviathan_hulk: { en: '"She protected a city that no longer exists."', fa: '"او شهری را محافظت می‌کرد که دیگر وجود ندارد."' },
+    };
+    const quote = bossQuotes[this.killedBossId ?? ''] ?? bossQuotes.guardian_ax09;
+    const atlasQuote = getLocale() === 'fa' ? quote.fa : quote.en;
     c.add(this.add.text(w / 2, h * 0.68, atlasQuote, fixTextStyle({
       fontFamily: 'monospace', fontSize: '16px', color: '#39d0d8', stroke: '#000', strokeThickness: 4, fontStyle: 'italic',
     })).setOrigin(0.5).setDepth(1));
     // ── Return to HUB (not menu) — per user: after victory, go to hub to prepare for next stage ──
+    // Stats line
+    const statsLine = getLocale() === 'fa'
+      ? `سطح ${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} کشته`
+      : `LV.${ExperienceSystem.getLevel()}  |  ${SaveSystem.getPlayer().totalKills} kills`;
+    c.add(this.add.text(w / 2, h * 0.62, statsLine, fixTextStyle({
+      fontFamily: 'monospace', fontSize: '12px', color: '#5a6470',
+    })).setOrigin(0.5).setDepth(1));
     const returnLabel = getLocale() === 'fa' ? 'بازگشت به هاب' : t('victory.return');
     this.menuNav!.makeMenuBtn(w / 2, h * 0.82, returnLabel, () => {
       AudioSystem.play('uiClick');
