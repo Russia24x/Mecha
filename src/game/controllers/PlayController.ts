@@ -488,23 +488,27 @@ export class PlayController {
     // Body visibility check is X-axis only (world is single-screen height — vertical
     // scroll is bounded by camera, so Y culling is unnecessary).
     //
-    // Per Stage 1.5: use MatterJS.Sleeping.set() instead of directly mutating
-    // body.isSleeping. The Matter docs explicitly warn: "If you need to set a
-    // body as sleeping, you should use Sleeping.set as this requires more
-    // than just setting this flag." Sleeping.set also resets positionImpulse,
+    // Per Stage 1.5: use Matter's supported Body.set(body, 'isSleeping', value)
+    // instead of directly mutating body.isSleeping. The Matter docs explicitly warn:
+    // "If you need to set a body as sleeping, you should use Sleeping.set as this
+    // requires more than just setting this flag." Body.set() internally dispatches
+    // 'isSleeping' to Sleeping.set(), which properly resets positionImpulse,
     // positionPrev, speed, angularSpeed, motion, sleepCounter, and fires the
-    // 'sleepStart'/'sleepWake' events. Direct mutation leaves these stale,
-    // which can cause Matter to immediately wake the body on its next update.
+    // 'sleepStart'/'sleepWake' events.
+    //
+    // Access pattern: scene.matter.body is the Matter.Body module (exposed by
+    // Phaser's MatterPhysics). Body.set(body, 'isSleeping', bool) is the supported API.
+    const Body = r.scene.matter.body;
     const checkBody = (body: Phaser.Physics.Matter.Image): void => {
       if (!body || !body.active) return;
       const bx = body.x;
       const matterBody = body.body as MatterJS.BodyType;
-      if (!matterBody) return;
+      if (!matterBody || !Body) return;
       const offscreen = bx < viewLeft || bx > viewRight;
       if (offscreen && !matterBody.isSleeping) {
-        MatterJS.Sleeping.set(matterBody, true);
+        Body.set(matterBody, 'isSleeping', true);
       } else if (!offscreen && matterBody.isSleeping) {
-        MatterJS.Sleeping.set(matterBody, false);
+        Body.set(matterBody, 'isSleeping', false);
       }
     };
 
