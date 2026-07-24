@@ -505,18 +505,21 @@ export const ACTS: ActData[] = [
                 // Upper ledge (lore access — the cockpit)
                 { x: 12728, y: 280, w: 200, h: 16 },
                 { x: 13128, y: 220, w: 160, h: 16 },
-                // Walls blocking S11→S12 (boss arena entrance)
+                // Wall blocking S9→S10 (boss arena entrance)
                 { x: 13788, y: 360, w: 40, h: 200 },
-                { x: 16860, y: 540, w: 40, h: 160 },
               ], loreObjects: [
-                // The pilot's final log — in the cockpit
-                { id: 'lore_w9_cockpit', type: 'terminal', x: 15800, y: 270, titleKey: 'lore.w11.cockpit.title', textKey: 'lore.w11.cockpit.text' },
-                // Names list — all the pilots who served under her
-                { id: 'lore_w9_names', type: 'corpse', x: 16200, y: 210, titleKey: 'lore.w11.names.title', textKey: 'lore.w11.names.text' },
+                // The pilot's final log — on the upper ledge (cockpit access)
+                // ⚠️ Per Stage 1.6 of OPTIMIZATION_PLAN.md: was at x=15800
+                // (beyond world end 15360). Moved to upper ledge at x=13128.
+                { id: 'lore_w9_cockpit', type: 'terminal', x: 13128, y: 180, titleKey: 'lore.w11.cockpit.title', textKey: 'lore.w11.cockpit.text' },
+                // Names list — on the upper ledge to the left
+                { id: 'lore_w9_names', type: 'corpse', x: 12728, y: 240, titleKey: 'lore.w11.names.title', textKey: 'lore.w11.names.text' },
               ], collectibles: [
-                { id: 'col_w9_health', type: 'health_fragment', x: 16400, y: 350 },
+                // Health fragment — floating above the mid platform
+                { id: 'col_w9_health', type: 'health_fragment', x: 13028, y: 420 },
               ], shortcuts: [
-                { id: 'sc_w9_to_s10', x: 16860, y: 650, w: 40, h: 60, toSection: 10, opensFrom: 'left' },
+                // Shortcut to boss arena — at the section boundary
+                { id: 'sc_w9_to_s10', x: 13788, y: 650, w: 40, h: 60, toSection: 10, opensFrom: 'left' },
               ]},
 
               // ═══════════════════════════════════════════════════════════════

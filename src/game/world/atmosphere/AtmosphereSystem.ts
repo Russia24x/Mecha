@@ -44,7 +44,7 @@ export class AtmosphereSystem {
   private particles: Particle[] = [];
   private tweens: Phaser.Tweens.Tween[] = [];
   private particleTimer: Phaser.Time.TimerEvent | null = null;
-  private rayTime = 0;
+  // (rayTime field removed per Stage 1.4 — was incremented but never read)
 
   constructor(scene: Phaser.Scene, theme: RegionTheme, worldWidth: number) {
     this.scene = scene;
@@ -233,8 +233,8 @@ export class AtmosphereSystem {
       }
     }
 
-    // Subtle god ray breathing (already handled by tweens, but we can add global sway)
-    this.rayTime += deltaMs;
+    // God ray breathing is handled by tweens (rotation + alpha flicker set
+    // in buildGodRays). No per-frame update needed here.
   }
 
   /** Destroy all atmosphere layers. Call on cleanupPlay. */

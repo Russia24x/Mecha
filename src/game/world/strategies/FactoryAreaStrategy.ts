@@ -159,6 +159,9 @@ export class FactoryAreaStrategy extends AreaStrategy {
       container.add(vis);
     }
 
+    // ⚠️ Set size so VisualCuller can use bounding-box culling.
+    // Per Stage 1.1 of OPTIMIZATION_PLAN.md.
+    container.setSize(hazard.w, hazard.h);
     return container;
   }
 

@@ -10,7 +10,10 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "test:section-bounds": "npx tsx scripts/validate-section-bounds.ts",
+    "test:hazard-cull": "npx tsx scripts/validate-hazard-cull-dims.ts",
+    "test:validators": "npm run test:section-bounds && npm run test:hazard-cull"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

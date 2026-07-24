@@ -158,6 +158,11 @@ export class WastesAreaStrategy extends AreaStrategy {
       container.add(vis);
     }
 
+    // ⚠️ Set size so VisualCuller can use bounding-box culling.
+    // Wide lava pits (up to 300px) need this to avoid being culled when
+    // their center scrolls off-screen even though part is still visible.
+    // Per Stage 1.1 of OPTIMIZATION_PLAN.md.
+    container.setSize(hazard.w, hazard.h);
     return container;
   }
 

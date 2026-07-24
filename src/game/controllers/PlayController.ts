@@ -334,7 +334,11 @@ export class PlayController {
     r.forestEnv?.update(deltaMs, r.player.sprite.x, r.player.sprite.y);
 
     // ── Ambient dust motes ──
-    if (r.scene.time.now % 200 < 16) {
+    // Per Stage 1.3: replaced `time.now % 200 < 16` (broken on slow machines)
+    // with proper accumulator. Fires every ~200ms regardless of delta.
+    PlayController.dustAccumulator += deltaMs;
+    if (PlayController.dustAccumulator >= PlayController.AMBIENT_DUST_INTERVAL_MS) {
+      PlayController.dustAccumulator = 0;
       r.particles.ambientDust(r.player.sprite.x, r.player.sprite.y - 40, 2);
     }
 
@@ -442,6 +446,15 @@ export class PlayController {
   private static readonly CULL_INTERVAL_MS = 500;
   private static cullAccumulator = 0;
 
+  // ── Ambient dust accumulator ──
+  // Per Stage 1.3 of OPTIMIZATION_PLAN.md: replaces the broken
+  // `if (time.now % 200 < 16)` pattern which could be SKIPPED entirely
+  // on slow machines (delta > 16ms jumps over the 200ms window).
+  // Accumulator survives any delta — at 60fps fires ~3x/sec, at 30fps
+  // fires ~1.5x/sec, both correct.
+  private static readonly AMBIENT_DUST_INTERVAL_MS = 200;
+  private static dustAccumulator = 0;
+
   /**
    * Sleep/wake Matter bodies based on whether they're inside (or near)
    * the camera viewport. Sleeping bodies are skipped by Matter's broad-phase
@@ -469,26 +482,38 @@ export class PlayController {
     const viewLeft = cam.scrollX - margin;
     const viewRight = cam.scrollX + cam.width + margin;
 
-    const cullList: Phaser.Physics.Matter.Image[] = [
-      ...r.loadedArea.solids,
-      ...r.loadedArea.hazardTriggers,
-      ...r.loadedArea.sectionTriggers,
-    ];
-
-    for (const body of cullList) {
-      if (!body || !body.active) continue;
+    // ── Iterate the 3 arrays directly (no allocation).
+    // Per Stage 1.2 of OPTIMIZATION_PLAN.md: was `[...solids, ...hazards, ...sections]`
+    // which allocated a ~111-element array every 500ms. Direct iteration is GC-free.
+    // Body visibility check is X-axis only (world is single-screen height — vertical
+    // scroll is bounded by camera, so Y culling is unnecessary).
+    //
+    // Per Stage 1.5: use MatterJS.Sleeping.set() instead of directly mutating
+    // body.isSleeping. The Matter docs explicitly warn: "If you need to set a
+    // body as sleeping, you should use Sleeping.set as this requires more
+    // than just setting this flag." Sleeping.set also resets positionImpulse,
+    // positionPrev, speed, angularSpeed, motion, sleepCounter, and fires the
+    // 'sleepStart'/'sleepWake' events. Direct mutation leaves these stale,
+    // which can cause Matter to immediately wake the body on its next update.
+    const checkBody = (body: Phaser.Physics.Matter.Image): void => {
+      if (!body || !body.active) return;
       const bx = body.x;
-      // Cast through to the Matter body — Phaser 4's MatterImage stores
-      // its physics body on .body, but TS types hide isSleeping.
-      const matterBody = body.body as unknown as { isSleeping?: boolean };
-      if (!matterBody) continue;
+      const matterBody = body.body as MatterJS.BodyType;
+      if (!matterBody) return;
       const offscreen = bx < viewLeft || bx > viewRight;
       if (offscreen && !matterBody.isSleeping) {
-        matterBody.isSleeping = true;
+        MatterJS.Sleeping.set(matterBody, true);
       } else if (!offscreen && matterBody.isSleeping) {
-        matterBody.isSleeping = false;
+        MatterJS.Sleeping.set(matterBody, false);
       }
-    }
+    };
+
+    const solids = r.loadedArea.solids;
+    for (let i = 0; i < solids.length; i++) checkBody(solids[i]);
+    const hazards = r.loadedArea.hazardTriggers;
+    for (let i = 0; i < hazards.length; i++) checkBody(hazards[i]);
+    const sections = r.loadedArea.sectionTriggers;
+    for (let i = 0; i < sections.length; i++) checkBody(sections[i]);
   }
 
   /**

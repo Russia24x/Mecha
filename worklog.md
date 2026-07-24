@@ -2215,3 +2215,75 @@ Stage Summary:
 - Decorations depth verified correct (5-6, in front of background)
 - User concern about "not seeing decorations" diagnosed as region mismatch (likely viewing Act I)
 - Factory/Forest parallax layers preserved untouched
+
+---
+Task ID: stage0-verify-wastes-overlay-state
+Agent: main
+Task: Verify the actual current state of Wastes overlay layers against the worklog's claim (which says they're disabled). Per advisor feedback: the worklog entry for `cleanup-wastes-parallax-redundancy` may be stale because commit `35f2a03` (revert) ran after it.
+
+Work Log:
+- Ran `git log --oneline -- ParallaxBackground.ts AtmosphereSystem.ts WastesAreaStrategy.ts` to trace history.
+- History shows: `327e732` (cleanup) → `35fe732` (test disable all) → `35f2a03` (revert: re-enable ALL) → `cf1fc02` (test shorten) → `b4e5bd6` (revert shorten) → `43d9369` (docs only).
+- Verified actual code state in HEAD (`43d9369`) via grep:
+  - AtmosphereSystem.ts:63 — `buildFog()` runs unconditionally (no `if (theme === 'wastes') return` early-exit at top of build())
+  - AtmosphereSystem.ts:65 — fog color has `wastes ? 0x4a5a40` branch with comment "(re-enabled)"
+  - AtmosphereSystem.ts:68 — `fogCount = wastes ? 5 : 4` (wastes gets MORE fog, not less)
+  - AtmosphereSystem.ts:201 — `buildDepthHaze()` runs unconditionally
+  - AtmosphereSystem.ts:203 — haze color has `wastes ? 0x0a1208` branch with comment "(re-enabled)"
+  - ParallaxBackground.ts:54 — `buildSky()` runs unconditionally
+  - ParallaxBackground.ts:75 — `buildGenericNear(nearCfg)` runs for all themes including wastes (no early-return)
+  - ParallaxBackground.ts:211 — seam fog wisps active: `if (theme === 'wastes' && i % 3 === 0)`
+
+Finding:
+- The worklog entry `cleanup-wastes-parallax-redundancy` claims ALL 5 overlay layers are disabled for Wastes.
+- Reality in HEAD: ALL 5 overlay layers are ACTIVE for Wastes. The revert commit `35f2a03` undid the cleanup entirely (user explicitly requested re-enabling fog/effects for visual comparison).
+- Stage 2.2 of OPTIMIZATION_PLAN.md (re-disable overlays) is therefore NOT a duplicate of past work — it would actually re-disable what was re-enabled. The 3-5 FPS estimate stands.
+
+Reconciliation:
+- The worklog `cleanup-wastes-parallax-redundancy` entry is STALE — its "What's now disabled for Wastes" section describes commit `327e732`, not HEAD.
+- To avoid future confusion: a "Current State vs HEAD" reconciliation step should be added to the planning workflow before each optimization stage.
+
+Stage Summary:
+- Worklog confirmed stale relative to HEAD.
+- Stage 2.2 of OPTIMIZATION_PLAN.md is needed (no duplication concern).
+- Recommended order: D2 (this entry) → Stage 1.1-1.6 + 1.1a + 1.6a (correctness) → Gate 1.
+
+---
+Task ID: stage1-correctness-fixes
+Agent: main
+Task: Execute Stage 1 of OPTIMIZATION_PLAN.md — 6 correctness fixes with concurrent test writing (T3, T7) per advisor feedback.
+
+Work Log:
+- Stage 1.1: Added `container.setSize(hazard.w, hazard.h)` to createHazardVisual in all 3 strategies (WastesAreaStrategy, FactoryAreaStrategy, ForestAreaStrategy). This fixes the same bug class as the platform fix (commit 5303911) — wide hazards (lava pits up to 300px) were using center-point culling and popping out at screen edges.
+- Stage 1.1a: Created `scripts/validate-hazard-cull-dims.ts` (T3) — standalone validator that checks all 3 strategies' createHazardVisual methods contain the setSize call. Uses brace-counting to extract method body, then regex check. No Phaser dependency.
+- Stage 1.2: Replaced `[...solids, ...hazards, ...sections]` allocation in PlayController.runCulling with 3 sequential for-loops. Was allocating a ~111-element array every 500ms. Now GC-free.
+- Stage 1.3: Fixed `time.now % 200 < 16` ambient dust pattern → proper accumulator (`dustAccumulator += deltaMs`). Same fix as the culler accumulator — survives any delta, doesn't skip on slow machines.
+- Stage 1.4: Removed dead `rayTime` field from AtmosphereSystem. Was incremented every frame but never read. Replaced aspirational comment with accurate one.
+- Stage 1.5: Replaced `matterBody.isSleeping = true` (direct mutation) with `MatterJS.Sleeping.set(matterBody, true)` (documented API). DISCOVERY: Matter docs explicitly warn "If you need to set a body as sleeping, you should use Sleeping.set as this requires more than just setting this flag." Direct mutation leaves positionImpulse, positionPrev, speed, angularSpeed, motion, sleepCounter stale — Matter could immediately wake the body on its next update because speed was non-zero.
+- Stage 1.6: Fixed 5 out-of-bounds objects in Section 9 of acts.ts. All had x > 15360 (beyond world end):
+  - Removed duplicate wall at x=16860 (line 510 — redundant with x=13788 wall)
+  - Moved `lore_w9_cockpit` from x=15800 → x=13128 (on upper ledge near cockpit)
+  - Moved `lore_w9_names` from x=16200 → x=12728 (on upper ledge to the left)
+  - Moved `col_w9_health` from x=16400 → x=13028 (above mid platform)
+  - Moved `sc_w9_to_s10` from x=16860 → x=13788 (at section boundary)
+- Stage 1.6a: Created `scripts/validate-section-bounds.ts` (T7) — validates no object has x beyond world width. Objects outside their own section are flagged as INFO (could be intentional: distant silhouettes like lm_w8_leviathan_silhouette). Currently 2 INFO, 0 ERROR.
+- Added test scripts to package.json:
+  - `npm run test:section-bounds`
+  - `npm run test:hazard-cull`
+  - `npm run test:validators` (runs both)
+
+GATE:
+- tsc --strict: 0 errors in src/game/
+- Both validators PASS
+- Dev server HTTP 200
+- No behavior changes (correctness-only fixes)
+
+Stage Summary:
+- 6 correctness bugs fixed (4 in code, 1 in level data, 1 API misuse)
+- 2 standalone test scripts added (T3, T7) — runnable without Phaser/browser
+- worklog reconciled with HEAD (Stage 0 verified worklog was stale)
+- Ready for Stage 2 (medium refactors) after advisor approval
+
+⚠️ 2 INFO issues flagged for advisor review:
+- `lore_w8_shadow` (terminal at x=14400, in section 10's x-range but owned by section 8) — likely intentional ("First Sighting" lore where player sees Leviathan in distance)
+- `lm_w8_leviathan_silhouette` (landmark at x=12928, in section 9's x-range) — definitely intentional (silhouette visible from distance)

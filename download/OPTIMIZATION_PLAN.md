@@ -1,8 +1,33 @@
 # MECHA: LAST PROTOCOL — Performance Optimization Plan
 
 > **تاریخ:** 2026-07-24
-> **وضعیت:** پیش‌نویس برای مشاور پروژه
+> **وضعیت:** Stage 0 + Stage 1 تکمیل شد (commit TBD)
 > **هدف:** بستن شکاف 45→60 FPS در Act II بدون فدا کردن کیفیت بصری یا کد
+
+## ✅ Stage 0 — Verify (تکمیل شد)
+
+**نتیجه:** worklog stale تأیید شد. commit `35f2a03` تمام ۵ overlay Wastes را revert کرد.
+HEAD = `43d9369` (فقط OPTIMIZATION_PLAN.md اضافه شد). Stage 2.2 لازم است (دوباره‌کاری نیست).
+
+## ✅ Stage 1 — Quick Wins (تکمیل شد)
+
+| # | کار | وضعیت |
+|---|-----|-------|
+| 1.1 | `container.setSize(hazard.w, hazard.h)` در 3 استراتژی | ✅ انجام شد |
+| 1.1a | T3 (hazard culling test) — `scripts/validate-hazard-cull-dims.ts` | ✅ PASS |
+| 1.2 | حذف `[...arr1, ...arr2, ...arr3]` allocation | ✅ انجام شد |
+| 1.3 | Fix `time.now % 200 < 16` → accumulator | ✅ انجام شد |
+| 1.4 | حذف dead field `rayTime` | ✅ انجام شد |
+| 1.5 | `MatterJS.Sleeping.set()` به‌جای direct mutation | ✅ انجام شد (with doc warning discovery) |
+| 1.6 | Fix section 9 out-of-bounds objects (5 objects moved in-bounds) | ✅ انجام شد |
+| 1.6a | T7 (section bounds test) — `scripts/validate-section-bounds.ts` | ✅ PASS (2 INFO, 0 ERROR) |
+
+**اسکریپت‌های تست قابل اجرا:**
+- `npm run test:section-bounds` — T7
+- `npm run test:hazard-cull` — T3
+- `npm run test:validators` — هر دو با هم
+
+**Discovery در Stage 1.5:** مستندات Matter هشدار می‌دهد: "If you need to set a body as sleeping, you should use `Sleeping.set` as this requires more than just setting this flag." کد قبلی ما `matterBody.isSleeping = true` را مستقیماً set می‌کرد که positionImpulse، positionPrev، speed، angularSpeed، motion، sleepCounter را reset نمی‌کرد — می‌توانست باعث شود Matter بلافاصله body را بیدار کند.
 
 ---
 
