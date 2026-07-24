@@ -2311,3 +2311,52 @@ Line breakdown (per advisor request):
 - [⚠️] T5 (Sleeping.set behavior): verified via source code analysis
        (Body.js:258 dispatches to Sleeping.set which resets 6 fields).
        Runtime test deferred — needs Phaser test harness setup.
+
+---
+Task ID: t5-body-sleeping-analysis
+Agent: main
+Task: Execute T5 (Body Sleeping Behavior Test) to verify whether Stage 1.5's Body.set fix actually makes bodies stay asleep. Per advisor: this is the difference between a "hypothesis" and a "verified fact".
+
+Work Log:
+- Created `scripts/t5-body-sleeping-probe.js` — runtime probe that checks:
+  1. How many bodies are currently isSleeping=true vs false
+  2. Whether sleeping bodies have stale fields (speed≠0, motion≠0, sleepCounter=0) — BUG indicators for direct mutation
+  3. Camera position to correlate with expected sleeping bodies
+- Copied to `public/t5-probe.js` for easy browser fetch
+- User can paste into devtools console while in Wastes to verify
+
+Source code analysis (while waiting for user runtime test):
+- Read `Body.js:239` (Body.set) → confirms dispatch: `case 'isSleeping': Sleeping.set(body, value); break;`
+- Read `Sleeping.js:103` (Sleeping.set) → confirms resets: isSleeping, sleepCounter, positionImpulse, positionPrev, anglePrev, speed, angularSpeed, motion + fires sleepStart/sleepWake events
+- Read `Engine.js:310` (_bodiesUpdate) → `if (body.isStatic || body.isSleeping) continue` — sleeping bodies skip integration ✅
+- Read `Engine.js:294` (_bodiesApplyGravity) → `if (body.isStatic || body.isSleeping) continue` — sleeping bodies skip gravity ✅
+- Read `Detector.js:80` (broad-phase) → `bodyAStatic = bodyA.isStatic || bodyA.isSleeping`
+- Read `Detector.js:96` → `if (bodyAStatic && (bodyB.isStatic || bodyB.isSleeping)) continue` — SKIPS collision check only if BOTH bodies are static/sleeping
+
+🚨 CRITICAL DISCOVERY:
+- Our solids (platforms/floor/ceiling) are ALL static (`isStatic: true` in PhysicsSystem.addStaticRect)
+- For static bodies: `bodyAStatic = isStatic || isSleeping` is ALWAYS true (isStatic=true)
+- This means setting `isSleeping=true` on a static body has NO ADDITIONAL EFFECT:
+  - Integration: was already skipped (isStatic)
+  - Gravity: was already skipped (isStatic)
+  - Collision detection: broad-phase still checks static-vs-awake pairs (player vs platform)
+- The ONLY benefit of isSleeping on a static body is if the OTHER body is also sleeping — but the player is always awake, so this never triggers
+
+CONCLUSION:
+- Stage 1.5's Body.set fix is technically correct (uses the supported API)
+- But the entire physics culling approach (PlayController.runCulling) was a NO-OP for static bodies all along!
+- This explains why FPS=45 unchanged after Stage 1.5: physics culling never actually saved any CPU
+- The fix to use Body.set() instead of direct mutation was important for correctness, but the PERFORMANCE BENEFIT was always zero
+
+What this means for Stage 2:
+- Stage 2.1 (TweenRegistry) is now MORE important — it's the real bottleneck
+- The physics culling code (runCulling) can be simplified or removed for static bodies
+- For dynamic bodies (enemies, projectiles), isSleeping would have effect, but those are already few in number
+- We should focus on VISUAL culling (VisualCuller) + TWEEN pausing, not physics culling
+
+Stage Summary:
+- T5 probe created (user can verify at runtime)
+- Source code analysis reveals physics culling was no-op for static bodies
+- Stage 1.5 was correctness fix (important) but not performance fix (zero gain)
+- FPS=45 confirms: physics culling is not the bottleneck
+- Stage 2 should proceed with original priority (TweenRegistry first)
