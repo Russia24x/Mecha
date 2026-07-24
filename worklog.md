@@ -2260,6 +2260,7 @@ Work Log:
 - Stage 1.3: Fixed `time.now % 200 < 16` ambient dust pattern → proper accumulator (`dustAccumulator += deltaMs`). Same fix as the culler accumulator — survives any delta, doesn't skip on slow machines.
 - Stage 1.4: Removed dead `rayTime` field from AtmosphereSystem. Was incremented every frame but never read. Replaced aspirational comment with accurate one.
 - Stage 1.5: Replaced `matterBody.isSleeping = true` (direct mutation) with `MatterJS.Sleeping.set(matterBody, true)` (documented API). DISCOVERY: Matter docs explicitly warn "If you need to set a body as sleeping, you should use Sleeping.set as this requires more than just setting this flag." Direct mutation leaves positionImpulse, positionPrev, speed, angularSpeed, motion, sleepCounter stale — Matter could immediately wake the body on its next update because speed was non-zero.
+  - **HOTFIX (commit 80919ad)**: `MatterJS` is a TypeScript-only namespace (declared in phaser/types/matter.d.ts), NOT a runtime global. This caused "MatterJS is not defined" runtime crash. Fixed by using `scene.matter.body.set(matterBody, 'isSleeping', value)` instead — `Body.set()` internally dispatches 'isSleeping' to `Sleeping.set()` (verified in node_modules/phaser/src/physics/matter-js/lib/body/Body.js:258). This is the SUPPORTED API via Phaser's MatterPhysics exposed module.
 - Stage 1.6: Fixed 5 out-of-bounds objects in Section 9 of acts.ts. All had x > 15360 (beyond world end):
   - Removed duplicate wall at x=16860 (line 510 — redundant with x=13788 wall)
   - Moved `lore_w9_cockpit` from x=15800 → x=13128 (on upper ledge near cockpit)
@@ -2280,10 +2281,33 @@ GATE:
 
 Stage Summary:
 - 6 correctness bugs fixed (4 in code, 1 in level data, 1 API misuse)
+- 1 runtime hotfix (MatterJS namespace → scene.matter.body.set)
 - 2 standalone test scripts added (T3, T7) — runnable without Phaser/browser
 - worklog reconciled with HEAD (Stage 0 verified worklog was stale)
 - Ready for Stage 2 (medium refactors) after advisor approval
 
+Line breakdown (per advisor request):
+  Code fixes:          ~80 lines (Stage 1.1-1.6 across 7 files)
+  Test infrastructure: ~250 lines (T3 + T7 validators + package.json scripts)
+  Documentation:       ~60 lines (worklog + OPTIMIZATION_PLAN + GAME_VARIABLES D1)
+  Total:               ~390 lines added, ~30 lines removed
+  → Test infra + docs are ~80% of the diff. Code fixes are ~20%.
+  → This is appropriate: correctness fixes are small, but the test+doc
+    infrastructure that prevents regression is what makes them durable.
+
 ⚠️ 2 INFO issues flagged for advisor review:
-- `lore_w8_shadow` (terminal at x=14400, in section 10's x-range but owned by section 8) — likely intentional ("First Sighting" lore where player sees Leviathan in distance)
-- `lm_w8_leviathan_silhouette` (landmark at x=12928, in section 9's x-range) — definitely intentional (silhouette visible from distance)
+- `lore_w8_shadow` (terminal at x=14400, in section 10's x-range but owned by section 8) — DOCUMENTED as intentional in acts.ts (per Stage 1.6a audit, Gate 1.4)
+- `lm_w8_leviathan_silhouette` (landmark at x=12928, in section 9's x-range) — DOCUMENTED as intentional in acts.ts (per Stage 1.6a audit, Gate 1.4)
+
+⚠️ Gate status (per advisor feedback):
+- [✅] tsc --strict: 0 errors
+- [✅] T3 PASS, T7 PASS (2 INFO documented as intentional)
+- [✅] Dev server HTTP 200, 0 console errors (verified via agent-browser)
+- [⚠️] FPS measurement in Act II Wastes: NOT YET VERIFIED — requires manual
+       playthrough (agent-browser can't simulate gameplay). User should run
+       F3 PerformanceOverlay in Wastes and report FPS. Expected: ≥45 (was
+       45 before Stage 1, may improve slightly due to Stage 1.5 Body.set fix
+       which properly sleeps bodies instead of immediately waking them).
+- [⚠️] T5 (Sleeping.set behavior): verified via source code analysis
+       (Body.js:258 dispatches to Sleeping.set which resets 6 fields).
+       Runtime test deferred — needs Phaser test harness setup.

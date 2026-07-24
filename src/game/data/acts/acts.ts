@@ -485,8 +485,22 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 11128, y: 660, w: 200, h: 20, damage: 20 },
                 { type: 'lava', x: 11628, y: 660, w: 200, h: 20, damage: 20 },
               ], loreObjects: [
+                // ⚠️ INTENTIONAL cross-section placement (per Stage 1.6a audit):
+                // This terminal is owned by Section 8 but placed at x=14400 (in
+                // Section 10's range). Reason: the player encounters it while
+                // walking toward the Leviathan — at this point they can see her
+                // silhouette in the distance. The lore text ("First Sighting")
+                // describes seeing her from afar. Moving it into Section 8's x-range
+                // would break the narrative timing.
                 { id: 'lore_w8_shadow', type: 'terminal', x: 14400, y: 270, titleKey: 'lore.w10.shadow.title', textKey: 'lore.w10.shadow.text' },
               ], landmarks: [
+                // ⚠️ INTENTIONAL cross-section placement (per Stage 1.6a audit):
+                // The Leviathan silhouette is placed at x=12928 (in Section 9's
+                // range) so the player sees it in the DISTANCE while still in
+                // Section 8. This is the dramatic "first glimpse" moment — the
+                // tower landmark renders behind the player's path, growing larger
+                // as they approach. Moving it into Section 8 would make it appear
+                // too close, losing the sense of scale.
                 // Distant Leviathan silhouette (first sighting)
                 { id: 'lm_w8_leviathan_silhouette', type: 'tower', x: 12928, y: 100, w: 300, h: 500, color: 0x1a2a18 },
               ]},

@@ -391,3 +391,53 @@
  *   fa locale → DejaVu Sans + letterSpacing 0 (Arabic shaping)
  *   en locale → monospace + original letterSpacing
  */
+
+ * ═══════════════════════════════════════════════════════════════════════
+ * 22. CULLING PARAMETERS (VisualCuller + PlayController.runCulling)
+ * Files: src/game/systems/VisualCuller.ts, src/game/controllers/PlayController.ts
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Phaser 4 does NOT auto-cull GameObjects outside the camera viewport —
+ * every object on the display list is processed each frame (matrix
+ * transform + WebGL batch). These systems perform manual culling.
+ *
+ * ┌─────────────────────────────┬──────────┬─────────────────────────────┐
+ * │ PARAMETER                   │ DEFAULT  │ WHAT IT DOES                 │
+ * ├─────────────────────────────┼──────────┼─────────────────────────────┤
+ * │ VisualCuller                │          │                             │
+ * │   CULL_INTERVAL_MS          │   250ms  │ How often to re-evaluate    │
+ * │                             │          │ visibility (4x per second)   │
+ * │   VIEWPORT_MARGIN           │   300px  │ Margin beyond viewport so    │
+ * │                             │          │ objects wake before pop-in  │
+ * │   accumulator (static)     │    0     │ Throttle counter             │
+ * ├─────────────────────────────┼──────────┼─────────────────────────────┤
+ * │ PlayController.runCulling   │          │                             │
+ * │   CULL_INTERVAL_MS          │   500ms  │ Physics body sleep/wake      │
+ * │                             │          │ (2x per second)              │
+ * │   margin (local)            │   200px  │ X-axis only (no Y culling)   │
+ * │   cullAccumulator (static) │    0     │ Throttle counter             │
+ * ├─────────────────────────────┼──────────┼─────────────────────────────┤
+ * │ Ambient dust                │          │                             │
+ * │   AMBIENT_DUST_INTERVAL_MS  │   200ms  │ Particle emission rate       │
+ * │   dustAccumulator (static) │    0     │ Throttle counter             │
+ * └─────────────────────────────┴──────────┴─────────────────────────────┘
+ *
+ * Cull dimension conventions (how GameObjects expose their size to VisualCuller):
+ *   - Graphics (platforms): use setData('__cullW', w) + setData('__cullH', h)
+ *     because Graphics doesn't include ComputedSize component (no setSize).
+ *   - Containers (lore/landmarks/hazards/shortcuts/collectibles): use setSize(w, h)
+ *   - Small decorations (circles/ellipses without size info): center-point test
+ *
+ * Body sleeping API:
+ *   - Use scene.matter.body.set(matterBody, 'isSleeping', value)
+ *   - Body.set internally dispatches 'isSleeping' to Matter.Sleeping.set
+ *   - Do NOT mutate body.isSleeping directly (leaves stale speed/position fields)
+ *
+ * What VisualCuller culls:
+ *   ✅ visualRects (platforms, decorations, hazard visuals)
+ *   ✅ loreObjects, landmarks, grappleAnchors, empDoors, shortcuts, collectibles
+ *   ❌ solids, sectionTriggers, checkpointTriggers, hazardTriggers (physics-culled)
+ *   ❌ bossEntryTrigger (single object, always near boss)
+ *   ❌ parallax/atmosphere layers (camera-fixed, always rendered)
+ *   ❌ entity visuals (player/enemies/boss — own lifecycle)
+ */
