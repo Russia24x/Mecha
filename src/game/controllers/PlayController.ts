@@ -348,8 +348,24 @@ export class PlayController {
       if (!r.projectiles[i].isAlive) r.projectiles.splice(i, 1);
     }
 
-    // ── Enemies ──
+    // ── Enemies (Stage 2.0: with sleep-culling) ──
+    // Per Stage 2.0 design (STAGE_2_0_DESIGN.md):
+    //   - Enemies off-screen get Body.set(body, 'isSleeping', true) → skips physics
+    //   - Their e.update() is skipped entirely (AI, visual, posture decay all frozen)
+    //   - When they come back on-screen, they wake and resume from frozen state
+    //   - stateTime is delta-accumulation (not timestamp) → telegraph cannot skip
+    //   - Projectile hits still work (tryHitEntity uses position, not Matter collision)
+    //   - Player-enemy contact still works (player is awake → Detector.js:96 checks)
+    //   - Margin: 300px (same as VisualCuller) — prevents visible-but-sleeping
     const playerPos = r.player.position;
+    const cam2 = r.scene.cameras.main;
+    const enemyMargin = 300;
+    const enemyViewLeft = cam2.scrollX - enemyMargin;
+    const enemyViewRight = cam2.scrollX + cam2.width + enemyMargin;
+    const Body = r.scene.matter.body;  // cached once per frame
+    let sleepCount = 0;
+    let awakeCount = 0;
+
     for (let i = r.enemies.length - 1; i >= 0; i--) {
       const e = r.enemies[i];
       if (!e.isAlive || !e.sprite || !e.sprite.active) {
@@ -357,12 +373,39 @@ export class PlayController {
         r.enemies.splice(i, 1);
         continue;
       }
+
+      // ── Sleep/wake check (Stage 2.0) ──
+      const ex = e.sprite.x;
+      const offscreen = ex < enemyViewLeft || ex > enemyViewRight;
+      const matterBody = e.sprite.body as MatterJS.BodyType;
+
+      if (offscreen) {
+        // Sleep: skip physics + AI + visual update entirely
+        if (matterBody && Body && !matterBody.isSleeping) {
+          Body.set(matterBody, 'isSleeping', true);
+        }
+        sleepCount++;
+        continue;  // skip e.update()
+      } else {
+        // Wake: resume physics + AI + visual
+        if (matterBody && Body && matterBody.isSleeping) {
+          Body.set(matterBody, 'isSleeping', false);
+        }
+        awakeCount++;
+      }
+
       try { e.update(deltaMs, playerPos); } catch {
         r.targetRegistry.unregisterEnemy(e);
         r.enemies.splice(i, 1);
         continue;
       }
     }
+
+    // ── Expose enemy stats for PerformanceOverlay (Stage 2.0) ──
+    (r.scene as unknown as { __enemyStats: { sleeping: number; awake: number } }).__enemyStats = {
+      sleeping: sleepCount,
+      awake: awakeCount,
+    };
 
     // ── Boss ──
     if (r.boss && r.boss.isAlive && r.boss.sprite && r.boss.sprite.active) {

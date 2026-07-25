@@ -15,6 +15,7 @@
  *   MEM         — JS heap size (Chrome performance.memory API)
  *   SCN         — current scene key
  *   QUALITY     — current quality level from QualityManager
+ *   ENEMIES     — sleeping/awake enemy count (Stage 2.0)
  *
  * Toggle: F3 = show/hide
  * Update: every 100ms (10 times/sec)
@@ -35,8 +36,8 @@ export class PerformanceOverlay {
     this.scene = scene;
     this.container = scene.add.container(0, 0).setDepth(9999).setScrollFactor(0).setVisible(false);
 
-    // Background panel
-    const bg = scene.add.rectangle(10, 10, 280, 172, 0x000000, 0.88);
+    // Background panel — expanded for ENEMIES row (was 172, now 186)
+    const bg = scene.add.rectangle(10, 10, 280, 186, 0x000000, 0.88);
     bg.setOrigin(0, 0);
     bg.setStrokeStyle(1, 0x39d0d8, 0.5);
     this.container.add(bg);
@@ -57,6 +58,7 @@ export class PerformanceOverlay {
       { key: 'objects',   label: 'OBJ',       y: 128 },
       { key: 'memory',    label: 'MEM',       y: 142 },
       { key: 'quality',   label: 'QUAL',      y: 156 },
+      { key: 'enemies',   label: 'ENEMIES',   y: 170 },
     ];
 
     for (const item of labels) {
@@ -157,6 +159,17 @@ export class PerformanceOverlay {
 
     // ── Quality level — from QualityManager ──
     this.texts.quality.setText(QualityManager.getQuality().toUpperCase());
+
+    // ── Enemies sleeping/awake — from PlayController static counter (Stage 2.0) ──
+    // PlayController updates enemySleepCount/enemyAwakeCount every frame.
+    // Shows: "N sleep / M awake" so user can verify culling works.
+    // Lazily import to avoid circular dependency.
+    const pc = (this.scene as unknown as { __enemyStats?: { sleeping: number; awake: number } }).__enemyStats;
+    if (pc) {
+      this.texts.enemies.setText(`${pc.sleeping} sleep / ${pc.awake} awake`);
+    } else {
+      this.texts.enemies.setText('-- / --');
+    }
   }
 
   destroy(): void {
