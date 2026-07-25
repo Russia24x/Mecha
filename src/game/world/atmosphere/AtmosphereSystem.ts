@@ -53,19 +53,26 @@ export class AtmosphereSystem {
   }
 
   build(): void {
-    this.buildFog();
+    // ⚠️ Stage 2.2: Wastes skips fog bands + depth haze.
+    // The painted backdrop art already provides atmospheric color and depth.
+    // Procedural fog bands (5 Graphics with tweens) and depth haze (MULTIPLY
+    // overlay) were double-darkening the painted art.
+    // God rays + ambient particles are KEPT — they're cheap and add life.
+    // Expected gain: +2-3 FPS (5 fewer Graphics + 5 fewer tweens + 1 fewer
+    // MULTIPLY overlay per frame).
+    if (this.theme !== 'wastes') {
+      this.buildFog();
+      this.buildDepthHaze();
+    }
+
     this.buildGodRays();
     this.buildAmbientParticles();
-    this.buildDepthHaze();
   }
 
   // ─── FOG ────────────────────────────────────────────────────────────────
   private buildFog(): void {
-    const fogColor = this.theme === 'forest' ? 0x40a060
-      : this.theme === 'wastes' ? 0x4a5a40  // sickly green-gray for swamps (re-enabled)
-      : 0x6a5a4a;
-    // Wastes get slightly denser fog (5 layers vs 4)
-    const fogCount = this.theme === 'wastes' ? 5 : 4;
+    const fogColor = this.theme === 'forest' ? 0x40a060 : 0x6a5a4a;
+    const fogCount = 4;
     for (let i = 0; i < fogCount; i++) {
       const g = this.scene.add.graphics();
       g.setDepth(80 - i * 2);
@@ -199,9 +206,8 @@ export class AtmosphereSystem {
 
   // ─── DEPTH HAZE (subtle distance fade) ──────────────────────────────────
   private buildDepthHaze(): void {
-    const hazeColor = this.theme === 'forest' ? 0x0a1a10
-      : this.theme === 'wastes' ? 0x0a1208  // dark murky green (re-enabled)
-      : 0x0a0805;
+    // ⚠️ Stage 2.2: wastes branch removed (buildDepthHaze not called for wastes).
+    const hazeColor = this.theme === 'forest' ? 0x0a1a10 : 0x0a0805;
     this.haze = this.scene.add.rectangle(
       GAME.WIDTH / 2, GAME.HEIGHT / 2,
       GAME.WIDTH, GAME.HEIGHT,

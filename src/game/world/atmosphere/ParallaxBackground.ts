@@ -56,6 +56,15 @@ export class ParallaxBackground {
     // === BACKGROUND ART (user-provided images, tiled across world) ===
     this.buildBackgroundArt();
 
+    // ⚠️ Stage 2.2: Wastes skips procedural Far/Mid/Near silhouette layers.
+    // The painted backdrop art (wastes_bg_1/2/3) at depth -1.5 already contains
+    // all depth/silhouettes the artist intended. The generic Far/Mid/Near layers
+    // (dark rectangles at depths -1, 0, 1) render ON TOP of the painted art,
+    // creating visible flat dark bands that hide the backdrop.
+    // Factory and Forest keep these layers (no painted backdrops yet).
+    // Expected gain: +3-5 FPS (3 fewer full-screen Graphics objects per frame).
+    if (this.theme === 'wastes') return;
+
     // === FAR layer (depth -1, scrollFactor 0.1) ===
     const farCfg: LayerConfig = { scrollX: 0.1, scrollY: 0.05, depth: -1, alpha: 0.5 };
     if (this.theme === 'factory') this.buildFactoryFar(farCfg);
@@ -77,6 +86,12 @@ export class ParallaxBackground {
 
   // ─── SKY ────────────────────────────────────────────────────────────────
   private buildSky(): void {
+    // ⚠️ Stage 2.2: Wastes sky tint disabled — painted backdrop art provides
+    // full-screen atmospheric color. Procedural sky gradient was over-darkening
+    // the painted art and shifting its hue away from artist intent.
+    // Factory and Forest keep their sky (no painted backdrops yet).
+    if (this.theme === 'wastes') return;
+
     // Generate sky as a texture ONCE (not 720 fillRect calls per render)
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const g = this.scene.add.graphics();
