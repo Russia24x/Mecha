@@ -474,6 +474,30 @@ export class PlayController {
    * NOTE: checkpointTriggers are NOT culled — they are few in number (4 per
    * area) and we want them always-active so the player can't miss a save by
    * dashing through it during a cull cycle.
+   *
+   * ⚠️ Stage 1.7 — solids REMOVED from culling:
+   *   Per T5 analysis: ALL solids are static (isStatic: true). Matter's
+   *   broad-phase uses `bodyAStatic = bodyA.isStatic || bodyA.isSleeping`,
+   *   which is ALWAYS true for static bodies regardless of isSleeping.
+   *   Setting isSleeping on a static body has ZERO effect on:
+   *     - Collision detection (still checks static-vs-awake pairs like player-vs-platform)
+   *     - Integration (was already skipped because isStatic)
+   *     - Gravity (was already skipped because isStatic)
+   *   The Body.set() call was costing CPU (6 field resets per body per 500ms)
+   *   for zero benefit. Solids removed from cull list. Only hazards + sections
+   *   remain (also static, but they're sensors — verify if culling helps them).
+   *
+   * ⚠️ Stage 1.7 also — hazardTriggers + sectionTriggers ARE static sensors:
+   *   Same analysis applies — they're static. But sensor overlap events still
+   *   fire when player enters their bounds. Setting isSleeping won't prevent
+   *   the broad-phase from checking them (player is awake). So culling these
+   *   is also no-op for collision. BUT they're few in number (~16 hazards + 10
+   *   sections = 26 vs 84 solids), so the cost of culling them is negligible.
+   *   Leaving them in for now (harmless), will revisit if needed.
+   *
+   * TODO: enemies are DYNAMIC and would benefit from real sleep-culling.
+   *   Currently NO enemy culling exists — 25+ enemies can be active at once
+   *   (all sections combined). This is a Stage 2 candidate.
    */
   private static runCulling(r: PlayUpdateRefs): void {
     if (!r.loadedArea) return;
@@ -482,22 +506,9 @@ export class PlayController {
     const viewLeft = cam.scrollX - margin;
     const viewRight = cam.scrollX + cam.width + margin;
 
-    // ── Iterate the 3 arrays directly (no allocation).
-    // Per Stage 1.2 of OPTIMIZATION_PLAN.md: was `[...solids, ...hazards, ...sections]`
-    // which allocated a ~111-element array every 500ms. Direct iteration is GC-free.
-    // Body visibility check is X-axis only (world is single-screen height — vertical
-    // scroll is bounded by camera, so Y culling is unnecessary).
-    //
-    // Per Stage 1.5: use Matter's supported Body.set(body, 'isSleeping', value)
-    // instead of directly mutating body.isSleeping. The Matter docs explicitly warn:
-    // "If you need to set a body as sleeping, you should use Sleeping.set as this
-    // requires more than just setting this flag." Body.set() internally dispatches
-    // 'isSleeping' to Sleeping.set(), which properly resets positionImpulse,
-    // positionPrev, speed, angularSpeed, motion, sleepCounter, and fires the
-    // 'sleepStart'/'sleepWake' events.
-    //
-    // Access pattern: scene.matter.body is the Matter.Body module (exposed by
-    // Phaser's MatterPhysics). Body.set(body, 'isSleeping', bool) is the supported API.
+    // Per Stage 1.7: solids removed (all static, culling was no-op).
+    // Only iterate hazardTriggers + sectionTriggers (also static, but
+    // leaving for now — small count, may revisit).
     const Body = r.scene.matter.body;
     const checkBody = (body: Phaser.Physics.Matter.Image): void => {
       if (!body || !body.active) return;
@@ -512,8 +523,7 @@ export class PlayController {
       }
     };
 
-    const solids = r.loadedArea.solids;
-    for (let i = 0; i < solids.length; i++) checkBody(solids[i]);
+    // Solids: REMOVED per Stage 1.7 (no-op for static bodies)
     const hazards = r.loadedArea.hazardTriggers;
     for (let i = 0; i < hazards.length; i++) checkBody(hazards[i]);
     const sections = r.loadedArea.sectionTriggers;

@@ -37,7 +37,7 @@ HEAD = `43d9369` (فقط OPTIMIZATION_PLAN.md اضافه شد). Stage 2.2 لاز
 | سیستم | وضعیت | تأثیر |
 |------|-------|------|
 | **VisualCuller** (`setVisible(false)` + tween pausing) | فعال، هر 250ms، margin 300px | 30 → 45 FPS |
-| **Physics culling** (`body.isSleeping`) | فعال، هر 500ms، margin 200px | کاهش load فیزییک |
+| **Physics culling** (`Body.set(body, 'isSleeping', true)`) | ❌ **NO-OP برای static bodies** — `bodyAStatic = isStatic \|\| isSleeping` همیشه true است چون solids همگی static هستند. Player همیشه awake → broad-phase همچنان static-vs-awake را چک می‌کند. فقط integration/gravity skip می‌شود که از قبل هم skip می‌شدند (isStatic). تأثیر عملی: **صفر**. Stage 1.5 correctness fix بود، نه performance fix. | **۰ FPS** (تأیید شده با FPS=45 ثابت) |
 | **TweenManager FPS cap** (`setFps(60)`) | فعال | 4× کاهش CPU توین‌ها |
 | **Bounding-box test برای platforms** | فعال (`__cullW/__cullH`) | حفظ زمین در محدوده دوربین |
 | **Strategy pattern** (Factory/Forest/Wastes) | تمیز | معماری قابل توسعه |
@@ -53,6 +53,7 @@ HEAD = `43d9369` (فقط OPTIMIZATION_PLAN.md اضافه شد). Stage 2.2 لاز
 | 3 | **Generic Far/Mid/Near parallax layers برای Wastes** که توسط commit `35f2a03` revert شدند | 3-5 FPS |
 | 4 | **40 ذره‌ی atmosphere + 11 توین آن** که همیشه update می‌شوند | 2-3 FPS |
 | 5 | **`[...solids, ...hazards, ...sections]` allocation** هر 500ms + GC churn | 0.5-1 FPS |
+| **6** | **🆕 ۲۵+ دشمن فعال همزمان** — دشمنان هرگز sleep نمی‌شوند، حتی اگر دور از viewport باشند. فیزیک + AI + visual update در هر فریم. | **3-5 FPS** (NEW — کشف‌شده در بررسی enemies) |
 
 #### B. باگ‌های کشف‌شده (correctness)
 

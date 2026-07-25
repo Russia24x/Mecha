@@ -2360,3 +2360,44 @@ Stage Summary:
 - Stage 1.5 was correctness fix (important) but not performance fix (zero gain)
 - FPS=45 confirms: physics culling is not the bottleneck
 - Stage 2 should proceed with original priority (TweenRegistry first)
+
+---
+Task ID: stage1.7-remove-static-culling
+Agent: main
+Task: Per advisor feedback — physics culling for static bodies (solids) was no-op all along. Remove it to eliminate wasted CPU (6 field resets per body per 500ms for zero benefit).
+
+Work Log:
+- Updated OPTIMIZATION_PLAN.md table "آنچه کار می‌کند":
+  - Physics culling row changed from ✅ "فعال — کاهش load فیزیک" to ❌ "NO-OP برای static bodies" with full explanation
+- Added new FPS killer #6 to "آنچه هنوز مشکل دارد":
+  - "25+ دشمن فعال همزمان" — enemies never sleep, even off-screen
+  - Estimated impact: 3-5 FPS (NEW discovery from enemy analysis)
+- Removed solids from PlayController.runCulling cull list:
+  - Was: iterate solids (84) + hazards (16) + sections (10) = 100 bodies every 500ms
+  - Now: iterate hazards (16) + sections (10) = 26 bodies every 500ms
+  - Savings: 74 fewer Body.set() calls per cull cycle (74% reduction)
+  - Each Body.set() was doing 6 field resets (positionImpulse, positionPrev, anglePrev, speed, angularSpeed, motion) — all wasted on static bodies
+- Kept hazards + sections in cull list for now:
+  - They're also static, so culling is technically no-op for them too
+  - But they're few in number (26 vs 84), cost is negligible
+  - Will revisit if needed — removing them would be a pure cleanup, no FPS impact
+- Documented in runCulling JSDoc:
+  - Stage 1.7 rationale (static bodies → no-op)
+  - TODO note: enemies are DYNAMIC and would benefit from real sleep-culling
+  - This is a Stage 2 candidate
+
+Enemy analysis (NEW finding):
+- Checked EnemyEntity.ts:73 — enemies are created with `scene.matter.add.image` (dynamic, NOT static)
+- Enemies never call isSleeping or Body.set — always awake
+- Checked spawn logic: enemies spawn per-section but NEVER despawn when player leaves section
+- At section 8 of Wastes: enemies from sections 2,3,4,6,7,8 are ALL active (25 total)
+- All 25 get physics integration + gravity + AI update + visual update every frame
+- This is likely a significant FPS contributor (estimated 3-5 FPS)
+- Recommended for Stage 2: add enemy sleep-culling (Body.set on enemy.sprite.body when off-screen)
+
+Stage Summary:
+- Physics culling for solids removed (was no-op, now not wasting CPU)
+- 74% reduction in cull cycle cost (100 → 26 body checks per 500ms)
+- New FPS killer identified: 25+ active enemies with no sleep-culling
+- OPTIMIZATION_PLAN.md updated to reflect reality
+- Ready for Stage 2 with corrected priorities
