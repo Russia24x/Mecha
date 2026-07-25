@@ -390,11 +390,14 @@ export class PlayController {
     //   machines that need it most).
     //
     //   The fix below uses a proper accumulator that survives any delta.
-    PlayController.cullAccumulator += deltaMs;
-    if (PlayController.cullAccumulator >= PlayController.CULL_INTERVAL_MS) {
-      PlayController.cullAccumulator = 0;
-      PlayController.runCulling(r);
-    }
+    // ⚠️ Stage 1.7b: physics culling disabled entirely (was no-op for static bodies).
+    //   VisualCuller (called below) handles all visual culling. Physics culling
+    //   was only useful for dynamic bodies (enemies), which is Stage 2.0 work.
+    // PlayController.cullAccumulator += deltaMs;
+    // if (PlayController.cullAccumulator >= PlayController.CULL_INTERVAL_MS) {
+    //   PlayController.cullAccumulator = 0;
+    //   PlayController.runCulling(r);
+    // }
 
     // ── Visual culling — setVisible(false) for off-screen GameObjects ──
     // Per Phaser 4 sprites-and-images skill: Phaser does NOT automatically
@@ -500,34 +503,29 @@ export class PlayController {
    *   (all sections combined). This is a Stage 2 candidate.
    */
   private static runCulling(r: PlayUpdateRefs): void {
-    if (!r.loadedArea) return;
-    const cam = r.scene.cameras.main;
-    const margin = 200;  // px beyond viewport edges
-    const viewLeft = cam.scrollX - margin;
-    const viewRight = cam.scrollX + cam.width + margin;
-
-    // Per Stage 1.7: solids removed (all static, culling was no-op).
-    // Only iterate hazardTriggers + sectionTriggers (also static, but
-    // leaving for now — small count, may revisit).
-    const Body = r.scene.matter.body;
-    const checkBody = (body: Phaser.Physics.Matter.Image): void => {
-      if (!body || !body.active) return;
-      const bx = body.x;
-      const matterBody = body.body as MatterJS.BodyType;
-      if (!matterBody || !Body) return;
-      const offscreen = bx < viewLeft || bx > viewRight;
-      if (offscreen && !matterBody.isSleeping) {
-        Body.set(matterBody, 'isSleeping', true);
-      } else if (!offscreen && matterBody.isSleeping) {
-        Body.set(matterBody, 'isSleeping', false);
-      }
-    };
-
-    // Solids: REMOVED per Stage 1.7 (no-op for static bodies)
-    const hazards = r.loadedArea.hazardTriggers;
-    for (let i = 0; i < hazards.length; i++) checkBody(hazards[i]);
-    const sections = r.loadedArea.sectionTriggers;
-    for (let i = 0; i < sections.length; i++) checkBody(sections[i]);
+    // ⚠️ Stage 1.7b: ALL physics culling removed — was no-op for ALL static bodies.
+    //
+    // Per T5 source code analysis (Detector.js:80,96):
+    //   bodyAStatic = bodyA.isStatic || bodyA.isSleeping
+    //   → always true for static bodies regardless of isSleeping
+    //   → collision check skipped ONLY if BOTH bodies are static/sleeping
+    //   → player is always awake → static-vs-awake pairs ALWAYS checked
+    //
+    // All three categories were static:
+    //   - solids: PhysicsSystem.addStaticRect → isStatic: true
+    //   - hazardTriggers: PhysicsSystem.addSensor → isStatic: true, isSensor: true
+    //   - sectionTriggers: PhysicsSystem.addSensor → isStatic: true, isSensor: true
+    //
+    // Setting isSleeping on any of these had ZERO effect on collision/integration/gravity.
+    // The Body.set() call was costing CPU (6 field resets per body per 500ms) for zero benefit.
+    //
+    // What this means: physics culling was NEVER helping. The 30→45 FPS gain came
+    // entirely from VisualCuller (setVisible(false) + tween pausing), not from physics.
+    //
+    // TODO: enemies are DYNAMIC and would benefit from real sleep-culling.
+    //   Currently NO enemy culling exists — 25+ enemies can be active at once.
+    //   This is a Stage 2.0 candidate (see OPTIMIZATION_PLAN.md).
+    void r;  // no-op — kept method signature for PlayController.update() compatibility
   }
 
   /**
