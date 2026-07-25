@@ -593,30 +593,112 @@ export const ACTS: ActData[] = [
             id: 'last_city_1',
             nameKey: 'area.last_city_1.name',
             regionId: 'city',
-            totalWidth: 7680,
-            sectionWidth: 1280,
+            totalWidth: 10240,
+            sectionWidth: 1536,
             bgColor: 0x0d0505,
             checkpointSections: [2, 5],
             unlockedByDefault: false,
             sections: [
-              { id: 1, nameKey: 'section.city.1.name', x: 0, enemies: [], platforms: [
-                { x: 400, y: 560, w: 200, h: 20 },
+              // S1: Barricade Line — Memory Layer: sandbag with hand-written names
+              { id: 1, nameKey: 'section.city.1.name', x: 0, enemies: ['sniper', 'spider'], platforms: [
+                { x: 200, y: 560, w: 300, h: 24 },
+                { x: 600, y: 560, w: 200, h: 24 },
+                { x: 900, y: 560, w: 180, h: 24 },
+                { x: 500, y: 480, w: 120, h: 16 },
+                { x: 1100, y: 360, w: 160, h: 16 },
+                { x: 1440, y: 360, w: 40, h: 240 },
+              ], hazards: [
+                { type: 'spike', x: 700, y: 640, w: 80, h: 20, damage: 12 },
+              ], loreObjects: [
+                { id: 'lore_c1_evac', type: 'terminal', x: 300, y: 540, titleKey: 'lore.c1.evac.title', textKey: 'lore.c1.evac.text' },
+              ], landmarks: [
+                { id: 'lm_c1_tank', type: 'crashed_mech', x: 800, y: 540, w: 200, h: 120, color: 0x3a2a1a },
+              ], collectibles: [
+                { id: 'col_c1_energy', type: 'energy_fragment', x: 1180, y: 320, requiredAbility: 'doubleJump' },
               ]},
-              { id: 2, nameKey: 'section.city.2.name', x: 1280, enemies: [], platforms: [
-                { x: 1480, y: 520, w: 100, h: 20 },
+
+              // S2: Burning Block — Memory Layer: child's toy in 2nd-floor window
+              { id: 2, nameKey: 'section.city.2.name', x: 1536, enemies: ['spider', 'spider', 'sniper', 'heavy'], platforms: [
+                { x: 1700, y: 540, w: 140, h: 20 },
+                { x: 1960, y: 540, w: 120, h: 20 },
+                { x: 2200, y: 540, w: 100, h: 20 },
+                { x: 2480, y: 540, w: 140, h: 20 },
+                { x: 1850, y: 380, w: 120, h: 16 },
+                { x: 2350, y: 360, w: 100, h: 16 },
+                { x: 2600, y: 280, w: 160, h: 16 },
+              ], hazards: [
+                { type: 'lava', x: 2050, y: 660, w: 120, h: 20, damage: 18 },
+                { type: 'spike', x: 2300, y: 640, w: 80, h: 20, damage: 12 },
+              ], loreObjects: [
+                { id: 'lore_c2_radio', type: 'terminal', x: 2350, y: 330, titleKey: 'lore.c2.radio.title', textKey: 'lore.c2.radio.text' },
+              ], collectibles: [
+                { id: 'col_c2_health', type: 'health_fragment', x: 2100, y: 620 },
               ]},
-              { id: 3, nameKey: 'section.city.3.name', x: 2560, enemies: [], platforms: [
-                { x: 2660, y: 580, w: 200, h: 20 },
+
+              // S3: Emergency Bridge — Memory Layer: office corridor with family photos
+              { id: 3, nameKey: 'section.city.3.name', x: 3072, enemies: ['sniper', 'spider'], platforms: [
+                { x: 3220, y: 520, w: 100, h: 20 },
+                { x: 3400, y: 420, w: 80, h: 20 },
+                { x: 3580, y: 320, w: 80, h: 20 },
+                { x: 3400, y: 220, w: 100, h: 16 },
+                { x: 3750, y: 220, w: 120, h: 16 },
+                { x: 3700, y: 300, w: 30, h: 200 },
+                { x: 3950, y: 300, w: 30, h: 220 },
+              ], grappleAnchors: [
+                { id: 'ga_c3_secret', x: 3900, y: 180 },
+              ], loreObjects: [
+                { id: 'lore_c3_fortmap', type: 'terminal', x: 3450, y: 190, titleKey: 'lore.c3.fortmap.title', textKey: 'lore.c3.fortmap.text' },
+              ], collectibles: [
+                { id: 'col_c3_skill', type: 'skill_point', x: 3900, y: 140, requiredAbility: 'grapple' },
               ]},
-              { id: 4, nameKey: 'section.city.4.name', x: 3840, enemies: [], platforms: [
-                { x: 4040, y: 480, w: 80, h: 20 },
+
+              // S4: Command Bunker — Memory Layer: war room map pins never moved
+              { id: 4, nameKey: 'section.city.4.name', x: 4608, enemies: ['heavy', 'heavy', 'sniper', 'elite'], platforms: [
+                { x: 4780, y: 540, w: 160, h: 20 },
+                { x: 5020, y: 540, w: 120, h: 20 },
+                { x: 5240, y: 540, w: 100, h: 20 },
+                { x: 4950, y: 300, w: 30, h: 200 },
+                { x: 5450, y: 300, w: 30, h: 220 },
+                { x: 5100, y: 280, w: 160, h: 16 },
+                { x: 5350, y: 220, w: 100, h: 16 },
+                { x: 5550, y: 380, w: 140, h: 16 },
+                { x: 5750, y: 380, w: 100, h: 16 },
+              ], empDoors: [
+                { id: 'emp_c4_warroom', x: 5680, y: 380, w: 40, h: 60 },
+              ], loreObjects: [
+                { id: 'lore_c4_court', type: 'terminal', x: 5100, y: 250, titleKey: 'lore.c4.court.title', textKey: 'lore.c4.court.text' },
+              ], collectibles: [
+                { id: 'col_c4_health', type: 'health_fragment', x: 5700, y: 340 },
+                { id: 'col_c4_weapon', type: 'weapon_part', x: 5380, y: 180, requiredAbility: 'wallJump' },
+              ], shortcuts: [
+                { id: 'sc_c4_to_s2', x: 5900, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
-              { id: 5, nameKey: 'section.city.5.name', x: 5120, enemies: [], platforms: [
-                { x: 5360, y: 560, w: 140, h: 20 },
+
+              // S5: The Last Stand (breather, checkpoint 2) — Memory Layer: radio still on
+              { id: 5, nameKey: 'section.city.5.name', x: 6144, enemies: [], platforms: [
+                { x: 6400, y: 540, w: 300, h: 24 },
+                { x: 6800, y: 460, w: 200, h: 20 },
+                { x: 7100, y: 380, w: 160, h: 20 },
+                { x: 7580, y: 360, w: 40, h: 200 },
+              ], loreObjects: [
+                { id: 'lore_c5_letter', type: 'terminal', x: 6800, y: 420, titleKey: 'lore.c5.letter.title', textKey: 'lore.c5.letter.text' },
               ]},
-              { id: 6, nameKey: 'section.city.6.name', x: 6400, enemies: [], platforms: [
-                { x: 6480, y: 440, w: 40, h: 240 },
-                { x: 7600, y: 440, w: 40, h: 240 },
+
+              // S6: The Courthouse (boss arena) — Memory Layer: empty judge's chair, broken scales
+              { id: 6, nameKey: 'section.city.6.name', x: 7680, enemies: [], bossId: 'iron_magistrate', platforms: [
+                { x: 7880, y: 560, w: 500, h: 24 },
+                { x: 8460, y: 560, w: 500, h: 24 },
+                { x: 8100, y: 460, w: 120, h: 20 },
+                { x: 8360, y: 380, w: 100, h: 20 },
+                { x: 8620, y: 460, w: 120, h: 20 },
+                { x: 8360, y: 220, w: 200, h: 16 },
+              ], hazards: [
+                { type: 'lava', x: 7880, y: 660, w: 100, h: 20, damage: 10 },
+                { type: 'lava', x: 8880, y: 660, w: 100, h: 20, damage: 10 },
+              ], landmarks: [
+                { id: 'lm_c6_judge_chair', type: 'tower', x: 8360, y: 100, w: 200, h: 200, color: 0x2a2020 },
+              ], shortcuts: [
+                { id: 'sc_c6_to_s1', x: 9100, y: 650, w: 40, h: 60, toSection: 1, opensFrom: 'left' },
               ]},
             ],
           },

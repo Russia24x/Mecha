@@ -331,5 +331,15 @@
   "lore.w11.cockpit.text": "The cockpit is intact. Protected by the Leviathan's body. The last log entry: \"Mission status: HOLD. Evacuation status: COMPLETE. Stand-down order: PENDING. Note: It has been 847 days. I don't think the order is coming. But she hasn't moved. So I won't either.\"",
   "lore.w11.names.title": "The Crew List",
   "lore.w11.names.text": "A list of names, etched into the interior hull. Forty-seven pilots served on the Leviathan. Forty-seven names. Some crossed out. Some not. The last one reads: \"Yara Vel — still here.\"",
-  "hud.repair": "REPAIR"
+  "hud.repair": "REPAIR",
+  "lore.c1.evac.title": "Evacuation Notice",
+  "lore.c1.evac.text": "Mandatory evacuation — Sector 7. All civilians proceed to the eastern gate. Do not stop. Do not look back. The city will hold. The Magistrate has judged it so.",
+  "lore.c2.radio.title": "Defender Radio Log",
+  "lore.c2.radio.text": "Last transmission from the barricade: '...they're coming through the south wall... fall back to the courthouse... the Magistrate is still there... he won't leave... he says the court is in session... god help us...'",
+  "lore.c3.fortmap.title": "Fortification Map",
+  "lore.c3.fortmap.text": "A tactical map of the city's last defensive line. Red pins mark fallback positions. The last pin was placed at the courthouse. No pins were placed beyond it — there was nowhere left to fall back to.",
+  "lore.c4.court.title": "Court Files",
+  "lore.c4.court.text": "A stack of weathered files from the Magistrate's court. The defendants are all listed as 'The City.' The verdict on each: 'Guilty of surviving.' The sentence: 'Continue.' The files go back three hundred years.",
+  "lore.c5.letter.title": "Child's Letter",
+  "lore.c5.letter.text": "A child's drawing, pinned to a post box. It shows a giant mech standing over a city, holding scales. The words, in crayon: 'Dear Mr. Magistrate. Thank you for keeping us safe. When will the court be over? I want to go home. — Lena, age 7.'"
 }
