@@ -159,5 +159,7 @@ SaveSystem منطق خالص است (بدون Phaser/canvas). چند تست unit
 | TD4 | Tab double-registration | Settings/Inventory/SkillTree (categories هم tab هم focusable — Settings fixed) |
 | TD5 | F3 listener leak | GameScene.ts:247 |
 | TD6 | processCursorHover Phaser internals | UIController.ts:404 |
+| TD7 | `scene.__enemyStats` untyped property | PlayController.ts:405 sets `__enemyStats` on scene object via cast — should be a typed field on GameScene or a dedicated stats interface. Code smell: double-underscore prefix convention without type-safety. |
+| TD8 | `lastFireAt` timestamp survives sleep | EnemyEntity.ts:473 — `lastFireAt` is timestamp-based (`scene.time.now`). When enemy sleeps, `scene.time.now` keeps advancing. On wake, cooldown may appear "expired" → enemy can fire immediately without waiting full cooldown. Minor enemy advantage (not fairness issue against player, since it's independent of telegraph/precise rule). Fix: convert to delta-accumulation like `stateTime`, or reset `lastFireAt` on wake. |
 | GodClass-GameScene | GameScene 1269 lines | قابل قبول ولی monitor |
 | GodClass-PlayerEntity | PlayerEntity 1090 lines | نیاز به refactor در آینده |
