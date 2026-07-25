@@ -120,22 +120,52 @@ const ENEMY_CULL_MARGIN = 300;  // Same as VisualCuller.VIEWPORT_MARGIN
 
 **سؤال:** وقتی enemy خواب است و بعد بیدار می‌شود، آیا FSM درست resume می‌شود؟
 
-**تحلیل:**
-- `state` (string) — حفظ می‌شود (هیچ reset نمی‌شود هنگام sleep)
-- `stateTime` (number) — هنگام sleep frozen می‌شود (چون update skip می‌شود). هنگام wake، به همان مقدار ادامه می‌دهد
-- `attackPhase` — حفظ می‌شود
-- `staggeredUntil` — timestamp است، نه counter. وقتی enemy خواب است، `scene.time.now` ادامه می‌کند. وقتی بیدار شود، اگر `staggeredUntil` گذشته باشد، `isStaggered = false` می‌شود و FSM به patrol/aggro برمی‌گردد — **درست کار می‌کند**
-- `hacked` — boolean، حفظ می‌شود
+**تحلیل کد واقعی (EnemyEntity.ts):**
 
-**ریسک:** اگر enemy در حالت `attack` و `telegraph` خواب شود، وقتی بیدار شود، `stateTime` ادامه می‌دهد. اگر `stateTime >= telegraphMs` باشد، به `window` منتقل می‌شود — این درست است. اما اگر player دور باشد، enemy بلافاصله به `patrol` برمی‌گردد (چون `inRange` false است). این هم درست است.
+| متغیر | نوع timing | رفتار هنگام sleep | ایمن؟ |
+|------|-----------|-------------------|-------|
+| `stateTime` (line 33, 252) | **delta-accumulation** (`stateTime += deltaMs`) | ✅ فریز می‌شود — چون `update()` skip می‌شود، `stateTime` اضافه نمی‌شود | ✅ ایمن |
+| `attackPhase` | enum string | حفظ می‌شود | ✅ ایمن |
+| `staggeredUntil` (line 141) | **timestamp** (`scene.time.now + duration`) | `scene.time.now` ادامه می‌یابد — وقتی بیدار شود، اگر گذشته باشد، `isStaggered = false` → FSM به patrol/aggro برمی‌گردد | ✅ ایمن |
+| `flashUntil` (line 120) | timestamp | ممکن است منقضی شده باشد — فقط visual flash | ✅ بی‌ضرر |
+| `lastFireAt` (line 473) | timestamp | ممکن است منقضی شده باشد — فقط rate-limit | ✅ بی‌ضرر |
+| `hacked` (line 57) | boolean | حفظ می‌شود | ✅ ایمن |
+| `posture` (line 50) | number | هنگام sleep decay نمی‌شود (چون update skip) | ✅ ایمن |
 
-**نتیجه:** FSM state preservation **ایمن** است. هیچ state نامعتبری رخ نمی‌دهد.
+**نکته‌ی کلیدی:** `stateTime` **delta-accumulation** است، نه timestamp.
+
+این یعنی مشاور اشاره کرد به سناریوی "telegraph-skip" — اما **این سناریو غیرممکن است** چون:
+1. وقتی enemy خواب است، `update()` skip می‌شود
+2. `stateTime` فریز می‌شود (deltaMs اضافه نمی‌شود)
+3. وقتی بیدار شود، `stateTime` از همان مقدار قبلی ادامه می‌دهد
+4. telegraph نمی‌تواند skip شود — `stateTime` جلو نرفته
+
+**سناریوی مشاور با تحلیل صحیح:**
+1. Player با enemy درگیر → enemy وارد `attack → telegraph` (stateTime=0، شروع accumulation)
+2. Player دور می‌شود → enemy خواب می‌رود → `update()` skip → **stateTime فریز روی (مثلاً 200ms)**
+3. Player برمی‌گردد → enemy بیدار می‌شود → **stateTime از 200ms ادامه می‌دهد**
+4. telegraph از همان نقطه ادامه می‌یابد — player telegraph را می‌بیند ✅
+
+**forceResetToBaseline() — YAGNI:**
+مشاور پیشنهاد داد `forceResetToBaseline()` اضافه شود. اما چون `stateTime` delta-accumulation است، این متد **لازم نیست**:
+- مشکل telegraph-skip وجود ندارد
+- اضافه‌کردن = کد مرده
+- اگر در آینده FSM به timestamp-based تغییر کند، آن زمان اضافه می‌کنیم
+
+**مشکل واقعی (minor):** `telegraphGfx` leak هنگام sleep:
+- اگر enemy در حال `telegraph` خواب برود، `telegraphGfx` (دایره‌ی قرمز) ایجاد شده اما destroy نمی‌شود
+- چون `update()` skip می‌شود، `telegraphGfx` در display list باقی می‌ماند
+- اگر enemy دور باشد، player نمی‌بیند — بی‌ضرر
+- وقتی enemy بیدار شود و telegraph تمام شود، `telegraphGfx` destroy می‌شود
+- **این یک باگ موجود است** (نه جدید) — enemy death هم باعث leak می‌شود
+
+**نتیجه:** FSM state preservation **ایمن** است. `forceResetToBaseline()` لازم نیست (YAGNI).
 
 ---
 
 ## ۳) تست رفتاری T8
 
-**تعریف:** enemy دور از دوربین می‌خوابد، نزدیک‌شدن player → بیدار می‌شود → FSM state معتبر است، نه گیر کرده در telegraph.
+**تعریف:** enemy دور از دوربین می‌خوابد، نزدیک‌شدن player → بیدار می‌شود → FSM state معتبر است، نه گیر کرده در telegraph، نه حمله‌ی بدون‌هشدار.
 
 ### روش تست
 
@@ -144,17 +174,48 @@ const ENEMY_CULL_MARGIN = 300;  // Same as VisualCuller.VIEWPORT_MARGIN
    - کاربر می‌تواند با چشم ببیند: وقتی scroll می‌کند، sleep count باید زیاد شود
    - وقتی player نزدیک می‌شود، awake count باید زیاد شود
 
-2. **سناریوی تست دستی**:
+2. **سناریوی تست دستی — basic:**
    - وارد Wastes section 2 شوید (3 drowned_walkers)
    - به section 3 بروید (4 mosquito_drones)
    - F3 را بزنید → باید ببینید "ENEMIES: 5 sleep / 4 awake" یا مشابه
    - به section 2 برگردید → باید ببینید "ENEMIES: 4 sleep / 5 awake" یا مشابه
    - دشمنان section 2 باید به‌درستی behave کنند (patrol، aggro وقتی نزدیک می‌شوید، attack)
 
-3. **سناریوی edge case**:
-   - دشمن را در حال telegraph بگذارید خواب برود (دور شوید)
-   - برگردید — دشمن باید یا به patrol برگردد (چون player دور است) یا به attack ادامه دهد (چون player نزدیک است)
-   - نباید در حالت نامعتبر گیر کند
+3. **سناریوی تست — telegraph-skip (CRITICAL):**
+   - با یک drowned_walkers درگیر شوید تا وارد attack/telegraph شود
+   - **در حین telegraph** (دایره‌ی قرمز قابل‌مشاهده) سریع دور شوید (dash)
+   - enemy باید خواب برود (F3: sleep count زیاد شود)
+   - برگردید — enemy باید:
+     - ✅ telegraph را از همان نقطه ادامه دهد (نه از صفر)
+     - ❌ نباید مستقیم به window/حمله بپرد بدون telegraph
+     - ❌ نباید در حالت نامعتبر گیر کند
+   - اگر player دور باشد، enemy باید به patrol برگردد (چون inRange false است)
+
+4. **سناریوی تست — combat resume:**
+   - چند enemy را تا نیمه‌ی سلامت بزنید (posture > 0)
+   - دور شوید (enemies خواب می‌شوند)
+   - برگردید — posture باید همان مقدار قبلی باشد (decay نشده چون update skip شد)
+   - دشمنان باید به‌درستی attack کنند
+
+5. **سناریوی تست — stagger recovery:**
+   - یک enemy را stagger کنید (پر کردن posture bar)
+   - سریع دور شوید (enemy خواب می‌رود در حالی که staggeredUntil timestamp است)
+   - ۲ ثانیه صبر کنید
+   - برگردید — enemy باید از stagger خارج شده باشد (چون staggeredUntil گذشته است)
+   - enemy باید به patrol/aggro برگشته باشد (نه گیر کرده در stagger)
+
+### معیار پذیرش T8
+
+- [ ] PerformanceOverlay نشان می‌دهد "ENEMIES: N sleep / M awake"
+- [ ] وقتی player به section 3 می‌رود، enemies section 2 sleep می‌شوند
+- [ ] وقتی player به section 2 برمی‌گردد، enemies بیدار می‌شوند
+- [ ] **telegraph-skip test:** enemy در حال telegraph دور می‌شود، برمی‌گردد → telegraph ادامه می‌یابد (نه skip)
+- [ ] **combat resume test:** posture حفظ می‌شود بعد از sleep/wake
+- [ ] **stagger recovery test:** stagger به‌درستی expire می‌شود بعد از sleep
+- [ ] دشمنان بیدار شده به‌درستی behave می‌کنند (patrol، aggro، attack)
+- [ ] projectile‌ها به دشمنان خوابیده برخورد می‌کنند
+- [ ] player-enemy contact رخ می‌دهد
+- [ ] FPS ≥ 48 (انتظار +3-5 FPS از 45)
 
 ---
 
