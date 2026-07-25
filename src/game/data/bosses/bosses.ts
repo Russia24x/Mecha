@@ -73,6 +73,44 @@ export const BOSSES: Record<string, BossData> = {
       { itemId: 'scrap_metal', chance: 1.0, minAmount: 5, maxAmount: 10 },
     ],
   },
+  iron_magistrate: {
+    id: 'iron_magistrate',
+    nameKey: 'boss.iron_magistrate.name',
+    maxHealth: 1600,
+    contactDamage: 30,
+    maxPosture: 130,  // Harder to stagger — "justice is rigid"
+    phases: [
+      // Phase 1: "The Verdict" — fixed sequential pattern, not random
+      // Cycle: verdict_strike → scale_slam → verdict_strike → recover
+      // Player learns the pattern after 1-2 cycles — that IS "justice": predictable, impartial
+      {
+        healthPct: 1.0, speed: 0.8, fireRateMs: 1200,
+        attacks: ['lunge', 'shoot', 'lunge'],  // verdict=high-damage lunge, scale=shoot(AoE), verdict=lunge
+        attackPattern: 'sequential',
+      },
+      // Phase 2: "No Exceptions" — faster cycle + judgment_beam added
+      // Recovery 25% shorter, beam adds a gap-finding challenge
+      {
+        healthPct: 0.5, speed: 1.0, fireRateMs: 900,
+        attacks: ['lunge', 'shoot', 'lunge', 'beam'],
+        attackPattern: 'sequential',
+      },
+    ],
+    lore: [
+      'boss.iron_magistrate.lore.1',
+      'boss.iron_magistrate.lore.2',
+      'boss.iron_magistrate.lore.3',
+    ],
+    arenaWidth: 1280,
+    arenaHeight: 720,
+    musicTrack: 'boss_fight',
+    drops: [
+      // Iron Magistrate drops military_green paint (unlock path per advisor spec)
+      { itemId: 'scrap_metal', chance: 1.0, minAmount: 5, maxAmount: 10 },
+      { itemId: 'circuit_board', chance: 1.0, minAmount: 3, maxAmount: 5 },
+      { itemId: 'armor_plate', chance: 1.0, minAmount: 2, maxAmount: 4 },
+    ],
+  },
 };
 
 export function getBoss(id: string): BossData {

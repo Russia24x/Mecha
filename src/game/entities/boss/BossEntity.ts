@@ -38,6 +38,7 @@ export class BossEntity {
   private lastFireAt = 0;
   private lastActionAt = 0;
   private actionCooldown = 1500;
+  private sequentialAttackIndex = 0;  // For 'sequential' attackPattern (Iron Magistrate)
 
   constructor(scene: Phaser.Scene, physics: PhysicsSystem, particles: ParticleSystem, bossId: string, x: number, y: number, projectiles: Projectile[], playerPos: () => Phaser.Math.Vector2) {
     this.scene = scene;
@@ -77,9 +78,122 @@ export class BossEntity {
   private buildVisual(): void {
     if (this.id === 'leviathan_hulk') {
       this.buildLeviathanVisual();
+    } else if (this.id === 'iron_magistrate') {
+      this.buildIronMagistrateVisual();
     } else {
       this.buildGenericBossVisual();
     }
+  }
+
+  /** Iron Magistrate — armored judge with scales and greatsword.
+   * Theme: "Justice without mercy" — rigid, precise, predictable.
+   * Visual: dark iron armor, blindfold visor, scales of justice in left hand,
+   * massive greatsword in right hand. Red accent lights for "verdict" mode.
+   * Larger than Guardian but smaller than Leviathan.
+   */
+  private buildIronMagistrateVisual(): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(14);
+
+    // ── Main body — armored, rectangular, rigid ──
+    // Dark iron (almost black with blue tint)
+    g.fillStyle(0x1a1e24, 1);
+    g.fillRoundedRect(-45, -45, 90, 90, 4);
+    // Armor plates (slightly lighter, with seams)
+    g.fillStyle(0x2a2e34, 0.9);
+    g.fillRect(-42, -42, 84, 8);   // chest plate top
+    g.fillRect(-42, 10, 84, 8);   // chest plate bottom
+    // Seam lines
+    g.lineStyle(1, 0x0a0e14, 0.8);
+    g.lineBetween(-42, -34, 42, -34);
+    g.lineBetween(-42, 18, 42, 18);
+    // Red accent strip (judge's sash — "verdict" indicator)
+    g.fillStyle(0xff3030, 0.3);
+    g.fillRect(-42, -10, 84, 4);
+    g.fillStyle(0xff4040, 0.5);
+    g.fillRect(-42, -9, 84, 1);
+
+    // ── Shoulders — heavy, angular ──
+    g.fillStyle(0x1a1e24, 1);
+    g.fillRoundedRect(-60, -50, 20, 30, 2);  // left shoulder
+    g.fillRoundedRect(40, -50, 20, 30, 2);   // right shoulder
+    g.fillStyle(0x2a2e34, 0.7);
+    g.fillRect(-58, -48, 16, 6);
+    g.fillRect(42, -48, 16, 6);
+
+    // ── Head — blindfold visor ──
+    g.fillStyle(0x12141a, 1);
+    g.fillRoundedRect(-18, -70, 36, 22, 3);
+    // Blindfold strip (horizontal dark band across eyes)
+    g.fillStyle(0x0a0c10, 0.95);
+    g.fillRect(-18, -62, 36, 6);
+    // Two red "eyes" (blind but seeing — the scales see for him)
+    g.fillStyle(0xff2020, 0.6);
+    g.fillCircle(-8, -59, 2);
+    g.fillCircle(8, -59, 2);
+    // Outline
+    g.lineStyle(1, 0x0a0e14, 0.8);
+    g.strokeRoundedRect(-18, -70, 36, 22, 3);
+
+    // ── Left arm — holds the Scales of Justice ──
+    g.fillStyle(0x1a1e24, 0.9);
+    g.fillRoundedRect(-58, -30, 14, 35, 2);
+    // Scale beam (horizontal bar)
+    g.fillStyle(0x3a3e44, 0.8);
+    g.fillRect(-70, -38, 30, 3);
+    // Two scale pans (small circles hanging from beam ends)
+    g.fillStyle(0x2a2e34, 0.7);
+    g.fillCircle(-65, -30, 5);
+    g.fillCircle(-45, -30, 5);
+    // Chain lines
+    g.lineStyle(1, 0x3a3e44, 0.5);
+    g.lineBetween(-65, -36, -65, -33);
+    g.lineBetween(-45, -36, -45, -33);
+
+    // ── Right arm — holds the Greatsword ──
+    g.fillStyle(0x1a1e24, 0.9);
+    g.fillRoundedRect(44, -30, 14, 35, 2);
+    // Greatsword (massive, vertical, pointing down)
+    g.fillStyle(0x4a4e54, 0.8);
+    g.fillRect(48, -40, 8, 80);   // blade
+    g.fillStyle(0x6a6e74, 0.6);
+    g.fillRect(48, -40, 2, 80);   // blade highlight
+    // Crossguard
+    g.fillStyle(0x3a3e44, 0.9);
+    g.fillRect(42, -42, 20, 4);
+    // Pommel
+    g.fillStyle(0xff3030, 0.3);
+    g.fillCircle(52, 42, 3);
+
+    // ── Chest detail — "VERDICT" panel ──
+    g.fillStyle(0x0a0c10, 0.8);
+    g.fillRoundedRect(-20, -8, 40, 10, 2);
+    g.fillStyle(0xff2020, 0.2);
+    g.fillRoundedRect(-18, -6, 36, 6, 1);
+    // Blinking indicator dot
+    g.fillStyle(0xff4040, 0.7);
+    g.fillCircle(-14, -3, 1.5);
+    g.fillCircle(14, -3, 1.5);
+
+    // ── Legs — heavy, planted (like Leviathan, doesn't move much) ──
+    for (const side of [-1, 1]) {
+      g.fillStyle(0x1a1e24, 1);
+      g.fillRoundedRect(side * 18 - 10, 40, 20, 30, 2);
+      g.fillStyle(0x2a2e34, 0.5);
+      g.fillRoundedRect(side * 18 - 10, 40, 20, 4, 2);
+      // Iron boots (heavy, with red trim)
+      g.fillStyle(0x0a0c10, 1);
+      g.fillRoundedRect(side * 18 - 12, 65, 24, 6, 1);
+      g.fillStyle(0xff2020, 0.15);
+      g.fillRect(side * 18 - 12, 65, 24, 1);
+    }
+
+    this.bossGfx = g;
+
+    // Command eye — red, pulsing (same mechanic as other bosses)
+    this.bossCore = this.scene.add.circle(this.sprite.x, this.sprite.y, 5, 0xff2020, 0.7);
+    this.bossCore.setDepth(15);
+    this.bossCore.setBlendMode(Phaser.BlendModes.ADD);
   }
 
   /** Leviathan Hulk — massive, rusted, waterlogged mech with shield mechanic.
@@ -278,7 +392,16 @@ export class BossEntity {
     if (now >= this.lastActionAt + this.actionCooldown) {
       this.lastActionAt = now;
       const attacks = this.currentPhaseData.attacks;
-      const action = attacks[Math.floor(Math.random() * attacks.length)];
+      // Per Stage 1A: Iron Magistrate uses 'sequential' pattern (fixed cycle)
+      // instead of random — predictable "justice" pattern.
+      // Default: random (all other bosses).
+      let action: string;
+      if (this.currentPhaseData.attackPattern === 'sequential') {
+        action = attacks[this.sequentialAttackIndex % attacks.length];
+        this.sequentialAttackIndex++;
+      } else {
+        action = attacks[Math.floor(Math.random() * attacks.length)];
+      }
       switch (action) {
         case 'shoot': this.fire(pp); break;
         case 'lunge': this.lunge(pp); break;

@@ -209,6 +209,12 @@ export interface BossPhase {
   speed: number;
   fireRateMs: number;
   attacks: string[];
+  /** Attack selection mode:
+   *  - 'random' (default): picks a random attack from the list each cycle
+   *  - 'sequential': cycles through attacks in order (for fixed-pattern bosses)
+   *  Used by Iron Magistrate for predictable "justice" pattern.
+   */
+  attackPattern?: 'random' | 'sequential';
 }
 
 export interface BossData {
@@ -222,6 +228,9 @@ export interface BossData {
   arenaHeight: number;
   musicTrack?: string;
   drops: DropTable[];
+  /** Boss-specific maxPosture (default 100 if not set).
+   *  Iron Magistrate = 130 (harder to stagger — "justice is rigid") */
+  maxPosture?: number;
 }
 
 // ================ ITEMS ================
@@ -491,4 +500,5 @@ export type GameEvent =
   | 'INPUT_SCHEME_CHANGED'
   | 'EMP_PULSE'
   | 'EMP_HIT'
-  | 'HACK_COMPLETE';
+  | 'HACK_COMPLETE'
+  | 'PAINT_UNLOCKED';

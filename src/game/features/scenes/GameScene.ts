@@ -1028,6 +1028,14 @@ export class GameScene extends Phaser.Scene {
       EventBus.emit('WEAPON_UNLOCKED', { weaponId: 'laser' });
       this.hud?.toast(getLocale() === 'fa' ? 'سلاح جدید: لیزر' : 'NEW WEAPON: Laser');
     }
+    // Act III boss: Iron Magistrate → unlock military_green paint
+    if (data.id === 'iron_magistrate') {
+      if (!SaveSystem.getPlayer().unlockedPaints.includes('military_green')) {
+        SaveSystem.unlockPaint('military_green');
+        EventBus.emit('PAINT_UNLOCKED', { paintId: 'military_green' });
+        this.hud?.toast(getLocale() === 'fa' ? 'رنگ جدید: سبز نظامی' : 'NEW PAINT: Military Green');
+      }
+    }
     // Act I boss: Guardian AX-09 → unlock Act II (Drowned Wastes)
     if (data.id === 'guardian_ax09') {
       SaveSystem.unlockArea('drowned_wastes_1');
@@ -1228,6 +1236,7 @@ export class GameScene extends Phaser.Scene {
       guardian_ax09: { en: '"Atlas never stopped waiting."', fa: '"اطلس هرگز منتظر ماند."' },
       neural_overseer: { en: '"It watched over a forest that forgot it was watching."', fa: '"او بر جنگلی نظارت می‌کرد که فراموش کرده بود نظارت می‌شود."' },
       leviathan_hulk: { en: '"She protected a city that no longer exists."', fa: '"او شهری را محافظت می‌کرد که دیگر وجود ندارد."' },
+      iron_magistrate: { en: '"He judged the living and the dead with the same blind eye."', fa: '"او زندگان و مردگان را با همان چشم کور قضاوت می‌کرد."' },
     };
     const quote = bossQuotes[this.killedBossId ?? ''] ?? bossQuotes.guardian_ax09;
     const atlasQuote = getLocale() === 'fa' ? quote.fa : quote.en;
