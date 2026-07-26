@@ -1043,9 +1043,9 @@ export class GameScene extends Phaser.Scene {
       SaveSystem.unlockArea('drowned_wastes_1');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: باتلاق غرق‌شده' : 'NEW AREA: The Drowned Wastes');
     }
-    // Act II boss: Leviathan Hulk → unlock Act III (Last City)
+    // Act II boss: Leviathan Hulk → unlock Act III Part 1 (Outer Ward)
     if (data.id === 'leviathan_hulk') {
-      SaveSystem.unlockArea('last_city_1');
+      SaveSystem.unlockArea('act3_outer_ward');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: آخرین شهر' : 'NEW AREA: The Last City');
     }
     // Act III boss: Iron Magistrate → unlock Act IV (Silent Canopy / Toxic Forest)

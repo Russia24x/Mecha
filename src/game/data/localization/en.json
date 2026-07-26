@@ -345,5 +345,16 @@
   "section.city.7.name": "Ashfall Approach",
   "section.city.8.name": "The Final Verdict",
   "lore.c7.poster.title": "Fading Poster",
-  "lore.c7.poster.text": "A propaganda poster, half-burned. The words are barely legible: 'THE MAGISTRATE PROTECTS. THE COURT NEVER SLEEPS. TRUST IN JUDGMENT.' Below it, someone has scrawled in charcoal: 'The court is a lie. The Magistrate is the court.'"
+  "lore.c7.poster.text": "A propaganda poster, half-burned. The words are barely legible: 'THE MAGISTRATE PROTECTS. THE COURT NEVER SLEEPS. TRUST IN JUDGMENT.' Below it, someone has scrawled in charcoal: 'The court is a lie. The Magistrate is the court.'",
+  "area.act3_outer_ward.name": "The Outer Ward",
+  "area.act3_inner_court.name": "The Inner Court",
+  "section.city.3b.name": "Collapsed Street",
+  "section.city.4b.name": "Emergency Bridge",
+  "section.city.6b.name": "Road to the Courthouse",
+  "lore.c3b.medic.title": "Medic's Notebook",
+  "lore.c3b.medic.text": "A bloodstained notebook found in an overturned ambulance. The last entry: 'Day 14. Casualties: too many. Supplies: almost gone. The Magistrate says hold. The Magistrate always says hold. I stopped writing down the dead because there's no one left to read the list.'",
+  "lore.c4b.fortmap.title": "Fortification Map",
+  "lore.c4b.fortmap.text": "A tactical map of the city's last defensive line. Red pins mark fallback positions. The last pin was placed at the courthouse. No pins were placed beyond it — there was nowhere left to fall back to.",
+  "lore.c6b.statue.title": "Blind Justice",
+  "lore.c6b.statue.text": "A toppled statue of Justice, lying face-down in the rubble. Her blindfold has slipped. Moss grows over one of her eyes. The scales lie broken beside her. Someone has scratched into the pedestal: 'She was always blind. Now she is also silent.'"
 }

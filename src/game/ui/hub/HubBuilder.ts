@@ -178,10 +178,12 @@ export class HubBuilder {
           : area.regionId === 'wastes' ? 'wastes_bg_1'
           : area.regionId === 'city' ? 'city_bg_1'
           : 'factory_bg_2';
-        if (this.scene.textures.exists(previewTexture)) {
-          const previewImg = this.scene.add.image(actX, previewY, previewTexture);
+        // For inner_court area, use city_bg_3 instead
+        const actualPreview = area.areaId === 'act3_inner_court' ? 'city_bg_3' : previewTexture;
+        if (this.scene.textures.exists(actualPreview)) {
+          const previewImg = this.scene.add.image(actX, previewY, actualPreview);
           previewImg.setDepth(2.6);
-          const tex = this.scene.textures.get(previewTexture).getSourceImage();
+          const tex = this.scene.textures.get(actualPreview).getSourceImage();
           const imgAR = tex.width / tex.height;
           const frameAR = previewW / previewH;
           // "Contain" scaling: image fits entirely within frame (no overflow, no mask needed)
