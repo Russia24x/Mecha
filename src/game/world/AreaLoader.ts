@@ -29,6 +29,13 @@ export interface LoadedArea {
   empDoors: Phaser.GameObjects.Container[];
   shortcuts: Phaser.GameObjects.Container[];
   collectibles: Phaser.GameObjects.Container[];
+  /** Bonfire GameObjects (no Matter sensor — NPC-pattern interaction).
+   *  Created by AreaLoader.load() for visual + storage; BonfireController
+   *  owns the spawn/sync/tryInteract/cleanup lifecycle. */
+  bonfires: Phaser.GameObjects.Container[];
+  /** Exit gate GameObjects (Matter sensor — auto-trigger on walk-through).
+   *  Created by AreaLoader.load() in Phase C. */
+  exitGates: Phaser.GameObjects.Container[];
 }
 
 export class AreaLoader {
@@ -81,6 +88,11 @@ export class AreaLoader {
       empDoors: [],
       shortcuts: [],
       collectibles: [],
+      // Bonfires + exit gates are populated by BonfireController.spawnBonfires()
+      // (Phase B) and exit gate logic (Phase C). Initialized empty here so
+      // NpcInteractionController.updatePrompt and unload() can safely iterate.
+      bonfires: [],
+      exitGates: [],
     };
 
     // Floor (spans entire area)
@@ -675,6 +687,11 @@ export class AreaLoader {
       if (s.active) s.destroy();
     });
     loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
+    // ── Bonfires + exit gates: visual containers only (no physics body,
+    // since bonfire uses NPC-pattern, exit gate physics handled separately
+    // in Phase C). Destroy any active visuals. ──
+    loaded.bonfires.forEach(b => { if (b && b.active) b.destroy(); });
+    loaded.exitGates.forEach(g => { if (g && g.active) g.destroy(); });
     loaded.solids = [];
     loaded.sectionTriggers = [];
     loaded.checkpointTriggers = [];
@@ -687,6 +704,8 @@ export class AreaLoader {
     loaded.empDoors = [];
     loaded.shortcuts = [];
     loaded.collectibles = [];
+    loaded.bonfires = [];
+    loaded.exitGates = [];
   }
 }
 

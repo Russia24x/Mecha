@@ -73,6 +73,7 @@ import { WorldMapSystem } from '../../world/WorldMapSystem';
 import { AreaLoader, type LoadedArea } from '../../world/AreaLoader';
 import { MetroidvaniaController } from '../../world/MetroidvaniaController';
 import { NpcInteractionController } from '../../world/NpcInteractionController';
+import { BonfireController } from '../../controllers/BonfireController';
 import { CheckpointSystem } from '../../world/CheckpointSystem';
 import { PlayerEntity } from '../../entities/player/PlayerEntity';
 import { EnemyEntity, resetEnemyIds } from '../../entities/enemies/EnemyEntity';
@@ -167,6 +168,10 @@ export class GameScene extends Phaser.Scene {
   private perfOverlay: PerformanceOverlay | null = null;
   // Metroidvania controller (collectibles + shortcuts) — PLAY-only
   private metroidvania: MetroidvaniaController | null = null;
+  // Bonfire controller (Dark Souls-style save points) — PLAY-only
+  // Per advisor: NPC-pattern (distance+prompt+interact via E key), no Matter sensor.
+  // Instantiated in buildPlay, cleaned up in cleanupPlay.
+  private bonfireController: BonfireController | null = null;
   // Collision dispatch router — PLAY-only
   private collision: CollisionController | null = null;
 
@@ -647,6 +652,7 @@ export class GameScene extends Phaser.Scene {
     this.npcInteraction = state.npcInteraction;
     this.loreController = state.loreController;
     this.controlHints = state.controlHints;
+    this.bonfireController = state.bonfireController;
     this.enemies = state.enemies;
     this.projectiles = state.projectiles;
     this.currentSection = state.currentSection;
@@ -822,6 +828,19 @@ export class GameScene extends Phaser.Scene {
         }
       }
     }
+    // ── Wire: Bonfire interaction (Dark Souls-style rest) ──
+    // Per advisor: use interactPressed (instant), NOT heldInteract — bonfire
+    // has no progress-bar or duration channel. BonfireController.tryInteract
+    // returns true if interaction occurred (so we short-circuit).
+    // NOTE: this branch runs AFTER NPC and Lore — priority chain is
+    // NPC > Lore > Bonfire. If a bonfire is placed near an NPC/Lore, the
+    // NPC/Lore wins. This matches the unified nearest-check in
+    // NpcInteractionController.updatePrompt (visual prompt), so the
+    // prompt shown and the action triggered are always consistent.
+    if (this.loadedArea && this.bonfireController) {
+      const interacted = this.bonfireController.tryInteract(this.loadedArea, this.player);
+      if (interacted) return;
+    }
   }
 
   // ================ LORE PANEL ================
@@ -873,6 +892,7 @@ export class GameScene extends Phaser.Scene {
       bossHealthBar: this.bossHealthBar,
       npcInteraction: this.npcInteraction,
       metroidvania: this.metroidvania,
+      bonfireController: this.bonfireController,
       targetRegistry: this.targetRegistry,
       player: this.player,
       enemies: this.enemies,
@@ -900,6 +920,7 @@ export class GameScene extends Phaser.Scene {
     this.bossHealthBar = null;
     this.npcInteraction = null;
     this.metroidvania = null;
+    this.bonfireController = null;
     this.enemies = [];
     this.boss = null;
     this.projectiles = [];

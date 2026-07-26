@@ -2514,3 +2514,70 @@ Stage Summary:
 - Sync: syncLitState task added to B3 (mirrors hidePreCollectedItems).
 - GitHub: local 6e0ccde = origin/main 6e0ccde (synced, 2 commits pushed).
 - Ready to start Phase B1 (BonfireController.ts implementation).
+
+---
+Task ID: B1-B6
+Agent: main
+Task: Implement Phase B — Bonfire System (NPC pattern, no Matter sensor)
+
+Work Log:
+- Pre-flight forensics:
+  * Verified PlayController.build exists (line 148) and contains hidePreCollectedItems + preOpenShortcuts + spawnNPCs — confirmed advisor note 1 (B3 in PlayController.build is correct; B6 instantiation + cleanup must be in GameScene).
+  * Verified InputSystem: KeyE=interact (line 169), interactPressed at GameScene line 419 — confirmed advisor note 2 (use interactPressed, not heldInteract).
+  * Confirmed no existing interaction.talk/examine/rest keys — action text was hardcoded in NpcInteractionController (lines 99-100). Added 3 new keys per advisor note 3.
+
+- B1: Created src/game/controllers/BonfireController.ts (308 lines):
+  * spawnBonfires(areaId, loadedArea) — creates amber terminal + glow container GameObjects, pushes to loadedArea.bonfires, sets bonfireId/isLit/isBonfire metadata.
+  * syncLitState(loadedArea) — applies SaveSystem.isBonfireLit() to each freshly spawned bonfire (mirrors MetroidvaniaController.hidePreCollectedItems). preLit flag (bf_factory1_1 only) auto-lights on first game start.
+  * tryInteract(loadedArea, player) — distance check (<70px), then: refillRepair → CheckpointSystem.activate → SaveSystem.saveCheckpoint → SaveSystem.lightBonfire → toast + AudioSystem.play('checkpoint') → applyLitVisual(brighten). Returns true if interacted (GameScene short-circuits).
+  * cleanup() — stops tweens + destroys all bonfire visuals.
+  * createBonfireVisual + applyLitVisual private helpers for amber terminal aesthetic.
+  * NO updatePrompt method (delegated to NpcInteractionController per unified-prompt decision).
+
+- B2: Modified src/game/world/AreaLoader.ts:
+  * Added `bonfires: Phaser.GameObjects.Container[]` + `exitGates: Phaser.GameObjects.Container[]` to LoadedArea interface (Phase C will populate exitGates).
+  * Initialized both as empty arrays in load() (so NpcInteractionController.updatePrompt and unload() can safely iterate).
+  * Added bonfire + exitGate cleanup in unload() (visual destruction + array reset).
+
+- B3: Modified src/game/controllers/PlayController.ts:
+  * Added `bonfireController: BonfireController` to PlayBuildResult.
+  * Imported BonfireController.
+  * In build(): instantiate BonfireController + spawnBonfires + syncLitState after spawnNPCs (line ~245).
+  * Added `bonfireController: { cleanup: () => void } | null` to PlayControllerRefs interface.
+  * In destroy(): added `r.bonfireController?.cleanup()` after `r.npcInteraction?.cleanup()` (preserves cleanup order: collision → entities → world unload → PLAY systems → timers → HUD → camera).
+
+- B4: Modified src/game/world/NpcInteractionController.ts:
+  * Extended `nearestKind` from `'npc' | 'lore'` to `'npc' | 'lore' | 'bonfire'`.
+  * Added bonfire loop in updatePrompt (distance < 70px, checks `bf.getData('isBonfire') === true`).
+  * Action text now uses t('interaction.talk'|'examine'|'rest') keys with hardcoded fallback.
+  * createInteractionPrompt initial text also uses t('interaction.talk').
+
+- B5: Modified src/game/features/scenes/GameScene.ts:
+  * Added bonfire branch to tryInteract() AFTER NPC + Lore branches (priority chain NPC > Lore > Bonfire — matches unified nearest-check in updatePrompt).
+  * Branch calls this.bonfireController.tryInteract(this.loadedArea, this.player) — returns true if interacted (short-circuits).
+  * Note added: uses interactPressed (instant), NOT heldInteract.
+
+- B6: Modified src/game/features/scenes/GameScene.ts:
+  * Added `private bonfireController: BonfireController | null = null` field.
+  * Imported BonfireController.
+  * In buildPlay: `this.bonfireController = state.bonfireController`.
+  * In cleanupPlay: pass `bonfireController: this.bonfireController` to PlayController refs + null out after destroy.
+
+- Localization:
+  * Added 5 keys to en.json: interaction.talk/examine/rest + bonfire.lit/rested.
+  * Added 5 keys to fa.json: صحبت/بررسی/استراحت + بونفایر روشن شد/استراحت شد.
+
+- Validation:
+  * npx tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/ (fixed 1: Phaser.GameObjects.Circle → Phaser.GameObjects.Arc).
+  * npx tsx scripts/validate-section-bounds.ts: 0 ERROR, 2 INFO (intentional wastes silhouettes). PASS.
+  * en.json + fa.json both valid JSON.
+
+Stage Summary:
+- Phase B (B1-B6) complete: bonfire system uses NPC-pattern (distance + prompt + E key), NO Matter sensor.
+- Unified prompt via NpcInteractionController extension — no two prompts ever coexist.
+- BonfireController owns spawnBonfires + syncLitState + tryInteract + cleanup.
+- Interact uses interactPressed (instant), NOT heldInteract (per advisor note 2).
+- Localization keys added for interaction.talk/examine/rest + bonfire.lit/rested (per advisor note 3).
+- Cleanup order preserved: collision → entities → world unload → PLAY systems (incl. bonfire) → timers → HUD → camera.
+- tsc: 0 errors. JSON: valid. Validator: PASS.
+- Ready for Phase C (Exit Gate System).

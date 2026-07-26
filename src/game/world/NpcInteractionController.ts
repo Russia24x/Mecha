@@ -54,15 +54,24 @@ export class NpcInteractionController {
     }
   }
 
-  /** Show a floating "Press E to interact" prompt above the nearest NPC OR lore object. */
+  /** Show a floating "Press E to interact" prompt above the nearest NPC, lore object, or bonfire.
+   *
+   * Per advisor (A3-final-decisions Point 1, Option A): unified nearest-check
+   * across NPC + Lore + Bonfire in a single loop. Only ONE prompt is ever
+   * shown at a time — whichever is closest wins. This guarantees that a
+   * bonfire placed near an NPC or lore object never produces overlapping
+   * floating prompts.
+   *
+   * Bonfire distance threshold matches BonfireController.BONFIRE_INTERACT_RADIUS (70px).
+   */
   updatePrompt(player: PlayerEntity, loadedArea: LoadedArea | null): void {
     if (!player.sprite || !player.sprite.active) return;
     const area = WorldSystem.getCurrentArea();
     if (!area) return;
 
-    // Find nearest interactable — NPCs first, then lore objects
-    let nearestX = 0, nearestY = 0, nearestKind: 'npc' | 'lore' | null = null;
-    let nearestDist = 80;  // interaction radius
+    // Find nearest interactable — NPCs, then lore objects, then bonfires
+    let nearestX = 0, nearestY = 0, nearestKind: 'npc' | 'lore' | 'bonfire' | null = null;
+    let nearestDist = 80;  // interaction radius (NPC = 80, Lore = 70, Bonfire = 70)
 
     // NPCs
     const npcs = NPCSystem.getNPCsInArea(area.id);
@@ -84,6 +93,20 @@ export class NpcInteractionController {
           }
         }
       }
+
+      // Bonfires (Dark Souls-style save points) — only containers that are
+      // active and marked isBonfire=true. Distance threshold matches
+      // BonfireController.BONFIRE_INTERACT_RADIUS (70px).
+      for (const bf of loadedArea.bonfires) {
+        if (!bf || !bf.active) continue;
+        if (bf.getData('isBonfire') !== true) continue;
+        const dist = Phaser.Math.Distance.Between(player.sprite.x, player.sprite.y, bf.x, bf.y);
+        if (dist < 70) {
+          if (dist < nearestDist) {
+            nearestDist = dist; nearestX = bf.x; nearestY = bf.y - 50; nearestKind = 'bonfire';
+          }
+        }
+      }
     }
 
     if (nearestKind) {
@@ -95,9 +118,20 @@ export class NpcInteractionController {
       const txt = this.interactionPrompt.getAt(1) as Phaser.GameObjects.Text;
       if (txt && txt.active) {
         const key = InputSchemeManager.getLabel('interact');
-        const action = nearestKind === 'npc'
-          ? (getLocale() === 'fa' ? 'صحبت' : 'TALK')
-          : (getLocale() === 'fa' ? 'بررسی' : 'EXAMINE');
+        // Action text per kind: localized via interaction.* keys
+        // (added in en.json/fa.json as part of B4 sub-task).
+        // Falls back to hardcoded English if key is missing.
+        const actionKey = nearestKind === 'npc'
+          ? 'interaction.talk'
+          : nearestKind === 'lore'
+            ? 'interaction.examine'
+            : 'interaction.rest';
+        const fallback = nearestKind === 'npc'
+          ? 'TALK'
+          : nearestKind === 'lore'
+            ? 'EXAMINE'
+            : 'REST';
+        const action = t(actionKey) || fallback;
         txt.setText(`[${key}] ${action}`);
       }
     } else if (this.interactionPrompt) {
@@ -132,7 +166,9 @@ export class NpcInteractionController {
     bg.setStrokeStyle(1, 0xffc040, 0.8);
     c.add(bg);
     const key = InputSchemeManager.getLabel('interact');
-    const action = getLocale() === 'fa' ? 'صحبت' : 'TALK';
+    // Initial text uses interaction.talk key (matches NPC default); text is
+    // re-set per-frame in updatePrompt based on nearest kind (npc/lore/bonfire).
+    const action = t('interaction.talk') || (getLocale() === 'fa' ? 'صحبت' : 'TALK');
     const txt = this.scene.add.text(0, 0, `[${key}] ${action}`, fixTextStyle({
       fontFamily: 'monospace', fontSize: '11px', color: '#ffc040', stroke: '#000', strokeThickness: 2,
     })).setOrigin(0.5);

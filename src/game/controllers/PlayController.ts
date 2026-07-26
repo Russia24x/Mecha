@@ -27,6 +27,7 @@ import { AtmosphereSystem } from '../world/atmosphere/AtmosphereSystem';
 import { ForestEnvironmentSystem } from '../world/atmosphere/ForestEnvironmentSystem';
 import { MetroidvaniaController } from '../world/MetroidvaniaController';
 import { NpcInteractionController } from '../world/NpcInteractionController';
+import { BonfireController } from './BonfireController';
 import { LoreController } from '../ui/lore/LoreController';
 import { ControlHintsUI } from '../ui/controls/ControlHintsUI';
 import { BossHealthBarUI } from '../ui/boss/BossHealthBarUI';
@@ -64,6 +65,7 @@ export interface PlayBuildResult {
   npcInteraction: NpcInteractionController;
   loreController: LoreController;
   controlHints: ControlHintsUI;
+  bonfireController: BonfireController;
   enemies: EnemyEntity[];
   projectiles: Projectile[];
   currentSection: number;
@@ -117,6 +119,7 @@ export interface PlayControllerRefs {
   bossHealthBar: { hide: () => void } | null;
   npcInteraction: { cleanup: () => void } | null;
   metroidvania: MetroidvaniaController | null;
+  bonfireController: { cleanup: () => void } | null;
   targetRegistry: TargetRegistry;
   player: PlayerEntity;
   enemies: EnemyEntity[];
@@ -233,6 +236,17 @@ export class PlayController {
     const npcInteraction = new NpcInteractionController(scene);
     npcInteraction.spawnNPCs(area.id);
 
+    // ── Bonfire controller (Dark Souls-style save points) ──
+    // Per advisor: NPC-pattern (distance+prompt+interact), no Matter sensor.
+    // spawnBonfires creates GameObjects (amber terminal + glow) and pushes
+    // them into loadedArea.bonfires; syncLitState applies SaveSystem.isBonfireLit
+    // to freshly spawned visuals (mirrors MetroidvaniaController.hidePreCollectedItems).
+    // preLit policy: only bf_factory1_1 is statically preLit; all other area-entry
+    // bonfires are lit dynamically via gate crossing (Phase C3).
+    const bonfireController = new BonfireController(scene);
+    bonfireController.spawnBonfires(area.id, loadedArea);
+    bonfireController.syncLitState(loadedArea);
+
     // ── Lore controller ──
     const loreController = new LoreController(scene);
 
@@ -270,7 +284,7 @@ export class PlayController {
     return {
       parallax, atmosphere, forestEnv, areaLoader, loadedArea,
       metroidvania, render, combat, player, companion, hud,
-      npcInteraction, loreController, controlHints,
+      npcInteraction, loreController, controlHints, bonfireController,
       enemies, projectiles, currentSection: cp.section, stageStartTime,
     };
   }
@@ -623,6 +637,7 @@ export class PlayController {
     r.parallax?.destroy();
     r.atmosphere?.destroy();
     r.npcInteraction?.cleanup();
+    r.bonfireController?.cleanup();
     r.controlHints?.destroy();
     r.companion?.destroy();
     r.forestEnv?.destroy();
