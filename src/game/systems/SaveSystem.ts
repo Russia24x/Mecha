@@ -511,6 +511,28 @@ export class SaveSystem {
     }
   }
 
+  // ── Bonfire system ──
+  /** Mark a bonfire as lit (activated by player). Used for fast-travel destinations. */
+  static lightBonfire(bonfireId: string): void {
+    const data = this.load();
+    if (!data.litBonfires) data.litBonfires = [];
+    if (!data.litBonfires.includes(bonfireId)) {
+      data.litBonfires.push(bonfireId);
+      this.persist();
+    }
+  }
+
+  /** Check if a bonfire has been lit (activated). */
+  static isBonfireLit(bonfireId: string): boolean {
+    const data = this.load();
+    return (data.litBonfires ?? []).includes(bonfireId);
+  }
+
+  /** Get all lit bonfire IDs (for World Map fast-travel). */
+  static getLitBonfires(): string[] {
+    return this.load().litBonfires ?? [];
+  }
+
   static setQuestFlag(questId: string, flag: boolean): void {
     const data = this.load();
     data.questFlags[questId] = flag;

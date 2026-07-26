@@ -85,6 +85,7 @@ export const DEFAULT_SAVE: SaveData & { stages: Record<number, StageProgress> } 
   npcFlags: {},
   unlockedAreas: ['abandoned_factory', 'toxic_forest'],
   discoveredAreas: [],
+  litBonfires: [],
   // NEW in v4 — ported from shared/Save.ts (was unique to v2 localStorage)
   stages: {},
 };

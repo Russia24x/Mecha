@@ -161,6 +161,7 @@ export async function migrateOldSaves(): Promise<boolean> {
     npcFlags: v3?.npcFlags ?? {},
     unlockedAreas: v3?.unlockedAreas ?? [...DEFAULT_SAVE.unlockedAreas],
     discoveredAreas: v3?.discoveredAreas ?? [],
+    litBonfires: [],
     stages: v2?.stages ?? {},
   };
 

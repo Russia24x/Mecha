@@ -302,6 +302,8 @@ export interface SectionData {
   shortcuts?: ShortcutData[];
   collectibles?: CollectibleData[];
   secretRooms?: SecretRoomData[];
+  bonfires?: BonfireData[];
+  exitGates?: ExitGateData[];
 }
 
 export interface LoreObjectData {
@@ -352,6 +354,41 @@ export interface EmpDoorData {
   y: number;
   w: number;
   h: number;
+}
+
+// ── Bonfire (Dark Souls-style save point) ──
+/** A terminal/save point the player can rest at to heal + save + fast-travel.
+ *  Visual: a mech terminal with amber glow that brightens when activated.
+ *  Placement rule (per advisor):
+ *    - Area with 2 sections: 2 bonfires (section 1 start + near boss/gate)
+ *    - Area with 4 sections: 2-3 bonfires (start + mid + near boss/gate)
+ *    - The first bonfire in each area is always pre-lit (auto-activated on area entry).
+ */
+export interface BonfireData {
+  id: string;          // e.g. 'bf_factory1_1', 'bf_factory1_2'
+  x: number;
+  y: number;
+  section: number;     // which section this bonfire is in
+  /** If true, bonfire is already lit when player enters the area (no interact needed). */
+  preLit?: boolean;
+}
+
+// ── Exit Gate (inter-area transition portal) ──
+/** A physical gate/portal at the edge of an area that transports the player
+ *  to the next area when walked through. One-way (return via Hub/Map).
+ *  Visual: large arch with amber lights, barbed wire, decorative guards.
+ *  Mechanism: Matter sensor → WorldSystem.travelTo(toAreaId, toSection)
+ */
+export interface ExitGateData {
+  id: string;          // e.g. 'gate_factory1_to_2'
+  x: number;
+  y: number;
+  toAreaId: string;    // destination area ID
+  toSection: number;   // destination section (usually 1)
+  toX: number;         // spawn X in destination area
+  toY: number;         // spawn Y in destination area
+  /** Optional label shown above the gate (e.g. 'CHECKPOINT — INNER WARD') */
+  labelKey?: string;
 }
 
 // ── Metroidvania structure ──
@@ -475,6 +512,8 @@ export interface SaveData {
   npcFlags: Record<string, Record<string, boolean>>;
   unlockedAreas: string[];
   discoveredAreas: string[];
+  /** IDs of activated (lit) bonfires. Used for fast-travel destinations. */
+  litBonfires: string[];
 }
 
 // ================ EVENTS ================
@@ -501,4 +540,5 @@ export type GameEvent =
   | 'EMP_PULSE'
   | 'EMP_HIT'
   | 'HACK_COMPLETE'
-  | 'PAINT_UNLOCKED';
+  | 'PAINT_UNLOCKED'
+  | 'BONFIRE_LIT';
