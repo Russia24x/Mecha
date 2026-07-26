@@ -734,9 +734,9 @@ export const ACTS: ActData[] = [
                 { id: 'lore_c5_letter', type: 'terminal', x: 3700, y: 420, titleKey: 'lore.c5.letter.title', textKey: 'lore.c5.letter.text' },
               ]},
 
-              // S4: The Courthouse (boss arena) — Memory: empty judge's chair
-              // Border gate at end → travel to Area 3
-              { id: 4, nameKey: 'section.city.8.name', x: 4608, enemies: [], bossId: 'iron_magistrate', platforms: [
+              // S4: The Courthouse approach — combat section, NOT boss arena
+              // (Boss is in act3_courthouse S4, not here — removed duplicate)
+              { id: 4, nameKey: 'section.city.8.name', x: 4608, enemies: ['sniper', 'heavy'], platforms: [
                 { x: 4780, y: 560, w: 500, h: 24 },
                 { x: 5360, y: 560, w: 500, h: 24 },
                 { x: 5000, y: 460, w: 120, h: 20 },
