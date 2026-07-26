@@ -2420,3 +2420,22 @@ Stage Summary:
 - Duplicate boss ID fixed (A7)
 - Status verified: Acts I/II are content-complete and need splitting. III already split. IV/V wait.
 - Next: Phase A1+A2 (types.ts + SaveData) then A3 (split Act I as vertical slice pilot)
+
+---
+Task ID: A3-followup
+Agent: main
+Task: Resolve 3 advisor points before Phase B+C green light (sc_s4_to_s2 check, preLit policy, tsc verify)
+
+Work Log:
+- Point 1 (sc_s4_to_s2): grep'd entire src/ for `sc_s4_to_s2|sc_s4|sc_s3_to|sc_s5_to` — ZERO matches in code. Only historical mention is in worklog.md line 914 (planned but never implemented). Confirmed via `git log -S "sc_s4_to_s2"` that NO commit ever added this shortcut to acts.ts.
+- Verified A3 commit (4cdc1e3) diff: only `sc_s2_to_s3` and `sc_s6_to_s1` were removed (both cross-area). `sc_s1_to_s2` KEPT (intra-area S1→S2 both in factory_1). All `toSection` refs in `shortcuts` arrays are intra-area. Exit gates use proper `toAreaId` + `toSection` cross-area pattern.
+- Point 2 (preLit policy): advisor analysis correct. Removed `preLit: true` from `bf_factory2_1` (factory_2/S3 start) and `bf_factory3_1` (factory_3/S5 start). KEPT `preLit: true` on `bf_factory1_1` only (game-start global anchor). Updated `BonfireData` docstring with full policy: only first bonfire of game is preLit static; all other area-entry bonfires lit dynamically via `SaveSystem.lightBonfire()` on `onAreaExit` event in Phase C (single source of truth — gate crossing).
+- Point 3 (tsc check): `npx tsc --noEmit --strict --skipLibCheck` reports ZERO errors in src/game/. (4 unrelated errors in examples/ and skills/ — socket.io-client missing, image-edit script typo, stock-analysis-skill — none affect game.)
+- Ran `validate-section-bounds.ts`: 0 ERROR, 2 INFO (intentional wastes loreObject/landmark silhouettes outside section bounds). PASS.
+
+Stage Summary:
+- All 3 advisor points resolved.
+- preLit policy now consistent with World Map gate (clause 4.2): only lit bonfires are fast-travel destinations; cannot fast-travel to unentered areas.
+- Single source of truth for area-entry bonfire lighting: gate-crossing event (Phase C will implement).
+- TypeScript strict mode clean for src/game/.
+- Ready for Phase B+C green light.

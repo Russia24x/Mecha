@@ -137,7 +137,9 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s3_skill', type: 'skill_point', x: 264, y: 40, requiredAbility: 'wallJump' },
               ], bonfires: [
-                { id: 'bf_factory2_1', x: 200, y: 540, section: 1, preLit: true },
+                // bf_factory2_1: NOT preLit — lit dynamically when player crosses gate_factory1_to_2 (Phase C).
+                // See BonfireData.preLit policy in types.ts.
+                { id: 'bf_factory2_1', x: 200, y: 540, section: 1 },
               ]},
 
               // S4: ASSEMBLY HALL + MINI BOSS (rebased from x:4608 to x:1536)
@@ -192,7 +194,9 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s5_energy', type: 'energy_fragment', x: 956, y: 350 },
               ], bonfires: [
-                { id: 'bf_factory3_1', x: 200, y: 540, section: 1, preLit: true },
+                // bf_factory3_1: NOT preLit — lit dynamically when player crosses gate_factory2_to_3 (Phase C).
+                // See BonfireData.preLit policy in types.ts.
+                { id: 'bf_factory3_1', x: 200, y: 540, section: 1 },
               ]},
 
               // S6: BOSS ARENA — GUARDIAN AX-09 (rebased from x:7680 to x:1536)

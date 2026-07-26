@@ -362,14 +362,27 @@ export interface EmpDoorData {
  *  Placement rule (per advisor):
  *    - Area with 2 sections: 2 bonfires (section 1 start + near boss/gate)
  *    - Area with 4 sections: 2-3 bonfires (start + mid + near boss/gate)
- *    - The first bonfire in each area is always pre-lit (auto-activated on area entry).
+ *
+ *  preLit policy (per advisor Point 2):
+ *    - ONLY the very first bonfire of the game (bf_factory1_1) is `preLit: true`.
+ *      This is the global anchor — the player has nowhere been before, so the
+ *      entry bonfire must already be lit.
+ *    - For every other area, the entry bonfire is NOT preLit in static data.
+ *      Instead, it is lit dynamically via `SaveSystem.lightBonfire()` when the
+ *      player crosses the destination area's entry exit gate (event-driven,
+ *      single source of truth — the gate crossing).
+ *    - This preserves the World Map gate (clause 4.2: only LIT bonfires are
+ *      selectable as fast-travel destinations) — players cannot fast-travel to
+ *      an area they have not yet entered on foot.
+ *    - Implementation: see Phase C — ExitGateController.onAreaExit handler.
  */
 export interface BonfireData {
   id: string;          // e.g. 'bf_factory1_1', 'bf_factory1_2'
   x: number;
   y: number;
   section: number;     // which section this bonfire is in
-  /** If true, bonfire is already lit when player enters the area (no interact needed). */
+  /** If true, bonfire is already lit when player enters the area (no interact needed).
+   *  RESERVED for the game-start anchor only (bf_factory1_1). See policy above. */
   preLit?: boolean;
 }
 
