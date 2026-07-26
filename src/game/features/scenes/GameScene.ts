@@ -1050,9 +1050,13 @@ export class GameScene extends Phaser.Scene {
       SaveSystem.unlockArea('drowned_wastes_1');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: باتلاق غرق‌شده' : 'NEW AREA: The Drowned Wastes');
     }
-    // Act II boss: Leviathan Hulk → unlock Act III Area 1
+    // Act II boss: Leviathan Hulk → unlock Act III (all 3 areas at once)
+    // Player can freely travel between areas via hub.
+    // Border gate can be added later as visual element.
     if (data.id === 'leviathan_hulk') {
       SaveSystem.unlockArea('act3_ward_1');
+      SaveSystem.unlockArea('act3_ward_2');
+      SaveSystem.unlockArea('act3_courthouse');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: آخرین شهر' : 'NEW AREA: The Last City');
     }
     // Act III boss: Iron Magistrate → unlock Act IV (Silent Canopy / Toxic Forest)
