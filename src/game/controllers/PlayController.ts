@@ -199,13 +199,18 @@ export class PlayController {
 
     // ── Auto-checkpoint: when entering a new area, save a checkpoint at
     // the section 1 start position so the player always has a fallback.
-    // This fires only once per area entry (not on every buildPlay call
-    // — it checks if checkpoint already exists for this area).
+    // This fires only once per area entry (not on every buildPlay call).
+    // MUST be called AFTER player creation — CheckpointSystem.activate()
+    // emits CHECKPOINT event → GameScene.onCheckpointSaved → calls
+    // player.refillRepair() which needs this.sprite to exist.
     if (!CheckpointSystem.hasCheckpoint() || CheckpointSystem.getCheckpoint()?.areaId !== area.id) {
       const area1 = area.sections[0];
       const cpX = area1 ? area1.x + 200 : 200;
       const cpY = 420;
-      CheckpointSystem.activate(1, cpX, cpY);
+      // Delay by 1 frame to ensure player + sprite are fully initialized
+      scene.time.delayedCall(100, () => {
+        CheckpointSystem.activate(1, cpX, cpY);
+      });
     }
 
     // ── Camera follow ──

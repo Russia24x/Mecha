@@ -183,6 +183,49 @@ export class ParallaxBackground {
     const imgH = tex.getSourceImage().height;
     const targetH = GAME.HEIGHT;
     const scale = targetH / imgH;  // scale to fit screen height
+
+    // ── City theme: place 4 images at parallax-compensated positions ──
+    // With scrollFactor 0.15, the background moves at 15% of camera speed.
+    // Images must be placed at CONTAINER positions (not world positions)
+    // so each image is visible when the player is in the correct section.
+    //
+    // Image 1 → visible during sections 1-2 (camera x: 0-3072, bg scroll: 0-461)
+    // Image 2 → visible during sections 3-4 (camera x: 3072-6144, bg scroll: 461-922)
+    // Image 3 → visible during sections 5-6 (camera x: 6144-9216, bg scroll: 922-1382)
+    // Image 4 → visible during sections 7-8 (camera x: 9216-12288, bg scroll: 1382-1843)
+    if (this.theme === 'city' && bgKeys.length === 4) {
+      // Create container for city images
+      const cityContainer = this.scene.add.container(0, 0);
+      cityContainer.setDepth(-1.5);
+      cityContainer.setScrollFactor(0.15, 0.05, true);  // slow parallax, propagate
+      cityContainer.setAlpha(0.7);
+
+      const parallaxFactor = 0.15;
+      // Section boundaries in world coordinates
+      const sectionBoundaries = [0, 3072, 6144, 9216, 12288];
+      for (let i = 0; i < 4; i++) {
+        // Place image at the parallax-compensated start of its section range
+        const containerX = sectionBoundaries[i] * parallaxFactor;
+        const imgKey = bgKeys[i];
+        const imgTex = this.scene.textures.get(imgKey);
+        const ih = imgTex.getSourceImage().height;
+        const imgScale = targetH / ih;
+        const img = this.scene.add.image(containerX, GAME.HEIGHT / 2, imgKey);
+        img.setOrigin(0, 0.5);
+        img.setScale(imgScale);
+        cityContainer.add(img);
+      }
+      this.layers.push(cityContainer);
+
+      // Subtle drift tween (same as other themes)
+      this.tweens.push(this.scene.tweens.add({
+        targets: cityContainer, alpha: { from: 0.55, to: 0.75 },
+        duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      }));
+      return;  // Skip the generic tiling loop below
+    }
+
+    // ── Factory/Wastes: generic tiling (original approach) ──
     const tileW = imgW * scale;
 
     // Tile across the world width
