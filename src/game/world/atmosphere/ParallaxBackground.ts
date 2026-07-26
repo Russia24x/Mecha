@@ -26,7 +26,7 @@
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 
-export type RegionTheme = 'factory' | 'forest' | 'wastes' | 'generic';
+export type RegionTheme = 'factory' | 'forest' | 'wastes' | 'city' | 'generic';
 
 interface LayerConfig {
   scrollX: number;   // parallax factor (0 = static, 1 = full camera follow)
@@ -56,14 +56,13 @@ export class ParallaxBackground {
     // === BACKGROUND ART (user-provided images, tiled across world) ===
     this.buildBackgroundArt();
 
-    // ⚠️ Stage 2.2: Wastes skips procedural Far/Mid/Near silhouette layers.
-    // The painted backdrop art (wastes_bg_1/2/3) at depth -1.5 already contains
+    // ⚠️ Stage 2.2: Wastes + City skip procedural Far/Mid/Near silhouette layers.
+    // The painted backdrop art at depth -1.5 already contains
     // all depth/silhouettes the artist intended. The generic Far/Mid/Near layers
     // (dark rectangles at depths -1, 0, 1) render ON TOP of the painted art,
     // creating visible flat dark bands that hide the backdrop.
     // Factory and Forest keep these layers (no painted backdrops yet).
-    // Expected gain: +3-5 FPS (3 fewer full-screen Graphics objects per frame).
-    if (this.theme === 'wastes') return;
+    if (this.theme === 'wastes' || this.theme === 'city') return;
 
     // === FAR layer (depth -1, scrollFactor 0.1) ===
     const farCfg: LayerConfig = { scrollX: 0.1, scrollY: 0.05, depth: -1, alpha: 0.5 };
@@ -86,11 +85,11 @@ export class ParallaxBackground {
 
   // ─── SKY ────────────────────────────────────────────────────────────────
   private buildSky(): void {
-    // ⚠️ Stage 2.2: Wastes sky tint disabled — painted backdrop art provides
+    // ⚠️ Stage 2.2: Wastes + City sky tint disabled — painted backdrop art provides
     // full-screen atmospheric color. Procedural sky gradient was over-darkening
     // the painted art and shifting its hue away from artist intent.
     // Factory and Forest keep their sky (no painted backdrops yet).
-    if (this.theme === 'wastes') return;
+    if (this.theme === 'wastes' || this.theme === 'city') return;
 
     // Generate sky as a texture ONCE (not 720 fillRect calls per render)
     const w = GAME.WIDTH, h = GAME.HEIGHT;
@@ -155,8 +154,8 @@ export class ParallaxBackground {
    * painted/artistic backdrop instead of just procedural graphics.
    */
   private buildBackgroundArt(): void {
-    // Only factory and wastes have art for now
-    if (this.theme !== 'factory' && this.theme !== 'wastes') return;
+    // Factory, Wastes, and City have painted background art
+    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city') return;
 
     // Determine texture keys based on theme
     const bgKeys: string[] = [];
@@ -169,6 +168,12 @@ export class ParallaxBackground {
       bgKeys.push('wastes_bg_1');
       if (this.scene.textures.exists('wastes_bg_2')) bgKeys.push('wastes_bg_2');
       if (this.scene.textures.exists('wastes_bg_3')) bgKeys.push('wastes_bg_3');
+    } else if (this.theme === 'city') {
+      if (!this.scene.textures.exists('city_bg_1')) return;
+      bgKeys.push('city_bg_1');
+      if (this.scene.textures.exists('city_bg_2')) bgKeys.push('city_bg_2');
+      if (this.scene.textures.exists('city_bg_3')) bgKeys.push('city_bg_3');
+      if (this.scene.textures.exists('city_bg_4')) bgKeys.push('city_bg_4');
     }
     if (bgKeys.length === 0) return;
 
@@ -190,7 +195,7 @@ export class ParallaxBackground {
     // itself parallaxes — children appear to "swim" relative to the container
     // and parallax is broken in practice.
     container.setScrollFactor(0.15, 0.05, true);  // slow parallax, propagate to children
-    container.setAlpha(this.theme === 'wastes' ? 0.7 : 0.65);  // wastes slightly more visible
+    container.setAlpha(this.theme === 'wastes' ? 0.7 : this.theme === 'city' ? 0.7 : 0.65);  // city/wastes slightly more visible
 
     for (let i = 0; i < tileCount; i++) {
       const x = i * tileW;

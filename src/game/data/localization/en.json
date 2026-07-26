@@ -341,5 +341,9 @@
   "lore.c4.court.title": "Court Files",
   "lore.c4.court.text": "A stack of weathered files from the Magistrate's court. The defendants are all listed as 'The City.' The verdict on each: 'Guilty of surviving.' The sentence: 'Continue.' The files go back three hundred years.",
   "lore.c5.letter.title": "Child's Letter",
-  "lore.c5.letter.text": "A child's drawing, pinned to a post box. It shows a giant mech standing over a city, holding scales. The words, in crayon: 'Dear Mr. Magistrate. Thank you for keeping us safe. When will the court be over? I want to go home. — Lena, age 7.'"
+  "lore.c5.letter.text": "A child's drawing, pinned to a post box. It shows a giant mech standing over a city, holding scales. The words, in crayon: 'Dear Mr. Magistrate. Thank you for keeping us safe. When will the court be over? I want to go home. — Lena, age 7.'",
+  "section.city.7.name": "Ashfall Approach",
+  "section.city.8.name": "The Final Verdict",
+  "lore.c7.poster.title": "Fading Poster",
+  "lore.c7.poster.text": "A propaganda poster, half-burned. The words are barely legible: 'THE MAGISTRATE PROTECTS. THE COURT NEVER SLEEPS. TRUST IN JUDGMENT.' Below it, someone has scrawled in charcoal: 'The court is a lie. The Magistrate is the court.'"
 }

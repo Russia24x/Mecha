@@ -593,10 +593,10 @@ export const ACTS: ActData[] = [
             id: 'last_city_1',
             nameKey: 'area.last_city_1.name',
             regionId: 'city',
-            totalWidth: 10240,
+            totalWidth: 12288,
             sectionWidth: 1536,
             bgColor: 0x0d0505,
-            checkpointSections: [2, 5],
+            checkpointSections: [2, 5, 7],
             unlockedByDefault: false,
             sections: [
               // S1: Barricade Line — Memory Layer: sandbag with hand-written names
@@ -699,6 +699,37 @@ export const ACTS: ActData[] = [
                 { id: 'lm_c6_judge_chair', type: 'tower', x: 8360, y: 100, w: 200, h: 200, color: 0x2a2020 },
               ], shortcuts: [
                 { id: 'sc_c6_to_s1', x: 9100, y: 650, w: 40, h: 60, toSection: 1, opensFrom: 'left' },
+              ]},
+
+              // S7: Ashfall Approach (breather, checkpoint 3) — Memory Layer: ash falling like snow
+              { id: 7, nameKey: 'section.city.7.name', x: 9216, enemies: [], platforms: [
+                { x: 9400, y: 540, w: 300, h: 24 },
+                { x: 9800, y: 460, w: 200, h: 20 },
+                { x: 10100, y: 400, w: 160, h: 20 },
+                { x: 10680, y: 360, w: 40, h: 200 },
+              ], loreObjects: [
+                // Supplementary lore: fading propaganda poster
+                { id: 'lore_c7_poster', type: 'terminal', x: 9800, y: 420, titleKey: 'lore.c7.poster.title', textKey: 'lore.c7.poster.text' },
+              ]},
+
+              // S8: Final Verdict (boss arena — expanded for city_bg_4)
+              // Memory Layer: the courthouse square under ashfall — justice is cold
+              { id: 8, nameKey: 'section.city.8.name', x: 10752, enemies: [], bossId: 'iron_magistrate', platforms: [
+                // Wide courthouse plaza floor
+                { x: 10928, y: 560, w: 600, h: 24 },
+                { x: 11628, y: 560, w: 600, h: 24 },
+                // Courthouse steps (dodging platforms)
+                { x: 11100, y: 460, w: 120, h: 20 },
+                { x: 11360, y: 380, w: 100, h: 20 },
+                { x: 11620, y: 460, w: 120, h: 20 },
+                // Judge's podium (high platform — for collectible after fight)
+                { x: 11360, y: 220, w: 200, h: 16 },
+              ], hazards: [
+                { type: 'lava', x: 10928, y: 660, w: 100, h: 20, damage: 10 },
+                { type: 'lava', x: 12028, y: 660, w: 100, h: 20, damage: 10 },
+              ], landmarks: [
+                // Empty judge's chair + tattered city flag
+                { id: 'lm_c8_judge_chair', type: 'tower', x: 11360, y: 100, w: 200, h: 200, color: 0x2a2020 },
               ]},
             ],
           },

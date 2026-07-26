@@ -53,14 +53,12 @@ export class AtmosphereSystem {
   }
 
   build(): void {
-    // ⚠️ Stage 2.2: Wastes skips fog bands + depth haze.
+    // ⚠️ Stage 2.2: Wastes + City skip fog bands + depth haze.
     // The painted backdrop art already provides atmospheric color and depth.
-    // Procedural fog bands (5 Graphics with tweens) and depth haze (MULTIPLY
+    // Procedural fog bands (Graphics with tweens) and depth haze (MULTIPLY
     // overlay) were double-darkening the painted art.
     // God rays + ambient particles are KEPT — they're cheap and add life.
-    // Expected gain: +2-3 FPS (5 fewer Graphics + 5 fewer tweens + 1 fewer
-    // MULTIPLY overlay per frame).
-    if (this.theme !== 'wastes') {
+    if (this.theme !== 'wastes' && this.theme !== 'city') {
       this.buildFog();
       this.buildDepthHaze();
     }

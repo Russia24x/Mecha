@@ -89,6 +89,7 @@ export class WorldMapUI extends NavigableOverlay {
     const currentArea = WorldSystem.getCurrent();
     const regionBgKey = currentArea.regionId === 'forest' ? 'factory_bg_1'
       : currentArea.regionId === 'wastes' ? 'wastes_bg_2'
+      : currentArea.regionId === 'city' ? 'city_bg_2'
       : 'factory_bg_2';
     if (scene.textures.exists(regionBgKey)) {
       const mapBg = scene.add.image(w / 2, mapY + mapH / 2, regionBgKey);
