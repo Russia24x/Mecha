@@ -23,6 +23,7 @@
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
+import { QualityManager } from '../../systems/QualityManager';
 import type { RegionTheme } from './ParallaxBackground';
 
 interface Particle {
@@ -65,6 +66,12 @@ export class AtmosphereSystem {
 
     this.buildGodRays();
     this.buildAmbientParticles();
+
+    // City theme: rain + lightning (per user request — dark, rainy, stormy)
+    if (this.theme === 'city') {
+      this.buildRain();
+      this.buildLightning();
+    }
   }
 
   // ─── FOG ────────────────────────────────────────────────────────────────
@@ -254,6 +261,93 @@ export class AtmosphereSystem {
     this.particles.forEach(p => { if (p.go && p.go.active) p.go.destroy(); });
     this.particles = [];
     if (this.haze && this.haze.active) { this.haze.destroy(); this.haze = null; }
+    this.rainDrops.forEach(d => { if (d && d.active) d.destroy(); });
+    this.rainDrops = [];
+    if (this.rainTimer) { this.rainTimer.remove(); this.rainTimer = null; }
+    if (this.lightningOverlay && this.lightningOverlay.active) { this.lightningOverlay.destroy(); this.lightningOverlay = null; }
+    if (this.lightningTimer) { this.lightningTimer.remove(); this.lightningTimer = null; }
+  }
+
+  // ─── RAIN (city theme — dark, stormy) ──────────────────────────────────
+  private rainDrops: Phaser.GameObjects.Line[] = [];
+  private rainTimer: Phaser.Time.TimerEvent | null = null;
+
+  private buildRain(): void {
+    // Rain: thin blue-white lines falling diagonally, scrolling with camera.
+    // Per Phaser 4 — use Line game objects with setScrollFactor for parallax.
+    const rainCount = QualityManager.isRainEnabled() ? QualityManager.getRainCount() : 50;
+    for (let i = 0; i < rainCount; i++) {
+      const x = Math.random() * (this.worldWidth + 400) - 200;
+      const y = Math.random() * GAME.HEIGHT;
+      const len = 8 + Math.random() * 12;
+      const drop = this.scene.add.line(x, y, 0, 0, 2, len, 0x6080a0, 0.3);
+      drop.setOrigin(0, 0);
+      drop.setAngle(15);  // slight diagonal (wind effect)
+      drop.setDepth(90);
+      drop.setScrollFactor(0.3, 0);  // rain scrolls slower than world (parallax)
+      this.rainDrops.push(drop);
+    }
+
+    // Rain update loop — move drops downward, recycle when off-screen
+    this.rainTimer = this.scene.time.addEvent({
+      delay: 33,  // ~30fps update for rain (cheaper than 60fps)
+      callback: () => {
+        const cam = this.scene.cameras.main;
+        const viewLeft = cam.scrollX - 200;
+        const viewRight = cam.scrollX + cam.width + 200;
+        for (const drop of this.rainDrops) {
+          if (!drop || !drop.active) continue;
+          drop.y += 12 + Math.random() * 6;  // fall speed
+          drop.x += 2;  // wind drift
+          // Recycle when below screen
+          if (drop.y > GAME.HEIGHT + 20) {
+            drop.y = -20;
+            drop.x = viewLeft + Math.random() * (viewRight - viewLeft);
+          }
+          // Wrap around horizontally
+          if (drop.x > viewRight) drop.x = viewLeft;
+          if (drop.x < viewLeft) drop.x = viewRight;
+        }
+      },
+      loop: true,
+    });
+  }
+
+  // ─── LIGHTNING (city theme — storm) ────────────────────────────────────
+  private lightningOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private lightningTimer: Phaser.Time.TimerEvent | null = null;
+
+  private buildLightning(): void {
+    // Lightning: full-screen white flash at random intervals (3-8 seconds)
+    this.lightningOverlay = this.scene.add.rectangle(
+      GAME.WIDTH / 2, GAME.HEIGHT / 2,
+      GAME.WIDTH, GAME.HEIGHT,
+      0xffffff, 0,
+    );
+    this.lightningOverlay.setDepth(96);
+    this.lightningOverlay.setScrollFactor(0);
+    this.lightningOverlay.setBlendMode(Phaser.BlendModes.ADD);
+
+    // Random lightning strikes
+    const scheduleNext = (): void => {
+      const delay = 3000 + Math.random() * 5000;  // 3-8 seconds
+      this.lightningTimer = this.scene.time.delayedCall(delay, () => {
+        if (!this.lightningOverlay || !this.lightningOverlay.active) return;
+        // Flash sequence: bright → dim → bright → fade (double-flash effect)
+        this.lightningOverlay.setAlpha(0.5);
+        this.scene.time.delayedCall(60, () => {
+          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0.15);
+        });
+        this.scene.time.delayedCall(120, () => {
+          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0.35);
+        });
+        this.scene.time.delayedCall(200, () => {
+          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0);
+        });
+        scheduleNext();
+      });
+    };
+    scheduleNext();
   }
 }
 

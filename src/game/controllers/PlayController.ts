@@ -171,10 +171,11 @@ export class PlayController {
     // ── Parallax + atmosphere + forest environment ──
     const theme = (area.regionId === 'forest') ? 'forest'
       : (area.regionId === 'wastes') ? 'wastes'
+      : (area.regionId === 'city') ? 'city'
       : 'factory';
     const parallax = new ParallaxBackground(scene, theme as RegionTheme, area.totalWidth);
     parallax.build();
-    const atmosphere = new AtmosphereSystem(scene, theme as 'factory' | 'forest' | 'wastes', area.totalWidth);
+    const atmosphere = new AtmosphereSystem(scene, theme as RegionTheme, area.totalWidth);
     atmosphere.build();
     const forestEnv = theme === 'forest' ? new ForestEnvironmentSystem(scene, area.totalWidth) : null;
     forestEnv?.build();
@@ -195,6 +196,17 @@ export class PlayController {
     // ── Player ──
     const cp = CheckpointSystem.getRespawnPosition(area.id);
     const player = new PlayerEntity(scene, physicsSys, particles, combat, cp.x, cp.y, projectiles);
+
+    // ── Auto-checkpoint: when entering a new area, save a checkpoint at
+    // the section 1 start position so the player always has a fallback.
+    // This fires only once per area entry (not on every buildPlay call
+    // — it checks if checkpoint already exists for this area).
+    if (!CheckpointSystem.hasCheckpoint() || CheckpointSystem.getCheckpoint()?.areaId !== area.id) {
+      const area1 = area.sections[0];
+      const cpX = area1 ? area1.x + 200 : 200;
+      const cpY = 420;
+      CheckpointSystem.activate(1, cpX, cpY);
+    }
 
     // ── Camera follow ──
     camera.follow(player.sprite, 0.1);
