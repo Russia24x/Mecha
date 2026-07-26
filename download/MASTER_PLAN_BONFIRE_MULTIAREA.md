@@ -79,14 +79,28 @@ interface SaveData {
 ```
 
 ### ۲.۴ Bonfire Interaction
+
+> **الگوی معماری (تصمیم نهایی، per advisor):** الگوی **NPC/Lore** — فاصله + پرامپت شناور + کلید تعامل.
+> الگوی **Matter-sensor + CollisionController.onBonfire** استفاده **نمی‌شود** چون با UX "بازیکن باید *انتخاب* کند استراحت کند" سازگار نیست (auto-trigger می‌شد).
+
 ```
-Player walks near bonfire → prompt "▼ REST" appears
-Player presses J (interact key) → 
-  1. refillRepair() (heal HP + energy)
-  2. SaveSystem.saveCheckpoint({x: bonfire.x, y: bonfire.y, section: bonfire.section})
-  3. bonfire.isLit = true → SaveSystem.lightBonfire(bonfire.id)
-  4. Show quick-menu: "Continue / Fast Travel / Quit to Hub"
+Per-frame (از PlayController.update):
+  BonfireController.updatePrompt(loadedArea, player)
+    → چک فاصله به هر bonfire (< 70px)
+    → اگر نزدیک است: پرامپت شناور [E] REST نمایش بده (مشابه NpcInteractionController.updatePrompt)
+    → اگر دور است: پرامپت را پنهان کن
+
+وقتی input.interactPressed در GameScene.tryInteract() رخ می‌دهد:
+  GameScene.tryInteract() → اول NPC، بعد Lore، بعد Bonfire را چک می‌کند
+  → اگر player نزدیک bonfire است (< 70px):
+      1. refillRepair() (heal HP + energy)
+      2. SaveSystem.saveCheckpoint({x: bonfire.x, y: bonfire.y, section: bonfire.section})
+      3. SaveSystem.lightBonfire(bonfire.id)
+      4. toast("✓ BONFIRE LIT") + AudioSystem.play('checkpoint')
+      [Phase D: منوی Fast Travel باز می‌شود — نه در Phase B]
 ```
+
+> **کلید تعامل = `E`** (نه `J` که در متن قدیمی سند بود). `J` = شلیک اسلحه است (InputSystem.ts:155). `E` = interact (InputSystem.ts:169) که توسط NpcInteractionController و tryHack() هم استفاده می‌شود.
 
 ### ۲.۵ Bonfire Placement Rule
 هر Area (~6144px, 4 sections):
@@ -122,8 +136,9 @@ Player presses J (interact key) →
 { id: 'gate_factory1_to_2', x: 5900, y: 460, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420 }
 ```
 - بصری: طاق فلزی یا دروازه‌ی بزرگ با نور آمبر
-- فیزیک: Matter sensor (مثل checkpoint trigger)
-- وقتی player از آن عبور می‌کند: `WorldSystem.travelTo(toAreaId, toSection)` + auto-checkpoint
+- فیزیک: **Matter sensor** (مثل checkpoint trigger) — اینجا Matter-sensor درست است چون auto-trigger می‌خواهیم
+- وقتی player از آن عبور می‌کند: **0.5s fade telegraph** (نه confirm dialog) سپس `WorldSystem.travelTo(toAreaId, toSection)` + auto-checkpoint + `SaveSystem.lightBonfire(<entry bonfire of destination>)` (per preLit policy)
+- **Telegraph (per advisor):** قبل از travel واقعی، 0.5 ثانیه fade-out + صدا (`AudioSystem.play('gate_travel')`) تا عبور تصادفی وسط نبرد، بازیکن را ناخواسته به area بعدی نیندازد. این یک confirm dialog کامل نیست — فقط یک نشانه‌ی کوتاه که «این یک نقطه‌ی بازگشت‌ناپذیر است».
 - یک‌طرفه است (مثل عبور از جبهه‌ی جنگی) — Return via Hub/Map
 
 ### ۳.۴ Inter-Act Transition
@@ -172,30 +187,43 @@ Player presses J (interact key) →
 **مجموع Phase A:** ~4 ساعت
 
 ### Phase B — Bonfire System
-**هدف:** پیاده‌سازی مکانیک Bonfire
+**هدف:** پیاده‌سازی مکانیک Bonfire با الگوی NPC (نه Matter-sensor)
+
+> **الگوی معماری:** BonfireController دو متد دارد:
+> - `updatePrompt(loadedArea, player)` — per-frame از `PlayController.update()` صدا زده می‌شود (مثل `npcInteraction.updatePrompt`). پرامپت شناور `[E] REST` نمایش/پنهان می‌کند.
+> - `tryInteract(loadedArea, player)` — از `GameScene.tryInteract()` صدا زده می‌شود (بعد از NPC/Lore branches). اگر player نزدیک bonfire باشد، heal+save+light+toast انجام می‌دهد.
+>
+> **هیچ Matter sensor، هیچ CollisionController route، هیچ cleanup در unload() لازم نیست.**
+> این الگو دقیقاً همان NpcInteractionController/MetroidvaniaController است.
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| B1 | ساخت `BonfireController.ts` (interact, light, refill, menu) | New: BonfireController.ts | 90 min |
-| B2 | AreaLoader: ساخت bonfire GameObjects + sensors | AreaLoader.ts | 45 min |
-| B3 | CollisionController: route `onBonfire` | CollisionController.ts | 15 min |
-| B4 | GameScene: wire onBonfire → BonfireController | GameScene.ts | 15 min |
-| B5 | حذف checkpoint triggers قدیمی (جایگزین با bonfire) | AreaLoader.ts | 15 min |
-| B6 | SaveSystem: `lightBonfire()`, `isBonfireLit()`, `getLitBonfires()` | SaveSystem.ts | 15 min |
+| B1 | ساخت `BonfireController.ts`: `spawnBonfires(areaId)` + `updatePrompt(loadedArea, player)` + `tryInteract(loadedArea, player)` (heal+save+light+toast) + `cleanup()` | New: `src/game/controllers/BonfireController.ts` | 60 min |
+| B2 | AreaLoader: ساخت bonfire GameObjects (آمبر terminal + glow container) در `loadArea()` — **بدون** Matter sensor | `src/game/world/AreaLoader.ts` | 30 min |
+| B3 | PlayController.update: اضافه‌کردن `r.bonfire?.updatePrompt(r.loadedArea, r.player)` بعد از `npcInteraction.updatePrompt` (خط ۳۴۷) | `src/game/controllers/PlayController.ts` | 5 min |
+| B4 | GameScene.tryInteract: اضافه‌کردن bonfire branch بعد از lore branch (خط ۸۲۴) | `src/game/features/scenes/GameScene.ts` | 10 min |
+| B5 | GameScene.buildPlay: instantiate `BonfireController` + cleanup در `cleanupPlay` | `src/game/features/scenes/GameScene.ts` | 10 min |
+| B6 | (انتقال به Phase D) منوی Continue/Fast Travel/Quit to Hub — فعلاً فقط heal+save+toast کافی است | — | defer |
 
-**مجموع Phase B:** ~3 ساعت
+> **اسکوپ منو (per advisor):** Phase B فقط heal+save+toast پیاده می‌کند. منوی کامل Continue/Fast Travel/Quit to Hub به Phase D موکول می‌شود چون در غیر این صورت منطق با `WorldMapUI` تکرار می‌شود. در Phase D، وقتی `WorldMapUI` برای fast-travel به bonfire‌های lit گسترش پیدا می‌کند، منوی bonfire همان WorldMapUI را باز می‌کند (single source of truth).
+
+**مجموع Phase B:** ~2 ساعت
 
 ### Phase C — Exit Gate System
-**هدف:** انتقال بین Areas با gate فیزیکی
+**هدف:** انتقال بین Areas با gate فیزیکی + telegraph
+
+> **الگوی معماری:** الگوی **Matter sensor + CollisionController route** در اینجا درست است چون می‌خواهیم auto-trigger با عبور فیزیکی (مثل checkpoint فعلی). اما برای جلوگیری از عبور تصادفی وسط نبرد، 0.5s fade telegraph قبل از travel واقعی اضافه می‌شود.
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| C1 | AreaLoader: ساخت exit gate sensors | AreaLoader.ts | 30 min |
-| C2 | CollisionController: route `onAreaExit` | CollisionController.ts | 15 min |
-| C3 | GameScene: wire onAreaExit → WorldSystem.travelTo + cleanupPlay + buildPlay | GameScene.ts | 30 min |
-| C4 | بصری‌سازی gate (Graphics: طاق + نور) | AreaLoader.ts یا Strategy | 30 min |
+| C1 | AreaLoader: ساخت exit gate GameObjects (طاق + نور آمبر) با Matter sensor در `loadArea()` | `src/game/world/AreaLoader.ts` | 30 min |
+| C2 | CollisionController: اضافه‌کردن `onExitGate?: (gateId, toAreaId, toSection, toX, toY) => void` به `CollisionRoutes` + dispatch detection (مثل onSection/onCheckpoint pattern) | `src/game/controllers/CollisionController.ts` | 15 min |
+| C3 | GameScene: wire `collision.routes.onExitGate` → شروع 0.5s fade telegraph + بعد از fade: `WorldSystem.travelTo(toAreaId, toSection)` + `SaveSystem.lightBonfire(<entry bonfire of destination>)` + cleanupPlay + buildPlay | `src/game/features/scenes/GameScene.ts` | 45 min |
+| C4 | بصری‌سازی gate (Graphics: طاق + نور) + بصری‌سازی telegraph (camera fade-out + flash) + صدا (`AudioSystem.play('gate_travel')`) | `src/game/world/AreaLoader.ts` یا Strategy + AudioSystem | 30 min |
 
-**مجموع Phase C:** ~1.5 ساعت
+> **preLit policy enforcement (per A3-followup):** C3 وقتی gate crossing رخ می‌دهد، `SaveSystem.lightBonfire()` را برای entry bonfire مقصد صدا می‌زند. این single source of truth است — نه یک flag دستی static در داده‌ها.
+
+**مجموع Phase C:** ~2 ساعت
 
 ### Phase D — World Map Update
 **هدف:** Fast travel به bonfire‌های lit شده
@@ -246,8 +274,10 @@ Player presses J (interact key) →
 
 - [ ] هر Act حداقل ۲ Area دارد
 - [ ] هر Area حداقل ۱ bonfire دارد
-- [ ] Bonfire با فشردن J کار می‌کند (heal + save)
-- [ ] Exit gate بین areas هم‌اکت کار می‌کند
+- [ ] Bonfire با فشردن **E** کار می‌کند (heal + save + toast) — نه J
+- [ ] پرامپت شناور `[E] REST` نزدیک bonfire نمایش داده می‌شود (الگوی NPC، بدون Matter sensor)
+- [ ] Exit gate بین areas هم‌اکت کار می‌کند (با 0.5s fade telegraph قبل از travel)
+- [ ] عبور از exit gate به‌طور خودکار entry bonfire مقصد را روشن می‌کند (preLit policy)
 - [ ] Fast travel به bonfire‌های lit از World Map کار می‌کند
 - [ ] باس هر اکت فقط در آخرین Area است
 - [ ] Duplicate boss ID رفع شده

@@ -2439,3 +2439,29 @@ Stage Summary:
 - Single source of truth for area-entry bonfire lighting: gate-crossing event (Phase C will implement).
 - TypeScript strict mode clean for src/game/.
 - Ready for Phase B+C green light.
+
+---
+Task ID: A3-arch-decision
+Agent: main
+Task: Resolve architecture contradiction before Phase B+C code (bonfire detection pattern, interact key, menu scope, gate telegraph)
+
+Work Log:
+- Forensics: read NpcInteractionController.ts (146 lines, the proven NPC prompt pattern), InputSystem.ts (verified KeyE=interact at line 169, KeyJ=fire at line 155 — advisor correct, doc had J wrong), MetroidvaniaController.ts (template for per-frame checkCollectiblePickups called from PlayController.update line 351-352), CheckpointSystem.ts (Matter-sensor pattern via CollisionController.onCheckpoint), CollisionController.ts (CollisionRoutes interface, dispatch pattern), GameScene.tryInteract (line 791 — the central interact handler).
+- Decision 1 (architecture): bonfire uses NPC pattern (distance + prompt + E key). NO Matter sensor, NO CollisionController.onBonfire route. BonfireController.updatePrompt() called per-frame from PlayController.update (like npcInteraction.updatePrompt at line 346). BonfireController.tryInteract() called from GameScene.tryInteract() after NPC and Lore branches (after line 824). Single source of truth: GameScene.tryInteract.
+- Decision 2 (interact key): E, not J. Documented with line numbers from InputSystem.ts.
+- Decision 3 (menu scope): B-phase does heal+save+toast only. Full Continue/Fast Travel/Quit-to-Hub menu deferred to Phase D (opens WorldMapUI, no duplication).
+- Decision 4 (gate telegraph): 0.5s camera fade-out + sound (AudioSystem.play('gate_travel')) before actual travel. Not a confirm dialog. Prevents accidental mid-combat area transition.
+- Decision 5 (preLit policy enforcement): Phase C3 (gate onExitGate handler) calls SaveSystem.lightBonfire(<entry bonfire of destination>) on gate crossing — single source of truth, no static preLit flag.
+
+Updated MASTER_PLAN_BONFIRE_MULTIAREA.md:
+- Section 2.4: rewrote Bonfire Interaction with full architecture decision (NPC pattern, E key, line refs)
+- Section 3.3: rewrote Exit Gate with Matter-sensor + 0.5s telegraph + lightBonfire enforcement
+- Phase B: rewrote all 6 tasks (B1 = BonfireController with updatePrompt+tryInteract+spawn+cleanup, B2 = GameObjects NO sensor, B3 = PlayController wire, B4 = tryInteract wire, B5 = buildPlay instantiate, B6 deferred to D). Reduced from ~3h to ~2h.
+- Phase C: rewrote all 4 tasks with onExitGate route + telegraph + lightBonfire. Increased from ~1.5h to ~2h.
+- Acceptance criteria: changed J→E, added prompt visibility, gate telegraph, preLit auto-lighting criteria.
+
+Stage Summary:
+- Architecture contradiction fully resolved before any B/C code is written.
+- All 4 advisor questions answered with explicit decisions documented in master plan.
+- tsc still clean: 0 errors in src/game/.
+- Ready to start Phase B1 (BonfireController.ts implementation).
