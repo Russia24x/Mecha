@@ -1041,6 +1041,21 @@ export class GameScene extends Phaser.Scene {
       SaveSystem.unlockArea('drowned_wastes_1');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: باتلاق غرق‌شده' : 'NEW AREA: The Drowned Wastes');
     }
+    // Act II boss: Leviathan Hulk → unlock Act III (Last City)
+    if (data.id === 'leviathan_hulk') {
+      SaveSystem.unlockArea('last_city_1');
+      this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: آخرین شهر' : 'NEW AREA: The Last City');
+    }
+    // Act III boss: Iron Magistrate → unlock Act IV (Silent Canopy / Toxic Forest)
+    if (data.id === 'iron_magistrate') {
+      SaveSystem.unlockArea('toxic_forest');
+      this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: سایه‌آرام' : 'NEW AREA: The Silent Canopy');
+    }
+    // Act IV boss: Neural Overseer → unlock Act V (Orbital Descent)
+    if (data.id === 'neural_overseer') {
+      SaveSystem.unlockArea('orbital_station_1');
+      this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: فرود مداری' : 'NEW AREA: Orbital Descent');
+    }
     // Moment 9: Atlas kneels — gentle particles, NOT explosion (per design pillars)
     if (this.boss) {
       this.particles.sparks(this.boss.position.x, this.boss.position.y, COLORS.BOSS, 8);
