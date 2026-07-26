@@ -226,6 +226,20 @@ export class SaveSystem {
       player: { ...DEFAULT_PLAYER, ...old.player },
       settings: { ...DEFAULT_SETTINGS, ...old.settings },
     };
+    // ⚠️ Area ID migration: old area names → new names
+    // This fixes black screen when old save data references renamed areas.
+    const areaIdMigrations: Record<string, string> = {
+      'last_city_1': 'act3_outer_ward',  // Act III was split into 2 areas
+    };
+    if (migrated.checkpoint && areaIdMigrations[migrated.checkpoint.areaId]) {
+      migrated.checkpoint.areaId = areaIdMigrations[migrated.checkpoint.areaId];
+    }
+    if (migrated.unlockedAreas) {
+      migrated.unlockedAreas = migrated.unlockedAreas.map(id => areaIdMigrations[id] || id);
+    }
+    if (migrated.discoveredAreas) {
+      migrated.discoveredAreas = migrated.discoveredAreas.map(id => areaIdMigrations[id] || id);
+    }
     // Ensure all nested structures exist (defensive — same as v3 migrate)
     if (!migrated.bestBossTimes) migrated.bestBossTimes = {};
     if (!migrated.questFlags) migrated.questFlags = {};

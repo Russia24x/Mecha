@@ -624,7 +624,14 @@ export class GameScene extends Phaser.Scene {
         setExternalRefs: (enemies, anchors) => this.player?.setExternalRefs(enemies, anchors),
       },
     );
-    if (!state) return;
+    if (!state) {
+      // Area not found — save data references a removed/renamed area.
+      // Fall back to hub instead of showing a black screen.
+      console.warn('[buildPlay] Area not found — falling back to hub. Save data may reference an old area ID.');
+      this.hud?.toast(getLocale() === 'fa' ? 'منطقه یافت نشد — بازگشت به هاب' : 'AREA NOT FOUND — returning to hub');
+      this.setState('hub');
+      return;
+    }
     // Assign built state to GameScene fields
     this.parallax = state.parallax;
     this.atmosphere = state.atmosphere;
