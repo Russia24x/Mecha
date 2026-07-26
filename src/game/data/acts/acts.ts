@@ -685,7 +685,7 @@ export const ACTS: ActData[] = [
               ]},
 
               // S6: The Courthouse (boss arena) — Memory Layer: empty judge's chair, broken scales
-              { id: 6, nameKey: 'section.city.6.name', x: 7680, enemies: [], bossId: 'iron_magistrate', platforms: [
+              { id: 6, nameKey: 'section.city.6.name', x: 7680, enemies: ['sniper'], platforms: [
                 { x: 7880, y: 560, w: 500, h: 24 },
                 { x: 8460, y: 560, w: 500, h: 24 },
                 { x: 8100, y: 460, w: 120, h: 20 },

@@ -203,10 +203,14 @@ export class GameScene extends Phaser.Scene {
 
     // ── Phase 6: Profile + Save system init ──
     // Migration: if old localStorage keys exist, migrate them to IndexedDB slot 0.
-    const { ProfileManager } = await import('../../systems/ProfileManager');
-    const { SaveSystem } = await import('../../systems/SaveSystem');
-    const { autoSaveManager } = await import('../../systems/AutoSaveManager');
-    const { migrateOldSaves } = await import('../../systems/migrate');
+    // ProfileManager uses dynamic import to avoid circular dependency issues.
+    // AutoSaveManager + migrate are small and safe to dynamic import.
+    const ProfileManagerModule = await import('../../systems/ProfileManager');
+    const ProfileManager = ProfileManagerModule.ProfileManager;
+    const autoSaveModule = await import('../../systems/AutoSaveManager');
+    const autoSaveManager = autoSaveModule.autoSaveManager;
+    const migrateModule = await import('../../systems/migrate');
+    const migrateOldSaves = migrateModule.migrateOldSaves;
 
     await migrateOldSaves();
     await ProfileManager.init();
@@ -516,11 +520,10 @@ export class GameScene extends Phaser.Scene {
    * Called when user clicks CONTINUE (only enabled if there's an active profile with checkpoint).
    */
   private async continueCurrentProfile(): Promise<void> {
-    const { SaveSystem } = await import('../../systems/SaveSystem');
     const { CheckpointSystem } = await import('../../world/CheckpointSystem');
     const { WorldSystem } = await import('../../world/WorldSystem');
 
-    // SaveSystem is already initialized with the active profile's cache
+    // SaveSystem is already statically imported and initialized
     if (CheckpointSystem.hasCheckpoint()) {
       CheckpointSystem.init();
       WorldSystem.initFromSave();
@@ -538,7 +541,6 @@ export class GameScene extends Phaser.Scene {
    */
   private async showProfileSelect(isNewGame: boolean): Promise<void> {
     const { ProfileSelectUI } = await import('../../ui/profile/ProfileSelectUI');
-    const { SaveSystem } = await import('../../systems/SaveSystem');
     const { CheckpointSystem } = await import('../../world/CheckpointSystem');
     const { QuestSystem } = await import('../../systems/QuestSystem');
     const { WorldSystem } = await import('../../world/WorldSystem');

@@ -199,19 +199,37 @@ export class ParallaxBackground {
 
     for (let i = 0; i < tileCount; i++) {
       const x = i * tileW;
-      // Cycle through available textures for variety
-      const key = bgKeys[i % bgKeys.length];
+      // For city theme: use FIXED image order (not cycling) so each image
+      // covers a specific part of the act:
+      //   Image 1 (bg_1) → beginning (sections 1-2) — industrial shipyard
+      //   Image 2 (bg_2) → middle (sections 3-4) — dense metropolis
+      //   Image 3 (bg_3) → upper-middle (sections 5-6) — sprawling skyline
+      //   Image 4 (bg_4) → end (sections 7-8) — boss arena (neon slums)
+      // For factory/wastes: cycle as before.
+      let key: string;
+      if (this.theme === 'city' && bgKeys.length === 4) {
+        // Map tile index to image based on position in world width
+        const worldPct = x / this.worldWidth;
+        if (worldPct < 0.30) key = bgKeys[0];       // sections 1-2
+        else if (worldPct < 0.55) key = bgKeys[1];  // sections 3-4
+        else if (worldPct < 0.78) key = bgKeys[2];  // sections 5-6
+        else key = bgKeys[3];                         // sections 7-8 (boss)
+      } else {
+        key = bgKeys[i % bgKeys.length];
+      }
       const img = this.scene.add.image(x, GAME.HEIGHT / 2, key);
       img.setOrigin(0, 0.5);
       img.setScale(scale);
-      // Flip every other tile for seamless tiling
-      if (i % 2 === 1) {
+      // Flip every other tile for seamless tiling (not for city — would break the art)
+      if (i % 2 === 1 && this.theme !== 'city') {
         img.setFlipX(true);
       }
       container.add(img);
 
-      // ── Cover seams between tiles with a dark gradient strip + fog wisp ──
-      if (i > 0) {
+      // ── Cover seams between tiles with a dark gradient strip ──
+      // Skip seam covers for city — painted art is continuous and seams
+      // would create visible dark bands that break the artist's vision.
+      if (i > 0 && this.theme !== 'city') {
         const seamX = x;
         // Dark gradient strip at seam (blends left and right tiles)
         const seam = this.scene.add.graphics();
