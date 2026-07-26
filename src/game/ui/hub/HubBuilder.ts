@@ -178,8 +178,9 @@ export class HubBuilder {
           : area.regionId === 'wastes' ? 'wastes_bg_1'
           : area.regionId === 'city' ? 'city_bg_1'
           : 'factory_bg_2';
-        // For inner_court area, use city_bg_3 instead
-        const actualPreview = area.areaId === 'act3_inner_court' ? 'city_bg_3' : previewTexture;
+        // For different city areas, use appropriate bg
+        const actualPreview = area.areaId === 'act3_ward_2' ? 'city_bg_2'
+          : area.areaId === 'act3_courthouse' ? 'city_bg_3' : previewTexture;
         if (this.scene.textures.exists(actualPreview)) {
           const previewImg = this.scene.add.image(actX, previewY, actualPreview);
           previewImg.setDepth(2.6);

@@ -171,17 +171,17 @@ export class ParallaxBackground {
       if (this.scene.textures.exists('wastes_bg_2')) bgKeys.push('wastes_bg_2');
       if (this.scene.textures.exists('wastes_bg_3')) bgKeys.push('wastes_bg_3');
     } else if (this.theme === 'city') {
-      // City is split into 2 areas (outer_ward + inner_court), each 6144px.
-      // Each area uses 2 images via tiling (same as Act I pattern).
-      // The bgStartIndex is set by PlayController based on area.id:
-      //   outer_ward → startIdx=0 → uses city_bg_1 + city_bg_2
-      //   inner_court → startIdx=2 → uses city_bg_3 + city_bg_4
-      const startIdx = this.bgStartIndex;
-      const k1 = `city_bg_${startIdx + 1}`;
-      const k2 = `city_bg_${startIdx + 2}`;
+      // City: 3 areas, each uses 1 image (no tiling needed).
+      // bgStartIndex determines which image:
+      //   ward_1 → city_bg_1, ward_2 → city_bg_2, courthouse → city_bg_3
+      // Boss arena in courthouse uses city_bg_4 in the boss section.
+      const k1 = `city_bg_${this.bgStartIndex + 1}`;
       if (!this.scene.textures.exists(k1)) return;
       bgKeys.push(k1);
-      if (this.scene.textures.exists(k2)) bgKeys.push(k2);
+      // For courthouse area, also add city_bg_4 for boss arena
+      if (this.bgStartIndex === 2 && this.scene.textures.exists('city_bg_4')) {
+        bgKeys.push('city_bg_4');
+      }
     }
     if (bgKeys.length === 0) return;
 

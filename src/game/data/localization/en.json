@@ -356,5 +356,12 @@
   "lore.c4b.fortmap.title": "Fortification Map",
   "lore.c4b.fortmap.text": "A tactical map of the city's last defensive line. Red pins mark fallback positions. The last pin was placed at the courthouse. No pins were placed beyond it — there was nowhere left to fall back to.",
   "lore.c6b.statue.title": "Blind Justice",
-  "lore.c6b.statue.text": "A toppled statue of Justice, lying face-down in the rubble. Her blindfold has slipped. Moss grows over one of her eyes. The scales lie broken beside her. Someone has scratched into the pedestal: 'She was always blind. Now she is also silent.'"
+  "lore.c6b.statue.text": "A toppled statue of Justice, lying face-down in the rubble. Her blindfold has slipped. Moss grows over one of her eyes. The scales lie broken beside her. Someone has scratched into the pedestal: 'She was always blind. Now she is also silent.'",
+  "area.act3_ward_1.name": "The Outer Ward",
+  "area.act3_ward_2.name": "The Inner Ward",
+  "area.act3_courthouse.name": "The Courthouse",
+  "section.city.9.name": "Ashfall Approach",
+  "section.city.10.name": "Courthouse Steps",
+  "section.city.11.name": "Final Stand",
+  "section.city.12.name": "The Final Verdict"
 }

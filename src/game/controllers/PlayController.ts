@@ -175,10 +175,12 @@ export class PlayController {
       : 'factory';
     const parallax = new ParallaxBackground(scene, theme as RegionTheme, area.totalWidth);
     // For city: set bgStartIndex based on which area we're in
-    // outer_ward → 0 (uses city_bg_1 + city_bg_2)
-    // inner_court → 2 (uses city_bg_3 + city_bg_4)
+    // ward_1 → 0 (city_bg_1), ward_2 → 1 (city_bg_2), courthouse → 2 (city_bg_3+4)
     if (theme === 'city') {
-      parallax.bgStartIndex = area.id === 'act3_inner_court' ? 2 : 0;
+      if (area.id === 'act3_ward_1') parallax.bgStartIndex = 0;
+      else if (area.id === 'act3_ward_2') parallax.bgStartIndex = 1;
+      else if (area.id === 'act3_courthouse') parallax.bgStartIndex = 2;
+      else parallax.bgStartIndex = 0;
     }
     parallax.build();
     const atmosphere = new AtmosphereSystem(scene, theme as RegionTheme, area.totalWidth);

@@ -229,7 +229,9 @@ export class SaveSystem {
     // ⚠️ Area ID migration: old area names → new names
     // This fixes black screen when old save data references renamed areas.
     const areaIdMigrations: Record<string, string> = {
-      'last_city_1': 'act3_outer_ward',  // Act III was split into 2 areas
+      'last_city_1': 'act3_ward_1',
+      'act3_outer_ward': 'act3_ward_1',
+      'act3_inner_court': 'act3_ward_2',
     };
     if (migrated.checkpoint && areaIdMigrations[migrated.checkpoint.areaId]) {
       migrated.checkpoint.areaId = areaIdMigrations[migrated.checkpoint.areaId];
