@@ -2401,3 +2401,22 @@ Stage Summary:
 - New FPS killer identified: 25+ active enemies with no sleep-culling
 - OPTIMIZATION_PLAN.md updated to reflect reality
 - Ready for Stage 2 with corrected priorities
+
+---
+Task ID: A7-fix-duplicate-boss + act-status-verify
+Agent: main
+Task: Fix duplicate iron_magistrate bossId (A7) + verify current Act content status for Bonfire+Multi-Area refactor planning.
+
+Work Log:
+- A7: Removed duplicate bossId 'iron_magistrate' from act3_ward_2 S4. Was also in act3_courthouse S4. Now only courthouse has it. Ward_2 S4 replaced with combat (sniper+heavy).
+- Status verification: parsed acts.ts for ALL areas. Results:
+  - Act I (abandoned_factory): 9216px, 6 sec, 47 plat, 16 enem, 11 lore, 7 coll, 4 haz, boss=guardian_ax09 → COMPLETE, needs split to 3 areas
+  - Act II (drowned_wastes_1): 15360px, 10 sec, 80 plat, 25 enem, 11 lore, 8 coll, 16 haz, boss=leviathan_hulk → COMPLETE, needs split to 3 areas (largest!)
+  - Act III: already 3 areas (ward_1/ward_2/courthouse) → only needs bonfire + exit gate
+  - Act IV (toxic_forest): 7680px, 6 sec, 27 plat, 8 enem, 4 lore, 0 coll, boss=neural_overseer → PARTIAL, wait for content
+  - Act V (orbital_station_1): 7680px, 6 sec, 7 plat, 0 enem, 0 lore, no boss → STUB, wait for content
+
+Stage Summary:
+- Duplicate boss ID fixed (A7)
+- Status verified: Acts I/II are content-complete and need splitting. III already split. IV/V wait.
+- Next: Phase A1+A2 (types.ts + SaveData) then A3 (split Act I as vertical slice pilot)
