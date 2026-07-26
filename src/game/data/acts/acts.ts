@@ -45,220 +45,172 @@ export const ACTS: ActData[] = [
     id: 1,
     nameKey: 'act.1.name',
     regions: [
-      {
+            {
         id: 'factory',
         nameKey: 'region.factory.name',
         areas: [
+          // ═══════════════════════════════════════════════════════════════
+          // Area 1: factory_1 — Sections 1-2 (Awakening + First Combat)
+          // bg: factory_bg_1
+          // ═══════════════════════════════════════════════════════════════
           {
-            id: 'abandoned_factory',
-            nameKey: 'area.abandoned_factory.name',
+            id: 'factory_1',
+            nameKey: 'area.factory_1.name',
             regionId: 'factory',
-            totalWidth: 9216,   // 20% larger: 7680 → 9216
-            sectionWidth: 1536, // 20% larger: 1280 → 1536
+            totalWidth: 3072,
+            sectionWidth: 1536,
             bgColor: 0x05070d,
-            checkpointSections: [2, 5],
+            checkpointSections: [],
             unlockedByDefault: true,
             sections: [
-              // ═══════════════════════════════════════════════════════════════
-              // Section 1: AWAKENING (0:00-0:05)
-              // Moment 1: Darkness. Moment 2: Dust. Moment 3: First corpse.
-              // Design: Wide open, quiet. Player learns walk + jump.
-              // Visual: Dark, single emergency light, dust motes.
-              // ═══════════════════════════════════════════════════════════════
+              // S1: AWAKENING (0:00-0:05) — Memory: first mech corpse
               { id: 1, nameKey: 'section.1.name', x: 0, enemies: [], platforms: [
-                // Entry — flat ground, simple stepping stones
-                { x: 480, y: 560, w: 200, h: 20 },
-                { x: 840, y: 460, w: 160, h: 20 },
-                { x: 1180, y: 540, w: 140, h: 20 },
-                // Upper ledge (double jump reachable — secret area)
-                { x: 660, y: 280, w: 120, h: 20 },
-                { x: 940, y: 180, w: 80, h: 20 },
-                // Far wall blocks S1→S2. Shortcut at GROUND LEVEL.
-                // Wall TOP (blocks upper air route)
-                { x: 1440, y: 360, w: 40, h: 200 },   // y=260 to y=460
-                // Wall MIDDLE (fills old gap, extends down to ground-level gap)
-                { x: 1440, y: 540, w: 40, h: 160 },   // y=460 to y=620
-                // GAP at y=620 to y=680 (60px tall, ground level) — shortcut fills this
+                { x: 300, y: 560, w: 180, h: 24 },
+                { x: 620, y: 500, w: 120, h: 20 },
+                { x: 860, y: 560, w: 160, h: 24 },
+                { x: 520, y: 360, w: 200, h: 16 },
+                { x: 900, y: 300, w: 140, h: 16 },
+                { x: 1440, y: 380, w: 40, h: 180 },
+                { x: 1440, y: 540, w: 40, h: 160 },
               ], loreObjects: [
                 { id: 'lore_s1_corpse', type: 'corpse', x: 360, y: 660, titleKey: 'lore.s1.corpse.title', textKey: 'lore.s1.corpse.text' },
-                // Secret lore on upper ledge (requires double jump)
                 { id: 'lore_s1_secret', type: 'terminal', x: 700, y: 260, titleKey: 'lore.s1.secret.title', textKey: 'lore.s1.secret.text' },
               ], landmarks: [
                 { id: 'lm_s1_mech', type: 'crashed_mech', x: 180, y: 580, w: 140, h: 110, color: 0x2a3040 },
               ], collectibles: [
-                // Health fragment on upper secret ledge (requires double jump)
                 { id: 'col_s1_health', type: 'health_fragment', x: 940, y: 150, requiredAbility: 'doubleJump' },
+              ], bonfires: [
+                { id: 'bf_factory1_1', x: 200, y: 540, section: 1, preLit: true },
               ], shortcuts: [
-                // Shortcut at GROUND LEVEL (y=650, h=60 → y=620-680)
                 { id: 'sc_s1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
 
-              // ═══════════════════════════════════════════════════════════════
-              // Section 2: FIRST COMBAT (0:05-0:12)
-              // Moment 4: First drone. Moment 5: Kara's terminal.
-              // Design: Cover platforms, vertical combat space.
-              // 4x enemies: 1 → 4 drones
-              // ═══════════════════════════════════════════════════════════════
+              // S2: FIRST COMBAT (0:05-0:12) — Memory: engineer terminal
               { id: 2, nameKey: 'section.2.name', x: 1536, enemies: ['drone', 'drone', 'drone', 'drone'], platforms: [
-                // Ground level cover
-                { x: 1780, y: 520, w: 100, h: 20 },
-                { x: 2040, y: 420, w: 140, h: 20 },
-                { x: 2400, y: 520, w: 100, h: 20 },
-                { x: 2760, y: 460, w: 120, h: 20 },
-                // Upper catwalk (alternate route)
-                { x: 1800, y: 260, w: 360, h: 16 },
-                { x: 2520, y: 260, w: 240, h: 16 },
-                // Connecting wall (wall jump surface)
-                { x: 2180, y: 340, w: 40, h: 200 },
-                // Right boundary wall with GROUND-LEVEL GAP for shortcut
-                { x: 3048, y: 360, w: 40, h: 200 },   // y=260 to y=460
-                { x: 3048, y: 540, w: 40, h: 160 },   // y=460 to y=620
+                { x: 1700, y: 540, w: 140, h: 20 },
+                { x: 1960, y: 480, w: 100, h: 20 },
+                { x: 2200, y: 540, w: 120, h: 20 },
+                { x: 2480, y: 460, w: 140, h: 20 },
+                { x: 2780, y: 520, w: 100, h: 20 },
+                { x: 1900, y: 280, w: 200, h: 16 },
+                { x: 2500, y: 260, w: 180, h: 16 },
               ], loreObjects: [
                 { id: 'lore_s2_terminal', type: 'terminal', x: 2880, y: 580, titleKey: 'lore.s2.terminal.title', textKey: 'lore.s2.terminal.text' },
-              ], hazards: [
-                // Small spike pit — teaches hazard awareness
-                { type: 'spike', x: 2300, y: 690, w: 96, h: 20, damage: 20 },
-                // Molten metal pit (graphical lava hazard)
-                { type: 'lava', x: 2640, y: 690, w: 96, h: 20, damage: 35 },
               ], collectibles: [
-                // Energy fragment on upper catwalk (alternate route reward)
-                { id: 'col_s2_energy', type: 'energy_fragment', x: 1920, y: 230 },
-              ], shortcuts: [
-                // Shortcut at GROUND LEVEL
-                { id: 'sc_s2_to_s3', x: 3048, y: 650, w: 40, h: 60, toSection: 3, opensFrom: 'left' },
+                { id: 'col_s2_energy', type: 'energy_fragment', x: 1920, y: 230, requiredAbility: 'doubleJump' },
+              ], bonfires: [
+                { id: 'bf_factory1_2', x: 2600, y: 580, section: 2 },
+              ], exitGates: [
+                { id: 'gate_factory1_to_2', x: 2850, y: 460, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420 },
+              ]},
+            ],
+          },
+
+          // ═══════════════════════════════════════════════════════════════
+          // Area 2: factory_2 — Sections 3-4 (Vertical Shaft + Assembly Hall)
+          // bg: factory_bg_2
+          // ═══════════════════════════════════════════════════════════════
+          {
+            id: 'factory_2',
+            nameKey: 'area.factory_2.name',
+            regionId: 'factory',
+            totalWidth: 3072,
+            sectionWidth: 1536,
+            bgColor: 0x05070d,
+            checkpointSections: [],
+            unlockedByDefault: false,
+            sections: [
+              // S3: VERTICAL SHAFT (rebased from x:3072 to x:0)
+              { id: 1, nameKey: 'section.3.name', x: 0, enemies: ['drone', 'drone', 'spider', 'sniper'], platforms: [
+                { x: 164, y: 540, w: 140, h: 20 },
+                { x: 424, y: 460, w: 100, h: 20 },
+                { x: 664, y: 540, w: 120, h: 20 },
+                { x: 944, y: 460, w: 140, h: 20 },
+                { x: 1244, y: 520, w: 100, h: 20 },
+                { x: 464, y: 280, w: 200, h: 16 },
+                { x: 1064, y: 260, w: 180, h: 16 },
+                { x: 364, y: 360, w: 30, h: 200 },
+                { x: 764, y: 360, w: 30, h: 200 },
+              ], loreObjects: [
+                { id: 'lore_s3_echo', type: 'echo', x: 264, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
+                { id: 'lore_s3_secret', type: 'terminal', x: 234, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
+              ], collectibles: [
+                { id: 'col_s3_skill', type: 'skill_point', x: 264, y: 40, requiredAbility: 'wallJump' },
+              ], bonfires: [
+                { id: 'bf_factory2_1', x: 200, y: 540, section: 1, preLit: true },
               ]},
 
-              // ═══════════════════════════════════════════════════════════════
-              // Section 3: VERTICAL SHAFT — OPTIONAL SECRET (0:12-0:22)
-              // Main route: walk along the lower floor past the shaft to the right exit.
-              // Optional secret: wall jump (or grapple) up the shaft for a skill point + lore.
-              // 4x enemies: 1 → 4 (2 drones + 1 spider + 1 sniper for variety)
-              // ═══════════════════════════════════════════════════════════════
-              { id: 3, nameKey: 'section.3.name', x: 3072, enemies: ['drone', 'drone', 'spider', 'sniper'], platforms: [
-                // Entry platform (main route — walk along the floor)
-                { x: 3200, y: 580, w: 240, h: 20 },
-                // Shaft — two facing walls (wall jumpable, but OPTIONAL)
-                { x: 3360, y: 380, w: 40, h: 280 },
-                { x: 3720, y: 380, w: 40, h: 280 },
-                // Mid-shelf (resting point during wall jump — optional)
-                { x: 3540, y: 320, w: 120, h: 16 },
-                // Top ledge (wall jump reward — optional secret)
-                { x: 3540, y: 200, w: 140, h: 16 },
-                // Hidden platform (requires double jump from top ledge — optional)
-                { x: 3300, y: 100, w: 96, h: 16 },
-                // MAIN ROUTE exit (lower level — no wallJump needed)
-                { x: 3960, y: 580, w: 240, h: 20 },
-                { x: 4250, y: 540, w: 168, h: 20 },
-                // Upper exit (optional — for those who wall-jumped up)
-                { x: 3960, y: 380, w: 168, h: 20 },
-              ], hazards: [
-                // Spike pit ONLY at the bottom of the shaft (not blocking main route)
-                { type: 'spike', x: 3420, y: 690, w: 288, h: 20, damage: 30 },
+              // S4: ASSEMBLY HALL + MINI BOSS (rebased from x:4608 to x:1536)
+              { id: 2, nameKey: 'section.4.name', x: 1536, enemies: ['spider', 'spider', 'heavy', 'heavy', 'drone', 'drone', 'sniper', 'flying_ai'], platforms: [
+                { x: 1700, y: 540, w: 140, h: 20 },
+                { x: 1960, y: 480, w: 100, h: 20 },
+                { x: 2200, y: 540, w: 120, h: 20 },
+                { x: 2480, y: 460, w: 140, h: 20 },
+                { x: 2780, y: 520, w: 100, h: 20 },
+                { x: 1900, y: 280, w: 200, h: 16 },
+                { x: 2500, y: 260, w: 180, h: 16 },
               ], loreObjects: [
-                { id: 'lore_s3_echo', type: 'echo', x: 3340, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
-                { id: 'lore_s3_secret', type: 'terminal', x: 3310, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
-              ], grappleAnchors: [
-                // Grapple anchors — placed high to enable grapple-reach to secret area
-                { id: 'grapple_s3_1', x: 3540, y: 60 },
-                { id: 'grapple_s3_2', x: 4080, y: 220 },
+                { id: 'lore_s4_terminal', type: 'terminal', x: 1920, y: 250, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
+                { id: 'lore_s4_corpse', type: 'corpse', x: 2260, y: 230, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], collectibles: [
-                // Skill point at the top of the shaft (OPTIONAL — requires wall jump or grapple)
-                { id: 'col_s3_skill', type: 'skill_point', x: 3310, y: 50, requiredAbility: 'wallJump' },
+                { id: 'col_s4_health', type: 'health_fragment', x: 2260, y: 200 },
+                { id: 'col_s4_weapon', type: 'weapon_part', x: 1960, y: 230 },
+              ], bonfires: [
+                { id: 'bf_factory2_2', x: 2600, y: 580, section: 2 },
+              ], exitGates: [
+                { id: 'gate_factory2_to_3', x: 2850, y: 460, toAreaId: 'factory_3', toSection: 1, toX: 200, toY: 420 },
+              ]},
+            ],
+          },
+
+          // ═══════════════════════════════════════════════════════════════
+          // Area 3: factory_3 — Sections 5-6 (Checkpoint + Boss Arena)
+          // bg: factory_bg_2
+          // Boss: Guardian AX-09
+          // ═══════════════════════════════════════════════════════════════
+          {
+            id: 'factory_3',
+            nameKey: 'area.factory_3.name',
+            regionId: 'factory',
+            totalWidth: 3072,
+            sectionWidth: 1536,
+            bgColor: 0x05070d,
+            checkpointSections: [],
+            unlockedByDefault: false,
+            sections: [
+              // S5: CHECKPOINT — GUARDIAN AT THE DOOR (rebased from x:6144 to x:0)
+              { id: 1, nameKey: 'section.5.name', x: 0, enemies: [], platforms: [
+                { x: 256, y: 520, w: 300, h: 24 },
+                { x: 656, y: 460, w: 200, h: 20 },
+                { x: 956, y: 380, w: 160, h: 20 },
+                { x: 512, y: 280, w: 200, h: 16 },
+                { x: 1440, y: 360, w: 40, h: 200 },
+                { x: 1440, y: 540, w: 40, h: 160 },
+              ], loreObjects: [
+                { id: 'lore_s5_echo', type: 'echo', x: 512, y: 260, titleKey: 'lore.s5.echo.title', textKey: 'lore.s5.echo.text' },
+                { id: 'lore_s5_terminal', type: 'terminal', x: 956, y: 350, titleKey: 'lore.s5.terminal.title', textKey: 'lore.s5.terminal.text' },
+              ], collectibles: [
+                { id: 'col_s5_energy', type: 'energy_fragment', x: 956, y: 350 },
+              ], bonfires: [
+                { id: 'bf_factory3_1', x: 200, y: 540, section: 1, preLit: true },
               ]},
 
-              // ═══════════════════════════════════════════════════════════════
-              // Section 4: ASSEMBLY HALL + MINI BOSS (0:22-0:35)
-              // Moment 6: Emergency lights reveal assembly hall.
-              // Design: Wide hall with pillars. Mini boss (Elite) center.
-              // Upper ledge with secret corpse (wall jump from pillar).
-              // 4x enemies: 2 → 8 (2 spider + 2 heavy + 2 drone + 1 sniper + 1 flying_ai) + elite miniboss
-              // ═══════════════════════════════════════════════════════════════
-              { id: 4, nameKey: 'section.4.name', x: 4608, enemies: ['spider', 'spider', 'heavy', 'heavy', 'drone', 'drone', 'sniper', 'flying_ai'], platforms: [
-                // Tall pillars (wall jump surfaces + cover)
-                { x: 5088, y: 440, w: 40, h: 260 },
-                { x: 5616, y: 440, w: 40, h: 260 },
-                // Center platform (elevated combat position)
-                { x: 5328, y: 380, w: 120, h: 20 },
-                // Side ledges
-                { x: 4848, y: 480, w: 96, h: 20 },
-                { x: 5880, y: 480, w: 96, h: 20 },
-                // Upper hidden ledge (wall jump from pillar — secret)
-                { x: 5232, y: 220, w: 96, h: 16 },
-                // Upper catwalk (alternate route, connects to S5 upper)
-                { x: 4920, y: 160, w: 240, h: 16 },
-                { x: 5760, y: 160, w: 240, h: 16 },
-                // EMP-gated secret room (right side, blocked by vertical door)
-                { x: 6000, y: 380, w: 144, h: 20 },
-                { x: 6000, y: 240, w: 20, h: 200 },
-                { x: 6000, y: 140, w: 144, h: 16 },
+              // S6: BOSS ARENA — GUARDIAN AX-09 (rebased from x:7680 to x:1536)
+              // Shortcuts removed: sc_s6_to_s1 (was cross-area, replaced by bonfire fast-travel)
+              { id: 2, nameKey: 'section.6.name', x: 1536, enemies: [], bossId: 'guardian_ax09', platforms: [
+                { x: 1700, y: 560, w: 300, h: 24 },
+                { x: 2100, y: 480, w: 200, h: 20 },
+                { x: 2400, y: 400, w: 160, h: 20 },
+                { x: 1900, y: 280, w: 200, h: 16 },
+                { x: 2300, y: 220, w: 160, h: 16 },
+                { x: 2788, y: 360, w: 40, h: 200 },
               ], loreObjects: [
-                { id: 'lore_s4_terminal', type: 'terminal', x: 4920, y: 580, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
-                { id: 'lore_s4_corpse', type: 'corpse', x: 5256, y: 200, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
-              ], landmarks: [
-                { id: 'lm_s4_assembly', type: 'assembly_line', x: 5352, y: 500, w: 288, h: 100, color: 0x2a3040 },
-              ], hazards: [
-                // Laser beam hazard (graphical energy beam)
-                { type: 'laser', x: 5328, y: 340, w: 240, h: 4, damage: 25 },
-              ], empDoors: [
-                // EMP door is VERTICAL, blocks entry to secret room
-                { id: 'empdoor_s4_1', x: 6000, y: 360, w: 20, h: 40 },
+                { id: 'lore_s6_corpse', type: 'corpse', x: 1900, y: 250, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
+                { id: 'lore_s6_terminal', type: 'terminal', x: 2300, y: 190, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
               ], collectibles: [
-                // Health fragment INSIDE the EMP-gated secret room
-                { id: 'col_s4_health', type: 'health_fragment', x: 6072, y: 350, requiredAbility: 'emp' },
-                // Weapon part on the upper catwalk (alternate route)
-                { id: 'col_s4_weapon', type: 'weapon_part', x: 5880, y: 130, requiredAbility: 'wallJump' },
-              ]},
-
-              // ═══════════════════════════════════════════════════════════════
-              // Section 5: CHECKPOINT — GUARDIAN AT THE DOOR (0:35-0:42)
-              // Moment 7: Guardian still standing at open door to nothing.
-              // Moment 8: PA system looping.
-              // Design: Quiet safe room. Guardian silhouette at far end.
-              // ═══════════════════════════════════════════════════════════════
-              { id: 5, nameKey: 'section.5.name', x: 6144, enemies: [], platforms: [
-                // Safe ground
-                { x: 6432, y: 560, w: 240, h: 20 },
-                // Elevated vantage point
-                { x: 6840, y: 400, w: 144, h: 20 },
-                // Guardian pedestal (where it stands)
-                { x: 7320, y: 540, w: 96, h: 60 },
-                // Door frame walls (open doorway to nothing)
-                { x: 7440, y: 300, w: 40, h: 300 },
-                { x: 7632, y: 300, w: 40, h: 300 },
-              ], loreObjects: [
-                { id: 'lore_s5_echo', type: 'echo', x: 6720, y: 580, titleKey: 'lore.s5.echo.title', textKey: 'lore.s5.echo.text' },
-                { id: 'lore_s5_terminal', type: 'terminal', x: 7080, y: 580, titleKey: 'lore.s5.terminal.title', textKey: 'lore.s5.terminal.text' },
-              ], landmarks: [
-                // Guardian silhouette — standing at the open door
-                { id: 'lm_s5_guardian', type: 'tower', x: 7320, y: 400, w: 50, h: 200, color: 0x1a2030 },
-              ], collectibles: [
-                // Energy fragment on the elevated vantage point
-                { id: 'col_s5_energy', type: 'energy_fragment', x: 6840, y: 370 },
-              ]},
-
-              // ═══════════════════════════════════════════════════════════════
-              // Section 6: BOSS ARENA — GUARDIAN AX-09 (0:42-0:55)
-              // Moment 9: Atlas kneels. Moment 10: Horizon view.
-              // Design: Wide arena. Walls for wall jump. Cover platforms.
-              // ═══════════════════════════════════════════════════════════════
-              { id: 6, nameKey: 'section.6.name', x: 7680, enemies: [], bossId: 'guardian_ax09', platforms: [
-                // Arena walls (prevent retreat + wall jump surfaces)
-                { x: 7776, y: 420, w: 40, h: 260 },
-                { x: 9120, y: 420, w: 40, h: 260 },
-                // Cover platforms (symmetrical)
-                { x: 8160, y: 520, w: 120, h: 20 },
-                { x: 8736, y: 520, w: 120, h: 20 },
-                // Upper platforms (wall jump → safe spot)
-                { x: 8040, y: 320, w: 96, h: 16 },
-                { x: 8856, y: 320, w: 96, h: 16 },
-              ], loreObjects: [
-                { id: 'lore_s6_corpse', type: 'corpse', x: 7860, y: 580, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
-                { id: 'lore_s6_terminal', type: 'terminal', x: 8940, y: 580, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
-              ], landmarks: [
-                { id: 'lm_s6_door', type: 'tower', x: 7728, y: 280, w: 96, h: 440, color: 0x3a3040 },
-              ], collectibles: [
-                // Skill point reward on the upper safe spot (wall jump required)
-                { id: 'col_s6_skill', type: 'skill_point', x: 8040, y: 290, requiredAbility: 'wallJump' },
+                { id: 'col_s6_skill', type: 'skill_point', x: 2300, y: 180, requiredAbility: 'doubleJump' },
+              ], bonfires: [
+                { id: 'bf_factory3_2', x: 2600, y: 580, section: 2 },
               ]},
             ],
           },

@@ -363,5 +363,8 @@
   "section.city.9.name": "Ashfall Approach",
   "section.city.10.name": "Courthouse Steps",
   "section.city.11.name": "Final Stand",
-  "section.city.12.name": "The Final Verdict"
+  "section.city.12.name": "The Final Verdict",
+  "area.factory_1.name": "The Awakening",
+  "area.factory_2.name": "Assembly Hall",
+  "area.factory_3.name": "Guardian's Door"
 }
