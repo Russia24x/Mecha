@@ -39,7 +39,15 @@
 - HP/Energy پر می‌شود (refillRepair)
 - Game save می‌شود
 - منوی Fast Travel باز می‌شود (اختیاری)
-- دشمنان area respawn می‌شوند (به‌جز boss/mini-boss)
+- دشمنان area respawn می‌شوند (به‌جز boss/mini-boss) — **deferred to Phase F** (per advisor Point 2)
+
+> **Enemy Respawn (تصمیم صریح محدوده‌ی B، per advisor):** در Phase B پیاده **نمی‌شود**. نسخه‌ی اول Bonfire فقط heal+save+light+toast است.
+> Respawn به Phase F موکول می‌شود چون نیاز به تصمیم طراحی دارد:
+> - آیا mini-boss هم respawn نشود؟
+> - آیا لوت جمع‌شده دوباره ظاهر شود؟
+> - چه اتفاقی برای دشمنانی که player همین الان دارد با آن‌ها می‌جنگد می‌افتد اگر بی‌احتیاط نزدیک bonfire استراحت کند؟
+> - هماهنگی با `TargetRegistry` و `spawnEnemiesForSection`
+> Phase F بعد از Phase E (Cleanup+Polish) و قبل از release نهایی اجرا می‌شود.
 
 ### ۲.۳ Data Structure
 ```typescript
@@ -101,6 +109,9 @@ Per-frame (از PlayController.update):
 ```
 
 > **کلید تعامل = `E`** (نه `J` که در متن قدیمی سند بود). `J` = شلیک اسلحه است (InputSystem.ts:155). `E` = interact (InputSystem.ts:169) که توسط NpcInteractionController و tryHack() هم استفاده می‌شود.
+
+> **تداخل پرامپت (per advisor Point 1, تصمیم گزینه‌ی الف):** یک پرامپت واحد برای همه‌ی تعامل‌پذیرها.
+> به‌جای اینکه BonfireController.updatePrompt جدا بسازد، `NpcInteractionController.updatePrompt` با بررسی `loadedArea.bonfires` نیز بسط داده می‌شود تا nearest-check شامل NPC + Lore + Bonfire در یک حلقه باشد. `nearestKind` به `'npc' | 'lore' | 'bonfire'` گسترش می‌یابد و متن اکشن برای bonfire `'REST'` می‌شود. این الگو همان لایه‌ی واحد تصمیم‌گیری است که قبلاً برای NPC و Lore استفاده می‌شد (worklog `visual-fixes-round-2`) و تضمین می‌کند هرگز دو پرامپت همزمان روی صفحه نباشد. BonfireController فقط `spawnBonfires` + `tryInteract` + `syncLitState` + `cleanup` را پیاده می‌کند — بدون `updatePrompt`.
 
 ### ۲.۵ Bonfire Placement Rule
 هر Area (~6144px, 4 sections):
@@ -189,25 +200,34 @@ Per-frame (از PlayController.update):
 ### Phase B — Bonfire System
 **هدف:** پیاده‌سازی مکانیک Bonfire با الگوی NPC (نه Matter-sensor)
 
-> **الگوی معماری:** BonfireController دو متد دارد:
-> - `updatePrompt(loadedArea, player)` — per-frame از `PlayController.update()` صدا زده می‌شود (مثل `npcInteraction.updatePrompt`). پرامپت شناور `[E] REST` نمایش/پنهان می‌کند.
+> **الگوی معماری:** BonfireController چهار متد دارد:
+> - `spawnBonfires(areaId, loadedArea)` — ساخت GameObjects (آمبر terminal + glow container) در AreaLoader
+> - `syncLitState(loadedArea)` — apply وضعیت ذخیره‌شده روی bonfire GameObjects تازه‌ساخته (مثل `MetroidvaniaController.hidePreCollectedItems`)، از `buildPlay()` صدا می‌شود
 > - `tryInteract(loadedArea, player)` — از `GameScene.tryInteract()` صدا زده می‌شود (بعد از NPC/Lore branches). اگر player نزدیک bonfire باشد، heal+save+light+toast انجام می‌دهد.
+> - `cleanup()` — destroy همه visuals
 >
 > **هیچ Matter sensor، هیچ CollisionController route، هیچ cleanup در unload() لازم نیست.**
 > این الگو دقیقاً همان NpcInteractionController/MetroidvaniaController است.
+>
+> **پرامپت یکپارچه (per advisor Point 1, تصمیم گزینه‌ی الف):** یک پرامپت واحد برای همه‌ی تعامل‌پذیرها.
+> به‌جای اینکه BonfireController.updatePrompt جدا بسازد، `NpcInteractionController.updatePrompt` با بررسی `loadedArea.bonfires` نیز بسط داده می‌شود تا nearest-check شامل NPC + Lore + Bonfire در یک حلقه باشد. `nearestKind` به `'npc' | 'lore' | 'bonfire'` گسترش می‌یابد و متن اکشن برای bonfire `'REST'` می‌شود. این الگو همان لایه‌ی واحد تصمیم‌گیری است که قبلاً برای NPC و Lore استفاده می‌شد (worklog `visual-fixes-round-2`) و تضمین می‌کند هرگز دو پرامپت همزمان روی صفحه نباشد. BonfireController فقط `spawnBonfires` + `tryInteract` + `syncLitState` + `cleanup` را پیاده می‌کند — بدون `updatePrompt`.
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| B1 | ساخت `BonfireController.ts`: `spawnBonfires(areaId)` + `updatePrompt(loadedArea, player)` + `tryInteract(loadedArea, player)` (heal+save+light+toast) + `cleanup()` | New: `src/game/controllers/BonfireController.ts` | 60 min |
-| B2 | AreaLoader: ساخت bonfire GameObjects (آمبر terminal + glow container) در `loadArea()` — **بدون** Matter sensor | `src/game/world/AreaLoader.ts` | 30 min |
-| B3 | PlayController.update: اضافه‌کردن `r.bonfire?.updatePrompt(r.loadedArea, r.player)` بعد از `npcInteraction.updatePrompt` (خط ۳۴۷) | `src/game/controllers/PlayController.ts` | 5 min |
-| B4 | GameScene.tryInteract: اضافه‌کردن bonfire branch بعد از lore branch (خط ۸۲۴) | `src/game/features/scenes/GameScene.ts` | 10 min |
-| B5 | GameScene.buildPlay: instantiate `BonfireController` + cleanup در `cleanupPlay` | `src/game/features/scenes/GameScene.ts` | 10 min |
-| B6 | (انتقال به Phase D) منوی Continue/Fast Travel/Quit to Hub — فعلاً فقط heal+save+toast کافی است | — | defer |
+| B1 | ساخت `BonfireController.ts`: `spawnBonfires(areaId)` + `syncLitState(loadedArea)` (apply `SaveSystem.isBonfireLit()` روی GameObjects تازه‌ساخته) + `tryInteract(loadedArea, player)` (heal+save+light+toast) + `cleanup()` | New: `src/game/controllers/BonfireController.ts` | 60 min |
+| B2 | AreaLoader: ساخت bonfire GameObjects (آمبر terminal + glow container) در `loadArea()` — **بدون** Matter sensor. ذخیره در `loadedArea.bonfires` | `src/game/world/AreaLoader.ts` | 30 min |
+| B3 | PlayController.build: اضافه‌کردن `r.bonfire?.spawnBonfires(areaId, loadedArea)` + `r.bonfire?.syncLitState(loadedArea)` بعد از `metroidvania.hidePreCollectedItems` (line 197) | `src/game/controllers/PlayController.ts` | 10 min |
+| B4 | NpcInteractionController.updatePrompt: بسط `nearestKind` به `'npc' \| 'lore' \| 'bonfire'` + اضافه‌کردن حلقه‌ی `loadedArea.bonfires` (فاصله < 70px) + action text `'REST'` | `src/game/world/NpcInteractionController.ts` | 15 min |
+| B5 | GameScene.tryInteract: اضافه‌کردن bonfire branch بعد از lore branch (line 824) → `this.bonfireController.tryInteract(loadedArea, player)` | `src/game/features/scenes/GameScene.ts` | 10 min |
+| B6 | GameScene.buildPlay: instantiate `BonfireController` + cleanup در `cleanupPlay` | `src/game/features/scenes/GameScene.ts` | 10 min |
+| B7 | (انتقال به Phase D) منوی Continue/Fast Travel/Quit to Hub — فعلاً فقط heal+save+toast کافی است | — | defer |
+| B8 | (انتقال به Phase F) Enemy respawn هنگام rest | — | defer |
 
 > **اسکوپ منو (per advisor):** Phase B فقط heal+save+toast پیاده می‌کند. منوی کامل Continue/Fast Travel/Quit to Hub به Phase D موکول می‌شود چون در غیر این صورت منطق با `WorldMapUI` تکرار می‌شود. در Phase D، وقتی `WorldMapUI` برای fast-travel به bonfire‌های lit گسترش پیدا می‌کند، منوی bonfire همان WorldMapUI را باز می‌کند (single source of truth).
+>
+> **Enemy respawn (per advisor):** به Phase F موکول شد (بعد از Phase E). نسخه‌ی اول Bonfire ساده است: heal+save+light+toast.
 
-**مجموع Phase B:** ~2 ساعت
+**مجموع Phase B:** ~2.25 ساعت
 
 ### Phase C — Exit Gate System
 **هدف:** انتقال بین Areas با gate فیزیکی + telegraph
@@ -251,7 +271,24 @@ Per-frame (از PlayController.update):
 
 **مجموع Phase E:** ~3 ساعت
 
-### **مجموع کل:** ~13.5 ساعت
+### Phase F — Enemy Respawn at Bonfire Rest (per advisor Point 2)
+**هدف:** دشمنان area هنگام rest در bonfire respawn شوند (به‌جز boss/mini-boss)
+
+> **تصمیم طراحی لازم قبل از اجرا:**
+> - آیا mini-boss هم respawn نشود؟
+> - آیا لوت جمع‌شده (collectibles) دوباره ظاهر شود؟
+> - چه اتفاقی برای دشمنانی که player همین الان دارد با آن‌ها می‌جنگد می‌افتد اگر بی‌احتیاط نزدیک bonfire استراحت کند؟
+> - هماهنگی با `TargetRegistry` (پاک‌سازی enemy state قدیمی) و `spawnEnemiesForSection` (rebuild از `AreaData.enemies`)
+
+| # | کار | فایل‌ها | زمان |
+|---|-----|--------|------|
+| F1 | تصمیم طراحی: تعریف scope دقیق respawn (killed/loot/mini-boss) | doc | 30 min |
+| F2 | پیاده‌سازی respawn logic در BonfireController.tryInteract | BonfireController.ts | 60 min |
+| F3 | تست: respawn در همه‌ی areas (factory_1/2/3) | Manual | 30 min |
+
+**مجموع Phase F:** ~2 ساعت
+
+### **مجموع کل:** ~15.5 ساعت (Phase A 4h + B 2.25h + C 2h + D 2h + E 3h + F 2h)
 
 ---
 
@@ -276,6 +313,9 @@ Per-frame (از PlayController.update):
 - [ ] هر Area حداقل ۱ bonfire دارد
 - [ ] Bonfire با فشردن **E** کار می‌کند (heal + save + toast) — نه J
 - [ ] پرامپت شناور `[E] REST` نزدیک bonfire نمایش داده می‌شود (الگوی NPC، بدون Matter sensor)
+- [ ] فقط یک پرامپت همزمان روی صفحه — حتی اگر bonfire نزدیک NPC/Lore باشد (unified nearest-check)
+- [ ] ظاهر bonfire هنگام بارگذاری area با SaveSystem.isBonfireLit() هماهنگ است (syncLitState، مثل hidePreCollectedItems)
+- [ ] Enemy respawn **در نسخه‌ی اولیه نیست** (deferred to Phase F)
 - [ ] Exit gate بین areas هم‌اکت کار می‌کند (با 0.5s fade telegraph قبل از travel)
 - [ ] عبور از exit gate به‌طور خودکار entry bonfire مقصد را روشن می‌کند (preLit policy)
 - [ ] Fast travel به bonfire‌های lit از World Map کار می‌کند

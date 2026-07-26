@@ -2465,3 +2465,52 @@ Stage Summary:
 - All 4 advisor questions answered with explicit decisions documented in master plan.
 - tsc still clean: 0 errors in src/game/.
 - Ready to start Phase B1 (BonfireController.ts implementation).
+
+---
+Task ID: A3-final-decisions
+Agent: main
+Task: Resolve 3 final advisor points before B1 (prompt conflict, enemy respawn scope, syncLitState)
+
+Work Log:
+- GitHub sync verified: pushed 2 local commits (b4b0f7d, 6e0ccde) to origin/main → both now at remote HEAD 6e0ccde.
+- Forensics: read NpcInteractionController.updatePrompt (lines 57-106) — confirmed single prompt object, single nearest-check loop across NPC + Lore with `nearestKind: 'npc' | 'lore' | null`. Proven pattern (worklog `visual-fixes-round-2`).
+- Forensics: read MetroidvaniaController.hidePreCollectedItems (line 34) — called from PlayController.build at line 197. Established sync pattern: spawn GameObjects → apply save state. BonfireController.syncLitState will follow the same pattern.
+- Forensics: read PlayController.spawnEnemiesForSection (line 285) — confirmed spawn-once-per-section-entry model. No existing respawn-on-rest mechanism. Confirmed advisor's analysis.
+
+Decision 1 (prompt conflict — Option A chosen, unified nearest-check):
+- BonfireController does NOT have updatePrompt.
+- NpcInteractionController.updatePrompt extended: nearestKind becomes 'npc' | 'lore' | 'bonfire'; new loop over loadedArea.bonfires (distance < 70px); action text 'REST' for bonfire.
+- Same single-prompt guarantee as before — no two prompts can ever coexist.
+- BonfireController only does: spawnBonfires + syncLitState + tryInteract + cleanup.
+
+Decision 2 (enemy respawn scope — DEFERRED to Phase F):
+- Phase B does NOT implement respawn. First Bonfire version = heal + save + light + toast only.
+- Phase F (new, after Phase E) added with 3 tasks: F1 design decision, F2 implementation, F3 testing.
+- Design decisions needed before F1:
+  * Mini-boss respawn yes/no?
+  * Loot/collectibles respawn yes/no?
+  * What happens to enemies mid-combat when player carelessly rests?
+  * TargetRegistry cleanup + spawnEnemiesForSection rebuild coordination.
+- Total time budget: Phase A 4h + B 2.25h + C 2h + D 2h + E 3h + F 2h = ~15.5h (was 13.5h).
+
+Decision 3 (syncLitState added to B2 checklist):
+- BonfireController.syncLitState(loadedArea) called from PlayController.build after spawnBonfires, mirrors hidePreCollectedItems pattern.
+- Applies SaveSystem.isBonfireLit(bonfireId) to each freshly spawned bonfire GameObject (sets visual lit/unlit state).
+- New task B3 in checklist: spawnBonfires + syncLitState wired in PlayController.build after metroidvania.hidePreCollectedItems (line 197).
+
+Updated MASTER_PLAN_BONFIRE_MULTIAREA.md:
+- Section 2.2: added Enemy Respawn deferred-to-Phase-F decision box with full design-question list.
+- Section 2.4: added unified-prompt decision (Option A) — BonfireController has no updatePrompt, NpcInteractionController extended with bonfire nearest-check.
+- Phase B: rewrote 8 tasks (B1 spawn+sync+tryInteract+cleanup; B2 GameObjects no sensor; B3 wire spawn+sync; B4 NpcInteractionController extension; B5 tryInteract branch; B6 buildPlay instantiate; B7 menu deferred to D; B8 respawn deferred to F). Time 2h → 2.25h.
+- Phase E: unchanged.
+- Phase F: NEW phase for enemy respawn (3 tasks, 2h).
+- Total: 13.5h → 15.5h.
+- Acceptance criteria: added unified-prompt rule, syncLitState rule, respawn-deferred rule.
+
+Stage Summary:
+- All 3 final advisor points resolved with explicit decisions.
+- Architecture: BonfireController is lean (no updatePrompt), prompt unification via NpcInteractionController extension.
+- Scope: respawn explicitly deferred to Phase F, not silently dropped.
+- Sync: syncLitState task added to B3 (mirrors hidePreCollectedItems).
+- GitHub: local 6e0ccde = origin/main 6e0ccde (synced, 2 commits pushed).
+- Ready to start Phase B1 (BonfireController.ts implementation).
