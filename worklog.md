@@ -2765,3 +2765,48 @@ Stage Summary:
 - Browser test confirms: collisionstart fires exactly once per crossing, debounce works, no errors.
 - gateTransitioning reset will be in try/finally in C3 (per advisor Note 2) — stub currently resets immediately for testing.
 - Ready for advisor verification of mid-phase checkpoint before C3/C4/C5.
+
+---
+Task ID: C-prep-round-6
+Agent: main
+Task: Address 4 advisor round-6 concerns before C3 (sequencing, gateTransitioning location, C5 ordering, input lock)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = e91fe66 (synced, ahead 0 behind 0).
+- Forensics: existing fade patterns in GameScene.ts:
+  * Line 1081: onPlayerDied uses `cameras.main.fadeOut(700, 5, 7, 13)` + `scheduleDelayed(900, ...)` for setState('gameover').
+  * Line 1187: onBossDied uses `cameras.main.fadeOut(600, 5, 7, 13)` + `scheduleDelayed(700, ...)` for setState('victory').
+  * Existing pattern is time-based (scheduleDelayed = time.delayedCall wrapper), NOT event-driven.
+  * Advisor suggested event-driven `camera.once(FADE_OUT_COMPLETE)` which is cleaner.
+  * Verified FADE_OUT_COMPLETE exists in Phaser 4 types (node_modules/phaser/types/phaser.d.ts line 5068).
+- Forensics: gameplayBlocked pattern:
+  * InputSystem.ts line 292: `private static gameplayBlocked = false;`
+  * Line 294: `static setGameplayBlocked(blocked: boolean): void { this.gameplayBlocked = blocked; }`
+  * Blocks ALL gameplay callbacks (jump/fire/melee/dash/interact/grapple/emp/pause) at lines 152-219.
+  * Pattern ready: `InputSystem.setGameplayBlocked(true)` during fade, `setGameplayBlocked(false)` in finally.
+
+All 4 advisor round-6 concerns resolved in MASTER_PLAN_BONFIRE_MULTIAREA.md Phase C section:
+- Q1 (sequencing, BLOCKER): Event-driven with `camera.once(FADE_OUT_COMPLETE)` chosen. Documented why synchronous is wrong (defeats telegraph purpose, possible frame overlap). Pseudocode shows the full pattern: fadeOut → once(FADE_OUT_COMPLETE) → try { travelTo + lightBonfire + cleanupPlay + buildPlay + fadeIn } finally { gateTransitioning=false + setGameplayBlocked(false) }.
+- Q2 (gateTransitioning location, unanswered from round-5): Explicitly stated — flag lives in GameScene (NOT CollisionController). Already implemented in C1+C2: `private gateTransitioning = false` at GameScene line 185. Reason: CollisionController is pure routing per AGENT_GUIDE.md, state in GameScene matches togglePause pattern.
+- Note 3 (C5 ordering): REORDERED — C5 now comes BEFORE C3 in the task list. Reason: if C3 is written first and tests, AudioSystem.play('gate_travel') silently returns (line 231: `if (!def) return;`) — same TOAST bug pattern. C5 first ensures the SFX exists when C3 calls it.
+- Note 4 (input lock during fade): Added `InputSystem.setGameplayBlocked(true)` at step 2 of handleExitGate, `setGameplayBlocked(false)` in finally. Blocks all gameplay callbacks (including interact, so player can't trigger bonfire during fade). Uses existing pattern (zero new code for this logic).
+
+C4 task merged into C3 (gate visual was done in C1, telegraph visual is just the camera.fadeOut which is part of C3's handleExitGate).
+
+Phase C task order (final):
+1. C1 ✅ (done)
+2. C2 ✅ (done)
+3. C5 (NEW ORDER — before C3): add 'gate_travel' SFX to AudioSystem
+4. C3: full handleExitGate with event-driven sequencing + try/finally + input lock + invuln
+5. C4: merged into C3
+6. C6 (optional): validator for exitGate.toAreaId
+
+Verification: tsc clean (no code changes, only plan doc updates).
+
+Stage Summary:
+- All 4 advisor round-6 concerns resolved before C3 code.
+- Sequencing: event-driven FADE_OUT_COMPLETE (not synchronous).
+- gateTransitioning: in GameScene (already implemented).
+- C5: reordered before C3 (prevents TOAST-pattern bug).
+- Input lock: gameplayBlocked during fade (existing pattern).
+- Ready to start C5 + C3 implementation.

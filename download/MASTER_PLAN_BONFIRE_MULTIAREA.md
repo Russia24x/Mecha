@@ -243,21 +243,48 @@ Per-frame (از PlayController.update):
 > **Invuln موقت طی fade (per advisor round-5 Note 3, تصمیم صریح):** طبق نکته‌ی debounce، فیزیک Matter در طول `camera.fadeOut(500)` متوقف نمی‌شود — یعنی طی همان نیم‌ثانیه بازیکن هنوز می‌تواند حرکت کند، شلیک کند، یا آسیب ببیند. اگر بازیکن دقیقاً طی این پنجره بمیرد (`PLAYER_DEAD` → `onPlayerDied` → `setState('gameover')`)، `travelTo` معلق روی یک state از قبل 'gameover' اجرا می‌شود → تداخل. راه‌حل: طی شروع fade، `player.invulnUntil = scene.time.now + 600` صدا زده می‌شود (PlayerEntity line 108/327 — الگوی موجود invuln بعد از هر ضربه). 600ms = 500ms fade + 100ms buffer برای safety. این جلوی death طی fade را می‌گیرد. حرکت/شلیک بازیکن هنوز مجاز است (وفادار به حس «عبور از جبهه»)، فقط آسیب‌پذیری مسدود می‌شود.
 >
 > **Mid-phase checkpoint (per advisor round-5):** بعد از C1+C2 (قبل از C3/C4) یک checkpoint میانی گزارش می‌شود — چون C2 دقیقاً همان نقطه‌ای است که guard/debounce و ارتباطش با CollisionController باید درست از آب دربیاید، و بهتر است قبل از رفتن به بصری‌سازی (C4) این هسته تأیید شود.
+>
+> **Sequencing: event-driven با FADE_OUT_COMPLETE (per advisor round-6 Q1, BLOCKER):** الگوی **synchronous** (fadeOut + cleanupPlay + buildPlay پشت سرهم) کل هدف telegraph را بی‌اثر می‌کند — تغییر صحنه فوری است، فقط لایه‌ی سیاه رویش کشیده می‌شود، و ممکن است یک فریم overlap بین دنیای قدیم (در حال destroy) و جدید (در حال build) دیده شود. الگوی درست: `camera.fadeOut(500)` شروع می‌شود، سپس `camera.once(FADE_OUT_COMPLETE, callback)` ثبت می‌شود که فقط بعد از سیاه شدن کامل صفحه اجرا می‌شود. این الگو با الگوی موجود خودتان در `onPlayerDied` (fadeOut 700 + `scheduleDelayed(900, ...)` برای setState('gameover')) و `onBossDied` (fadeOut 600 + `scheduleDelayed(700, ...)`) هماهنگ است — فقط به‌جای `scheduleDelayed` از `camera.once` استفاده می‌کنیم که event-driven است (به‌جای time-based). `FADE_OUT_COMPLETE` در Phaser 4 موجود است (verified in `node_modules/phaser/types/phaser.d.ts` line 5068).
+>
+> **`gateTransitioning` location (per advisor round-6 Q2, پاسخ صریح):** flag در **GameScene** زندگی می‌کند (نه CollisionController). دلیل: CollisionController طبق `AGENT_GUIDE.md` فقط routing است — state نباید نگه دارد. این الگو با `togglePause` (که هم در GameScene است) هماهنگ است. در C1+C2 پیاده‌سازی شد: `private gateTransitioning = false` در GameScene line 185، و `handleExitGate` در GameScene این flag را چک/ست/ریست می‌کند.
+>
+> **Input lock طی fade (per advisor round-6 Note 4):** طی پنجره‌ی 500ms fade، `InputSystem.setGameplayBlocked(true)` صدا زده می‌شود — این تمام gameplay callbacks (jump/fire/melee/dash/interact/grapple/emp/pause) را مسدود می‌کند (InputSystem.ts line 294). این جلوی این را می‌گیرد که بازیکن طی fade با یک bonfire مجاور تعامل کند یا وارد gate دیگری شود. `setGameplayBlocked(false)` در `finally` block همراه با `gateTransitioning = false` ریست می‌شود. الگوی موجود است (برای pause استفاده می‌شود) — صفر کد جدید برای این منطق.
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| C1 | AreaLoader: ساخت exit gate GameObjects (طاق + نور آمبر) با **`physics.addSensor()`** (نه `addStaticRect`) در `loadArea()`. **مالکیت: AreaLoader** (build + destroy در unload، مثل EMP-door/shortcut). **`isSensor: true`** تأیید شده — gate مسیر را مسدود نمی‌کند، فقط collisionstart emit می‌کند (مثل checkpoint trigger فعلی). | `src/game/world/AreaLoader.ts` | 30 min |
-| C2 | CollisionController: اضافه‌کردن `onExitGate?: (gateData) => void` به `CollisionRoutes` + dispatch detection (مثل onSection/onCheckpoint pattern). **محتوای gateData شامل یک flag `gateTransitioning: boolean` در GameScene** که اولین collisionstart آن را true می‌کند و هر collision بعدی تا پایان travel کامل نادیده گرفته می‌شود. | `src/game/controllers/CollisionController.ts` | 20 min |
-| C3 | GameScene: wire `collision.routes.onExitGate` → اگر gateTransitioning=true → return (debounce). اگر false → gateTransitioning=true → **player.invulnUntil = scene.time.now + 600** (temp invuln طی fade) → شروع 0.5s fade telegraph + AudioSystem.play('gate_travel') → بعد از fade: **`try { WorldSystem.travelTo(toAreaId, toSection) + SaveSystem.lightBonfire(getEntryBonfireId(toAreaId)) + cleanupPlay + buildPlay } finally { gateTransitioning = false }`** (reset در finally حتی اگر buildPlay early-return کند). | `src/game/features/scenes/GameScene.ts` | 75 min |
-| C4 | بصری‌سازی gate (Graphics: طاق + نور) در AreaLoader.createExitGate() + بصری‌سازی telegraph (camera fade-out + flash) در GameScene. | `src/game/world/AreaLoader.ts` + `src/game/features/scenes/GameScene.ts` | 30 min |
-| C5 | AudioSystem: اضافه‌کردن `'gate_travel'` به SfxName union type + SFX_REGISTRY (sweep down, sine, vol 0.3, dur 0.5). | `src/game/systems/AudioSystem.ts` | 10 min |
+| C1 ✅ | AreaLoader: ساخت exit gate GameObjects (طاق + نور آمبر) با **`physics.addSensor()`** (نه `addStaticRect`) در `loadArea()`. **مالکیت: AreaLoader** (build + destroy در unload، مثل EMP-door/shortcut). **`isSensor: true`** تأیید شده — gate مسیر را مسدود نمی‌کند، فقط collisionstart emit می‌کند (مثل checkpoint trigger فعلی). | `src/game/world/AreaLoader.ts` | 30 min |
+| C2 ✅ | CollisionController: اضافه‌کردن `onExitGate?: (gateData) => void` به `CollisionRoutes` + dispatch detection (مثل onSection/onCheckpoint pattern). **`gateTransitioning` flag در GameScene** زندگی می‌کند (نه CollisionController) — controller فقط routing است، state در GameScene (مثل togglePause، per advisor). | `src/game/controllers/CollisionController.ts` + `src/game/features/scenes/GameScene.ts` | 20 min |
+| C5 ( reordered BEFORE C3 — per advisor round-6 Note 3 ) | AudioSystem: اضافه‌کردن `'gate_travel'` به SfxName union type + SFX_REGISTRY (sweep down, sine, vol 0.3, dur 0.5). **باید قبل از C3 انجام شود** تا وقتی C3 این کلید را صدا می‌زند واقعاً صدا پخش شود — وگرنه همان الگوی باگ TOAST تکرار می‌شود (AudioSystem.play بی‌صدا return می‌کند). | `src/game/systems/AudioSystem.ts` | 10 min |
+| C3 | GameScene.handleExitGate full implementation (replaces stub):
+  1. اگر `gateTransitioning=true` → return (debounce, در stub فعلی تأیید شده).
+  2. `gateTransitioning=true` + `InputSystem.setGameplayBlocked(true)` (input lock طی fade، per advisor round-6 Note 4).
+  3. `player.invulnUntil = scene.time.now + 600` (temp invuln طی fade).
+  4. `AudioSystem.play('gate_travel')` (به‌خاطر C5 قبل از C3، این کلید اکنون موجود است).
+  5. `camera.fadeOut(500, 5, 7, 13)` — شروع telegraph بصری.
+  6. **`camera.once(FADE_OUT_COMPLETE, ...)`** — event-driven sequencing (per advisor round-6 Q1, BLOCKER):
+     ```
+     camera.once(FADE_OUT_COMPLETE, () => {
+       try {
+         WorldSystem.travelTo(toAreaId, toSection)
+         SaveSystem.lightBonfire(getEntryBonfireId(toAreaId))
+         cleanupPlay()
+         buildPlay()
+         camera.fadeIn(300, 5, 7, 13)
+       } finally {
+         gateTransitioning = false
+         InputSystem.setGameplayBlocked(false)
+       }
+     })
+     ```
+  این الگو تضمین می‌کند دنیای قدیمی فقط بعد از سیاه شدن کامل صفحه destroy می‌شود (نه هم‌زمان با fade start). الگوی synchronous باعث می‌شد تغییر صحنه فوری باشد و فقط لایه‌ی سیاه رویش کشیده شود — کل هدف telegraph بی‌اثر می‌شد. الگوی event-driven با `FADE_OUT_COMPLETE` در Phaser 4 موجود است (verified in phaser.d.ts line 5068). | `src/game/features/scenes/GameScene.ts` | 75 min |
+| C4 | بصری‌سازی gate (Graphics: طاق + نور) در AreaLoader.createExitGate() — در C1 انجام شد. C4 فقط بصری‌سازی telegraph (camera fade-out + flash) در GameScene را اضافه می‌کند، که در C3 داخل `handleExitGate` گنجانده می‌شود. پس C4 به‌عنوان task جداگانه حذف می‌شود — بصری‌سازی telegraph در C3 کامل می‌شود. | — | merged into C3 |
 | C6 (optional) | گسترش `validate-section-bounds.ts` (یا validator خواهر): چک کند هر `exitGate.toAreaId` واقعاً در دیتای Acts موجود است و `toSection` داخل رنج معتبر آن Area است. (per advisor round-5 Note 4 پیشگیرانه) | `scripts/validate-section-bounds.ts` | 15 min |
 
 > **preLit policy enforcement (per A3-followup + advisor Note 2):** C3 وقتی gate crossing رخ می‌دهد، `SaveSystem.lightBonfire()` را برای entry bonfire مقصد صدا می‌زند. **شناسایی entry bonfire مقصد از طریق فیلد صریح `BonfireData.isEntryPoint?: boolean` است** (نه قرارداد نام‌گذاری `bf_X_1` یا ایندکس آرایه). تابع helper `getEntryBonfireId(areaId)` در AreaData پیدا می‌کند. این جلوی یک باگ خاموش در Act II/III را می‌گیرد که فقط با بازی دستی کشف می‌شود (همان کلاس باگ TOAST).
 >
 > **Debounce guard (per advisor Note 1, بلاکر واقعی):** طبق `audit-systems-report`، GameScene togglePause متد matter.world.pause() را صدا نمی‌زند — یعنی فیزیک Matter در طول camera.fadeOut(500) متوقف نمی‌شود. اگر بازیکن حین عبور از gate نوسان کند یا knockback بخورد، Matter می‌تواند چندین collisionstart جداگانه طی همان نیم‌ثانیه بفرستد → WorldSystem.travelTo() دو بار صدا زده شود → cleanupPlay وسط buildPlay نیمه‌کاره (state corruption). راه‌حل: flag `gateTransitioning: boolean` در GameScene که اولین collisionstart آن را true می‌کند و هر collision بعدی تا پایان travel کامل نادیده گرفته می‌شود (**reset به false در `finally` block** — نه «انتهای تابع موفق» — تا حتی اگر buildPlay early-return کند هم reset شود، per advisor round-5 Note 2). شبیه همان debounce 200ms که برای togglePause قبلاً داشتیم.
 >
-> **AudioSystem (per advisor Note 3):** کلید صدای `'gate_travel'` در AudioSystem وجود ندارد (verified via grep — تنها SFX موجود: fire/melee/weaponSwitch/dash/jump/doubleJump/hit/explosion/enemyHit/bossHit/bossDeath/playerDeath/phaseChange/uiClick/uiHover/checkpoint/levelUp/skillUnlock/victory). اگر بدون اضافه‌کردن به SFX_REGISTRY صدا زده شود، AudioSystem.play به‌صورت خاموش return می‌کند (line 231: `if (!def) return;`) — دقیقاً همان الگوی TOAST bug. C5 این کلید را اضافه می‌کند.
+> **AudioSystem (per advisor Note 3 + round-6 Note 3, REORDERED):** کلید صدای `'gate_travel'` در AudioSystem وجود ندارد (verified via grep — تنها SFX موجود: fire/melee/weaponSwitch/dash/jump/doubleJump/hit/explosion/enemyHit/bossHit/bossDeath/playerDeath/phaseChange/uiClick/uiHover/checkpoint/levelUp/skillUnlock/victory). اگر بدون اضافه‌کردن به SFX_REGISTRY صدا زده شود، AudioSystem.play به‌صورت خاموش return می‌کند (line 231: `if (!def) return;`) — دقیقاً همان الگوی TOAST bug. **C5 قبل از C3 انجام می‌شود** (نه بعد) تا وقتی C3 این کلید را صدا می‌زند واقعاً صدا پخش شود — وگرنه همان الگوی باگ TOAST تکرار می‌شود و فکر می‌کنید C3 کار می‌کند چون هیچ خطایی نمی‌بینید.
 
 **مجموع Phase C:** ~3 ساعت (افزایش به‌خاطر try/finally + invuln + mid-checkpoint + optional C6)
 
