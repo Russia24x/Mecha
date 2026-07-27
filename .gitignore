@@ -54,3 +54,4 @@ server.log
 /skills/tool-results/
 upload/
 download/backups/
+scripts/bonfire-test-*.png
