@@ -265,6 +265,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.on('ENEMY_DEAD', this.onEnemyKilled, this);
     EventBus.on('BOSS_DEAD', this.onBossDied, this);
     EventBus.on('CHECKPOINT', this.onCheckpointSaved, this);
+    EventBus.on('BONFIRE_LIT', this.onBonfireLit, this);
     EventBus.on('GAME_STATE', this.onGameStateChanged, this);
     EventBus.on('LEVEL_UP', this.onLevelUp, this);
     EventBus.on('SKILL_UNLOCKED', this.onSkillUnlocked, this);
@@ -1154,6 +1155,26 @@ export class GameScene extends Phaser.Scene {
     this.player?.refillRepair();
   };
 
+  /**
+   * BONFIRE_LIT event handler — shows the localized bonfire toast.
+   * The actual save/heal/light logic happens in BonfireController.tryInteract;
+   * this handler just displays the toast. We do NOT call refillRepair() here
+   * (already called by BonfireController.tryInteract before emitting).
+   * We do NOT call SaveSystem.saveCheckpoint() here either — BonfireController
+   * already calls CheckpointSystem.activate() + SaveSystem.saveCheckpoint()
+   * with the bonfire's exact position, which is more specific than the
+   * section-based default.
+   *
+   * Note: CheckpointSystem.activate() also emits 'CHECKPOINT' which triggers
+   * onCheckpointSaved above, showing "Checkpoint reached. Repair kit refilled."
+   * The bonfire toast will overwrite that text (since hud.toast() kills the
+   * previous tween + sets new text). The player sees the bonfire message.
+   */
+  private onBonfireLit = (p: unknown): void => {
+    const data = p as { bonfireId?: string; message?: string; wasAlreadyLit?: boolean };
+    if (data.message) this.hud?.toast(data.message);
+  };
+
   private onGameStateChanged = (p: unknown): void => {
     const data = p as { sectionName?: string };
     if (data.sectionName) this.hud?.setSection(data.sectionName);
@@ -1329,6 +1350,7 @@ export class GameScene extends Phaser.Scene {
     EventBus.off('ENEMY_DEAD', this.onEnemyKilled, this);
     EventBus.off('BOSS_DEAD', this.onBossDied, this);
     EventBus.off('CHECKPOINT', this.onCheckpointSaved, this);
+    EventBus.off('BONFIRE_LIT', this.onBonfireLit, this);
     EventBus.off('GAME_STATE', this.onGameStateChanged, this);
     EventBus.off('LEVEL_UP', this.onLevelUp, this);
     EventBus.off('SKILL_UNLOCKED', this.onSkillUnlocked, this);

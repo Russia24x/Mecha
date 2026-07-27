@@ -30,11 +30,14 @@ export interface LoadedArea {
   shortcuts: Phaser.GameObjects.Container[];
   collectibles: Phaser.GameObjects.Container[];
   /** Bonfire GameObjects (no Matter sensor — NPC-pattern interaction).
-   *  Created by AreaLoader.load() for visual + storage; BonfireController
-   *  owns the spawn/sync/tryInteract/cleanup lifecycle. */
+   *  BORROWED REFERENCE: owned by BonfireController (created in spawnBonfires,
+   *  destroyed in BonfireController.cleanup). AreaLoader.unload() does NOT
+   *  destroy these — only nulls the array reference. NpcInteractionController.
+   *  updatePrompt iterates this array for the unified nearest-check loop. */
   bonfires: Phaser.GameObjects.Container[];
   /** Exit gate GameObjects (Matter sensor — auto-trigger on walk-through).
-   *  Created by AreaLoader.load() in Phase C. */
+   *  BORROWED REFERENCE: owned by ExitGateController (Phase C). For now
+   *  always empty. AreaLoader.unload() does NOT destroy. */
   exitGates: Phaser.GameObjects.Container[];
 }
 
@@ -687,11 +690,29 @@ export class AreaLoader {
       if (s.active) s.destroy();
     });
     loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
-    // ── Bonfires + exit gates: visual containers only (no physics body,
-    // since bonfire uses NPC-pattern, exit gate physics handled separately
-    // in Phase C). Destroy any active visuals. ──
-    loaded.bonfires.forEach(b => { if (b && b.active) b.destroy(); });
-    loaded.exitGates.forEach(g => { if (g && g.active) g.destroy(); });
+    // ── Bonfires + exit gates: BORROWED REFERENCES — do NOT destroy here. ──
+    // Bonfire GameObjects are OWNED by BonfireController (created in
+    // spawnBonfires, destroyed in BonfireController.cleanup). AreaLoader
+    // only holds a borrowed reference in loadedArea.bonfires so that
+    // NpcInteractionController.updatePrompt can iterate them for the
+    // unified nearest-check loop.
+    //
+    // Cleanup order in PlayController.destroy:
+    //   Step 3: areaLoader.unload()  ← runs FIRST (this method)
+    //   Step 4: bonfireController.cleanup()  ← destroys GameObjects
+    // If we destroyed here too, BonfireController.cleanup would re-destroy
+    // already-destroyed GameObjects (`.active` check would skip but the
+    // pattern is fragile — exactly the kind of double-destroy that has
+    // bitten this project before, see worklog `dialogue-ui-leak-fix`).
+    //
+    // Exit gates (Phase C): same pattern — owned by ExitGateController,
+    // borrowed reference here. For now exitGates is always empty.
+    //
+    // We DO clear the arrays (null out the borrowed refs) so any stale
+    // iteration in NpcInteractionController.updatePrompt between Step 3
+    // and Step 4 sees an empty array, not dangling GameObjects.
+    loaded.bonfires = [];
+    loaded.exitGates = [];
     loaded.solids = [];
     loaded.sectionTriggers = [];
     loaded.checkpointTriggers = [];

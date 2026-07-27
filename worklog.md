@@ -2581,3 +2581,51 @@ Stage Summary:
 - Cleanup order preserved: collision → entities → world unload → PLAY systems (incl. bonfire) → timers → HUD → camera.
 - tsc: 0 errors. JSON: valid. Validator: PASS.
 - Ready for Phase C (Exit Gate System).
+
+---
+Task ID: B-followup
+Agent: main
+Task: Fix double-destroy risk + browser test 5-step scenario + fa locale
+
+Work Log:
+- Forensics confirmed advisor's double-destroy concern:
+  * BonfireController.spawnBonfires pushes Container to BOTH loadedArea.bonfires AND this.bonfireVisuals (same reference).
+  * PlayController.destroy() order: Step 3 areaLoader.unload() ran first and destroyed via loaded.bonfires.forEach(b.destroy()) — then Step 4 bonfireController.cleanup() tried to destroy the same Containers again.
+  * .active check prevented actual crash but the pattern is fragile (same kind of double-destroy that bit this project in dialogue-ui-leak-fix).
+
+- FIX: Adopted "BonfireController owns, LoadedArea.bonfires is borrowed reference" pattern (NPC pattern, matches master plan):
+  * AreaLoader.unload() no longer destroys bonfires/exitGates — only nulls the borrowed array reference.
+  * BonfireController.cleanup() remains the SINGLE point of destruction.
+  * Updated LoadedArea interface docstring to mark arrays as BORROWED REFERENCE.
+
+- Browser test scenario (5 steps, real browser via agent-browser + http://localhost:3000):
+  * Step 1 (preLit verification): bf_factory1_1 has isLit=true from start (preLit auto-light via syncLitState). Verified SaveSystem.litBonfires contains "bf_factory1_1" in IndexedDB.
+  * Step 2 (prompt): When player near bonfire (dist 15px), prompt shows "[E] REST" (not TALK/EXAMINE). Unified nearest-check working.
+  * Step 3 (interact): Pressed E (KeyE dispatched on canvas). HP 100/150 (matches existing checkpoint behavior — refillRepair only fills energy + repairCharges, not HP), Energy 30→100, RepairCharges 0→2. No console errors.
+  * Step 4 (no double prompt): Moved player from bonfire (dist 15px) to lore_s1_corpse (360,660). Prompt text changed from "[E] REST" to "[E] EXAMINE". Single prompt container confirmed (npcInteraction.interactionPrompt count = 1, visible). No overlap.
+  * Step 5 (syncLitState on reload): Reloaded page, called CONTINUE. bf_factory1_1 restored isLit=true from SaveSystem. Glow alpha 0.18 (lit state), core alpha 0.85 (lit state). bf_factory1_2 isLit=false (correctly — never lit).
+
+- DISCOVERED REAL BUG during testing: BonfireController originally emitted via this.scene.events.emit('TOAST', ...) — but the 'TOAST' event was NOT HANDLED anywhere in the codebase (verified via grep). The toast showed "Checkpoint reached. Repair kit refilled." instead of "✓ BONFIRE LIT" (came from CheckpointSystem.activate → CHECKPOINT event → onCheckpointSaved).
+- FIX: Changed BonfireController to emit EventBus.emit('BONFIRE_LIT', {bonfireId, message, wasAlreadyLit}). Added onBonfireLit handler in GameScene that calls hud.toast(data.message). Verified toast now shows "RESTED" (wasAlreadyLit=true case) or "✓ BONFIRE LIT" (first-time case).
+
+- fa locale verification:
+  * Set save.settings.locale='fa' in IndexedDB, fixed stale selectedSlot=1 (was pointing to nonexistent slot, now slot 0 matches our profile).
+  * After reload + CONTINUE, prompt shows "[E] استراحت" (Persian for REST) — interaction.rest key resolves correctly.
+  * Toast shows "استراحت شد" (Persian for RESTED) — bonfire.rested key resolves correctly.
+  * All 5 new localization keys (interaction.talk/examine/rest + bonfire.lit/rested) verified in both en.json and fa.json.
+  * No fallback to English hardcoded text — keys are properly translated.
+
+- Existing project bug discovered (not blocking Phase C): continueCurrentProfile() doesn't call SaveSystem.selectSlot() — relies on ProfileManager.init() reading GLOBAL_KEY_SELECTED_SLOT from IndexedDB. When this global points to wrong slot, SaveSystem loads default settings (locale='en'). This was a state issue from previous testing session, fixed by manually setting selectedSlot=0 in IndexedDB. Documented but not fixed (out of scope for Phase B).
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- 0 console errors during all 5 test steps + fa locale test.
+- All 3 advisor concerns resolved: no double-destroy, all 5 browser steps pass, fa locale works for new keys.
+
+Stage Summary:
+- Phase B fully verified via real browser testing (not just tsc/JSON validation).
+- Architecture ownership clarified: BonfireController owns, AreaLoader borrows.
+- Real bug found via browser test (TOAST event unhandled) — fixed via BONFIRE_LIT event + onBonfireLit handler.
+- preLit policy works end-to-end: bf_factory1_1 auto-lit on game start, persists in save, syncLitState restores on reload.
+- fa locale fully working for all new keys.
+- Ready for Phase C (Exit Gate System).

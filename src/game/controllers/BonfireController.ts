@@ -36,6 +36,7 @@
 import Phaser from 'phaser';
 import { SaveSystem } from '../systems/SaveSystem';
 import { AudioSystem } from '../systems/AudioSystem';
+import { EventBus } from '../systems/EventBus';
 import { CheckpointSystem } from '../world/CheckpointSystem';
 import { WorldSystem } from '../world/WorldSystem';
 import { t, getLocale } from '../systems/LocalizationSystem';
@@ -172,12 +173,16 @@ export class BonfireController {
     // 3. Light the bonfire (idempotent — SaveSystem.lightBonfire checks for dupes)
     SaveSystem.lightBonfire(id);
 
-    // 4. Audio + toast (localized via bonfire.lit / bonfire.rested keys)
+    // 4. Audio + toast (localized via bonfire.lit / bonfire.rested keys).
+    // Use EventBus.emit('BONFIRE_LIT', ...) — GameScene.onBonfireLit handler
+    // calls hud.toast() with the localized message. We do NOT call
+    // scene.events.emit('TOAST', ...) directly because that event is not
+    // handled anywhere in the codebase (verified via grep).
     AudioSystem.play('checkpoint');
     const toastMsg = wasAlreadyLit
       ? (t('bonfire.rested') || (getLocale() === 'fa' ? '✓ استراحت شد' : '✓ RESTED'))
       : (t('bonfire.lit') || (getLocale() === 'fa' ? '✓ بونفایر روشن شد' : '✓ BONFIRE LIT'));
-    this.scene.events.emit('TOAST', toastMsg);
+    EventBus.emit('BONFIRE_LIT', { bonfireId: id, message: toastMsg, wasAlreadyLit });
 
     // 5. Apply lit visual (brighten glow)
     this.applyLitVisual(container, true);
