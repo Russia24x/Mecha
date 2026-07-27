@@ -228,7 +228,21 @@ export class SaveSystem {
     };
     // ⚠️ Area ID migration: old area names → new names
     // This fixes black screen when old save data references renamed areas.
+    // Per Phase A split (commit 4cdc1e3): Act I was split from single area
+    // 'abandoned_factory' (region 'factory') into factory_1/2/3.
+    // Old saves may have checkpoint.areaId = 'factory' (region-as-area, pre-v3)
+    // or 'abandoned_factory' (v3 area ID). Both must migrate to 'factory_1'
+    // (the entry area of the split Act I).
+    //
+    // Act III migrations were added earlier (last_city_1, act3_outer_ward,
+    // act3_inner_court). Act I migrations added in E5 (this commit) after
+    // browser test confirmed old saves with checkpoint.areaId='factory'
+    // triggered "Area not found — falling back to hub" warning.
     const areaIdMigrations: Record<string, string> = {
+      // Act I — pre-split area IDs → factory_1 (entry area)
+      'factory': 'factory_1',            // old region-as-area ID (pre-v3)
+      'abandoned_factory': 'factory_1',  // old v3 area ID
+      // Act III — pre-split area IDs → act3_ward_1 (entry area)
       'last_city_1': 'act3_ward_1',
       'act3_outer_ward': 'act3_ward_1',
       'act3_inner_court': 'act3_ward_2',
@@ -247,8 +261,12 @@ export class SaveSystem {
     if (!migrated.questFlags) migrated.questFlags = {};
     if (!migrated.questProgress) migrated.questProgress = {};
     if (!migrated.npcFlags) migrated.npcFlags = {};
-    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['abandoned_factory', 'toxic_forest'];
+    // E5 fix: default unlockedAreas was 'abandoned_factory' (old ID) — now use
+    // 'factory_1' (post-split entry area) so new saves start with correct unlock.
+    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['factory_1', 'toxic_forest'];
     if (!migrated.discoveredAreas) migrated.discoveredAreas = [];
+    // E5: ensure litBonfires exists (new field in Phase A, old saves won't have it)
+    if (!migrated.litBonfires) migrated.litBonfires = [];
     if (!migrated.player.inventory) migrated.player.inventory = [];
     if (!migrated.player.abilities) migrated.player.abilities = [];
     if (!migrated.player.unlockedSkills) migrated.player.unlockedSkills = [];

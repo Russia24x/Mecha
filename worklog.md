@@ -3039,3 +3039,68 @@ Stage Summary:
 - D4 complete: no HubBuilder changes needed.
 - Browser test: fast-travel to factory_1 bonfire works, player spawns at bonfire position.
 - Phase D complete. Bonfire System + Multi-Area + Fast-Travel vertical slice fully functional.
+
+---
+Task ID: E5+E6+E1
+Agent: main
+Task: Phase E critical fixes — migration (E5), continueCurrentProfile (E6), getRespawnPosition fallback (E1)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = d16e397 (synced, ahead 0 behind 0).
+
+- Forensics: SaveSystem.migrate() (lines 222-258):
+  * areaIdMigrations map had Act III entries (last_city_1, act3_outer_ward, act3_inner_court).
+  * MISSING Act I entries: 'factory' and 'abandoned_factory' → 'factory_1'.
+  * git history confirmed: original area ID was 'factory' (region) with area 'abandoned_factory' (commit c205ef5). Phase A split (commit 4cdc1e3) renamed to factory_1/2/3.
+  * DEFAULT_SAVE.unlockedAreas still had 'abandoned_factory' (dead reference).
+
+- Browser test (BEFORE fix): created artificial old save with checkpoint.areaId='factory'.
+  * Reloaded + CONTINUE.
+  * Console: "[warning] [buildPlay] Area not found — falling back to hub."
+  * State went to hub (not play) — migration did NOT run, old areaId survived.
+  * Save data after load: checkpoint.areaId still 'factory', unlockedAreas still ['abandoned_factory'].
+  * CONFIRMED: migration was broken for Act I old saves.
+
+E5 FIX (src/game/systems/SaveSystem.ts):
+- Added Act I migrations to areaIdMigrations map:
+  * 'factory' → 'factory_1' (old region-as-area ID, pre-v3)
+  * 'abandoned_factory' → 'factory_1' (old v3 area ID)
+- Fixed DEFAULT_SAVE.unlockedAreas: 'abandoned_factory' → 'factory_1' (post-split entry area).
+- Added defensive init: `if (!migrated.litBonfires) migrated.litBonfires = [];` (new field, old saves won't have it).
+
+E6 FIX (src/game/features/scenes/GameScene.ts):
+- continueCurrentProfile() now explicitly calls `await SaveSystem.selectSlot(currentSlot)`.
+- Previously relied on SaveSystem.init() (in GameScene.create) having loaded cache from ProfileManager.getCurrentSlotId() — but if GLOBAL_KEY_SELECTED_SLOT was stale, wrong slot/defaults loaded.
+- Now force-loads the correct slot on CONTINUE. Idempotent (re-reads same data if cache already correct).
+
+E1 FIX (src/game/world/CheckpointSystem.ts):
+- getRespawnPosition() fallback was hardcoded {x:200, y:420}.
+- Now reads from area data: `section1.x + 200` for x, y=420 for ground level.
+- Only used when no checkpoint exists for current area (first entry, or checkpoint cleared).
+- Bonfire fast-travel (Phase D) saves checkpoint at bonfire position, so this fallback is only for edge case.
+- Imported getArea from acts.ts.
+
+Browser test (AFTER fix): same artificial old save with checkpoint.areaId='factory'.
+- Reloaded + CONTINUE.
+- State → play (not hub fallback). Player at x=200. loadedArea has 2 bonfires.
+- Console: NO "Area not found" warning. Migration ran successfully.
+- Waited 35s for AutoSaveManager flush.
+- Save data after flush:
+  * checkpoint.areaId: 'factory' → 'factory_1' (MIGRATED!)
+  * unlockedAreas: ['abandoned_factory',...] → ['factory_1',...] (MIGRATED!)
+  * litBonfires: [] → ['bf_factory1_1'] (preLit auto-light on area entry worked!)
+- 0 page errors.
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- Browser test: old save migration works, no errors, save data correctly migrated + persisted.
+
+Stage Summary:
+- E5 COMPLETE: Act I area ID migrations added ('factory'/'abandoned_factory' → 'factory_1').
+  Old saves from before Phase A split now load correctly instead of falling back to hub.
+- E6 COMPLETE: continueCurrentProfile explicitly calls SaveSystem.selectSlot.
+  Fixes wrong-locale/wrong-profile bug when GLOBAL_KEY_SELECTED_SLOT is stale.
+- E1 COMPLETE: getRespawnPosition reads from area data instead of hardcoded {200,420}.
+  Only affects edge case (no checkpoint in area); bonfire fast-travel uses exact position.
+- All 3 fixes verified via browser test with artificial old save.
+- Ready for E4 (localization polish) + E7 (full end-to-end test).

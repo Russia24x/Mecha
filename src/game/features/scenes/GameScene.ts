@@ -543,8 +543,25 @@ export class GameScene extends Phaser.Scene {
   private async continueCurrentProfile(): Promise<void> {
     const { CheckpointSystem } = await import('../../world/CheckpointSystem');
     const { WorldSystem } = await import('../../world/WorldSystem');
+    const { ProfileManager } = await import('../../systems/ProfileManager');
 
-    // SaveSystem is already statically imported and initialized
+    // E6 fix: explicitly call SaveSystem.selectSlot() to ensure the cache is
+    // loaded from the correct profile slot. Previously this relied on
+    // SaveSystem.init() (called in GameScene.create) having loaded the cache
+    // from ProfileManager.getCurrentSlotId() — but if GLOBAL_KEY_SELECTED_SLOT
+    // in IndexedDB was stale (pointing to a deleted/missing slot), SaveSystem
+    // would load defaults (locale='en', empty litBonfires, etc.) instead of
+    // the actual profile data. This caused user-facing bugs like wrong locale
+    // after CONTINUE.
+    //
+    // Now we re-read the current slot from ProfileManager and force-load it.
+    // This is idempotent — if the cache is already correct, selectSlot just
+    // re-reads the same data (small IndexedDB read cost, acceptable for CONTINUE).
+    const currentSlot = ProfileManager.getCurrentSlotId();
+    if (currentSlot !== null) {
+      await SaveSystem.selectSlot(currentSlot);
+    }
+
     if (CheckpointSystem.hasCheckpoint()) {
       CheckpointSystem.init();
       WorldSystem.initFromSave();
