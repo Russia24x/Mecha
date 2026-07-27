@@ -384,6 +384,19 @@ export interface BonfireData {
   /** If true, bonfire is already lit when player enters the area (no interact needed).
    *  RESERVED for the game-start anchor only (bf_factory1_1). See policy above. */
   preLit?: boolean;
+  /** If true, this is the entry bonfire for the area — it gets auto-lit when the
+   *  player crosses an exit gate INTO this area (Phase C3 enforcement of preLit
+   *  policy). Exactly one bonfire per area should have this flag.
+   *
+   *  Per advisor Note 2: this is a STATIC field in data (not a naming convention
+   *  like `bf_X_1` or array index) because:
+   *  - Act II has the largest area (15360px) → 3 areas with multiple bonfires each.
+   *  - Array order has been rebased multiple times in acts.ts history (S3-S6 rebase).
+   *  - A naming convention would silently break if array is reordered.
+   *  - This is the same class of bug as TOAST (silently does the wrong thing).
+   *
+   *  Phase C3 uses getEntryBonfireId(areaId) to find the bonfire with this flag. */
+  isEntryPoint?: boolean;
 }
 
 // ── Exit Gate (inter-area transition portal) ──

@@ -233,17 +233,24 @@ Per-frame (از PlayController.update):
 **هدف:** انتقال بین Areas با gate فیزیکی + telegraph
 
 > **الگوی معماری:** الگوی **Matter sensor + CollisionController route** در اینجا درست است چون می‌خواهیم auto-trigger با عبور فیزیکی (مثل checkpoint فعلی). اما برای جلوگیری از عبور تصادفی وسط نبرد، 0.5s fade telegraph قبل از travel واقعی اضافه می‌شود.
+>
+> **مالکیت GameObject (per advisor Note 4):** برخلاف Bonfire (که BonfireController مالک است و LoadedArea.bonfires یک borrowed reference است)، Exit Gate از الگوی Matter-sensor استفاده می‌کند — یعنی باید مثل checkpoint/EMP-door/shortcut، **AreaLoader خودش GameObject را بسازد و در `unload()` destroy کند**. دلیل: Exit Gate یک physics body دارد (Matter sensor) که باید صراحتاً از matter.world.remove شود، درست مثل EMP-door/shortcut (pattern موجود در AreaLoader.unload lines 668-688). هیچ controller جداگانه‌ای برای Exit Gate ساخته نمی‌شود.
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| C1 | AreaLoader: ساخت exit gate GameObjects (طاق + نور آمبر) با Matter sensor در `loadArea()` | `src/game/world/AreaLoader.ts` | 30 min |
-| C2 | CollisionController: اضافه‌کردن `onExitGate?: (gateId, toAreaId, toSection, toX, toY) => void` به `CollisionRoutes` + dispatch detection (مثل onSection/onCheckpoint pattern) | `src/game/controllers/CollisionController.ts` | 15 min |
-| C3 | GameScene: wire `collision.routes.onExitGate` → شروع 0.5s fade telegraph + بعد از fade: `WorldSystem.travelTo(toAreaId, toSection)` + `SaveSystem.lightBonfire(<entry bonfire of destination>)` + cleanupPlay + buildPlay | `src/game/features/scenes/GameScene.ts` | 45 min |
-| C4 | بصری‌سازی gate (Graphics: طاق + نور) + بصری‌سازی telegraph (camera fade-out + flash) + صدا (`AudioSystem.play('gate_travel')`) | `src/game/world/AreaLoader.ts` یا Strategy + AudioSystem | 30 min |
+| C1 | AreaLoader: ساخت exit gate GameObjects (طاق + نور آمبر) با Matter sensor در `loadArea()`. **مالکیت: AreaLoader** (build + destroy در unload، مثل EMP-door/shortcut). | `src/game/world/AreaLoader.ts` | 30 min |
+| C2 | CollisionController: اضافه‌کردن `onExitGate?: (gateData) => void` به `CollisionRoutes` + dispatch detection (مثل onSection/onCheckpoint pattern). **محتوای gateData شامل یک flag `gateTransitioning: boolean` در GameScene** که اولین collisionstart آن را true می‌کند و هر collision بعدی تا پایان travel کامل نادیده گرفته می‌شود. | `src/game/controllers/CollisionController.ts` | 20 min |
+| C3 | GameScene: wire `collision.routes.onExitGate` → اگر gateTransitioning=true → return (debounce). اگر false → gateTransitioning=true → شروع 0.5s fade telegraph + AudioSystem.play('gate_travel') → بعد از fade: `WorldSystem.travelTo(toAreaId, toSection)` + `SaveSystem.lightBonfire(getEntryBonfireId(toAreaId))` + cleanupPlay + buildPlay + gateTransitioning=false (reset). | `src/game/features/scenes/GameScene.ts` | 60 min |
+| C4 | بصری‌سازی gate (Graphics: طاق + نور) در AreaLoader.createExitGate() + بصری‌سازی telegraph (camera fade-out + flash) در GameScene. | `src/game/world/AreaLoader.ts` + `src/game/features/scenes/GameScene.ts` | 30 min |
+| C5 | AudioSystem: اضافه‌کردن `'gate_travel'` به SfxName union type + SFX_REGISTRY (sweep down, sine, vol 0.3, dur 0.5). | `src/game/systems/AudioSystem.ts` | 10 min |
 
-> **preLit policy enforcement (per A3-followup):** C3 وقتی gate crossing رخ می‌دهد، `SaveSystem.lightBonfire()` را برای entry bonfire مقصد صدا می‌زند. این single source of truth است — نه یک flag دستی static در داده‌ها.
+> **preLit policy enforcement (per A3-followup + advisor Note 2):** C3 وقتی gate crossing رخ می‌دهد، `SaveSystem.lightBonfire()` را برای entry bonfire مقصد صدا می‌زند. **شناسایی entry bonfire مقصد از طریق فیلد صریح `BonfireData.isEntryPoint?: boolean` است** (نه قرارداد نام‌گذاری `bf_X_1` یا ایندکس آرایه). تابع helper `getEntryBonfireId(areaId)` در AreaData پیدا می‌کند. این جلوی یک باگ خاموش در Act II/III را می‌گیرد که فقط با بازی دستی کشف می‌شود (همان کلاس باگ TOAST).
+>
+> **Debounce guard (per advisor Note 1, بلاکر واقعی):** طبق `audit-systems-report`، GameScene togglePause متد matter.world.pause() را صدا نمی‌زند — یعنی فیزیک Matter در طول camera.fadeOut(500) متوقف نمی‌شود. اگر بازیکن حین عبور از gate نوسان کند یا knockback بخورد، Matter می‌تواند چندین collisionstart جداگانه طی همان نیم‌ثانیه بفرستد → WorldSystem.travelTo() دو بار صدا زده شود → cleanupPlay وسط buildPlay نیمه‌کاره (state corruption). راه‌حل: flag `gateTransitioning: boolean` در GameScene که اولین collisionstart آن را true می‌کند و هر collision بعدی تا پایان travel کامل نادیده گرفته می‌شود (reset به false در buildPlay پایان). شبیه همان debounce 200ms که برای togglePause قبلاً داشتیم.
+>
+> **AudioSystem (per advisor Note 3):** کلید صدای `'gate_travel'` در AudioSystem وجود ندارد (verified via grep — تنها SFX موجود: fire/melee/weaponSwitch/dash/jump/doubleJump/hit/explosion/enemyHit/bossHit/bossDeath/playerDeath/phaseChange/uiClick/uiHover/checkpoint/levelUp/skillUnlock/victory). اگر بدون اضافه‌کردن به SFX_REGISTRY صدا زده شود، AudioSystem.play به‌صورت خاموش return می‌کند (line 231: `if (!def) return;`) — دقیقاً همان الگوی TOAST bug. C5 این کلید را اضافه می‌کند.
 
-**مجموع Phase C:** ~2 ساعت
+**مجموع Phase C:** ~2.5 ساعت
 
 ### Phase D — World Map Update
 **هدف:** Fast travel به bonfire‌های lit شده
@@ -267,9 +274,10 @@ Per-frame (از PlayController.update):
 | E3 | بررسی enemy culling با areas کوچک‌تر (benchmark) | PlayController.ts | 30 min |
 | E4 | Localization: نام bonfire‌ها + exit gate labels | en.json, fa.json | 30 min |
 | E5 | Migration: تمام area ID‌های قدیمی → جدید | SaveSystem.ts | 30 min |
-| E6 | تست کامل: ورود به هر area → bonfire → gate → area بعدی | Manual | 60 min |
+| E6 | **رفع `continueCurrentProfile()` bug** — متد `SaveSystem.selectSlot()` را صدا نمی‌زند، به ProfileManager.init() تکیه می‌کند که `GLOBAL_KEY_SELECTED_SLOT` را از IndexedDB می‌خواند. وقتی این global به slot اشتباه اشاره می‌کند، SaveSystem تنظیمات پیش‌فرض (locale='en') را load می‌کند. کشف شده در browser test Phase B. | GameScene.ts | 15 min |
+| E7 | تست کامل: ورود به هر area → bonfire → gate → area بعدی | Manual | 60 min |
 
-**مجموع Phase E:** ~3 ساعت
+**مجموع Phase E:** ~3.25 ساعت
 
 ### Phase F — Enemy Respawn at Bonfire Rest (per advisor Point 2)
 **هدف:** دشمنان area هنگام rest در bonfire respawn شوند (به‌جز boss/mini-boss)

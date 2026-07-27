@@ -2629,3 +2629,43 @@ Stage Summary:
 - preLit policy works end-to-end: bf_factory1_1 auto-lit on game start, persists in save, syncLitState restores on reload.
 - fa locale fully working for all new keys.
 - Ready for Phase C (Exit Gate System).
+
+---
+Task ID: C-prep
+Agent: main
+Task: Address 4 advisor concerns before C1 code (debounce guard, isEntryPoint, gate_travel SFX, Exit Gate ownership doc)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = a29c2bb (synced, ahead 0 behind 0).
+- Forensics: AudioSystem SFX list (lines 35-89):
+  * SfxName union: fire/melee/weaponSwitch/dash/jump/doubleJump/hit/explosion/enemyHit/bossHit/bossDeath/playerDeath/phaseChange/uiClick/uiHover/checkpoint/levelUp/skillUnlock/victory
+  * 'gate_travel' DOES NOT EXIST.
+  * AudioSystem.play() at line 231: `if (!def) return;` — silently no-op for unknown keys (same pattern as TOAST bug).
+  * Advisor Note 3 confirmed: must add 'gate_travel' to SFX_REGISTRY before C3 can play it.
+
+- All 4 advisor concerns resolved in MASTER_PLAN_BONFIRE_MULTIAREA.md Phase C section:
+  * Note 1 (debounce guard, BLOCKER): Added explicit `gateTransitioning: boolean` flag in GameScene. First collisionstart sets it true, subsequent ones ignored until travel completes (reset to false in buildPlay end). Mirrors togglePause 200ms debounce pattern. Added as C2 task requirement + dedicated explanation box.
+  * Note 2 (isEntryPoint field): Added `BonfireData.isEntryPoint?: boolean` to types.ts (with full docstring explaining why static field, not naming convention — same class of bug as TOAST). Marked in acts.ts: bf_factory1_1, bf_factory2_1, bf_factory3_1 all have isEntryPoint: true. C3 will use getEntryBonfireId(areaId) helper.
+  * Note 3 (gate_travel SFX): Added as C5 task — add 'gate_travel' to SfxName + SFX_REGISTRY (sweep down, sine, vol 0.3, dur 0.5). Documented that without this, AudioSystem.play silently returns (TOAST pattern).
+  * Note 4 (Exit Gate ownership): Documented explicitly — unlike Bonfire (BonfireController owns, LoadedArea.bonfires is borrowed reference), Exit Gate follows Matter-sensor pattern: AreaLoader owns GameObject creation + destruction in unload() (like EMP-door/shortcut, lines 668-688). No separate controller for Exit Gate.
+
+- Phase E updated: Added E6 task — fix continueCurrentProfile() bug discovered in browser test (doesn't call SaveSystem.selectSlot(), relies on ProfileManager.init reading GLOBAL_KEY_SELECTED_SLOT; when stale, loads defaults with locale='en'). Phase E total: 3h → 3.25h.
+
+- isEntryPoint field implementation:
+  * types.ts BonfireData: added `isEntryPoint?: boolean` with full docstring.
+  * acts.ts: bf_factory1_1 (section 1, factory_1) → preLit: true, isEntryPoint: true (game-start anchor, also entry point).
+  * acts.ts: bf_factory2_1 (section 1, factory_2) → isEntryPoint: true (NOT preLit; will be lit by gate crossing in C3).
+  * acts.ts: bf_factory3_1 (section 1, factory_3) → isEntryPoint: true (NOT preLit; will be lit by gate crossing in C3).
+  * Comments in acts.ts explain the policy + C3 enforcement.
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- validate-section-bounds.ts: 0 ERROR, 2 INFO (intentional wastes silhouettes). PASS.
+
+Stage Summary:
+- All 4 advisor concerns resolved in master plan + code before C1.
+- isEntryPoint field added + entry bonfires marked in data.
+- gate_travel SFX existence confirmed missing — will be added in C5.
+- Exit Gate ownership documented (AreaLoader, not separate controller).
+- continueCurrentProfile bug captured as Phase E6 task.
+- Ready to start C1 code.

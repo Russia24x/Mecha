@@ -80,7 +80,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s1_health', type: 'health_fragment', x: 940, y: 150, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_factory1_1', x: 200, y: 540, section: 1, preLit: true },
+                { id: 'bf_factory1_1', x: 200, y: 540, section: 1, preLit: true, isEntryPoint: true },
               ], shortcuts: [
                 { id: 'sc_s1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
@@ -139,7 +139,8 @@ export const ACTS: ActData[] = [
               ], bonfires: [
                 // bf_factory2_1: NOT preLit — lit dynamically when player crosses gate_factory1_to_2 (Phase C).
                 // See BonfireData.preLit policy in types.ts.
-                { id: 'bf_factory2_1', x: 200, y: 540, section: 1 },
+                // isEntryPoint: true — this is the entry bonfire for factory_2 (auto-lit on gate crossing).
+                { id: 'bf_factory2_1', x: 200, y: 540, section: 1, isEntryPoint: true },
               ]},
 
               // S4: ASSEMBLY HALL + MINI BOSS (rebased from x:4608 to x:1536)
@@ -196,7 +197,8 @@ export const ACTS: ActData[] = [
               ], bonfires: [
                 // bf_factory3_1: NOT preLit — lit dynamically when player crosses gate_factory2_to_3 (Phase C).
                 // See BonfireData.preLit policy in types.ts.
-                { id: 'bf_factory3_1', x: 200, y: 540, section: 1 },
+                // isEntryPoint: true — this is the entry bonfire for factory_3 (auto-lit on gate crossing).
+                { id: 'bf_factory3_1', x: 200, y: 540, section: 1, isEntryPoint: true },
               ]},
 
               // S6: BOSS ARENA — GUARDIAN AX-09 (rebased from x:7680 to x:1536)
