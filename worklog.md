@@ -2972,3 +2972,70 @@ Stage Summary:
 - C6 COMPLETE: validator extended, all exit gate references valid.
 - End-to-end COMPLETE: factory_1→2→3→boss chain works, all entry bonfires auto-lit, save data correct.
 - Phase C fully verified. Ready for Phase D (World Map fast-travel).
+
+---
+Task ID: D1-D4
+Agent: main
+Task: Implement Phase D — World Map fast-travel to lit bonfires (D1: travelTo bonfireId, D2: getBonfiresForArea, D3: WorldMapUI sub-nodes + debounce, D4: HubBuilder)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 15135d2 (synced, ahead 0 behind 0).
+
+D1: WorldSystem.travelTo extended (src/game/world/WorldSystem.ts):
+- New signature: `travelTo(areaId, section=1, bonfireId?: string): boolean`
+- When bonfireId provided:
+  * Validates bonfire exists in destination area (getBonfireById).
+  * Validates bonfire is lit (SaveSystem.isBonfireLit) — clause 4.2 enforcement.
+  * Uses bonfire.x/bonfire.y directly as spawn position (NOT CheckpointSystem.getRespawnPosition
+    which has hardcoded {200,420} fallback — per advisor round-9 BLOCKER).
+  * Saves checkpoint at bonfire position via SaveSystem.saveCheckpoint.
+  * Uses bonfire.section (more accurate than passed section).
+- Helper: getBonfireById(areaId, bonfireId) — finds bonfire in area data.
+- Helper: getBonfiresForArea(areaId) — returns all bonfires with isLit flag (for UI).
+- Imported BonfireData type.
+
+D2: getBonfiresForArea implemented (in WorldSystem, not separate WorldMapSystem):
+- Returns Array<{bonfire: BonfireData, isLit: boolean}>.
+- WorldMapUI calls this to render bonfire sub-nodes.
+- Per clause 4.2: only lit bonfires are clickable (filtered in UI).
+
+D3: WorldMapUI bonfire sub-nodes (src/game/ui/map/WorldMapUI.ts):
+- onTravel signature changed: (areaId: string, bonfireId?: string) => void.
+- After each area node, renders small amber circles (r=6) below it — one per lit bonfire.
+- Pulsing glow animation (alpha + scale yoyo) to indicate "lit" + clickable.
+- Clicking bonfire sub-node calls onTravel(areaId, bonfireId) — spawns at bonfire position.
+- registerNav called with THEME.AMBER focus/normal colors.
+- Cast Arc as Shape + Text for registerNav (text param is optional in UIController.addButton).
+
+D3 (debounce): GameScene.fastTravel guard (src/game/features/scenes/GameScene.ts):
+- New field: `private fastTraveling = false`.
+- fastTravel() checks flag — if true, logs DEBOUNCE + returns.
+- Sets flag true on entry, resets false in buildPlay() completion + early-return path.
+- Per advisor round-9 Note 2: prevents double-click from triggering concurrent travelTo+buildPlay.
+
+D4: HubBuilder — no changes needed (hub area cards already work with existing fastTravel).
+- GameScene.openOverlay('map') updated to pass new onTravel signature.
+
+Browser test (factory_2 → factory_1 via bonfire fast-travel):
+- Set up: created profile, unlocked factory_2/3, crossed gate to factory_2 (lit bf_factory2_1).
+- Opened World Map via pause menu → openOverlay('map').
+- Verified bonfire sub-nodes visible: radius=6 amber circles at (510,255) and (640,255)
+  below area nodes at (510,210) and (640,210).
+- Clicked factory_1's bonfire sub-node at canvas (510, 255).
+- State → play (travel happened). Player at (200, 507) in factory_1.
+- bf_factory1_1 is at (200, 540). Player y=507 = 540 - 33px (physics body offset).
+- Player did NOT spawn at fallback (200, 420) — confirmed bonfire position used.
+- 0 page errors.
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- validate-section-bounds.ts: 0 ERROR, 2 INFO, 0 gate errors. PASS.
+- Browser test: bonfire fast-travel works, spawn at bonfire position (not fallback), 0 errors.
+
+Stage Summary:
+- D1 complete: travelTo with bonfireId param, uses bonfire.x/y directly (not fallback).
+- D2 complete: getBonfiresForArea helper.
+- D3 complete: WorldMapUI bonfire sub-nodes + fastTravel debounce guard.
+- D4 complete: no HubBuilder changes needed.
+- Browser test: fast-travel to factory_1 bonfire works, player spawns at bonfire position.
+- Phase D complete. Bonfire System + Multi-Area + Fast-Travel vertical slice fully functional.

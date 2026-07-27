@@ -47,9 +47,15 @@ interface AreaNode {
 export class WorldMapUI extends NavigableOverlay {
   private areaNodes: AreaNode[] = [];
   private connectionGraphics?: Phaser.GameObjects.Graphics;
-  private onTravel: (areaId: string) => void;
+  /**
+   * Phase D: onTravel now accepts optional bonfireId. When provided, player
+   * fast-travels to the bonfire's exact position (not section-start fallback).
+   * Per advisor round-9: WorldSystem.travelTo uses bonfire.x/y directly,
+   * NOT CheckpointSystem.getRespawnPosition (which has hardcoded {200,420} fallback).
+   */
+  private onTravel: (areaId: string, bonfireId?: string) => void;
 
-  constructor(scene: Phaser.Scene, onBack: () => void, onTravel: (areaId: string) => void) {
+  constructor(scene: Phaser.Scene, onBack: () => void, onTravel: (areaId: string, bonfireId?: string) => void) {
     super(scene);
     const w = GAME.WIDTH, h = GAME.HEIGHT;
     const isFa = getLocale() === 'fa';
@@ -304,7 +310,7 @@ export class WorldMapUI extends NavigableOverlay {
       };
       this.areaNodes.push(areaNode);
 
-      // Interactive
+      // Interactive — clicking the area node itself travels to section 1 (no bonfire).
       const travelAction = () => {
         if (node.unlocked && !node.isCurrent && node.discovered) {
           AudioSystem.play('uiClick');
@@ -318,6 +324,53 @@ export class WorldMapUI extends NavigableOverlay {
         focusColor: THEME.CYAN,
         normalColor: strokeColor,
       });
+
+      // ── Phase D: Bonfire sub-nodes ──
+      // Per clause 4.2: only LIT bonfires are selectable as fast-travel destinations.
+      // Show small amber circles below the area node, one per lit bonfire.
+      // Clicking a bonfire sub-node calls onTravel(areaId, bonfireId) which
+      // spawns the player at the bonfire's exact position (not section-start).
+      const bonfires = WorldSystem.getBonfiresForArea(node.area.id);
+      const litBonfires = bonfires.filter(b => b.isLit);
+      if (litBonfires.length > 0) {
+        // Position bonfire sub-nodes in a row below the area node.
+        const bfSpacing = 22;
+        const bfStartX = pos.x - (litBonfires.length - 1) * bfSpacing / 2;
+        const bfY = pos.y + 45;  // below the area node + label
+        litBonfires.forEach((bfInfo, bfIdx) => {
+          const bfX = bfStartX + bfIdx * bfSpacing;
+          // Small amber circle for each lit bonfire
+          const bfCircle = this.scene.add.circle(bfX, bfY, 6, THEME.AMBER, 0.9);
+          bfCircle.setStrokeStyle(1, THEME.AMBER, 1);
+          bfCircle.setDepth(4);
+          this.container.add(bfCircle);
+          // Pulsing glow to indicate "lit" + clickable
+          this.scene.tweens.add({
+            targets: bfCircle,
+            alpha: { from: 0.7, to: 1 },
+            scale: { from: 0.9, to: 1.1 },
+            duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+          });
+          // Bonfire travel action — spawns at bonfire's exact position.
+          const bfTravelAction = () => {
+            if (node.unlocked && !node.isCurrent && node.discovered) {
+              AudioSystem.play('uiClick');
+              this.onTravel(node.area.id, bfInfo.bonfire.id);
+            }
+          };
+          // Register as nav element (clickable + focusable).
+          // registerNav requires (bg: Shape, text: Text) — bonfire has no text label,
+          // so we pass the circle itself cast as Text. The text param is optional in
+          // UIController.addButton (used for focus visual), and the circle has its own
+          // visual (pulsing glow) so no separate text is needed.
+          this.registerNav(
+            bfCircle as unknown as Phaser.GameObjects.Shape,
+            bfCircle as unknown as Phaser.GameObjects.Text,
+            bfTravelAction,
+            { insertAt: backIdx, focusColor: THEME.AMBER, normalColor: THEME.AMBER },
+          );
+        });
+      }
     });
 
     this.scene.time.delayedCall(0, () => { if (this.isVisible) this.updateNavFocus(); });

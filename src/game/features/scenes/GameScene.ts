@@ -391,7 +391,7 @@ export class GameScene extends Phaser.Scene {
       case 'map':
         ui = new WorldMapUI(this,
           () => this.closeOverlay(),
-          (areaId: string) => this.fastTravel(areaId),
+          (areaId: string, bonfireId?: string) => this.fastTravel(areaId, bonfireId),
         );
         break;
       case 'hangar':
@@ -650,6 +650,7 @@ export class GameScene extends Phaser.Scene {
       // Fall back to hub instead of showing a black screen.
       console.warn('[buildPlay] Area not found — falling back to hub. Save data may reference an old area ID.');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه یافت نشد — بازگشت به هاب' : 'AREA NOT FOUND — returning to hub');
+      this.fastTraveling = false;  // reset debounce guard on early-return (Phase D)
       this.setState('hub');
       return;
     }
@@ -676,6 +677,12 @@ export class GameScene extends Phaser.Scene {
     this.bossArenaActive = false;
     this.miniBossSpawned = false;
     this.sequenceTimers = [];
+    // Reset fast-travel debounce guard (Phase D). Set in fastTravel(), cleared here
+    // after buildPlay completes. If buildPlay early-returns (missing area), the
+    // guard stays true — but setState('hub') fallback in buildPlay handles that
+    // case and the next fastTravel attempt will reset it via the early-return path.
+    // For robustness, also reset in the early-return path below.
+    this.fastTraveling = false;
     // Note: targetRegistry already cleared + player registered by PlayController.build()
     // No need to call registerPlayer again here.
 
@@ -1125,13 +1132,40 @@ export class GameScene extends Phaser.Scene {
     this.setState('play');  // rebuilds at checkpoint position
   }
 
-  private fastTravel(areaId: string): void {
-    WorldSystem.travelTo(areaId, 1);
+  /**
+   * Fast-travel to a destination area (from World Map or Hub).
+   *
+   * Phase D extension: optional `bonfireId` parameter — when provided,
+   * player spawns at the bonfire's exact position (not section-start fallback).
+   * WorldSystem.travelTo handles validation (bonfire exists + is lit) and
+   * saves the checkpoint at bonfire position.
+   *
+   * Per advisor round-9 Note 2 (debounce): fastTravelInProgress guard prevents
+   * double-click on World Map node from triggering two travelTo+buildPlay
+   * cycles simultaneously. Same class of bug as gateTransitioning (Phase C).
+   * Reset to false after buildPlay completes (in setState('play') path).
+   */
+  private fastTraveling = false;
+  private fastTravel(areaId: string, bonfireId?: string): void {
+    // Debounce guard — prevent double-click from triggering concurrent travels.
+    if (this.fastTraveling) {
+      console.log('[fastTravel] DEBOUNCE: already traveling, ignored');
+      return;
+    }
+    this.fastTraveling = true;
+
+    const traveled = WorldSystem.travelTo(areaId, 1, bonfireId);
+    if (!traveled) {
+      this.fastTraveling = false;  // reset on failure
+      this.hud?.toast(getLocale() === 'fa' ? 'سفر ممکن نیست' : 'TRAVEL FAILED');
+      return;
+    }
     OverlayManager.closeAll();
     this.paused = false;
     this.pauseMenuUI.hide();
     this.cleanupPlay();
-    this.setState('play');
+    this.setState('play');  // triggers buildPlay
+    // fastTraveling reset in buildPlay completion (see buildPlay end).
   }
 
   /** Quit from pause menu → hub (separate environment). */
