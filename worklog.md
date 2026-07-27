@@ -2669,3 +2669,45 @@ Stage Summary:
 - Exit Gate ownership documented (AreaLoader, not separate controller).
 - continueCurrentProfile bug captured as Phase E6 task.
 - Ready to start C1 code.
+
+---
+Task ID: C-prep-round-5
+Agent: main
+Task: Address 4 advisor round-5 concerns before C1 (isSensor, try/finally reset, temp invuln, exitGate validator)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 8009afb (synced, ahead 0 behind 0). Unrelated skill changes ignored.
+- Forensics: PhysicsSystem.ts (lines 14, 27, 38-43):
+  * `addStaticRect()` returns solid body — used for EMP-door/shortcut/solids (blocking).
+  * `addSensor()` returns `isStatic: true, isSensor: true` body — used for section/checkpoint/boss-entry/hazard triggers (non-blocking, only emits collisionstart).
+  * Advisor Note 1 confirmed: Exit Gate MUST use `addSensor()`, NOT `addStaticRect()`.
+- Forensics: PlayController.build early-returns:
+  * Line 160: `if (!area) return null;` — exactly the bug advisor warned about.
+  * Confirmed GameScene.buildPlay handles null return but state may already be 'play'.
+  * Advisor Note 2 confirmed: `gateTransitioning` reset must be in `finally` block.
+- Forensics: PlayerEntity invuln pattern:
+  * Line 108: `private invulnUntil = 0;`
+  * Line 318: `get isInvulnerable(): boolean { return this.scene.time.now < this.invulnUntil; }`
+  * Line 325: `takeDamage` checks `this.isInvulnerable` — returns false if invuln.
+  * Line 327: `this.invulnUntil = this.scene.time.now + this.stats.invulnMs;`
+  * Pattern ready: `player.invulnUntil = scene.time.now + 600` directly extends invuln window.
+
+All 4 advisor round-5 concerns resolved in MASTER_PLAN_BONFIRE_MULTIAREA.md Phase C section:
+- Note 1 (isSensor): Added dedicated explanation box + emphasized in C1 task description. Exit Gate uses `physics.addSensor()` (non-blocking sensor), NOT `physics.addStaticRect()` (solid blocking body). Verified via PhysicsSystem.ts source.
+- Note 2 (try/finally reset): Added dedicated explanation box + emphasized in C3 task description. `gateTransitioning = false` moved to `finally` block so it executes even if `buildPlay()` early-returns on missing area (existing bug at PlayController.build line 160 + GameScene L590-592 per audit-systems-report).
+- Note 3 (temp invuln): Added dedicated explanation box + emphasized in C3 task description. During fade start: `player.invulnUntil = scene.time.now + 600` (500ms fade + 100ms buffer). Movement/firing still allowed (faithful to "crossing the front line" feel), only damage blocked. Uses existing PlayerEntity invuln pattern (line 108/327).
+- Note 4 (validator): Added as C6 task (optional but recommended). Extend validate-section-bounds.ts to check that every `exitGate.toAreaId` exists in ACTS data and `toSection` is within valid range of that Area. Same gate pattern as T3/T7.
+- Mid-phase checkpoint (per advisor): Added as explicit note — after C1+C2, before C3/C4, will report progress for advisor verification of guard/debounce + CollisionController wiring.
+
+Phase C total time: 2.5h → 3h (increased due to try/finally + invuln + mid-checkpoint + optional C6).
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/ (no code changes, only plan doc updates).
+- Phase C plan now covers all 3 BLOCKER risks identified by advisor + 1 optional preventive measure.
+
+Stage Summary:
+- All 4 advisor round-5 concerns resolved before C1 code.
+- 3 blockers addressed: isSensor, try/finally reset, temp invuln.
+- 1 optional: exitGate validator (C6).
+- Mid-phase checkpoint planned between C2 and C3.
+- Ready to start C1 code.
