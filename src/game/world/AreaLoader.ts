@@ -9,7 +9,7 @@ import { GAME, COLORS } from '../shared/Constants';
 import { PhysicsSystem } from '../systems/PhysicsSystem';
 import { WorldSystem } from './WorldSystem';
 import { t } from '../systems/LocalizationSystem';
-import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, LandmarkData } from '../data/types';
+import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, LandmarkData, ExitGateData } from '../data/types';
 import { AreaStrategy, type HazardVisualData, type PlatformType } from './strategies/AreaStrategy';
 import { FactoryAreaStrategy } from './strategies/FactoryAreaStrategy';
 import { ForestAreaStrategy } from './strategies/ForestAreaStrategy';
@@ -198,6 +198,18 @@ export class AreaLoader {
         result.collectibles.push(container);
       }
     }
+    // Exit Gates — inter-area transitions (Phase C)
+    // Per advisor round-5 Note 1: MUST use physics.addSensor() (isSensor: true),
+    // NOT physics.addStaticRect() (solid, would block the player from passing).
+    // Gate is non-blocking — only emits collisionstart when player walks through.
+    // AreaLoader owns GameObject creation + destruction (per master plan Note 4),
+    // like EMP-door/shortcut. No separate controller.
+    if (section.exitGates) {
+      for (const gate of section.exitGates) {
+        const container = this.createExitGate(gate);
+        result.exitGates.push(container);
+      }
+    }
   }
 
   /** Create a grapple anchor — glowing ring that the player can grapple to. */
@@ -308,6 +320,107 @@ export class AreaLoader {
     physicsBody.setData('isShortcutBody', true);
     physicsBody.setData('shortcutId', sc.id);
     container.setData('physicsBody', physicsBody);
+    return container;
+  }
+
+  /**
+   * Create an exit gate — inter-area transition portal.
+   *
+   * Per advisor round-5 Note 1 (BLOCKER): MUST use `physics.addSensor()` (isSensor: true),
+   * NOT `physics.addStaticRect()` (solid). Exit Gate is non-blocking — the player
+   * walks THROUGH it, only triggering a collisionstart. If addStaticRect were used,
+   * the player couldn't pass through and the gate would be useless.
+   *
+   * Pattern: like checkpoint trigger (AreaLoader line 122), NOT like EMP-door/shortcut.
+   * AreaLoader owns GameObject creation + destruction in unload() (per master plan Note 4).
+   *
+   * Visual: large amber arch with vertical light beam + label above.
+   * Physics: Matter sensor at gate position, sized to span ground-to-mid-air
+   *          so the player can't jump over it accidentally.
+   *
+   * Container metadata (for CollisionController dispatch):
+   *   - isExitGate: true (CollisionController looks for this flag)
+   *   - exitGateId: gate.id
+   *   - toAreaId, toSection, toX, toY: destination info (passed to GameScene.onExitGate)
+   *   - physicsBody: the sensor body (for cleanup in unload)
+   */
+  private createExitGate(gate: ExitGateData): Phaser.GameObjects.Container {
+    const GATE_W = 80;   // visual width of arch
+    const GATE_H = 200;  // visual height of arch (ground to mid-air)
+    const SENSOR_W = 40; // physics sensor width (narrower than visual — exact crossing point)
+    const SENSOR_H = 120; // physics sensor height — covers player body (~60px) + margin.
+                          // Gate Y is set in acts.ts to ground level (~600), so sensor spans
+                          // gate.y - 60 to gate.y + 60 = e.g. 540-660 for gate at y=600.
+                          // This ensures the sensor triggers when player walks through on
+                          // the ground (player body at y≈620-680 on flat ground).
+                          // Verified via browser test: with y=460 + SENSOR_H=200, sensor
+                          // spanned 360-560 which missed player at y=657 (ground).
+    const AMBER = 0xffc040;
+
+    const container = this.scene.add.container(gate.x, gate.y);
+
+    // ── Visual 1: Arch frame (two side pillars + top lintel) ──
+    const pillarL = this.scene.add.rectangle(-GATE_W / 2, 0, 12, GATE_H, 0x1a1814, 0.9);
+    pillarL.setStrokeStyle(2, AMBER, 0.7);
+    container.add(pillarL);
+    const pillarR = this.scene.add.rectangle(GATE_W / 2, 0, 12, GATE_H, 0x1a1814, 0.9);
+    pillarR.setStrokeStyle(2, AMBER, 0.7);
+    container.add(pillarR);
+    const lintel = this.scene.add.rectangle(0, -GATE_H / 2, GATE_W + 12, 16, 0x2a2018, 0.95);
+    lintel.setStrokeStyle(2, AMBER, 0.8);
+    container.add(lintel);
+
+    // ── Visual 2: Vertical light beam (faint amber, pulsing) ──
+    const beam = this.scene.add.rectangle(0, 0, GATE_W - 16, GATE_H - 8, AMBER, 0.06);
+    beam.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(beam);
+    this.trackedTween({
+      targets: beam,
+      alpha: { from: 0.04, to: 0.12 },
+      duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+
+    // ── Visual 3: Floor marker (amber line on ground) ──
+    const marker = this.scene.add.rectangle(0, GATE_H / 2 + 2, GATE_W + 8, 4, AMBER, 0.5);
+    container.add(marker);
+
+    // ── Visual 4: Label above gate (e.g. "CHECKPOINT — INNER WARD") ──
+    if (gate.labelKey) {
+      const labelTxt = this.scene.add.text(0, -GATE_H / 2 - 20, t(gate.labelKey), {
+        fontFamily: 'monospace', fontSize: '10px', color: '#ffc040',
+        stroke: '#000', strokeThickness: 3, letterSpacing: 2,
+      }).setOrigin(0.5).setAlpha(0.8);
+      container.add(labelTxt);
+    }
+
+    // ── Visual 5: Forward arrow (indicating one-way direction) ──
+    const arrow = this.scene.add.triangle(0, GATE_H / 2 - 30, -6, -6, 6, -6, 0, 6, AMBER, 0.9);
+    container.add(arrow);
+    this.trackedTween({
+      targets: arrow,
+      x: { from: -3, to: 3 },
+      duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+
+    container.setDepth(6);
+
+    // ── Physics: MATTER SENSOR (NOT solid body) ──
+    // Per advisor round-5 Note 1: addSensor = isStatic + isSensor = non-blocking.
+    // Player walks THROUGH the gate, only collisionstart fires.
+    const sensorBody = this.physics.addSensor(gate.x, gate.y, SENSOR_W, SENSOR_H, `exit-gate-${gate.id}`);
+    sensorBody.setData('isExitGate', true);
+    sensorBody.setData('exitGateId', gate.id);
+    sensorBody.setData('toAreaId', gate.toAreaId);
+    sensorBody.setData('toSection', gate.toSection);
+    sensorBody.setData('toX', gate.toX);
+    sensorBody.setData('toY', gate.toY);
+
+    // Container metadata (for cleanup + CollisionController dispatch)
+    container.setData('isExitGate', true);
+    container.setData('exitGateId', gate.id);
+    container.setData('physicsBody', sensorBody);
+    container.setSize(GATE_W, GATE_H);
+
     return container;
   }
 
@@ -690,7 +803,21 @@ export class AreaLoader {
       if (s.active) s.destroy();
     });
     loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
-    // ── Bonfires + exit gates: BORROWED REFERENCES — do NOT destroy here. ──
+    // ── Exit Gates: OWNED BY AreaLoader (per master plan Note 4) ──
+    // Like EMP-door/shortcut: physics body must be removed from matter.world
+    // before destroy. Exit gate uses addSensor (not addStaticRect) but the
+    // cleanup pattern is identical — both create a Matter body that isn't
+    // auto-destroyed when the container is destroyed.
+    loaded.exitGates.forEach(g => {
+      if (!g) return;
+      const pb = g.getData('physicsBody') as Phaser.Physics.Matter.Image | null;
+      if (pb && pb.active) {
+        try { this.scene.matter.world.remove(pb.body as MatterJS.Body); } catch { /* */ }
+        pb.destroy();
+      }
+      if (g.active) g.destroy();
+    });
+    // ── Bonfires: BORROWED REFERENCE — do NOT destroy here. ──
     // Bonfire GameObjects are OWNED by BonfireController (created in
     // spawnBonfires, destroyed in BonfireController.cleanup). AreaLoader
     // only holds a borrowed reference in loadedArea.bonfires so that
@@ -705,10 +832,7 @@ export class AreaLoader {
     // pattern is fragile — exactly the kind of double-destroy that has
     // bitten this project before, see worklog `dialogue-ui-leak-fix`).
     //
-    // Exit gates (Phase C): same pattern — owned by ExitGateController,
-    // borrowed reference here. For now exitGates is always empty.
-    //
-    // We DO clear the arrays (null out the borrowed refs) so any stale
+    // We DO clear the array (null out the borrowed refs) so any stale
     // iteration in NpcInteractionController.updatePrompt between Step 3
     // and Step 4 sees an empty array, not dangling GameObjects.
     loaded.bonfires = [];
@@ -725,8 +849,6 @@ export class AreaLoader {
     loaded.empDoors = [];
     loaded.shortcuts = [];
     loaded.collectibles = [];
-    loaded.bonfires = [];
-    loaded.exitGates = [];
   }
 }
 

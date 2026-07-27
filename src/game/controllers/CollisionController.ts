@@ -18,6 +18,14 @@
  *   rather than body.label matching. This controller preserves that pattern
  *   to avoid touching every entity's body creation code.
  *
+ * Phase C addition (Exit Gate):
+ *   - Exit gate sensor body has setData('isExitGate', true) + destination info.
+ *   - CollisionController detects player↔exitGate collision and routes to
+ *     onExitGate handler with a gateData payload {id, toAreaId, toSection, toX, toY}.
+ *   - Per advisor round-5: gateTransitioning flag lives in GameScene (NOT here).
+ *     CollisionController is pure routing — no state. GameScene's onExitGate
+ *     handler checks gateTransitioning and short-circuits if true (debounce).
+ *
  * Lifecycle:
  *   enter() — called in buildPlay() after entities exist
  *   exit()  — called in cleanupPlay() before entities destroyed
@@ -31,12 +39,22 @@
  *     onEnemyContact: (enemyGo) => this.handleEnemyContact(enemyGo),
  *     onBossContact: () => this.handleBossContact(),
  *     onHazard: (hazardGo) => this.handleHazard(hazardGo),
+ *     onExitGate: (gateData) => this.handleExitGate(gateData),  // Phase C
  *   };
  *   this.collision.enter();
  */
 import Phaser from 'phaser';
 
 type GameObject = Phaser.GameObjects.GameObject;
+
+/** Payload passed to onExitGate handler — contains all destination info. */
+export interface ExitGatePayload {
+  id: string;
+  toAreaId: string;
+  toSection: number;
+  toX: number;
+  toY: number;
+}
 
 export interface CollisionRoutes {
   onSection?: (sectionId: number) => void;
@@ -45,6 +63,11 @@ export interface CollisionRoutes {
   onEnemyContact?: (enemyGo: GameObject) => void;
   onBossContact?: () => void;
   onHazard?: (hazardGo: GameObject) => void;
+  /** Phase C: player walked through an exit gate sensor. GameScene handler
+   *  is responsible for debounce via gateTransitioning flag (lives in GameScene,
+   *  NOT in CollisionController — per advisor round-5: CollisionController is
+   *  pure routing, no state). */
+  onExitGate?: (gateData: ExitGatePayload) => void;
 }
 
 export class CollisionController {
@@ -60,6 +83,28 @@ export class CollisionController {
   /** Remove the collisionstart listener. Safe to call multiple times. */
   exit(): void {
     this.scene.matter.world.off('collisionstart', this.dispatch);
+  }
+
+  /**
+   * Extract destination info from an exit gate GameObject (or its sensor body).
+   * The sensor body created in AreaLoader.createExitGate stores all destination
+   * fields via setData(). We read them here and package into a typed payload
+   * for the GameScene handler.
+   *
+   * Note: the GameObject passed by collisionstart may be either the sensor
+   * body itself (Phaser.Physics.Matter.Image) or its parent container. We
+   * check both — sensor body has the data directly, container has it via
+   * getData('physicsBody') indirection. In practice, Matter collision events
+   * pass the body's gameObject which is the sensor Image, so the direct
+   * getData path is the common case.
+   */
+  private extractGatePayload(gateGo: GameObject): ExitGatePayload {
+    const id = gateGo.getData('exitGateId') as string;
+    const toAreaId = gateGo.getData('toAreaId') as string;
+    const toSection = gateGo.getData('toSection') as number;
+    const toX = gateGo.getData('toX') as number;
+    const toY = gateGo.getData('toY') as number;
+    return { id, toAreaId, toSection, toX, toY };
   }
 
   /**
@@ -98,6 +143,18 @@ export class CollisionController {
         this.routes.onBossEntry?.();
       } else if (bIsPlayer && aGo.getData('isBossEntry')) {
         this.routes.onBossEntry?.();
+      }
+
+      // ── Exit Gate (Phase C — inter-area transition) ──
+      // Separate if (not else-if) so it can fire alongside other triggers if
+      // a gate happens to overlap with something else. Gate is a Matter sensor
+      // (non-blocking), so player passes through. CollisionController just routes
+      // the event + payload — GameScene.onExitGate handler does debounce via
+      // gateTransitioning flag (lives in GameScene, not here).
+      if (aIsPlayer && bGo.getData('isExitGate') === true) {
+        this.routes.onExitGate?.(this.extractGatePayload(bGo));
+      } else if (bIsPlayer && aGo.getData('isExitGate') === true) {
+        this.routes.onExitGate?.(this.extractGatePayload(aGo));
       }
 
       // ── Enemy contact (separate if — can fire alongside section trigger) ──

@@ -98,7 +98,7 @@ import { MenuNavHelper } from '../../ui/shared/MenuNavHelper';
 import { UIController } from '../../ui/UIController';
 import { MenuBuilder } from '../../ui/menu/MenuBuilder';
 import { HubBuilder } from '../../ui/hub/HubBuilder';
-import { CollisionController } from '../../controllers/CollisionController';
+import { CollisionController, type ExitGatePayload } from '../../controllers/CollisionController';
 import { PlayController } from '../../controllers/PlayController';
 import { PerformanceOverlay } from '../../ui/PerformanceOverlay';
 import { ParallaxBackground } from '../../world/atmosphere/ParallaxBackground';
@@ -174,6 +174,21 @@ export class GameScene extends Phaser.Scene {
   private bonfireController: BonfireController | null = null;
   // Collision dispatch router — PLAY-only
   private collision: CollisionController | null = null;
+  // Exit gate transition guard (Phase C). When true, any further onExitGate
+  // events are ignored (debounce) until travel completes. Reset in `finally`
+  // block of handleExitGate — NOT at end of successful buildPlay — so that
+  // early-return on missing area doesn't leave flag stuck true forever.
+  // Per advisor round-5 Note 2: buildPlay early-returns on missing area
+  // (PlayController.build line 160), so reset must be in finally.
+  // Per advisor round-5 (mid-checkpoint note): flag lives in GameScene
+  // (NOT in CollisionController) — CollisionController is pure routing.
+  private gateTransitioning = false;
+  // Debug counter for mid-phase checkpoint verification — counts how many
+  // collisionstart events fire when player crosses a gate. Should be 1 per
+  // crossing; if >1, debounce is working (extra events ignored) but Matter
+  // is firing multiple times as advisor predicted. Will remove after C3
+  // verification.
+  private exitGateCollisionCount = 0;
 
   // Pause state — when paused, play is frozen but game loop runs for UI
   private paused = false;
@@ -673,6 +688,7 @@ export class GameScene extends Phaser.Scene {
       onEnemyContact: (enemyGo: Phaser.GameObjects.GameObject) => this.handleEnemyContact(enemyGo),
       onBossContact: () => { if (this.boss) this.player.takeDamage(this.boss.getContactDamage()); },
       onHazard: (hazardGo: Phaser.GameObjects.GameObject) => this.handleHazard(hazardGo),
+      onExitGate: (gateData: ExitGatePayload) => this.handleExitGate(gateData),
     };
     this.collision.enter();
 
@@ -702,6 +718,49 @@ export class GameScene extends Phaser.Scene {
         this.camera.shake(200, 0.008);
       }
     }
+  }
+
+  /**
+   * Handle exit gate collision — inter-area transition (Phase C).
+   *
+   * Per advisor round-5:
+   *  - Debounce: gateTransitioning flag lives in GameScene (NOT CollisionController).
+   *    First collisionstart → flag=true, subsequent ones ignored until travel completes.
+   *  - Reset in `finally` block: even if buildPlay early-returns on missing area
+   *    (PlayController.build line 160), the flag is guaranteed to reset.
+   *  - Temp invuln: player.invulnUntil = scene.time.now + 600 during fade window
+   *    (prevents PLAYER_DEAD during pending travelTo).
+   *
+   * C1+C2 mid-phase checkpoint (current): stub handler that verifies:
+   *  1. collisionstart fires when player walks through gate sensor (isSensor confirmed).
+   *  2. Debounce works — only first collision per crossing triggers handler body.
+   *  3. Multiple crossings each fire exactly once (gateTransitioning resets correctly).
+   *
+   * C3 will replace this stub with full implementation:
+   *  - fade telegraph (camera.fadeOut 500ms)
+   *  - AudioSystem.play('gate_travel') [requires C5 SFX addition]
+   *  - WorldSystem.travelTo(toAreaId, toSection)
+   *  - SaveSystem.lightBonfire(getEntryBonfireId(toAreaId)) [preLit policy]
+   *  - cleanupPlay + buildPlay in try/finally with gateTransitioning reset.
+   */
+  private handleExitGate(gateData: ExitGatePayload): void {
+    // ── Debounce guard ──
+    if (this.gateTransitioning) {
+      // Extra event during fade window — Matter fired multiple times as
+      // advisor predicted (physics not paused during fade). Ignored.
+      this.exitGateCollisionCount++;
+      console.log(`[ExitGate] DEBOUNCE: ignored extra collision #${this.exitGateCollisionCount} for gate ${gateData.id} (gateTransitioning=true)`);
+      return;
+    }
+    this.gateTransitioning = true;
+    this.exitGateCollisionCount = 1;  // first collision of this crossing
+    console.log(`[ExitGate] CROSSED gate ${gateData.id} → area ${gateData.toAreaId} section ${gateData.toSection} (collision #1, gateTransitioning=true)`);
+
+    // C1+C2 mid-phase: stub — no actual travel yet. Reset flag so player
+    // can cross again for testing. C3 will replace this with full
+    // fade + travelTo + try/finally implementation.
+    this.gateTransitioning = false;
+    this.hud?.toast(`[STUB] Gate ${gateData.id} → ${gateData.toAreaId} (C3 will travel)`);
   }
 
   // ─── Boss Health Bar ─────────────────────────────────────────────────

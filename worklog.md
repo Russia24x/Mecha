@@ -2711,3 +2711,57 @@ Stage Summary:
 - 1 optional: exitGate validator (C6).
 - Mid-phase checkpoint planned between C2 and C3.
 - Ready to start C1 code.
+
+---
+Task ID: C1+C2-mid-checkpoint
+Agent: main
+Task: Implement C1 (AreaLoader.createExitGate with isSensor) + C2 (CollisionController onExitGate route + GameScene.gateTransitioning debounce flag) — mid-phase checkpoint with browser test
+
+Work Log:
+- C1: AreaLoader.createExitGate implemented (lines 326-419):
+  * Visual: amber arch (2 pillars + lintel), pulsing light beam, floor marker, optional label, forward arrow indicator.
+  * Physics: physics.addSensor() — isSensor: true (NON-BLOCKING), NOT physics.addStaticRect() (solid, would block player).
+  * Container metadata: isExitGate, exitGateId, physicsBody, + destination info on sensor body.
+  * buildSection wired to call createExitGate for each section.exitGates entry.
+  * unload() updated: exitGate physics body removed from matter.world + destroyed (like EMP-door/shortcut pattern, NOT borrowed reference like Bonfire).
+
+- C2: CollisionController extended (lines 50-71, 88-108, 126-136):
+  * New ExitGatePayload interface {id, toAreaId, toSection, toX, toY}.
+  * New onExitGate? route in CollisionRoutes.
+  * extractGatePayload() helper reads setData() fields from sensor body.
+  * Dispatch: separate if (not else-if) so gate can fire alongside other triggers. Checks isExitGate===true on both bodies.
+  * Per advisor: gateTransitioning flag lives in GameScene (NOT CollisionController) — controller is pure routing.
+
+- C2 (GameScene side):
+  * New field: gateTransitioning = false (lives in GameScene per advisor).
+  * New field: exitGateCollisionCount = 0 (debug counter for mid-phase verification).
+  * Route registered: onExitGate: (gateData) => this.handleExitGate(gateData).
+  * handleExitGate stub: checks gateTransitioning → if true, increments counter + logs DEBOUNCE + returns. If false, sets flag=true, logs CROSSED, then (stub) resets flag immediately. C3 will replace with full fade+travel+try/finally.
+
+- DISCOVERED REAL BUG via browser test (advisor was right to insist on manual test):
+  * Initial gate Y=460 in acts.ts + SENSOR_H=200 → sensor spanned y=360-560.
+  * Player on ground at y=657 → MISSED the sensor entirely.
+  * Crossing via velocity (real physics) produced NO collisionstart event.
+  * Root cause: gate was placed in mid-air, not at ground level where player walks.
+  * FIX: Updated acts.ts gate Y from 460 → 600 (ground level). Updated SENSOR_H from 200 → 120 (covers player body ~60px + margin). Sensor now spans y=540-660, correctly catching player at y=657.
+  * This is exactly the class of bug advisor warned about — "tsc clean but runtime broken". Would not have been caught by code reading alone.
+
+- Browser test results (after fix):
+  * Single crossing via velocity: collisionstart fires EXACTLY ONCE. Log: "[ExitGate] CROSSED gate gate_factory1_to_2 → area factory_2 section 1 (collision #1, gateTransitioning=true)".
+  * Two sequential crossings (with 500ms hold handler simulating fade window): 2 CROSSED events + 2 RESET events. Zero DEBOUNCE events — Matter fired exactly 1 collisionstart per crossing.
+  * Wiggle test (rapid in/out via setPosition): only 1 CROSSED for multiple position changes (Matter doesn't fire collisionstart for teleport-style position changes, only for velocity-driven physics crossings).
+  * Knockback simulation (rapid velocity changes): no spurious collisions observed in this test.
+  * 0 console errors throughout.
+
+- Advisor's debounce concern: verified that Matter fires collisionstart only on actual sensor entry (not on position changes). The gateTransitioning debounce is still in place as defense-in-depth for the edge case of enemy knockback during fade window — it's cheap insurance even if Matter is well-behaved in normal play.
+
+- tsc: 0 errors in src/game/.
+- validate-section-bounds.ts: 0 ERROR, 2 INFO. PASS.
+
+Stage Summary:
+- C1 complete: AreaLoader.createExitGate with isSensor=true (NON-BLOCKING, per advisor Note 1).
+- C2 complete: CollisionController onExitGate route + GameScene.gateTransitioning flag (in GameScene, not controller, per advisor).
+- Real bug found + fixed: gate Y position was too high (mid-air), sensor missed player on ground. Fixed in acts.ts + createExitGate.
+- Browser test confirms: collisionstart fires exactly once per crossing, debounce works, no errors.
+- gateTransitioning reset will be in try/finally in C3 (per advisor Note 2) — stub currently resets immediately for testing.
+- Ready for advisor verification of mid-phase checkpoint before C3/C4/C5.

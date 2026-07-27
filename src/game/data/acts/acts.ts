@@ -101,7 +101,7 @@ export const ACTS: ActData[] = [
               ], bonfires: [
                 { id: 'bf_factory1_2', x: 2600, y: 580, section: 2 },
               ], exitGates: [
-                { id: 'gate_factory1_to_2', x: 2850, y: 460, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420 },
+                { id: 'gate_factory1_to_2', x: 2850, y: 600, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420 },
               ]},
             ],
           },
@@ -161,7 +161,7 @@ export const ACTS: ActData[] = [
               ], bonfires: [
                 { id: 'bf_factory2_2', x: 2600, y: 580, section: 2 },
               ], exitGates: [
-                { id: 'gate_factory2_to_3', x: 2850, y: 460, toAreaId: 'factory_3', toSection: 1, toX: 200, toY: 420 },
+                { id: 'gate_factory2_to_3', x: 2850, y: 600, toAreaId: 'factory_3', toSection: 1, toX: 200, toY: 420 },
               ]},
             ],
           },
