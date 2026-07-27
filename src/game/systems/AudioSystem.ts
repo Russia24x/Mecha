@@ -36,7 +36,9 @@ export type SfxName =
   // Player movement (combat category for volume purposes)
   | 'dash' | 'jump' | 'doubleJump'
   // UI
-  | 'uiClick' | 'uiHover' | 'checkpoint' | 'levelUp' | 'skillUnlock' | 'victory';
+  | 'uiClick' | 'uiHover' | 'checkpoint' | 'levelUp' | 'skillUnlock' | 'victory'
+  // World transitions (Phase C — Exit Gate travel telegraph)
+  | 'gate_travel';
 
 // ─── Ambient types ─────────────────────────────────────────────────────
 export type AmbientType = 'factory' | 'silence' | 'boss';
@@ -87,6 +89,13 @@ const SFX_REGISTRY: Record<SfxName, SfxDef> = {
                   sequence: [{ freq: 1320, delay: 0.1, dur: 0.15, vol: 0.2 }] },
   victory:      { category: 'ui', type: 'tone', oscType: 'sine', freq: 523, dur: 0.2, vol: 0.3,
                   sequence: [{ freq: 659, delay: 0.15, dur: 0.2, vol: 0.3 }, { freq: 784, delay: 0.3, dur: 0.3, vol: 0.3 }] },
+
+  // ── World transitions (Phase C) ──
+  // gate_travel: descending sweep simulating "crossing through" — low rumble + pitch drop.
+  // Plays at start of fade telegraph when player walks through an exit gate.
+  // C5 task: added BEFORE C3 calls AudioSystem.play('gate_travel') to prevent
+  // the TOAST-pattern bug (silent no-op if key missing from SFX_REGISTRY).
+  gate_travel:  { category: 'ui', type: 'sweep', oscType: 'sine', freq: 600, freq2: 120, dur: 0.5, vol: 0.3 },
 };
 
 // ─── Category metadata ─────────────────────────────────────────────────

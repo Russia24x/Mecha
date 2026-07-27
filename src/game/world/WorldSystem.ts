@@ -108,6 +108,30 @@ export class WorldSystem {
     EventBus.emit('AREA_ENTER', { areaId, unlocked: true });
   }
 
+  /**
+   * Find the entry bonfire ID for a given area.
+   * Per Phase C preLit policy (advisor round-4 Note 2): entry bonfire is
+   * identified by the `isEntryPoint: true` flag on BonfireData (NOT by
+   * naming convention `bf_X_1` or array index). Returns undefined if the
+   * area has no entry bonfire (which is a data error — every area should
+   * have exactly one).
+   *
+   * Used by GameScene.handleExitGate to auto-light the destination's entry
+   * bonfire when the player crosses an exit gate (enforces preLit policy
+   * as event-driven, single source of truth = gate crossing).
+   */
+  static getEntryBonfireId(areaId: string): string | undefined {
+    const area = getArea(areaId);
+    if (!area) return undefined;
+    for (const section of area.sections) {
+      if (!section.bonfires) continue;
+      for (const bf of section.bonfires) {
+        if (bf.isEntryPoint) return bf.id;
+      }
+    }
+    return undefined;
+  }
+
   /** Check if area has been discovered (fog of war). */
   static isAreaDiscovered(areaId: string): boolean {
     return SaveSystem.get().discoveredAreas.includes(areaId);

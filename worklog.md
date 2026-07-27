@@ -2810,3 +2810,105 @@ Stage Summary:
 - C5: reordered before C3 (prevents TOAST-pattern bug).
 - Input lock: gameplayBlocked during fade (existing pattern).
 - Ready to start C5 + C3 implementation.
+
+---
+Task ID: C5+C3
+Agent: main
+Task: Implement C5 (gate_travel SFX) + C3 (full handleExitGate with event-driven sequencing + try/catch/finally + BOTH invuln AND gameplayBlocked + error recovery)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = b3cca3a (synced, ahead 0 behind 0).
+
+C5: AudioSystem gate_travel SFX (src/game/systems/AudioSystem.ts):
+- Added 'gate_travel' to SfxName union type (line 41).
+- Added SFX_REGISTRY entry (line 98): {category: 'ui', type: 'sweep', oscType: 'sine', freq: 600, freq2: 120, dur: 0.5, vol: 0.3}.
+- Descending sweep (600→120 Hz) simulating "crossing through" — low rumble + pitch drop.
+- Added BEFORE C3 (per advisor round-6 Note 3) to prevent TOAST-pattern bug (silent no-op if key missing).
+
+C3: GameScene.handleExitGate full implementation (src/game/features/scenes/GameScene.ts):
+- Replaced stub with full event-driven sequencing.
+- Pre-fade setup (synchronous):
+  1. InputSystem.setGameplayBlocked(true) — blocks player INPUT (jump/fire/interact/etc).
+  2. player.extendInvuln(600) — temp invuln (600ms = 500ms fade + 100ms buffer).
+     BOTH needed (per advisor round-7 Note 1): gameplayBlocked blocks input but NOT physics,
+     so enemies still move + can hit player. gameplayBlocked alone makes player MORE
+     vulnerable (can't dodge). invulnUntil blocks damage. Complementary, not substitutes.
+  3. AudioSystem.play('gate_travel') — SFX now exists (C5 done first).
+  4. camera.fadeOut(500, 5, 7, 13) — start fade telegraph.
+- Event-driven sequencing (per advisor round-6 Q1, BLOCKER):
+  camera.once(FADE_OUT_COMPLETE, callback) — NOT synchronous. World swap only after
+  screen fully black. Prevents frame overlap between old/new worlds.
+- Inside FADE_OUT_COMPLETE callback:
+  try {
+    WorldSystem.travelTo(toAreaId, toSection) — returns false on failure (doesn't throw),
+    we treat false as error and throw to enter catch.
+    WorldSystem.getEntryBonfireId(toAreaId) — finds entry bonfire via isEntryPoint flag
+    (NOT naming convention, per advisor round-4 Note 2).
+    SaveSystem.lightBonfire(entryBonfireId) — preLit policy enforcement.
+    SaveSystem.saveCheckpoint({...toX, toY}) — set spawn position for new area.
+    cleanupPlay() + setState('play') — destroy old world + build new.
+    camera.fadeIn(300, 5, 7, 13) — fade back in on new scene.
+  } catch (err) {
+    console.error + camera.fadeIn(300) FORCED — prevents permanent black screen
+    (per advisor round-7 Note 2). Shows toast with error message (truncated 60 chars).
+    Does NOT rethrow — finally resets state, player keeps playing in current area.
+  } finally {
+    gateTransitioning = false — guaranteed reset (per advisor round-5 Note 2).
+    InputSystem.setGameplayBlocked(false) — unblock input.
+    exitGateCollisionCount = 0 — reset debug counter.
+  }
+
+Helper: WorldSystem.getEntryBonfireId(areaId) (src/game/world/WorldSystem.ts):
+- New static method finds entry bonfire via isEntryPoint flag.
+- Returns undefined if area has no entry bonfire (data error, logged but not fatal).
+- Used by C3 to auto-light destination's entry bonfire (preLit policy).
+
+Helper: PlayerEntity.extendInvuln(ms) (src/game/entities/player/PlayerEntity.ts):
+- New public method extends invulnUntil using Math.max (never shortens existing window).
+- Used by C3 to grant temp invuln during fade without breaking dash invuln.
+
+Browser test results:
+- HAPPY PATH (factory_1 → factory_2):
+  * Manually unlocked factory_2 + factory_3 in IndexedDB (unlockedByDefault: false,
+    normally unlocked by boss kills).
+  * Player crossed gate via velocity (setVelocityX 30).
+  * Console: "[ExitGate] CROSSED gate gate_factory1_to_2 → area factory_2 section 1"
+  * Console: "[ExitGate] Lit entry bonfire bf_factory2_1 in factory_2" ← preLit policy!
+  * Console: "[ExitGate] Travel complete: now in factory_2"
+  * Console: "[ExitGate] gateTransitioning reset to false (finally)"
+  * Player now at x=200 (factory_2 spawn from gate.toX=200).
+  * loadedArea: 2 bonfires + 1 exit gate (factory_2's gate to factory_3).
+  * bf_factory2_1 isLit=true (auto-lit by gate crossing).
+  * bf_factory2_2 isLit=false (player hasn't reached it).
+  * Save data: litBonfires=["bf_factory1_1","bf_factory2_1"], checkpoint.areaId="factory_2".
+  * 0 page errors.
+
+- ERROR PATH (intentionally corrupted toAreaId="nonexistent_area"):
+  * Set gate's physicsBody toAreaId to "nonexistent_area".
+  * Player crossed gate.
+  * Console: "[ExitGate] CROSSED gate gate_factory2_to_3 → area nonexistent_area section 1"
+  * Console: "[error] [ExitGate] Travel FAILED — recovering: Error: WorldSystem.travelTo failed"
+  * Console: "[ExitGate] gateTransitioning reset to false (finally)"
+  * Player at x=2824 (still in factory_2 — travel aborted).
+  * gateTransitioning=false (correctly reset).
+  * State remains 'play' (player can continue playing in current area).
+  * Toast displayed: "[GATE ERROR] WorldSystem.travelTo failed for area nonexistent_area — area"
+    (truncated to 60 chars per errMsg.slice(0, 60)).
+  * Camera NOT stuck black (fadeIn forced in catch).
+  * 0 page errors (the [error] log is our intentional console.error, not a page error).
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- validate-section-bounds.ts: 0 ERROR, 2 INFO. PASS.
+- Browser test: happy path + error path both pass, 0 page errors.
+
+Stage Summary:
+- C5 complete: gate_travel SFX added BEFORE C3 (prevents TOAST-pattern bug).
+- C3 complete: full handleExitGate with event-driven FADE_OUT_COMPLETE sequencing.
+- BOTH invuln AND gameplayBlocked (per advisor round-7 Note 1) — complementary.
+- catch block forces fadeIn + shows toast (per advisor round-7 Note 2) — no permanent black screen.
+- finally block guarantees gateTransitioning + gameplayBlocked reset (per advisor round-5 Note 2).
+- preLit policy enforced via isEntryPoint flag (per advisor round-4 Note 2) — bf_factory2_1 auto-lit.
+- Happy path: factory_1 → factory_2 travel works, bonfire auto-lit, save data persisted.
+- Error path: invalid toAreaId → catch fires, fadeIn forced, toast shown, player stays in current area.
+- Ready for advisor final verification of Phase C.

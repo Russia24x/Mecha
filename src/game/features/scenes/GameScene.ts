@@ -721,27 +721,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Handle exit gate collision — inter-area transition (Phase C).
+   * Handle exit gate collision — inter-area transition (Phase C, full C3 implementation).
    *
-   * Per advisor round-5:
+   * Per advisor round-5/6:
    *  - Debounce: gateTransitioning flag lives in GameScene (NOT CollisionController).
    *    First collisionstart → flag=true, subsequent ones ignored until travel completes.
    *  - Reset in `finally` block: even if buildPlay early-returns on missing area
    *    (PlayController.build line 160), the flag is guaranteed to reset.
-   *  - Temp invuln: player.invulnUntil = scene.time.now + 600 during fade window
-   *    (prevents PLAYER_DEAD during pending travelTo).
-   *
-   * C1+C2 mid-phase checkpoint (current): stub handler that verifies:
-   *  1. collisionstart fires when player walks through gate sensor (isSensor confirmed).
-   *  2. Debounce works — only first collision per crossing triggers handler body.
-   *  3. Multiple crossings each fire exactly once (gateTransitioning resets correctly).
-   *
-   * C3 will replace this stub with full implementation:
-   *  - fade telegraph (camera.fadeOut 500ms)
-   *  - AudioSystem.play('gate_travel') [requires C5 SFX addition]
-   *  - WorldSystem.travelTo(toAreaId, toSection)
-   *  - SaveSystem.lightBonfire(getEntryBonfireId(toAreaId)) [preLit policy]
-   *  - cleanupPlay + buildPlay in try/finally with gateTransitioning reset.
+   *  - BOTH invuln AND gameplayBlocked (per advisor round-7 Note 1):
+   *    * setGameplayBlocked(true) blocks player INPUT (can't move/fire/interact).
+   *    * invulnUntil = now + 600 blocks DAMAGE (enemies still move per physics not paused).
+   *    * These are COMPLEMENTARY, not substitutes — gameplayBlocked alone would make
+   *      the player MORE vulnerable (can't dodge) since enemies can still hit.
+   *  - Event-driven sequencing (per advisor round-6 Q1, BLOCKER):
+   *    * camera.once(FADE_OUT_COMPLETE) — NOT synchronous. World destruction only
+   *      after screen fully black. Prevents frame overlap between old/new worlds.
+   *  - Error recovery (per advisor round-7 Note 2):
+   *    * catch block forces camera.fadeIn even if buildPlay throws — prevents
+   *      permanent black screen. Logs error + shows toast for visibility.
+   *    * Matches AutoSaveManager pattern (try/catch with error handling, not raw throw).
+   *  - preLit policy enforcement: SaveSystem.lightBonfire(getEntryBonfireId(toAreaId))
+   *    auto-lights destination's entry bonfire (isEntryPoint flag, not naming convention).
    */
   private handleExitGate(gateData: ExitGatePayload): void {
     // ── Debounce guard ──
@@ -753,14 +753,96 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.gateTransitioning = true;
-    this.exitGateCollisionCount = 1;  // first collision of this crossing
-    console.log(`[ExitGate] CROSSED gate ${gateData.id} → area ${gateData.toAreaId} section ${gateData.toSection} (collision #1, gateTransitioning=true)`);
+    this.exitGateCollisionCount = 1;
+    console.log(`[ExitGate] CROSSED gate ${gateData.id} → area ${gateData.toAreaId} section ${gateData.toSection}`);
 
-    // C1+C2 mid-phase: stub — no actual travel yet. Reset flag so player
-    // can cross again for testing. C3 will replace this with full
-    // fade + travelTo + try/finally implementation.
-    this.gateTransitioning = false;
-    this.hud?.toast(`[STUB] Gate ${gateData.id} → ${gateData.toAreaId} (C3 will travel)`);
+    // ── Pre-fade setup (synchronous, before fade starts) ──
+    // 1. Block player INPUT — prevents interact with bonfire/another gate during fade.
+    InputSystem.setGameplayBlocked(true);
+    // 2. Temp invuln (600ms = 500ms fade + 100ms buffer) — prevents PLAYER_DEAD during
+    //    fade window. Matter physics NOT paused, so enemies still move + can hit player.
+    //    gameplayBlocked alone makes player MORE vulnerable (can't dodge), so BOTH needed.
+    //    Uses extendInvuln (Math.max) so it never shortens an existing invuln window.
+    if (this.player && this.player.sprite?.active) {
+      this.player.extendInvuln(600);
+    }
+    // 3. Play gate_travel SFX (C5 added this to SFX_REGISTRY before C3, so it exists).
+    AudioSystem.play('gate_travel');
+    // 4. Start fade telegraph — screen fades to black over 500ms.
+    this.cameras.main.fadeOut(500, 5, 7, 13);
+
+    // ── Event-driven sequencing: world swap only after screen fully black ──
+    // Per advisor round-6 Q1: synchronous execution would defeat telegraph purpose
+    // (scene change instant, just black layer on top). FADE_OUT_COMPLETE fires only
+    // after screen is fully black, so player never sees half-built scene.
+    this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+      try {
+        // Travel to destination area (updates WorldSystem.current).
+        // travelTo returns false on failure (area not found / locked / ability-gated)
+        // — does NOT throw. We treat false as an error for recovery purposes.
+        const traveled = WorldSystem.travelTo(gateData.toAreaId, gateData.toSection);
+        if (!traveled) {
+          throw new Error(`WorldSystem.travelTo failed for area ${gateData.toAreaId} — area not found, locked, or ability-gated`);
+        }
+
+        // preLit policy enforcement: auto-light destination's entry bonfire.
+        // Identified by isEntryPoint flag (NOT naming convention bf_X_1).
+        const entryBonfireId = WorldSystem.getEntryBonfireId(gateData.toAreaId);
+        if (entryBonfireId) {
+          SaveSystem.lightBonfire(entryBonfireId);
+          console.log(`[ExitGate] Lit entry bonfire ${entryBonfireId} in ${gateData.toAreaId}`);
+        } else {
+          // Data error — every area should have exactly one isEntryPoint bonfire.
+          // Not fatal (player can still travel), but log for debugging.
+          console.warn(`[ExitGate] No entry bonfire (isEntryPoint=true) found in ${gateData.toAreaId} — preLit policy not enforced`);
+        }
+
+        // Set player spawn position for the new area (from gate data).
+        // cleanupPlay + buildPlay will use CheckpointSystem.getRespawnPosition,
+        // but we override with the gate's toX/toY for precise placement.
+        // Done by setting checkpoint before buildPlay.
+        const loc = WorldSystem.getCurrent();
+        SaveSystem.saveCheckpoint({
+          actId: loc.actId,
+          regionId: loc.regionId,
+          areaId: loc.areaId,
+          section: gateData.toSection,
+          x: gateData.toX,
+          y: gateData.toY,
+          timestamp: Date.now(),
+        });
+
+        // Destroy old world + build new one.
+        this.cleanupPlay();
+        this.setState('play');  // triggers buildPlay via state machine
+
+        // Fade back in on the new scene.
+        this.cameras.main.fadeIn(300, 5, 7, 13);
+        console.log(`[ExitGate] Travel complete: now in ${gateData.toAreaId}`);
+      } catch (err) {
+        // ── Error recovery (per advisor round-7 Note 2) ──
+        // If buildPlay throws (e.g., area data corrupted) or travelTo failed,
+        // we MUST force fadeIn — otherwise screen stays black forever while
+        // player input is unblocked (finally ran), giving appearance of crash.
+        // Matches AutoSaveManager pattern: try/catch with error handling,
+        // not raw throw.
+        console.error('[ExitGate] Travel FAILED — recovering:', err);
+        this.cameras.main.fadeIn(300, 5, 7, 13);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        this.hud?.toast(`[GATE ERROR] ${errMsg.slice(0, 60)}`);
+        // Note: we do NOT rethrow — finally will reset state, player keeps playing
+        // in the current (old) area. The gate is now blocked (gateTransitioning
+        // reset in finally) so player can try again or quit to hub.
+      } finally {
+        // ── Guaranteed reset (per advisor round-5 Note 2) ──
+        // Even if travelTo threw, buildPlay early-returned, or any other error
+        // occurred, these resets MUST happen — otherwise game is stuck.
+        this.gateTransitioning = false;
+        InputSystem.setGameplayBlocked(false);
+        this.exitGateCollisionCount = 0;
+        console.log('[ExitGate] gateTransitioning reset to false (finally)');
+      }
+    });
   }
 
   // ─── Boss Health Bar ─────────────────────────────────────────────────

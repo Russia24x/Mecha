@@ -317,6 +317,17 @@ export class PlayerEntity {
 
   get isInvulnerable(): boolean { return this.scene.time.now < this.invulnUntil; }
 
+  /**
+   * Extend the invulnerability window to `scene.time.now + ms`.
+   * Used by GameScene.handleExitGate (Phase C) to grant temp invuln during
+   * the 500ms fade telegraph — prevents PLAYER_DEAD from enemy contact while
+   * player input is blocked (gameplayBlocked=true) and can't dodge.
+   * Uses Math.max so it never shortens an existing invuln window (e.g., dash).
+   */
+  extendInvuln(ms: number): void {
+    this.invulnUntil = Math.max(this.invulnUntil, this.scene.time.now + ms);
+  }
+
   get weapon(): WeaponId { return this.currentWeapon; }
   get weaponData(): WeaponData { return getWeapon(this.currentWeapon); }
   get hasAbility(): (ability: string) => boolean { return (a: string) => this.abilities.has(a); }
