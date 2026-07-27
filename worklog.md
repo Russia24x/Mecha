@@ -2912,3 +2912,63 @@ Stage Summary:
 - Happy path: factory_1 → factory_2 travel works, bonfire auto-lit, save data persisted.
 - Error path: invalid toAreaId → catch fires, fadeIn forced, toast shown, player stays in current area.
 - Ready for advisor final verification of Phase C.
+
+---
+Task ID: C-followup-respawn-test+C6+e2e
+Agent: main
+Task: Address advisor round-8 concerns — verify respawn-at-bonfire, implement C6 validator, end-to-end test factory_1→2→3→boss
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 2652f5d (synced, ahead 0 behind 0).
+
+- Forensics Q1 (old checkpoint triggers in factory areas?):
+  * grep acts.ts: factory_1/2/3 all have `checkpointSections: []` (empty array).
+  * AreaLoader.load() line 120: `for (const secId of area.checkpointSections)` — iterates empty array = NO checkpoint triggers created.
+  * Old checkpoint triggers (Matter sensors) only exist in: drowned_wastes_1 (sections 2,5,8), Act III/IV/V areas (not yet migrated to multi-area).
+  * CONCLUSION: No conflict in factory areas — only bonfire system is active. Old checkpoint triggers will be removed when those areas are migrated in Phase A4-A6.
+
+- Forensics Q2 (does tryInteract update respawn position?):
+  * BonfireController.tryInteract (lines 159-171): calls BOTH:
+    - CheckpointSystem.activate(data.section, data.x, data.y) — sets currentCheckpoint + SaveSystem.saveCheckpoint
+    - SaveSystem.saveCheckpoint({actId, regionId, areaId, section, x: data.x, y: data.y, timestamp})
+  * Both save the bonfire's exact position. CheckpointSystem.getRespawnPosition reads from saved checkpoint.
+  * CONCLUSION: tryInteract DOES update respawn position to bonfire location.
+
+- Browser test: rest at bonfire → die → verify respawn at bonfire:
+  * Rested at bf_factory1_1 (200, 540): toast "RESTED" shown.
+  * Save checkpoint: {areaId: "factory_1", x: 200, y: 540} (bonfire position, NOT auto-checkpoint y=420).
+  * Note: auto-checkpoint on area entry (PlayController.build line 217-225) fires with y=420 FIRST, but bonfire rest overwrites it with y=540.
+  * Killed player (takeDamage 200 → hp=0, alive=false).
+  * State → gameover → RETRY (setState('play')).
+  * Player respawned at (190, 585) — close to bonfire (200, 540). Small offset from gravity (player falls after spawn).
+  * CONCLUSION: Respawn-at-bonfire WORKS correctly. Dark-Souls-like behavior confirmed.
+
+- C6: Extended validate-section-bounds.ts with exit gate reference validation:
+  * Checks every exitGate.toAreaId exists in ACTS data (via getArea()).
+  * Checks toSection in valid range [1, destArea.sections.length].
+  * Checks toX in [0, destArea.totalWidth].
+  * Checks toY in [0, 720] (GAME.HEIGHT) — WARN if outside (may spawn off-screen).
+  * Result: 2 gates checked (gate_factory1_to_2, gate_factory2_to_3), 0 ERROR, 0 WARN. PASS.
+
+- End-to-end test: factory_1 → factory_2 → factory_3 → boss:
+  * Manually unlocked factory_2 + factory_3 in IndexedDB (unlockedByDefault: false, normally unlocked by boss kills).
+  * Crossed gate_factory1_to_2: CROSSED → Lit bf_factory2_1 → Travel complete → reset. Player at x=200 in factory_2.
+  * Crossed gate_factory2_to_3: CROSSED → Lit bf_factory3_1 → Travel complete → reset. Player at x=200 in factory_3.
+  * factory_3 has 0 exit gates (last area) + boss entry trigger (bossId: "guardian_ax09").
+  * bf_factory3_1 isLit=true (auto-lit by gate crossing), bf_factory3_2 isLit=false (near boss, not yet lit).
+  * Save after AutoSaveManager flush (35s): litBonfires=["bf_factory1_1","bf_factory2_1","bf_factory3_1"], checkpoint.areaId="factory_3".
+  * 0 page errors throughout.
+
+- Note on AutoSaveManager timing: lightBonfire() calls persist() which only sets dirty=true. Actual IndexedDB write happens every 30s via AutoSaveManager. In-memory cache is immediately correct (BonfireController reads from in-memory). This is existing behavior, not a bug.
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- validate-section-bounds.ts (with C6): 0 ERROR, 2 INFO, 0 gate errors. PASS.
+- Browser test: respawn-at-bonfire PASS, end-to-end factory_1→2→3→boss PASS, 0 page errors.
+
+Stage Summary:
+- Q1 RESOLVED: No old checkpoint triggers in factory areas (checkpointSections: []). No conflict.
+- Q2 RESOLVED: tryInteract DOES update respawn position (calls CheckpointSystem.activate + SaveSystem.saveCheckpoint with bonfire x/y). Browser test confirmed respawn at bonfire.
+- C6 COMPLETE: validator extended, all exit gate references valid.
+- End-to-end COMPLETE: factory_1→2→3→boss chain works, all entry bonfires auto-lit, save data correct.
+- Phase C fully verified. Ready for Phase D (World Map fast-travel).

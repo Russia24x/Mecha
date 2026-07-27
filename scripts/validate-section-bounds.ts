@@ -76,10 +76,114 @@ if (infos.length > 0) {
   for (const i of infos) console.log(`  ${i.field} "${i.objectId}": x=${i.x}, ${i.message}`);
 }
 
-if (errors.length > 0) {
-  console.log('\n❌ FAIL: Objects beyond world bounds found.');
+// ── C6: Exit Gate reference validation ──
+// Per advisor round-5 Note 4 (preventive): check that every exitGate.toAreaId
+// actually exists in ACTS data, and toSection is within valid range of that area.
+// Prevents "gate to nowhere" bugs that only manifest when player physically
+// reaches the gate and tries to cross (same class as TOAST — silent failure).
+console.log('\n── Exit Gate Reference Validation (C6) ──');
+import { getArea } from '../src/game/data/acts/acts';
+
+interface GateRefIssue {
+  sourceArea: string;
+  gateId: string;
+  toAreaId: string;
+  toSection: number;
+  severity: 'ERROR' | 'WARN';
+  message: string;
+}
+
+const gateRefIssues: GateRefIssue[] = [];
+let gatesChecked = 0;
+
+for (const act of ACTS) {
+  for (const region of act.regions) {
+    for (const area of region.areas) {
+      for (const section of area.sections) {
+        if (!section.exitGates) continue;
+        for (const gate of section.exitGates) {
+          gatesChecked++;
+          const destArea = getArea(gate.toAreaId);
+          if (!destArea) {
+            gateRefIssues.push({
+              sourceArea: area.id,
+              gateId: gate.id,
+              toAreaId: gate.toAreaId,
+              toSection: gate.toSection,
+              severity: 'ERROR',
+              message: `toAreaId "${gate.toAreaId}" does not exist in ACTS data`,
+            });
+            continue;
+          }
+          // Check toSection is within valid range [1, destArea.sections.length]
+          const maxSection = destArea.sections.length;
+          if (gate.toSection < 1 || gate.toSection > maxSection) {
+            gateRefIssues.push({
+              sourceArea: area.id,
+              gateId: gate.id,
+              toAreaId: gate.toAreaId,
+              toSection: gate.toSection,
+              severity: 'ERROR',
+              message: `toSection ${gate.toSection} out of range [1, ${maxSection}] for area "${gate.toAreaId}"`,
+            });
+          }
+          // Check toX/toY are within destination area bounds
+          if (gate.toX < 0 || gate.toX > destArea.totalWidth) {
+            gateRefIssues.push({
+              sourceArea: area.id,
+              gateId: gate.id,
+              toAreaId: gate.toAreaId,
+              toSection: gate.toSection,
+              severity: 'ERROR',
+              message: `toX ${gate.toX} out of range [0, ${destArea.totalWidth}] for area "${gate.toAreaId}"`,
+            });
+          }
+          if (gate.toY < 0 || gate.toY > 720) {  // GAME.HEIGHT = 720
+            gateRefIssues.push({
+              sourceArea: area.id,
+              gateId: gate.id,
+              toAreaId: gate.toAreaId,
+              toSection: gate.toSection,
+              severity: 'WARN',
+              message: `toY ${gate.toY} out of range [0, 720] for area "${gate.toAreaId}" — may spawn off-screen`,
+            });
+          }
+        }
+      }
+    }
+  }
+}
+
+console.log(`Checked ${gatesChecked} exit gate references.`);
+console.log(`Gate ref issues: ${gateRefIssues.filter(i => i.severity === 'ERROR').length} ERROR, ${gateRefIssues.filter(i => i.severity === 'WARN').length} WARN\n`);
+
+const gateErrors = gateRefIssues.filter(i => i.severity === 'ERROR');
+const gateWarns = gateRefIssues.filter(i => i.severity === 'WARN');
+
+if (gateErrors.length > 0) {
+  console.log('❌ GATE ERRORS (broken exit gate references):');
+  for (const e of gateErrors) {
+    console.log(`  ${e.sourceArea} → gate "${e.gateId}": ${e.message}`);
+  }
+}
+
+if (gateWarns.length > 0) {
+  console.log('\n⚠️  GATE WARNINGS (suspicious but not fatal):');
+  for (const w of gateWarns) {
+    console.log(`  ${w.sourceArea} → gate "${w.gateId}": ${w.message}`);
+  }
+}
+
+if (gateErrors.length === 0) {
+  console.log('✅ PASS: All exit gate references valid.');
+}
+
+// ── Final exit code ──
+const totalErrors = errors.length + gateErrors.length;
+if (totalErrors > 0) {
+  console.log(`\n❌ FAIL: ${totalErrors} total errors found.`);
   process.exit(1);
 } else {
-  console.log('\n✅ PASS: No objects beyond world bounds.');
+  console.log('\n✅ PASS: All validations passed.');
   process.exit(0);
 }
