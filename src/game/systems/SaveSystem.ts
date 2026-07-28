@@ -318,7 +318,8 @@ export class SaveSystem {
     if (!migrated.npcFlags) migrated.npcFlags = {};
     // E5 fix: default unlockedAreas was 'abandoned_factory' (old ID) — now use
     // 'factory_1' (post-split entry area) so new saves start with correct unlock.
-    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['factory_1', 'toxic_forest'];
+    // toxic_forest removed from defaults — it's unlocked by Iron Magistrate kill.
+    if (!migrated.unlockedAreas) migrated.unlockedAreas = ['factory_1'];
     if (!migrated.discoveredAreas) migrated.discoveredAreas = [];
     // E5: ensure litBonfires exists (new field in Phase A, old saves won't have it)
     if (!migrated.litBonfires) migrated.litBonfires = [];
