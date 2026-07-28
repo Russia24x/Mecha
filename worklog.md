@@ -3240,3 +3240,54 @@ Stage Summary:
 - 3 real bugs found + fixed via browser tests (TOAST event, gate Y position, migration missing Act I entries).
 - Phase F (enemy respawn) deferred to new session — needs user design input on F1 questions.
 - Ready for final report to user.
+
+---
+Task ID: A4-act2-split
+Agent: main
+Task: Split Act II (drowned_wastes_1, 15360px) into 3 areas: wastes_1/2/3 + bonfires + exit gates + migration + localization
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 01f07c9 (synced, ahead 0 behind 0).
+- Forensics: Act II had 10 sections (15360px), checkpointSections [2,5,8], boss leviathan_hulk in section 10.
+- Forensics: leviathan_hulk appears only once (no duplicate — A7 lesson applied).
+- Forensics: checkpointSections [2,5,8] would conflict with bonfires (advisor round-12 BLOCKER).
+
+Split plan (per advisor approval, 4-4-3 sections):
+- wastes_1: sections 1-4 (6144px) — The Shore → Shallow Waters → The Fog → The Wreckage + exit gate
+- wastes_2: sections 5-7 (4608px) — The Approach → Submerged Hall → The Graveyard + exit gate (rebased -6144)
+- wastes_3: sections 8-10 (4608px) — The Shadow → The Vigil → Leviathan's Rest (boss) (rebased -10752)
+
+Changes:
+- acts.ts: Replaced drowned_wastes_1 with 3 new areas. All coordinates rebased:
+  * wastes_1: no rebase (sections 1-4 already at x=0)
+  * wastes_2: all x coords - 6144 (section 5→1 at x=0, section 6→2 at x=1536, section 7→3 at x=3072)
+  * wastes_3: all x coords - 10752 (section 8→1 at x=0, section 9→2 at x=1536, section 10→3 at x=3072)
+- checkpointSections: [2,5,8] → [] for all 3 areas (replaced by bonfires, per advisor round-12).
+- Bonfires added (2 per area, isEntryPoint on first):
+  * wastes_1: bf_wastes1_1 (entry, isEntryPoint) + bf_wastes1_2 (section 2 end)
+  * wastes_2: bf_wastes2_1 (entry, isEntryPoint) + bf_wastes2_2 (section 3 end)
+  * wastes_3: bf_wastes3_1 (entry, isEntryPoint) + bf_wastes3_2 (near boss)
+- Exit gates: gate_wastes1_to_2 (end of section 4), gate_wastes2_to_3 (end of section 3 in wastes_2).
+- Cross-section placements preserved (per Stage 1.6a audit):
+  * lore_w8_shadow: original x=14400 → rebased to 3648 (in wastes_3 section 3's range) — narrative timing preserved.
+  * lm_w8_leviathan_silhouette: original x=12928 → rebased to 2176 (in wastes_3 section 2's range) — first sighting preserved.
+- Migration: 'drowned_wastes_1' → 'wastes_1' added to areaIdMigrations in SaveSystem.ts.
+- Localization: 11 new keys in en.json + fa.json:
+  * 6 bonfire names (bf_wastes1_1 through bf_wastes3_2)
+  * 2 gate labels (gate.wastes1_to_2.label, gate.wastes2_to_3.label)
+  * 3 area names (area.wastes_1.name, area.wastes_2.name, area.wastes_3.name)
+- Boss unlock chain fixed: GameScene.ts line 1264 'drowned_wastes_1' → 'wastes_1' (Guardian AX-09 kill unlocks Act II entry).
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/.
+- validate-section-bounds.ts: 4 exit gates checked (2 factory + 2 wastes), 0 ERROR, 0 gate errors. PASS.
+- en.json + fa.json: valid JSON.
+- Cross-section placements show as INFO (expected — intentional narrative placements).
+
+Stage Summary:
+- Act II split complete: 15360px single area → 3 areas (6144 + 4608 + 4608px).
+- All bonfires/exit gates/migration/localization added.
+- checkpointSections cleared (replaced by bonfires).
+- Cross-section narrative placements preserved.
+- Boss unlock chain updated to new area ID.
+- Ready for E3 benchmark (FPS test in wastes_1, largest area) + browser test.

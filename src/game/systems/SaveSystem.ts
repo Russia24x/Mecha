@@ -242,6 +242,8 @@ export class SaveSystem {
       // Act I — pre-split area IDs → factory_1 (entry area)
       'factory': 'factory_1',            // old region-as-area ID (pre-v3)
       'abandoned_factory': 'factory_1',  // old v3 area ID
+      // Act II — pre-split area ID → wastes_1 (entry area)
+      'drowned_wastes_1': 'wastes_1',    // old v3 area ID (was 15360px single area)
       // Act III — pre-split area IDs → act3_ward_1 (entry area)
       'last_city_1': 'act3_ward_1',
       'act3_outer_ward': 'act3_ward_1',

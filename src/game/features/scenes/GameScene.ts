@@ -1259,9 +1259,9 @@ export class GameScene extends Phaser.Scene {
         this.hud?.toast(getLocale() === 'fa' ? 'رنگ جدید: سبز نظامی' : 'NEW PAINT: Military Green');
       }
     }
-    // Act I boss: Guardian AX-09 → unlock Act II (Drowned Wastes)
+    // Act I boss: Guardian AX-09 → unlock Act II entry area (wastes_1)
     if (data.id === 'guardian_ax09') {
-      SaveSystem.unlockArea('drowned_wastes_1');
+      SaveSystem.unlockArea('wastes_1');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: باتلاق غرق‌شده' : 'NEW AREA: The Drowned Wastes');
     }
     // Act II boss: Leviathan Hulk → unlock Act III (all 3 areas at once)
