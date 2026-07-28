@@ -647,7 +647,7 @@ export const ACTS: ActData[] = [
             id: 'act3_ward_2',
             nameKey: 'area.act3_ward_2.name',
             regionId: 'city',
-            totalWidth: 6144,
+            totalWidth: 12288,
             sectionWidth: 1536,
             bgColor: 0x0a0806,
             checkpointSections: [],
@@ -716,10 +716,84 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 5780, y: 660, w: 100, h: 20, damage: 10 },
               ], landmarks: [
                 { id: 'lm_c8_judge_chair', type: 'tower', x: 5260, y: 100, w: 200, h: 200, color: 0x2a2020 },
+              ]},
+
+              // S5: Ruined Boulevard — extended area for city_bg_3 visibility
+              // Memory Layer: faded election posters on shattered walls.
+              { id: 5, nameKey: 'section.city.13.name', x: 6144, enemies: ['sniper', 'sniper', 'heavy'], platforms: [
+                { x: 6300, y: 540, w: 200, h: 24 },
+                { x: 6600, y: 480, w: 160, h: 20 },
+                { x: 6900, y: 420, w: 140, h: 20 },
+                { x: 7200, y: 480, w: 160, h: 20 },
+                { x: 7500, y: 540, w: 200, h: 24 },
+                { x: 6500, y: 300, w: 120, h: 16 },
+                { x: 7000, y: 260, w: 100, h: 16 },
+                { x: 7400, y: 300, w: 120, h: 16 },
+              ], hazards: [
+                { type: 'spike', x: 6750, y: 640, w: 80, h: 20, damage: 15 },
+              ], loreObjects: [
+                { id: 'lore_c13_poster', type: 'terminal', x: 6500, y: 270, titleKey: 'lore.c13.poster.title', textKey: 'lore.c13.poster.text' },
+              ], collectibles: [
+                { id: 'col_c13_health', type: 'health_fragment', x: 7000, y: 230 },
+              ]},
+
+              // S6: The Square — open area with memorial statue
+              // Memory Layer: names carved into stone memorial.
+              { id: 6, nameKey: 'section.city.14.name', x: 7680, enemies: ['heavy', 'sniper', 'heavy'], platforms: [
+                { x: 7800, y: 540, w: 300, h: 24 },
+                { x: 8200, y: 460, w: 200, h: 20 },
+                { x: 8500, y: 380, w: 160, h: 20 },
+                { x: 8800, y: 460, w: 200, h: 20 },
+                { x: 9100, y: 540, w: 300, h: 24 },
+                { x: 7900, y: 280, w: 160, h: 16 },
+                { x: 8400, y: 220, w: 120, h: 16 },
+                { x: 8900, y: 280, w: 160, h: 16 },
+              ], landmarks: [
+                { id: 'lm_c14_memorial', type: 'statue', x: 8500, y: 420, w: 120, h: 200, color: 0x2a2a30 },
+              ], loreObjects: [
+                { id: 'lore_c14_memorial', type: 'corpse', x: 8500, y: 200, titleKey: 'lore.c14.memorial.title', textKey: 'lore.c14.memorial.text' },
+              ], collectibles: [
+                { id: 'col_c14_skill', type: 'skill_point', x: 8400, y: 190, requiredAbility: 'doubleJump' },
+              ]},
+
+              // S7: Ashfall Court — transitional, atmospheric
+              // Memory Layer: courtroom with empty jury box.
+              { id: 7, nameKey: 'section.city.15.name', x: 9216, enemies: ['sniper', 'sniper'], platforms: [
+                { x: 9400, y: 540, w: 200, h: 24 },
+                { x: 9700, y: 480, w: 160, h: 20 },
+                { x: 10000, y: 420, w: 140, h: 20 },
+                { x: 10300, y: 480, w: 160, h: 20 },
+                { x: 10600, y: 540, w: 200, h: 24 },
+                { x: 9600, y: 300, w: 120, h: 16 },
+                { x: 10100, y: 260, w: 100, h: 16 },
+                { x: 10500, y: 300, w: 120, h: 16 },
+              ], hazards: [
+                { type: 'spike', x: 9850, y: 640, w: 80, h: 20, damage: 15 },
+                { type: 'spike', x: 10450, y: 640, w: 80, h: 20, damage: 15 },
+              ], loreObjects: [
+                { id: 'lore_c15_jury', type: 'terminal', x: 10100, y: 230, titleKey: 'lore.c15.jury.title', textKey: 'lore.c15.jury.text' },
+              ]},
+
+              // S8: Final Approach — bonfire + exit gate to courthouse
+              // Memory Layer: the last checkpoint before the Magistrate.
+              { id: 8, nameKey: 'section.city.16.name', x: 10752, enemies: ['heavy', 'sniper', 'heavy'], platforms: [
+                { x: 10900, y: 540, w: 300, h: 24 },
+                { x: 11300, y: 460, w: 200, h: 20 },
+                { x: 11600, y: 380, w: 160, h: 20 },
+                { x: 11900, y: 460, w: 200, h: 20 },
+                { x: 11100, y: 280, w: 160, h: 16 },
+                { x: 11500, y: 220, w: 120, h: 16 },
+                { x: 11850, y: 280, w: 160, h: 16 },
+                { x: 12100, y: 360, w: 40, h: 200 },
+              ], hazards: [
+                { type: 'lava', x: 10950, y: 660, w: 100, h: 20, damage: 12 },
+                { type: 'lava', x: 11950, y: 660, w: 100, h: 20, damage: 12 },
+              ], landmarks: [
+                { id: 'lm_c16_gavel', type: 'tower', x: 11500, y: 100, w: 160, h: 200, color: 0x2a2020 },
               ], bonfires: [
-                { id: 'bf_act3_ward2_2', x: 5800, y: 660, section: 4 },
+                { id: 'bf_act3_ward2_2', x: 11600, y: 660, section: 8 },
               ], exitGates: [
-                { id: 'gate_act3_ward2_to_courthouse', x: 6000, y: 600, toAreaId: 'act3_courthouse', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward2_to_courthouse.label' },
+                { id: 'gate_act3_ward2_to_courthouse', x: 12100, y: 600, toAreaId: 'act3_courthouse', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward2_to_courthouse.label' },
               ]},
             ],
           },

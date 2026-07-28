@@ -243,21 +243,20 @@ export class ParallaxBackground {
 
     for (let i = 0; i < tileCount; i++) {
       const x = i * tileW;
-      // For city theme: use FIXED image order (not cycling) so each image
-      // covers a specific part of the act:
-      //   Image 1 (bg_1) → beginning (sections 1-2) — industrial shipyard
-      //   Image 2 (bg_2) → middle (sections 3-4) — dense metropolis
-      //   Image 3 (bg_3) → upper-middle (sections 5-6) — sprawling skyline
-      //   Image 4 (bg_4) → end (sections 7-8) — boss arena (neon slums)
-      // For factory/wastes: cycle as before.
       let key: string;
-      if (this.theme === 'city' && bgKeys.length === 4) {
-        // Map tile index to image based on position in world width
+      if (this.theme === 'city' && bgKeys.length === 2) {
+        // ward_2: city_bg_2 first half, city_bg_3 second half (per user round-23)
+        // Each image covers half the world width.
         const worldPct = x / this.worldWidth;
-        if (worldPct < 0.30) key = bgKeys[0];       // sections 1-2
-        else if (worldPct < 0.55) key = bgKeys[1];  // sections 3-4
-        else if (worldPct < 0.78) key = bgKeys[2];  // sections 5-6
-        else key = bgKeys[3];                         // sections 7-8 (boss)
+        if (worldPct < 0.5) key = bgKeys[0];   // city_bg_2
+        else key = bgKeys[1];                    // city_bg_3
+      } else if (this.theme === 'city' && bgKeys.length === 4) {
+        // Legacy 4-image city layout (unused but kept for safety)
+        const worldPct = x / this.worldWidth;
+        if (worldPct < 0.30) key = bgKeys[0];
+        else if (worldPct < 0.55) key = bgKeys[1];
+        else if (worldPct < 0.78) key = bgKeys[2];
+        else key = bgKeys[3];
       } else {
         key = bgKeys[i % bgKeys.length];
       }

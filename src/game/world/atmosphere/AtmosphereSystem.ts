@@ -82,10 +82,11 @@ interface WaterShimmer {
 interface RainDrop {
   x: number;
   y: number;
-  speed: number;   // px/s (300-600)
-  length: number;  // px (6-18)
-  alpha: number;   // 0.15-0.5 (depth variation)
+  speed: number;   // px/s (250-600)
+  length: number;  // px (2-18)
+  alpha: number;   // 0.08-0.5 (depth variation)
   width: number;   // 1 or 2 (closer drops thicker)
+  isFine: boolean;  // true = tiny mist-like dot, false = visible streak
 }
 
 interface Splash {
@@ -422,20 +423,35 @@ export class AtmosphereSystem {
     this.splashGfx.setDepth(91);
     this.splashGfx.setScrollFactor(1, 0);
 
-    // Enhanced rain: 80-100 drops with depth variation (per user round-22)
+    // Enhanced rain: 80-100 drops with depth variation + mixed fine/coarse (per user round-23)
     const qCount = QualityManager.getRainCount();
-    const targetCount = Math.min(100, Math.max(80, qCount * 2));
+    const targetCount = Math.min(120, Math.max(90, qCount * 2));
     for (let i = 0; i < targetCount; i++) {
-      // Depth layer: 0 = far (thin, slow, faint), 1 = near (thick, fast, bright)
       const depth = Math.random();
-      this.rainDrops.push({
-        x: Math.random() * this.worldWidth,
-        y: Math.random() * GAME.HEIGHT,
-        speed: 250 + depth * 350,        // 250-600 px/s (far=near)
-        length: 6 + depth * 12,          // 6-18 px
-        alpha: 0.12 + depth * 0.38,      // 0.12-0.5
-        width: depth > 0.6 ? 2 : 1,      // near drops thicker
-      });
+      const isFine = Math.random() < 0.35;  // 35% are fine mist drops
+      if (isFine) {
+        // Fine mist: tiny, fast, faint — reads as atmospheric haze
+        this.rainDrops.push({
+          x: Math.random() * this.worldWidth,
+          y: Math.random() * GAME.HEIGHT,
+          speed: 200 + Math.random() * 150,   // 200-350 px/s
+          length: 2 + Math.random() * 3,       // 2-5 px (barely visible dots)
+          alpha: 0.06 + Math.random() * 0.08,  // 0.06-0.14 (very faint)
+          width: 1,
+          isFine: true,
+        });
+      } else {
+        // Coarse streaks: visible diagonal lines (existing behavior)
+        this.rainDrops.push({
+          x: Math.random() * this.worldWidth,
+          y: Math.random() * GAME.HEIGHT,
+          speed: 250 + depth * 350,
+          length: 6 + depth * 12,
+          alpha: 0.12 + depth * 0.38,
+          width: depth > 0.6 ? 2 : 1,
+          isFine: false,
+        });
+      }
     }
   }
 
@@ -667,10 +683,9 @@ export class AtmosphereSystem {
       drop.x += sinA * drop.speed * dt;
       drop.y += cosA * drop.speed * dt;
 
-      // Check ground impact → create splash
+      // Check ground impact → create splash (only for coarse drops, not fine mist)
       if (drop.y > groundY) {
-        // Only near drops create visible splashes (depth > 0.4)
-        if (drop.alpha > 0.2 && splashGfx && this.splashes.length < 30) {
+        if (!drop.isFine && drop.alpha > 0.2 && splashGfx && this.splashes.length < 30) {
           this.splashes.push({
             x: drop.x,
             y: groundY,
@@ -688,12 +703,19 @@ export class AtmosphereSystem {
       if (drop.x < -20) drop.x = this.worldWidth + 20;
 
       // Draw with per-drop alpha and width (depth variation)
-      gfx.lineStyle(drop.width, 0x5070a0, drop.alpha);
-      gfx.lineBetween(
-        drop.x, drop.y,
-        drop.x + sinA * drop.length,
-        drop.y + cosA * drop.length,
-      );
+      if (drop.isFine) {
+        // Fine mist: draw as tiny point (not a line) — reads as atmospheric haze
+        gfx.fillStyle(0x6080a0, drop.alpha);
+        gfx.fillCircle(drop.x, drop.y, 1);
+      } else {
+        // Coarse streak: visible diagonal line
+        gfx.lineStyle(drop.width, 0x5070a0, drop.alpha);
+        gfx.lineBetween(
+          drop.x, drop.y,
+          drop.x + sinA * drop.length,
+          drop.y + cosA * drop.length,
+        );
+      }
     }
 
     // Draw + update splashes
