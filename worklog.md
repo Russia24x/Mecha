@@ -3484,3 +3484,52 @@ Stage Summary:
 - Migration code is generic (not Act-specific) — will work for Act IV/V splits without changes.
 - iron_magistrate duplicate boss ID: still fixed (A7 intact).
 - All 3 Acts (I, II, III) migration verified via browser test with deep-progress old saves.
+
+---
+Task ID: A5-browser-test
+Agent: main
+Task: 5-step manual browser test for Act III bonfire/gate/fast-travel system
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 6b1ecc6 (synced, ahead 0 behind 0).
+
+Step 1 — Entry bonfire lit/unlit:
+- Loaded act3_ward_1 via CONTINUE. bf_act3_ward1_1 isLit=false, bf_act3_ward1_2 isLit=false.
+- This is CORRECT per preLit policy: only bf_factory1_1 has preLit=true. All other
+  entry bonfires are lit via gate crossing (isEntryPoint flag). Since we entered via
+  CONTINUE (not gate), the bonfire is correctly unlit until player rests at it.
+- PASS (behavior matches design).
+
+Step 2 — Prompt interference with NPC/Lore:
+- Near bonfire (x=200): prompt = "[E] REST" (correct).
+- Near lore_c1_evac (x=300): prompt briefly showed "[E] EXAMINE", then disappeared
+  when moving back. No overlap — unified nearest-check works correctly in Act III.
+- PASS (no double-prompt, correct switching).
+
+Step 3 — Cross both gates without double-trigger:
+- Gate 1 (ward1→ward2): CROSSED → Lit bf_act3_ward2_1 → Travel complete → reset.
+  Player at x=180 in act3_ward_2. No double-trigger.
+- Gate 2 (ward2→courthouse): CROSSED → Lit bf_act3_courthouse_1 → Travel complete → reset.
+  Player at x=200 in act3_courthouse. No double-trigger.
+- PASS (both gates work, entry bonfires auto-lit via isEntryPoint).
+
+Step 4 — Boss arena entry without regression:
+- In act3_courthouse: bossId="iron_magistrate" (correct).
+- bf_act3_courthouse_1 isLit=true (auto-lit by gate crossing).
+- bf_act3_courthouse_2 isLit=false (near boss, not yet rested).
+- PASS (boss trigger intact, no regression from A7 fix).
+
+Step 5 — Fast-travel from World Map:
+- Opened World Map. Found 4 clickable bonfire sub-nodes (r=6 with input).
+- Clicked one → state=play, player at (200, 505) in act3_courthouse
+  (2 bonfires + 0 exit gates = courthouse area).
+- PASS (fast-travel works, player spawns at bonfire position).
+
+All 5 steps: 0 page errors throughout.
+
+Stage Summary:
+- Act III bonfire/gate/fast-travel system fully tested via browser.
+- All 5 steps PASS: entry bonfire behavior, prompt switching, gate crossing (×2),
+  boss arena entry, fast-travel from World Map.
+- No regression from A7 (iron_magistrate single occurrence).
+- All 3 Acts (I, II, III) now fully tested with bonfire + exit gate + fast-travel.
