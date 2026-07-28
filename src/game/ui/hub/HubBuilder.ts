@@ -17,7 +17,7 @@ import { AudioSystem } from '../../systems/AudioSystem';
 import { SaveSystem } from '../../systems/SaveSystem';
 import { ExperienceSystem } from '../../systems/ExperienceSystem';
 import { WorldSystem } from '../../world/WorldSystem';
-import { WorldMapSystem } from '../../world/WorldMapSystem';
+import { WorldMapSystem, type MapNode } from '../../world/WorldMapSystem';
 import { MenuNavHelper } from '../shared/MenuNavHelper';
 
 export interface HubCallbacks {
@@ -92,50 +92,61 @@ export class HubBuilder {
     })).setOrigin(0.5).setDepth(2));
 
     // === Act-based world map ===
+    // Per advisor round-17: Hub shows ONE card per Act (the entry area),
+    // NOT one card per area. Sub-areas are reachable only via:
+    //   - Exit gates (in-game progression)
+    //   - Fast-travel to lit bonfires (World Map, Phase D)
+    // This prevents bypassing gate progression by clicking sub-areas directly.
     const tree = WorldMapSystem.getMapTree();
 
-    // ── Collect all acts with their areas ──
+    // ── Collect one entry area per Act ──
+    // The entry area is the FIRST area in the FIRST region of each Act.
+    // This matches the unlock chain: boss kills unlock the entry area of
+    // the next Act (e.g., Guardian AX-09 → wastes_1, not wastes_2/3).
     const actData: {
       actId: number;
       actName: string;
-      areas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[];
+      entryArea: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string };
     }[] = [];
     for (const act of tree) {
-      const actAreas: { areaId: string; nameKey: string; unlocked: boolean; isCurrent: boolean; bossDefeated: boolean; hasBoss: boolean; regionId: string }[] = [];
+      // Find the first region with at least one area
+      let entryNode: MapNode | undefined;
       for (const regionData of act.regions) {
-        for (const node of regionData.nodes) {
-          actAreas.push({
-            areaId: node.area.id,
-            nameKey: node.area.nameKey,
-            unlocked: node.unlocked,
-            isCurrent: node.isCurrent,
-            bossDefeated: node.bossDefeated,
-            hasBoss: node.hasBoss,
-            regionId: node.area.regionId,
-          });
+        if (regionData.nodes.length > 0) {
+          entryNode = regionData.nodes[0]; // First area = entry area
+          break;
         }
       }
+      if (!entryNode) continue;
       actData.push({
         actId: act.act.id,
         actName: t(act.act.nameKey),
-        areas: actAreas,
+        entryArea: {
+          areaId: entryNode.area.id,
+          nameKey: entryNode.area.nameKey,
+          unlocked: entryNode.unlocked,
+          isCurrent: entryNode.isCurrent,
+          bossDefeated: entryNode.bossDefeated,
+          hasBoss: entryNode.hasBoss,
+          regionId: entryNode.area.regionId,
+        },
       });
     }
 
-    // ── Layout: Act columns side by side ──
+    // ── Layout: Act columns side by side (one card per Act) ──
     const cardW = 200;
     const cardH = 180;
-    const cardGap = 12;
-    const actGap = 28;
+    const cardGap = 28;
     const actTitleH = 36;
-    const actsToShow = actData.filter(a => a.areas.length > 0);
-    const totalW = actsToShow.length * cardW + (actsToShow.length - 1) * actGap;
+    const actsToShow = actData;
+    const totalW = actsToShow.length * cardW + (actsToShow.length - 1) * cardGap;
     const startX = (w - totalW) / 2 + cardW / 2;
     const baseY = 110;
 
     actsToShow.forEach((act, actIdx) => {
-      const actX = startX + actIdx * (cardW + actGap);
-      const hasUnlocked = act.areas.some(a => a.unlocked);
+      const actX = startX + actIdx * (cardW + cardGap);
+      const area = act.entryArea;
+      const hasUnlocked = area.unlocked;
 
       // ── Act title bar ──
       const actTitleH2 = 44;
@@ -155,9 +166,9 @@ export class HubBuilder {
         wordWrap: { width: cardW - 16 }, align: 'center',
       })).setOrigin(0.5).setDepth(3));
 
-      // ── Area cards inside this Act ──
-      act.areas.forEach((area, areaIdx) => {
-        const cardY = baseY + actTitleH + 20 + areaIdx * (cardH + cardGap) + cardH / 2;
+      // ── Single area card (entry area for this Act) ──
+      {
+        const cardY = baseY + actTitleH + 20 + cardH / 2;
         const previewH = 80;
         const previewW = cardW - 16;
         const previewY = cardY - cardH / 2 + 14 + previewH / 2;
@@ -187,13 +198,11 @@ export class HubBuilder {
           const tex = this.scene.textures.get(actualPreview).getSourceImage();
           const imgAR = tex.width / tex.height;
           const frameAR = previewW / previewH;
-          // "Contain" scaling: image fits entirely within frame (no overflow, no mask needed)
-          // Phaser 4 WebGL doesn't support setMask() — using contain avoids the need
           let scale: number;
           if (imgAR > frameAR) {
-            scale = previewW / tex.width;   // fit by width → height has padding
+            scale = previewW / tex.width;
           } else {
-            scale = previewH / tex.height;  // fit by height → width has padding
+            scale = previewH / tex.height;
           }
           previewImg.setScale(scale);
           c.add(previewImg);
@@ -203,7 +212,6 @@ export class HubBuilder {
           } else if (area.isCurrent) {
             previewImg.setTint(0x99ddff);
           }
-          // Gradient overlay
           const gradient = this.scene.add.rectangle(actX, previewY + previewH / 2 - 10, previewW, 20, 0x05080c, 0.7);
           gradient.setDepth(2.7);
           c.add(gradient);
@@ -245,7 +253,7 @@ export class HubBuilder {
             fontFamily: 'monospace', fontSize: '9px', color: '#2a3040',
           })).setOrigin(0.5).setDepth(3));
         }
-      });
+      }
     });
 
     // === Bottom bar: Navigation icons ===

@@ -3562,3 +3562,53 @@ Browser test:
 - 0 console errors.
 
 Verification: tsc 0 errors. Browser: graceful handling, 0 errors.
+
+---
+Task ID: hub-redesign-audit
+Agent: main
+Task: Full audit + redesign of Hub + unlockedByDefault policy (advisor round-17)
+
+Forensic Report (Step 1 & 2):
+- HubBuilder.ts lines 103-123: iterated ALL areas (not just Act entries).
+  For each Act, it looped through ALL regions → ALL nodes → pushed each area
+  as a separate card. Result: 11 cards in Hub (not 5).
+- Player could directly click ENTER on factory_2/3, wastes_2/3, act3_ward_2/courthouse
+  — bypassing exit gate progression entirely.
+- unlockedByDefault audit: previous fix (set sub-areas to true) solved circular
+  dependency but made sub-areas directly clickable from Hub.
+
+Redesign (Step 3):
+- HubBuilder now shows ONE card per Act — the entry area (first area in first region).
+- Sub-areas are reachable ONLY via:
+  (a) Exit gates (in-game progression)
+  (b) Fast-travel to lit bonfires (World Map, Phase D)
+- Code: replaced `for (const node of regionData.nodes)` loop with `entryNode = regionData.nodes[0]`
+  (first area only). Inner `act.areas.forEach` replaced with single card block.
+
+Policy (Step 4):
+- Entry area of each Act: unlockedByDefault controls Act-level gate.
+  - factory_1: true (Act I entry, always available)
+  - wastes_1: false (Act II entry, unlocked by Guardian AX-09)
+  - act3_ward_1: false (Act III entry, unlocked by Leviathan Hulk)
+  - toxic_forest: true (Act IV entry, also unlocked by Iron Magistrate)
+  - orbital_station_1: false (Act V stub)
+- Sub-areas (factory_2/3, wastes_2/3, act3_ward_2/courthouse): unlockedByDefault: true
+  but IRRELEVANT for Hub — they're not shown there. Their accessibility is controlled
+  by exit gate traversal + bonfire fast-travel, not Hub selection.
+
+Browser test (Step 5) — fresh profile, no IndexedDB manipulation:
+- Deleted ALL IndexedDB databases.
+- NEW GAME → CREATE NEW → entered Hub.
+- Hub shows exactly 5 cards:
+  * ACT I "The Awakening" → ▶ ENTER (unlocked)
+  * ACT II → 🔒 LOCKED
+  * ACT III → 🔒 LOCKED
+  * ACT IV "Toxic Forest" → ▶ ENTER (unlocked by default)
+  * ACT V → 🔒 LOCKED
+- NO sub-area cards (factory_2/3, wastes_2/3, etc.) visible.
+- 0 page errors.
+
+Step 6 — remaining items for user manual test:
+- Full progression factory_1→2→3→boss→wastes_1→2→3→boss→act3_ward_1→... without
+  IndexedDB manipulation — requires killing bosses which needs real gameplay.
+- The Hub now correctly gates Act-level access; within-Act progression is via gates.
