@@ -305,15 +305,26 @@ Per-frame (از PlayController.update):
 
 | # | کار | فایل‌ها | زمان |
 |---|-----|--------|------|
-| E1 | رفع `getRespawnPosition` fallback (خواندن از area data) | CheckpointSystem.ts | 15 min |
-| E2 | رفع `isBossInAreaDefeated` (per-boss tracking به‌جای count) | WorldMapSystem.ts, SaveSystem.ts | 30 min |
-| E3 | بررسی enemy culling با areas کوچک‌تر (benchmark) | PlayController.ts | 30 min |
+| E1 ✅ | رفع `getRespawnPosition` fallback (خواندن از area data) | CheckpointSystem.ts | 15 min |
+| E2 (DEFERRED) | رفع `isBossInAreaDefeated` (per-boss tracking به‌جای count). **Deferred until multiple Acts are split** — فعلاً فقط Act I split شده و heuristic موجود کافی است. وقتی Act II/III split شوند، bossIndex counting ممکن است به‌هم بریزد (چون تعداد areas با boss تغییر می‌کند). آن زمان این task ضروری می‌شود. | WorldMapSystem.ts, SaveSystem.ts | 30 min |
+| E3 (DEFERRED) | بررسی enemy culling با areas کوچک‌تر (benchmark). **Deferred until multiple Acts are split** — فعلاً فقط Act I split شده (3 areas × 3072px) و benchmark معنی‌دار نیست. وقتی Act II (15360px → 3 areas × 5120px) split شود، benchmark واقعی ممکن است. | PlayController.ts | 30 min |
 | E4 | Localization: نام bonfire‌ها + exit gate labels | en.json, fa.json | 30 min |
-| E5 | Migration: تمام area ID‌های قدیمی → جدید | SaveSystem.ts | 30 min |
-| E6 | **رفع `continueCurrentProfile()` bug** — متد `SaveSystem.selectSlot()` را صدا نمی‌زند، به ProfileManager.init() تکیه می‌کند که `GLOBAL_KEY_SELECTED_SLOT` را از IndexedDB می‌خواند. وقتی این global به slot اشتباه اشاره می‌کند، SaveSystem تنظیمات پیش‌فرض (locale='en') را load می‌کند. کشف شده در browser test Phase B. | GameScene.ts | 15 min |
-| E7 | تست کامل: ورود به هر area → bonfire → gate → area بعدی | Manual | 60 min |
+| E5 ✅ | Migration: تمام area ID‌های قدیمی → جدید (Act I: 'factory'/'abandoned_factory' → 'factory_1') | SaveSystem.ts | 30 min |
+| E6 ✅ | **رفع `continueCurrentProfile()` bug** — اضافه‌شدن `await SaveSystem.selectSlot(currentSlot)`. | GameScene.ts | 15 min |
+| E7 | تست کامل: ورود به هر area → bonfire → gate → area بعدی + **regression check Act III (no bonfire data)** | Manual | 60 min |
 
-**مجموع Phase E:** ~3.25 ساعت
+> **Q1 (advisor round-10): `areaIdMigrations` stateless?** YES — verified via forensics.
+> `SaveSystem.loadFromSlot()` (line 90) calls `this.migrate(data)` (line 93) on EVERY slot load.
+> `migrate()` is stateless + idempotent (no `isMigrationDone` flag). The `isMigrationDone` flag
+> in ProfileManager/migrate.ts is for one-time v2→v3→v4 SCHEMA migration (localStorage→IndexedDB),
+> NOT for `areaIdMigrations` (runtime data migration). Future Act II/III/IV/V splits just need
+> to add entries to `areaIdMigrations` map — they'll apply automatically on next loadFromSlot.
+>
+> **Q2 (advisor round-10): E2/E3 status?** Explicitly DEFERRED above — not silently dropped.
+> Both depend on multiple Acts being split (currently only Act I is split). Documented with
+> rationale + when they become necessary.
+
+**مجموع Phase E:** ~3.25 ساعت (E2/E3 deferred، زمان کل کاهش نمی‌یابد چون بعداً لازم است)
 
 ### Phase F — Enemy Respawn at Bonfire Rest (per advisor Point 2)
 **هدف:** دشمنان area هنگام rest در bonfire respawn شوند (به‌جز boss/mini-boss)
