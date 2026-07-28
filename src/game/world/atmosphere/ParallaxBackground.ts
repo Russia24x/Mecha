@@ -159,22 +159,24 @@ export class ParallaxBackground {
     // Factory, Wastes, and City have painted background art
     if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city') return;
 
-    // Determine texture keys based on theme
+    // Determine texture keys based on theme + bgStartIndex (per-area selection).
+    // Per user request (round-19):
+    //   Act I (factory): area 1 → factory_bg_1, area 2 → factory_bg_2, area 3 (boss) → factory_bg_3
+    //   Act II (wastes): area 1 → wastes_bg_1, area 2 → wastes_bg_2, area 3 (boss) → wastes_bg_3
+    //   Act III (city): area 1 → city_bg_1, area 2 → city_bg_2 (double width), area 3 → city_bg_3+city_bg_4 (boss)
     const bgKeys: string[] = [];
     if (this.theme === 'factory') {
-      if (!this.scene.textures.exists('factory_bg_1')) return;
-      bgKeys.push('factory_bg_1');
-      if (this.scene.textures.exists('factory_bg_2')) bgKeys.push('factory_bg_2');
+      // bgStartIndex: 0=factory_1, 1=factory_2, 2=factory_3(boss)
+      const key = `factory_bg_${this.bgStartIndex + 1}`;
+      if (!this.scene.textures.exists(key)) return;
+      bgKeys.push(key);
     } else if (this.theme === 'wastes') {
-      if (!this.scene.textures.exists('wastes_bg_1')) return;
-      bgKeys.push('wastes_bg_1');
-      if (this.scene.textures.exists('wastes_bg_2')) bgKeys.push('wastes_bg_2');
-      if (this.scene.textures.exists('wastes_bg_3')) bgKeys.push('wastes_bg_3');
+      // bgStartIndex: 0=wastes_1, 1=wastes_2, 2=wastes_3(boss)
+      const key = `wastes_bg_${this.bgStartIndex + 1}`;
+      if (!this.scene.textures.exists(key)) return;
+      bgKeys.push(key);
     } else if (this.theme === 'city') {
-      // City: 3 areas, each uses 1 image (no tiling needed).
-      // bgStartIndex determines which image:
-      //   ward_1 → city_bg_1, ward_2 → city_bg_2, courthouse → city_bg_3
-      // Boss arena in courthouse uses city_bg_4 in the boss section.
+      // bgStartIndex: 0=ward_1 → city_bg_1, 1=ward_2 → city_bg_2, 2=courthouse → city_bg_3 + city_bg_4(boss)
       const k1 = `city_bg_${this.bgStartIndex + 1}`;
       if (!this.scene.textures.exists(k1)) return;
       bgKeys.push(k1);

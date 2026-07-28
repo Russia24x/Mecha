@@ -177,9 +177,22 @@ export class PlayController {
       : (area.regionId === 'city') ? 'city'
       : 'factory';
     const parallax = new ParallaxBackground(scene, theme as RegionTheme, area.totalWidth);
-    // For city: set bgStartIndex based on which area we're in
-    // ward_1 → 0 (city_bg_1), ward_2 → 1 (city_bg_2), courthouse → 2 (city_bg_3+4)
-    if (theme === 'city') {
+    // Set bgStartIndex per area — each area uses its own background image.
+    // Per user request (round-19):
+    //   Factory: factory_1→bg1, factory_2→bg2, factory_3(boss)→bg3
+    //   Wastes: wastes_1→bg1, wastes_2→bg2, wastes_3(boss)→bg3
+    //   City: ward_1→bg1, ward_2→bg2, courthouse→bg3+bg4(boss)
+    if (theme === 'factory') {
+      if (area.id === 'factory_1') parallax.bgStartIndex = 0;
+      else if (area.id === 'factory_2') parallax.bgStartIndex = 1;
+      else if (area.id === 'factory_3') parallax.bgStartIndex = 2;
+      else parallax.bgStartIndex = 0;
+    } else if (theme === 'wastes') {
+      if (area.id === 'wastes_1') parallax.bgStartIndex = 0;
+      else if (area.id === 'wastes_2') parallax.bgStartIndex = 1;
+      else if (area.id === 'wastes_3') parallax.bgStartIndex = 2;
+      else parallax.bgStartIndex = 0;
+    } else if (theme === 'city') {
       if (area.id === 'act3_ward_1') parallax.bgStartIndex = 0;
       else if (area.id === 'act3_ward_2') parallax.bgStartIndex = 1;
       else if (area.id === 'act3_courthouse') parallax.bgStartIndex = 2;
