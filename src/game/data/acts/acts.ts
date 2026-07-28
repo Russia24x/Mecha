@@ -355,7 +355,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x0a0e08,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // Section 1 (was 5): THE APPROACH — rebased: 6144→0
               { id: 1, nameKey: 'section.wastes.5.name', x: 0, enemies: [], platforms: [
@@ -440,7 +440,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x0a0e08,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // Section 1 (was 8): THE SHADOW — rebased: 10752→0
               { id: 1, nameKey: 'section.wastes.8.name', x: 0, enemies: ['drowned_walker', 'drowned_walker', 'drowned_walker', 'drowned_walker'], platforms: [
@@ -626,7 +626,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x0a0806,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // S1: Command Bunker — Memory: war room map pins never moved
               { id: 1, nameKey: 'section.city.5.name', x: 0, enemies: ['heavy', 'heavy', 'sniper', 'elite'], platforms: [
@@ -711,7 +711,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x080404,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // S1: Ashfall Approach — Memory: fading propaganda poster
               { id: 1, nameKey: 'section.city.9.name', x: 0, enemies: ['sniper', 'heavy'], platforms: [
