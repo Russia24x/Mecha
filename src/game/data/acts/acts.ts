@@ -534,7 +534,7 @@ export const ACTS: ActData[] = [
             totalWidth: 6144,
             sectionWidth: 1536,
             bgColor: 0x0d0505,
-            checkpointSections: [2],
+            checkpointSections: [],
             unlockedByDefault: false,
             sections: [
               // S1: Barricade Line — Memory: sandbag with hand-written names
@@ -553,6 +553,8 @@ export const ACTS: ActData[] = [
                 { id: 'lm_c1_tank', type: 'crashed_mech', x: 800, y: 540, w: 200, h: 120, color: 0x3a2a1a },
               ], collectibles: [
                 { id: 'col_c1_energy', type: 'energy_fragment', x: 1180, y: 320, requiredAbility: 'doubleJump' },
+              ], bonfires: [
+                { id: 'bf_act3_ward1_1', x: 200, y: 540, section: 1, isEntryPoint: true },
               ]},
 
               // S2: Burning Block — Memory: child's toy in 2nd-floor window
@@ -605,6 +607,10 @@ export const ACTS: ActData[] = [
                 { id: 'lore_c4b_fortmap', type: 'terminal', x: 5010, y: 190, titleKey: 'lore.c4b.fortmap.title', textKey: 'lore.c4b.fortmap.text' },
               ], collectibles: [
                 { id: 'col_c4b_skill', type: 'skill_point', x: 5460, y: 140, requiredAbility: 'grapple' },
+              ], bonfires: [
+                { id: 'bf_act3_ward1_2', x: 5800, y: 580, section: 4 },
+              ], exitGates: [
+                { id: 'gate_act3_ward1_to_2', x: 6000, y: 600, toAreaId: 'act3_ward_2', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward1_to_2.label' },
               ]},
             ],
           },
@@ -619,7 +625,7 @@ export const ACTS: ActData[] = [
             totalWidth: 6144,
             sectionWidth: 1536,
             bgColor: 0x0a0806,
-            checkpointSections: [2],
+            checkpointSections: [],
             unlockedByDefault: false,
             sections: [
               // S1: Command Bunker — Memory: war room map pins never moved
@@ -640,6 +646,8 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_c4_health', type: 'health_fragment', x: 1120, y: 340 },
                 { id: 'col_c4_weapon', type: 'weapon_part', x: 800, y: 180, requiredAbility: 'wallJump' },
+              ], bonfires: [
+                { id: 'bf_act3_ward2_1', x: 200, y: 540, section: 1, isEntryPoint: true },
               ]},
 
               // S2: Road to Courthouse — Memory: blind justice statue
@@ -683,6 +691,10 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 5780, y: 660, w: 100, h: 20, damage: 10 },
               ], landmarks: [
                 { id: 'lm_c8_judge_chair', type: 'tower', x: 5260, y: 100, w: 200, h: 200, color: 0x2a2020 },
+              ], bonfires: [
+                { id: 'bf_act3_ward2_2', x: 5800, y: 580, section: 4 },
+              ], exitGates: [
+                { id: 'gate_act3_ward2_to_courthouse', x: 6000, y: 600, toAreaId: 'act3_courthouse', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward2_to_courthouse.label' },
               ]},
             ],
           },
@@ -698,7 +710,7 @@ export const ACTS: ActData[] = [
             totalWidth: 6144,
             sectionWidth: 1536,
             bgColor: 0x080404,
-            checkpointSections: [2],
+            checkpointSections: [],
             unlockedByDefault: false,
             sections: [
               // S1: Ashfall Approach — Memory: fading propaganda poster
@@ -710,6 +722,8 @@ export const ACTS: ActData[] = [
                 { x: 1440, y: 360, w: 40, h: 200 },
               ], loreObjects: [
                 { id: 'lore_c7_poster', type: 'terminal', x: 600, y: 420, titleKey: 'lore.c7.poster.title', textKey: 'lore.c7.poster.text' },
+              ], bonfires: [
+                { id: 'bf_act3_courthouse_1', x: 200, y: 540, section: 1, isEntryPoint: true },
               ]},
 
               // S2: The Courthouse Steps — Memory: blind justice statue
@@ -748,6 +762,8 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 5780, y: 660, w: 100, h: 20, damage: 10 },
               ], landmarks: [
                 { id: 'lm_c12_judge_chair', type: 'tower', x: 5260, y: 100, w: 200, h: 200, color: 0x2a2020 },
+              ], bonfires: [
+                { id: 'bf_act3_courthouse_2', x: 5800, y: 580, section: 4 },
               ]},
             ],
           },

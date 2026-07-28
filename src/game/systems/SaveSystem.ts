@@ -282,6 +282,8 @@ export class SaveSystem {
       // would silently lose access to wastes_2/wastes_3.
       const multiUnlockMigrations: Record<string, string[]> = {
         'drowned_wastes_1': ['wastes_1', 'wastes_2', 'wastes_3'],
+        // Act III: old single area → all 3 sub-areas (same logic as Act II)
+        'last_city_1': ['act3_ward_1', 'act3_ward_2', 'act3_courthouse'],
         // Act I: 'factory'/'abandoned_factory' → only factory_1 (entry) —
         // player must progress through gates to unlock factory_2/3.
         // This is intentional: Act I old saves didn't have the split structure,

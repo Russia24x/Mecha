@@ -3403,3 +3403,39 @@ Stage Summary:
 - E3c DOCUMENTED: sustained FPS needs manual user test with F3.
 - E3 is as complete as it can be with current tooling. The meaningful result
   (enemy destruction) is confirmed; the FPS number requires user verification.
+
+---
+Task ID: A5-act3-bonfire
+Agent: main
+Task: Add bonfires + exit gates to Act III (act3_ward_1, act3_ward_2, act3_courthouse) — no split needed, already multi-area
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = b78927d (synced, ahead 0 behind 0).
+- Forensics: Act III already has 3 areas (act3_ward_1, act3_ward_2, act3_courthouse), each 6144px, 4 sections. No split/rebase needed — just add bonfires + exit gates.
+- Forensics: All 3 areas had checkpointSections: [2] — same conflict as Act II (advisor round-12 pattern). Cleared to [].
+- Forensics: iron_magistrate boss verified single occurrence (already checked in A7).
+- Forensics: No existing bonfires/exitGates in Act III.
+
+Changes:
+- acts.ts: checkpointSections [2] → [] for all 3 Act III areas.
+- acts.ts: Added 6 bonfires (2 per area):
+  * act3_ward_1: bf_act3_ward1_1 (entry, isEntryPoint) + bf_act3_ward1_2 (section 4, near exit gate)
+  * act3_ward_2: bf_act3_ward2_1 (entry, isEntryPoint) + bf_act3_ward2_2 (section 4, near exit gate)
+  * act3_courthouse: bf_act3_courthouse_1 (entry, isEntryPoint) + bf_act3_courthouse_2 (section 4, near boss)
+- acts.ts: Added 2 exit gates:
+  * gate_act3_ward1_to_2 (end of section 4 → act3_ward_2)
+  * gate_act3_ward2_to_courthouse (end of section 4 → act3_courthouse)
+- SaveSystem.ts: Added multi-unlock migration for 'last_city_1' → all 3 Act III areas.
+- en.json + fa.json: 8 new localization keys (6 bonfire names + 2 gate labels).
+
+Verification:
+- tsc: 0 errors.
+- JSON: valid.
+- validate-section-bounds.ts: 6 exit gates checked, 0 errors. PASS.
+
+Stage Summary:
+- Act III bonfire + exit gate system complete.
+- No split/rebase needed (Act III was already multi-area).
+- checkpointSections conflict resolved (same pattern as Act I/II).
+- All 3 Acts (I, II, III) now have bonfire + exit gate + fast-travel system.
+- Act IV/V still stubs (awaiting content).
