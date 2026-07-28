@@ -102,6 +102,13 @@ export const ACTS: ActData[] = [
                 { id: 'bf_factory1_2', x: 2600, y: 660, section: 2 },
               ], exitGates: [
                 { id: 'gate_factory1_to_2', x: 2850, y: 600, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.factory1_to_2.label' },
+              ], barrels: [
+                // 3 explosive barrels placed at ground level (y=640) near the
+                // drone combat arena. Player can shoot them to chain-damage
+                // clustered drones (explosion radius 80px, 25 enemy damage).
+                { id: 'barrel_factory1_s2_1', x: 2050, y: 640 },
+                { id: 'barrel_factory1_s2_2', x: 2350, y: 640 },
+                { id: 'barrel_factory1_s2_3', x: 2700, y: 640 },
               ]},
             ],
           },
@@ -594,6 +601,14 @@ export const ACTS: ActData[] = [
                 { id: 'lore_c2_radio', type: 'terminal', x: 2350, y: 330, titleKey: 'lore.c2.radio.title', textKey: 'lore.c2.radio.text' },
               ], collectibles: [
                 { id: 'col_c2_health', type: 'health_fragment', x: 2100, y: 620 },
+              ], barrels: [
+                // 3 explosive barrels in the Burning Block. Placed at ground
+                // level (y=640), avoiding the lava (x:2050-2170) and spike
+                // (x:2300-2380) hazard zones. Clustered near enemy patrol
+                // routes so the player can chain aggro'd spiders/heavies.
+                { id: 'barrel_ward1_s2_1', x: 1800, y: 640 },
+                { id: 'barrel_ward1_s2_2', x: 2420, y: 640 },
+                { id: 'barrel_ward1_s2_3', x: 2720, y: 640 },
               ]},
 
               // S3: Collapsed Street — Memory: bread line painted on bakery wall

@@ -42,6 +42,7 @@ import { Projectile } from '../entities/combat/Projectile';
 import { TargetRegistry } from '../entities/combat/TargetRegistry';
 import { CollisionController } from './CollisionController';
 import { VisualCuller } from '../systems/VisualCuller';
+import { DestructibleBarrel } from '../entities/DestructibleBarrel';
 import type { CameraSystem } from '../systems/CameraSystem';
 import type { PhysicsSystem } from '../systems/PhysicsSystem';
 import type { ParticleSystem } from '../systems/ParticleSystem';
@@ -400,6 +401,23 @@ export class PlayController {
       if (!r.projectiles[i].isAlive) r.projectiles.splice(i, 1);
     }
 
+    // ── Barrel vs projectile collision (per-frame distance check) ──
+    // Per task spec: barrels have NO Matter physics body. Projectile collision
+    // is a simple per-frame distance check, like MetroidvaniaController.
+    // checkCollectiblePickups. Both player and enemy projectiles can trigger
+    // barrels (enemy crossfire igniting barrels is a fun emergent behavior).
+    //
+    // Detection radius: 20px (matches DestructibleBarrel.hitRadius constant).
+    // On hit: barrel.hit() decrements health by 1 + triggers a brief hit-flash.
+    // If hit() returns true (health now 0), barrel.explode() fires the
+    // explosion: sound, particles, camera shake, AOE damage, scorch mark.
+    //
+    // The projectile is consumed (proj.kill()) on hit — matches behavior of
+    // projectile-enemy and projectile-solid collisions.
+    if (r.loadedArea && r.loadedArea.barrels.length > 0) {
+      PlayController.checkBarrelProjectileCollisions(r);
+    }
+
     // ── Enemies (Stage 2.0: with sleep-culling) ──
     // Per Stage 2.0 design (STAGE_2_0_DESIGN.md):
     //   - Enemies off-screen get Body.set(body, 'isSleeping', true) → skips physics
@@ -621,6 +639,76 @@ export class PlayController {
     //   Currently NO enemy culling exists — 25+ enemies can be active at once.
     //   This is a Stage 2.0 candidate (see OPTIMIZATION_PLAN.md).
     void r;  // no-op — kept method signature for PlayController.update() compatibility
+  }
+
+  /**
+   * Per-frame barrel vs projectile collision check.
+   *
+   * Per task spec: barrels have NO Matter physics body (they're pure visual
+   * Containers). Projectile collision is a per-frame distance check, mirroring
+   * MetroidvaniaController.checkCollectiblePickups pattern.
+   *
+   * For each active, non-destroyed barrel:
+   *   1. Call barrel.update() — redraws hit-flash visual if active (cheap
+   *      early-return when no flash is active).
+   *   2. Iterate alive projectiles; if dist(projectile, barrel) < 20px,
+   *      call barrel.hit() (decrements health + spawns hit sparks). If hit()
+   *      returns true (health now 0), call barrel.explode() with the player +
+   *      enemies + boss + particles context.
+   *   3. The projectile is consumed (proj.kill()) on hit.
+   *   4. Break to next barrel after the first hit — a barrel can only lose
+   *      1 HP per frame (prevents accidental multi-hits from clustered shots).
+   *
+   * Both player AND enemy projectiles trigger barrels — enemy crossfire
+   * igniting barrels is intentional emergent gameplay (player can lure
+   * enemies into shooting their own barrel stacks).
+   *
+   * Perf: uses squared distance comparison (no sqrt) + early AABB rejection
+   * (|dx|>20 or |dy|>20 → skip). With ~3 barrels per area and ~5-10 active
+   * projectiles, this is <30 cheap checks per frame.
+   */
+  private static checkBarrelProjectileCollisions(r: PlayUpdateRefs): void {
+    if (!r.loadedArea) return;
+    const barrels: DestructibleBarrel[] = r.loadedArea.barrels;
+    const projectiles = r.projectiles;
+    const HIT_RADIUS_SQ = 20 * 20;  // 400 — matches DestructibleBarrel.hitRadius
+
+    for (let bi = 0; bi < barrels.length; bi++) {
+      const barrel = barrels[bi];
+      if (!barrel || !barrel.active || barrel.isExploded) continue;
+
+      // Update hit-flash visual (no-op when no flash active).
+      barrel.update();
+
+      const bx = barrel.x;
+      const by = barrel.y;
+
+      for (let pi = projectiles.length - 1; pi >= 0; pi--) {
+        const proj = projectiles[pi];
+        if (!proj.isAlive) continue;
+        const ps = proj.sprite;
+        if (!ps || !ps.active) continue;
+        const dx = ps.x - bx;
+        const dy = ps.y - by;
+        // Cheap AABB rejection before squared-distance check.
+        if (dx > 20 || dx < -20 || dy > 20 || dy < -20) continue;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > HIT_RADIUS_SQ) continue;
+
+        // Hit! Decrement health; if destroyed, explode.
+        const justDestroyed = barrel.hit();
+        proj.kill();  // consume the projectile
+        if (justDestroyed) {
+          barrel.explode({
+            player: r.player,
+            enemies: r.enemies,
+            boss: r.boss,
+            particles: r.particles,
+          });
+        }
+        break;  // barrel can only be hit once per frame; move to next barrel
+      }
+    }
   }
 
   /**

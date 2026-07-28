@@ -3821,3 +3821,186 @@ Next actions for user:
 - (Optional) If vignette at depth 9 feels too prominent, can lower alpha from 0.6 to 0.4
   in buildVignette() topG/botG fillGradientStyle calls.
 
+
+---
+Task ID: destructible-barrels-wind
+Agent: main
+Task: Implement (1) Destructible explosive barrels (shootable, AOE damage, scorch mark) and (2) Wind effect on atmosphere particles (sine oscillation, applied to ash/dust/fog + visual indicator lines).
+
+Work Log:
+
+READ-FIRST: Read worklog.md (3823 lines, last entry "parallax-multilayer-placement" by general-purpose), AtmosphereSystem.ts (825 lines, v1.1), AreaLoader.ts (931 lines, LoadedArea interface + createGrappleAnchor/createEmpDoor/createShortcut/createExitGate/createCollectible/createLoreObject/createLandmark patterns), PlayController.ts (681 lines, PlayUpdateRefs + static update() + runCulling pattern), CollisionController.ts (184 lines, data-attribute routing), AudioSystem.ts (405 lines, SFX_REGISTRY has 'explosion' already), ParticleSystem.ts (114 lines, explosion() plays 'explosion' SFX), types.ts (570 lines, SectionData interface), acts.ts (1040 lines, factory_1 section 2 + act3_ward_1 section 2), VisualCuller.ts (175 lines, iterates LoadedArea arrays), MetroidvaniaController.checkCollectiblePickups (per-frame distance check pattern), Projectile.ts (sprite public field, isAlive, kill()), EnemyEntity/PlayerEntity/BossEntity (all have takeDamage(amount):boolean).
+
+Feature 1 — Destructible Barrels:
+
+1. types.ts:
+   - Added `BarrelData` interface ({id, x, y}) with full JSDoc.
+   - Added `barrels?: BarrelData[]` to SectionData interface.
+
+2. NEW FILE: src/game/entities/DestructibleBarrel.ts (316 lines):
+   - `class DestructibleBarrel extends Phaser.GameObjects.Container` (per task spec).
+   - Constructor(scene, barrelData): calls super(scene, x, y), creates Graphics child,
+     calls scene.add.existing(this), sets depth 6, setSize(24, 36), sets metadata
+     (isBarrel=true, barrelId, barrel=this).
+   - Visual: red metal cylinder drawn via Graphics:
+     * Soft shadow ellipse on ground (alpha 0.35)
+     * Body: fillRoundedRect (BARREL_W=24, BARREL_H=36), 3 layers (shadow/body/highlight)
+       for cylindrical 3D feel
+     * Top cap: small dark rectangle + tiny valve/bolt
+     * Amber warning stripe: horizontal band across middle + dark hazard ticks
+     * Bottom rim: thin dark line for grounding
+   - Hit flash: 80ms white tint on body when struck (bodyColor 0x8a1a1a → 0xffe0e0)
+   - `hit(): boolean` — decrements health (MAX_HEALTH=3), triggers hit-flash + 5 amber
+     sparks (spawnHitSparks), returns true if just destroyed (health <= 0).
+   - `explode(ctx: BarrelExplosionContext)` — performs:
+     * AudioSystem.play('explosion')
+     * 18 amber/orange particles radiating outward (ADD blend, tweens, 400-600ms)
+     * Bonus flash + expanding ring (matches ParticleSystem.explosion style)
+     * scene.cameras.main.shake(200, 0.008)
+     * Damage loop: enemies (25 dmg), boss (25 dmg), player (15 dmg) within 80px
+     * Scorch mark: dark circle (alpha 0.5) at y+12, depth 5.5, fades over 10s
+     * setVisible(false) + setActive(false) — Container destroyed later by AreaLoader.unload
+   - `update()` — redraws when hit-flash active or transitioning (wasFlashing flag
+     ensures one final redraw when flash expires to restore normal color).
+   - Public accessors: `isExploded` (renamed from isDestroyed to avoid conflict with
+     Phaser.Container's readonly isDestroyed property), `healthRemaining`, `hitRadius`.
+   - `BarrelExplosionContext` interface: {player, enemies, boss, particles}.
+
+3. AreaLoader.ts:
+   - Added `import { DestructibleBarrel }` + `BarrelData` to type imports.
+   - Added `barrels: DestructibleBarrel[]` to LoadedArea interface (OWNED by AreaLoader,
+     like solids — created in createBarrel, destroyed in unload).
+   - Initialized `barrels: []` in load() result.
+   - Added `if (section.barrels)` loop in buildSection() calling createBarrel().
+   - Added `private createBarrel(barrelData: BarrelData): DestructibleBarrel` method
+     (returns `new DestructibleBarrel(this.scene, barrelData)`).
+   - Added cleanup in unload(): `loaded.barrels.forEach(b => { if (b && b.active) b.destroy(); })`
+   - Added `loaded.barrels = []` at end of unload.
+
+4. acts.ts — added 3 barrels each to 2 sections:
+   - factory_1 section 2 (S2: FIRST COMBAT, drone arena): barrels at
+     (2050, 640), (2350, 640), (2700, 640) — clustered near drone spawn positions
+     for chain-damage potential.
+   - act3_ward_1 section 2 (S2: Burning Block, spider/sniper/heavy combat):
+     barrels at (1800, 640), (2420, 640), (2720, 640) — placed to avoid the
+     lava (x:2050-2170) and spike (x:2300-2380) hazard zones.
+   - All barrels at y=640 per task spec (ground/platform level, same as hazards).
+   - IDs: barrel_factory1_s2_{1,2,3}, barrel_ward1_s2_{1,2,3}.
+
+5. PlayController.ts:
+   - Added `import { DestructibleBarrel }`.
+   - Added `PlayController.checkBarrelProjectileCollisions(r)` call in update()
+     after the projectile update loop (only when loadedArea.barrels.length > 0).
+   - Added `private static checkBarrelProjectileCollisions(r: PlayUpdateRefs)`:
+     * Iterates all active, non-exploded barrels.
+     * Calls barrel.update() (hit-flash redraw, cheap early-return when no flash).
+     * Inner loop: iterates alive projectiles; AABB rejection (|dx|>20 or |dy|>20 → skip)
+       before squared-distance check (distSq > 400 → skip).
+     * On hit: barrel.hit() (decrements health + sparks), proj.kill() (consumes projectile),
+       if justDestroyed → barrel.explode({player, enemies, boss, particles}).
+     * break after first hit per barrel (1 HP loss per frame max).
+     * Both player AND enemy projectiles trigger barrels (emergent crossfire gameplay).
+
+Feature 2 — Wind Effect on Atmosphere Particles:
+
+AtmosphereSystem.ts (now v1.2, 960 lines):
+
+1. Added `windOffset: number` field to AshParticle interface (accumulated wind drift,
+   resets on respawn, wraps modulo worldWidth).
+
+2. Added 2 new class fields:
+   - `private windX = 0` — horizontal wind speed (px/s), range -15..+15.
+   - `private windLines: Phaser.GameObjects.Rectangle[] = []` — 4 faint horizontal
+     air-current indicators (factory/wastes only).
+
+3. build() — added call to `buildWindLines()` for factory/wastes themes only.
+
+4. NEW METHOD `buildWindLines()`:
+   - Creates 4 Rectangles at y=[160, 320, 480, 600], each GAME.WIDTH*2 wide × 2px tall.
+   - Origin (0, 0.5), depth 79 (just below fog at 80), scrollFactor 0 (screen-space).
+   - Alpha 0.02 per task spec (very subtle).
+   - Color: theme-tinted (0x6a8a50 sickly green for wastes, 0x8a7a5a dusty amber for factory).
+
+5. NEW METHOD `updateWind()`:
+   - `this.windX = Math.sin(this.scene.time.now * 0.0003) * 15`
+   - Period ≈ 21s (2π/0.0003) — gentle breeze that shifts direction slowly.
+
+6. NEW METHOD `updateWindLines(deltaMs)`:
+   - Adds `windX * dt` to each line's x.
+   - Wraps by 2*GAME.WIDTH when |x| > GAME.WIDTH (seamless for solid-color rects).
+
+7. MODIFIED `update(deltaMs)`:
+   - Calls `updateWind()` FIRST so all subsequent updates use the new windX.
+   - Calls `updateWindLines(deltaMs)` at the end if windLines exist.
+
+8. MODIFIED `updateParticles(deltaMs)`:
+   - Added wind application for factory theme only: `windDx = windX * 0.5 * dt`.
+   - Applied as `p.go.x += windDx` after existing vx movement.
+
+9. MODIFIED `updateWastesFog(deltaMs)`:
+   - Added `windSpeedDelta = windX * 0.3` to each band's drift speed:
+     `band.x += (band.speed + windSpeedDelta) * dt`.
+   - Added reverse-wrap: `if (band.x < 0) band.x += band.segmentWidth` (wind can
+     reverse slow bands when windX is strongly negative).
+
+10. MODIFIED `updateAsh(deltaMs)`:
+    - Accumulates `p.windOffset += windX * dt` per frame.
+    - Wraps windOffset modulo (worldWidth + 40) so particles drifting off one side
+      reappear on the other (seamless for uniform ash).
+    - Final x = baseX + sway + windOffset.
+
+11. MODIFIED `createAshParticle` + `respawnAshParticle`:
+    - Added `windOffset: 0` initialization (respawn resets to 0).
+
+12. MODIFIED `destroy()`:
+    - Added cleanup: `windLines.forEach(r => r.destroy())`, `windLines = []`, `windX = 0`.
+
+13. Updated file header JSDoc to v1.2, documenting wind field (item 11) + wind lines (item 12).
+
+Verification:
+- `npx tsc --noEmit --strict --skipLibCheck`: 0 errors in src/. 4 pre-existing baseline
+  errors in examples/websocket + skills/image-edit + skills/stock-analysis-skill
+  (unchanged, unrelated to this task — confirmed via worklog entry "atmosphere-act2-act3").
+- `npx eslint` on all 6 modified files: 0 errors, 0 warnings.
+- Dev server log: after fixing initial import path bug (DestructibleBarrel.ts was at
+  entities/ root, not entities/combat/, so imports needed ../systems not ../../systems),
+  page loads successfully (GET / 200). Final compile: ✓ Compiled in 199ms.
+
+Key design decisions:
+- DestructibleBarrel extends Container (not composition) per task spec wording "Each barrel
+  is a Phaser.GameObjects.Container". Uses scene.add.existing(this) for display list registration.
+- Renamed `isDestroyed` accessor to `isExploded` to avoid conflict with Phaser.Container's
+  readonly `isDestroyed` property (TS error TS2611).
+- Barrels stored as `DestructibleBarrel[]` in LoadedArea (not `BarrelData[]` as literally
+  stated in task spec) because the interface holds live GameObjects owned by AreaLoader
+  (like solids: `Phaser.Physics.Matter.Image[]`), not raw data. The "borrowed reference,
+  owned by AreaLoader like other solids" wording confirms AreaLoader owns the lifecycle.
+- Projectile-barrel collision is per-frame distance check (NOT Matter physics) per task
+  spec — mirrors MetroidvaniaController.checkCollectiblePickups pattern. Uses squared
+  distance + AABB rejection for perf (no sqrt call).
+- Both player AND enemy projectiles trigger barrels — intentional emergent gameplay
+  (enemy crossfire igniting barrels).
+- Wind applies per-theme per-spec: ash (city) gets windX*dt, ambient dust (factory) gets
+  windX*0.5*dt, fog bands (wastes) get windX*0.3 added to drift speed.
+- Wind lines are screen-space (scrollFactor 0) so they're always visible regardless of
+  camera position — atmospheric overlay, not world object.
+- Ash particles wrap horizontally modulo worldWidth when wind pushes them off-screen
+  (preserves uniform distribution).
+- Wastes fog wrap handles negative drift (when windX strongly reverses a slow band).
+
+Next actions for user:
+- Playtest Act I factory_1 section 2: shoot the 3 red barrels near the drones. Verify:
+  * Hit flash (white tint) on each non-fatal hit + small amber sparks.
+  * 3rd hit triggers explosion: 18 amber particles radiating outward, camera shake,
+    'explosion' SFX, scorch mark on ground (fades over 10s).
+  * Drones within 80px take 25 damage. Player within 80px takes 15 damage.
+- Playtest Act III act3_ward_1 section 2 (Burning Block): shoot the 3 barrels placed
+  between lava + spike hazards. Verify spiders/heavies take explosion damage.
+- Playtest factory theme: notice ambient dust drifting sideways with wind (direction
+  shifts every ~21s). Look for 4 very faint horizontal lines drifting across screen.
+- Playtest wastes theme: notice fog bands speed up/slow down/reverse with wind.
+  Same 4 faint wind lines visible.
+- Playtest city theme: notice ash particles drifting sideways with wind (more
+  noticeable than factory dust — full windX, not 0.5x).
+- (Optional) Add barrels to VisualCuller iteration for off-screen culling — currently
+  not culled because there are only ~3 per area (negligible perf impact).

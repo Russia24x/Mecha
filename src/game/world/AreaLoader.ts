@@ -9,12 +9,13 @@ import { GAME, COLORS } from '../shared/Constants';
 import { PhysicsSystem } from '../systems/PhysicsSystem';
 import { WorldSystem } from './WorldSystem';
 import { t } from '../systems/LocalizationSystem';
-import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, LandmarkData, ExitGateData } from '../data/types';
+import type { AreaData, SectionData, PlatformData, HazardData, LoreObjectData, LandmarkData, ExitGateData, BarrelData } from '../data/types';
 import { AreaStrategy, type HazardVisualData, type PlatformType } from './strategies/AreaStrategy';
 import { FactoryAreaStrategy } from './strategies/FactoryAreaStrategy';
 import { ForestAreaStrategy } from './strategies/ForestAreaStrategy';
 import { WastesAreaStrategy } from './strategies/WastesAreaStrategy';
 import { CityAreaStrategy } from './strategies/CityAreaStrategy';
+import { DestructibleBarrel } from '../entities/DestructibleBarrel';
 
 export interface LoadedArea {
   solids: Phaser.Physics.Matter.Image[];
@@ -39,6 +40,11 @@ export interface LoadedArea {
    *  BORROWED REFERENCE: owned by ExitGateController (Phase C). For now
    *  always empty. AreaLoader.unload() does NOT destroy. */
   exitGates: Phaser.GameObjects.Container[];
+  /** Destructible explosive barrels — shootable Containers with health.
+   *  OWNED BY AreaLoader (like solids) — created in createBarrel, destroyed
+   *  in unload(). No Matter physics body; projectile collision is a per-frame
+   *  distance check in PlayController.update (like checkCollectiblePickups). */
+  barrels: DestructibleBarrel[];
 }
 
 export class AreaLoader {
@@ -96,6 +102,8 @@ export class AreaLoader {
       // NpcInteractionController.updatePrompt and unload() can safely iterate.
       bonfires: [],
       exitGates: [],
+      // Barrels — created by AreaLoader.createBarrel during buildSection.
+      barrels: [],
     };
 
     // Floor (spans entire area)
@@ -208,6 +216,16 @@ export class AreaLoader {
       for (const gate of section.exitGates) {
         const container = this.createExitGate(gate);
         result.exitGates.push(container);
+      }
+    }
+    // Destructible barrels — explosive environmental hazards.
+    // No Matter physics body; projectile collision is per-frame distance check
+    // in PlayController.update (like checkCollectiblePickups). AreaLoader owns
+    // creation + destruction (like solids).
+    if (section.barrels) {
+      for (const barrel of section.barrels) {
+        const b = this.createBarrel(barrel);
+        result.barrels.push(b);
       }
     }
   }
@@ -497,6 +515,28 @@ export class AreaLoader {
     container.setSize(GATE_W, GATE_H);
 
     return container;
+  }
+
+  /**
+   * Create a destructible explosive barrel.
+   *
+   * Visual + behavior implemented in DestructibleBarrel class. AreaLoader owns
+   * the GameObject lifecycle (create here, destroy in unload). No Matter
+   * physics body — projectile collision is a per-frame distance check in
+   * PlayController.update (like checkCollectiblePickups). This keeps barrels
+   * cheap (no broad-phase cost) and decoupled from the Matter world.
+   *
+   * Metadata on the returned container:
+   *   - isBarrel: true (PlayController barrel-projectile loop checks this)
+   *   - barrelId: barrelData.id
+   *   - barrel: <DestructibleBarrel instance> (for direct method calls)
+   *
+   * Depth 6 — above platforms (5), below HUD/UI (100+). Matches grappleAnchors
+   * and shortcuts so barrels render at the same scene layer as other
+   * interactable world objects.
+   */
+  private createBarrel(barrelData: BarrelData): DestructibleBarrel {
+    return new DestructibleBarrel(this.scene, barrelData);
   }
 
   /** Create a collectible pickup — glowing orb that grants a reward. */
@@ -878,6 +918,12 @@ export class AreaLoader {
       if (s.active) s.destroy();
     });
     loaded.collectibles.forEach(c => { if (c && c.active) c.destroy(); });
+    // ── Barrels: OWNED BY AreaLoader (like solids) ──
+    // Barrels have no Matter body — just a Container with a Graphics child.
+    // Destroying the Container destroys its children (the Graphics).
+    // Destroyed barrels (already setActive(false) + setVisible(false) in
+    // explode()) are skipped via the .active check.
+    loaded.barrels.forEach(b => { if (b && b.active) b.destroy(); });
     // ── Exit Gates: OWNED BY AreaLoader (per master plan Note 4) ──
     // Like EMP-door/shortcut: physics body must be removed from matter.world
     // before destroy. Exit gate uses addSensor (not addStaticRect) but the
@@ -924,6 +970,7 @@ export class AreaLoader {
     loaded.empDoors = [];
     loaded.shortcuts = [];
     loaded.collectibles = [];
+    loaded.barrels = [];
   }
 }
 

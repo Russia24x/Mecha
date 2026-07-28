@@ -304,6 +304,8 @@ export interface SectionData {
   secretRooms?: SecretRoomData[];
   bonfires?: BonfireData[];
   exitGates?: ExitGateData[];
+  /** Destructible explosive barrels — shootable objects that explode on hit. */
+  barrels?: BarrelData[];
 }
 
 export interface LoreObjectData {
@@ -415,6 +417,21 @@ export interface ExitGateData {
   toY: number;         // spawn Y in destination area
   /** Optional label shown above the gate (e.g. 'CHECKPOINT — INNER WARD') */
   labelKey?: string;
+}
+
+// ── Destructible barrel (explosive environmental hazard) ──
+/** A shootable explosive barrel. Has 3 HP — destroyed on the 3rd projectile hit.
+ *  On destruction: explodes, dealing damage to nearby enemies/player and
+ *  leaving a temporary scorch mark on the ground.
+ *
+ *  Visual: red metal cylinder with an amber hazard stripe.
+ *  Size: ~24px wide, 36px tall. Placed at y=640 (ground/platform level).
+ *  No Matter physics body — projectile collision is per-frame distance check
+ *  in PlayController.update (like checkCollectiblePickups). */
+export interface BarrelData {
+  id: string;          // e.g. 'barrel_factory1_s2_1'
+  x: number;
+  y: number;
 }
 
 // ── Metroidvania structure ──

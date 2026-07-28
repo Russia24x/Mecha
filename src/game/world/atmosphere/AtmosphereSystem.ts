@@ -1,5 +1,5 @@
 /**
- * MECHA: LAST PROTOCOL — AtmosphereSystem v1.1
+ * MECHA: LAST PROTOCOL — AtmosphereSystem v1.2
  *
  * PHASE 2: Atmospheric effects that transform the world from a flat corridor
  * into a lived-in, breathing place.
@@ -30,6 +30,16 @@
  *      timings (simulate distant neon signs).
  *  10. ASH PARTICLES — 22 small brown-gray circles drifting upward slowly
  *      with horizontal sway. radius 1-2px, color 0x4a4030, alpha 0.1-0.3.
+ *
+ * Wind (cross-theme) — v1.2:
+ *  11. WIND FIELD — windX oscillates as sin(time * 0.0003) * 15 (px/s),
+ *      a gentle breeze that shifts direction every ~21s. Applied to:
+ *        - Ash particles (city): windX * dt accumulated in windOffset,
+ *          wrapped modulo worldWidth.
+ *        - Ambient dust (factory): windX * 0.5 * dt added to particle x.
+ *        - Fog bands (wastes): windX * 0.3 added to drift speed.
+ *  12. WIND LINES — 4 faint horizontal air-current indicators (alpha 0.02)
+ *      that drift with windX. Factory/wastes only. scrollFactor 0 (screen-space).
  *
  * Per Phaser 4 skill (filters-and-postfx, particles, cameras):
  *   - Fog = multiple translucent Graphics stripes with slow x-drift tween
@@ -109,6 +119,10 @@ interface AshParticle {
   phase: number;
   life: number;
   maxLife: number;
+  /** Accumulated horizontal wind drift (px). Added to baseX+sway for final x.
+   *  Resets to 0 on respawn. Wraps modulo worldWidth so particles drifting
+   *  off one side reappear on the other (seamless because ash is uniform). */
+  windOffset: number;
 }
 
 export class AtmosphereSystem {
@@ -139,6 +153,16 @@ export class AtmosphereSystem {
   private neonRects: Phaser.GameObjects.Rectangle[] = [];
   private ashGfx: Phaser.GameObjects.Graphics | null = null;
   private ashParticles: AshParticle[] = [];
+
+  // ─── Wind (cross-theme) ──────────────────────────────────────────────
+  /** Horizontal wind speed (px/s). Oscillates as sin(time * 0.0003) * 15 —
+   *  a gentle breeze that shifts direction every ~10s. Applied to ash
+   *  (city), ambient dust (factory), fog bands (wastes), and the wind-line
+   *  visual indicator (factory/wastes). */
+  private windX = 0;
+  /** Faint horizontal air-current indicators (factory/wastes only).
+   *  Each is a wide thin Rectangle, alpha 0.02, that drifts with windX. */
+  private windLines: Phaser.GameObjects.Rectangle[] = [];
 
   constructor(scene: Phaser.Scene, theme: RegionTheme, worldWidth: number) {
     this.scene = scene;
@@ -172,6 +196,14 @@ export class AtmosphereSystem {
       this.buildLightning();
       this.buildNeonPulse();
       this.buildAshParticles();
+    }
+
+    // ─── Wind lines: faint air-current indicators (factory/wastes only) ──
+    // Per task spec: 3-4 horizontal lines, alpha 0.02, drift with windX.
+    // Built for factory + wastes themes (city uses rain + ash for atmosphere;
+    // forest has its own particle system).
+    if (this.theme === 'factory' || this.theme === 'wastes') {
+      this.buildWindLines();
     }
   }
 
@@ -568,6 +600,7 @@ export class AtmosphereSystem {
       phase: Math.random() * Math.PI * 2,
       life: 0,
       maxLife: 4000 + Math.random() * 4000,
+      windOffset: 0,  // wind drift accumulates here; resets on respawn
     };
   }
 
@@ -585,32 +618,116 @@ export class AtmosphereSystem {
     p.phase = fresh.phase;
     p.life = 0;
     p.maxLife = fresh.maxLife;
+    p.windOffset = 0;  // reset wind drift on respawn
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ─── WIND LINES (factory/wastes only) ─────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Build 4 faint horizontal air-current indicators. Per task spec:
+   *   - 3-4 horizontal lines that drift with the wind
+   *   - very subtle, alpha 0.02
+   *   - only visible in factory/wastes themes
+   *
+   * Each line is a wide thin Rectangle (GAME.WIDTH * 2 wide, 2px tall) with
+   * origin (0, 0.5), positioned at varying y heights. scrollFactor 0 keeps
+   * them fixed to the viewport (atmospheric overlay, not world object).
+   *
+   * Drift: updateWindLines() adds windX * dt to each line's x each frame.
+   * Wrap: when |x| > GAME.WIDTH, wrap by 2*GAME.WIDTH — seamless for
+   * solid-color rectangles (the visual is identical before and after wrap).
+   *
+   * Depth 79 — just below fog bands (80) so fog renders on top of wind lines,
+   * and above platforms (5) so lines are visible over the world.
+   */
+  private buildWindLines(): void {
+    const yPositions = [160, 320, 480, 600];
+    const lineColor = this.theme === 'wastes' ? 0x6a8a50 : 0x8a7a5a;  // faint theme-tinted
+    for (const y of yPositions) {
+      const rect = this.scene.add.rectangle(
+        0, y,
+        GAME.WIDTH * 2, 2,
+        lineColor, 0.02,
+      );
+      rect.setOrigin(0, 0.5);
+      rect.setDepth(79);
+      rect.setScrollFactor(0);  // screen-space — always visible regardless of camera
+      this.windLines.push(rect);
+    }
+  }
+
+  /**
+   * Update wind line positions — drift horizontally with windX.
+   * Each line wraps by 2*GAME.WIDTH when it drifts past the screen edge,
+   * keeping the line always covering the viewport.
+   */
+  private updateWindLines(deltaMs: number): void {
+    const dt = deltaMs * 0.001;
+    const dx = this.windX * dt;
+    const wrapDist = GAME.WIDTH * 2;
+    for (const line of this.windLines) {
+      if (!line || !line.active) continue;
+      line.x += dx;
+      // Wrap: when x > GAME.WIDTH, the line's right edge is past 3*GAME.WIDTH,
+      // and its left edge is past GAME.WIDTH (gap on screen). Wrap left by
+      // 2*GAME.WIDTH to bring it back. Same in reverse for negative drift.
+      if (line.x > GAME.WIDTH) line.x -= wrapDist;
+      else if (line.x < -GAME.WIDTH) line.x += wrapDist;
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════
   // ─── UPDATE ───────────────────────────────────────────────────────────
   // ══════════════════════════════════════════════════════════════════════
 
-  /** Per-frame update — moves particles, fog, rain, lightning timer, ash. */
+  /** Per-frame update — moves particles, fog, rain, lightning timer, ash.
+   *  Also updates windX (sine oscillation) and applies wind to all
+   *  wind-affected particle systems. */
   update(deltaMs: number): void {
+    // ── Wind: update windX first so all subsequent updates use the new value ──
+    // Per task spec: windX = sin(time * 0.0003) * 15 — gentle breeze that
+    // shifts direction every ~10s (period = 2π/0.0003 ≈ 20944ms ≈ 21s).
+    this.updateWind();
+
     // Existing: ambient particles (embers / spores / dust motes)
+    // For factory theme, updateParticles applies windX * 0.5 * dt to dust X.
     this.updateParticles(deltaMs);
 
     // ── Act II (wastes) ──
+    // updateWastesFog applies windX * 0.3 to each band's drift speed.
     if (this.theme === 'wastes') {
       this.updateWastesFog(deltaMs);
       this.updateWaterShimmer();
     }
 
     // ── Act III (city) ──
+    // updateAsh applies windX * dt to each ash particle's windOffset.
     if (this.theme === 'city') {
       this.updateRain(deltaMs);
       this.updateLightning();
       this.updateAsh(deltaMs);
     }
+
+    // ── Wind line indicators (factory/wastes only) ──
+    // Drift horizontally with windX, wrap around screen edges.
+    if (this.windLines.length > 0) {
+      this.updateWindLines(deltaMs);
+    }
+  }
+
+  /** Update windX — gentle sine oscillation. Range: -15..+15 px/s. */
+  private updateWind(): void {
+    this.windX = Math.sin(this.scene.time.now * 0.0003) * 15;
   }
 
   private updateParticles(deltaMs: number): void {
+    // Wind factor for ambient dust (factory only).
+    // Per task spec: add windX * 0.5 * dt to dust X. dt = deltaMs * 0.001 (s).
+    const dt = deltaMs * 0.001;
+    const applyWind = this.theme === 'factory';
+    const windDx = applyWind ? this.windX * 0.5 * dt : 0;
     for (const p of this.particles) {
       if (!p.alive || !p.go.active) continue;
       p.life += deltaMs;
@@ -621,6 +738,8 @@ export class AtmosphereSystem {
       }
       p.go.x += p.vx * deltaMs * 0.06;
       p.go.y += p.vy * deltaMs * 0.06;
+      // ── Wind: gentle horizontal drift on factory ambient dust ──
+      if (windDx !== 0) p.go.x += windDx;
       // Fade out near end of life
       const fadeT = p.life / p.maxLife;
       const baseAlpha = this.theme === 'forest' ? 0.5 : 0.7;
@@ -634,12 +753,22 @@ export class AtmosphereSystem {
 
   private updateWastesFog(deltaMs: number): void {
     const dt = deltaMs * 0.001;  // seconds
+    // Per task spec: add windX * 0.3 to fog drift speed.
+    // band.speed is 8-20 px/s; windX * 0.3 is at most ±4.5 px/s, so the
+    // combined drift stays positive (3.5..24.5 px/s) — wind subtly speeds
+    // up or slows down the fog, and can reverse the slowest band slightly
+    // when windX is strongly negative. This is intentional emergent behavior.
+    const windSpeedDelta = this.windX * 0.3;
     for (const band of this.wastesFogBands) {
-      band.x += band.speed * dt;
+      band.x += (band.speed + windSpeedDelta) * dt;
       // Wrap when band has drifted a full segmentWidth — seamless because
       // the drawn pattern is periodic with that exact period.
       if (band.x >= band.segmentWidth) {
         band.x -= band.segmentWidth;
+      } else if (band.x < 0) {
+        // Wind can push band.x negative (when windX strongly reverses a
+        // slow band) — wrap the other way too.
+        band.x += band.segmentWidth;
       }
       // Drift left (gfx.x decreases as band.x increases)
       band.gfx.x = -band.x;
@@ -755,8 +884,18 @@ export class AtmosphereSystem {
       p.life += deltaMs;
       // Drift upward (slow)
       p.y += p.vy * dt * 60;
-      // Horizontal sway — oscillate around baseX
-      p.x = p.baseX + Math.sin(t * p.swayFreq + p.phase) * p.swayAmp;
+      // Horizontal sway — oscillate around baseX + windOffset
+      // Per task spec: add windX * dt to each ash particle's X (accumulated
+      // in windOffset so it persists across frames). Wrap modulo worldWidth
+      // so particles drifting off one side reappear on the other.
+      p.windOffset += this.windX * dt;
+      // Wrap windOffset so the particle stays within world bounds.
+      // Using worldWidth + 40 margin so wrap is off-screen (seamless for
+      // uniform ash particles).
+      const wrapSpan = this.worldWidth + 40;
+      if (p.windOffset > wrapSpan) p.windOffset -= wrapSpan;
+      else if (p.windOffset < -wrapSpan) p.windOffset += wrapSpan;
+      p.x = p.baseX + Math.sin(t * p.swayFreq + p.phase) * p.swayAmp + p.windOffset;
 
       // Reset when off-screen top OR lifespan expired
       if (p.y < -10 || p.life >= p.maxLife) {
@@ -819,6 +958,11 @@ export class AtmosphereSystem {
     this.neonRects = [];
     if (this.ashGfx && this.ashGfx.active) { this.ashGfx.destroy(); this.ashGfx = null; }
     this.ashParticles = [];
+
+    // Wind (cross-theme)
+    this.windLines.forEach(r => { if (r && r.active) r.destroy(); });
+    this.windLines = [];
+    this.windX = 0;
   }
 }
 
