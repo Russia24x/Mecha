@@ -82,8 +82,18 @@ interface WaterShimmer {
 interface RainDrop {
   x: number;
   y: number;
-  speed: number;   // px/s (300-500)
-  length: number;  // px (8-15)
+  speed: number;   // px/s (300-600)
+  length: number;  // px (6-18)
+  alpha: number;   // 0.15-0.5 (depth variation)
+  width: number;   // 1 or 2 (closer drops thicker)
+}
+
+interface Splash {
+  x: number;
+  y: number;
+  life: number;    // ms remaining
+  maxLife: number; // ms total
+  size: number;    // radius px
 }
 
 interface AshParticle {
@@ -121,6 +131,8 @@ export class AtmosphereSystem {
   // ─── Act III (city) fields ───────────────────────────────────────────
   private rainGfx: Phaser.GameObjects.Graphics | null = null;
   private rainDrops: RainDrop[] = [];
+  private splashGfx: Phaser.GameObjects.Graphics | null = null;
+  private splashes: Splash[] = [];
   private lightningOverlay: Phaser.GameObjects.Rectangle | null = null;
   private nextLightningTime = 0;
   private neonRects: Phaser.GameObjects.Rectangle[] = [];
@@ -403,18 +415,26 @@ export class AtmosphereSystem {
 
     this.rainGfx = this.scene.add.graphics();
     this.rainGfx.setDepth(90);
-    // World-space X (spreads across worldWidth), screen-space Y (always full height).
     this.rainGfx.setScrollFactor(1, 0);
 
-    // Spec: 40-50 drops. Respect QualityManager but clamp to spec range.
+    // Splash graphics (for ground impact)
+    this.splashGfx = this.scene.add.graphics();
+    this.splashGfx.setDepth(91);
+    this.splashGfx.setScrollFactor(1, 0);
+
+    // Enhanced rain: 80-100 drops with depth variation (per user round-22)
     const qCount = QualityManager.getRainCount();
-    const targetCount = Math.min(50, Math.max(40, qCount));
+    const targetCount = Math.min(100, Math.max(80, qCount * 2));
     for (let i = 0; i < targetCount; i++) {
+      // Depth layer: 0 = far (thin, slow, faint), 1 = near (thick, fast, bright)
+      const depth = Math.random();
       this.rainDrops.push({
         x: Math.random() * this.worldWidth,
         y: Math.random() * GAME.HEIGHT,
-        speed: 300 + Math.random() * 200,   // 300-500 px/s
-        length: 8 + Math.random() * 7,      // 8-15 px
+        speed: 250 + depth * 350,        // 250-600 px/s (far=near)
+        length: 6 + depth * 12,          // 6-18 px
+        alpha: 0.12 + depth * 0.38,      // 0.12-0.5
+        width: depth > 0.6 ? 2 : 1,      // near drops thicker
       });
     }
   }
@@ -632,35 +652,65 @@ export class AtmosphereSystem {
     const gfx = this.rainGfx;
     gfx.clear();
 
+    const splashGfx = this.splashGfx;
+    if (splashGfx) splashGfx.clear();
+
     // Slight diagonal angle (~14°) — wind effect
     const angle = 0.25;
     const sinA = Math.sin(angle);
     const cosA = Math.cos(angle);
     const dt = deltaMs * 0.001;
-
-    // Spec: lineStyle(1, 0x4060a0, 0.3) — set once for all drops
-    gfx.lineStyle(1, 0x4060a0, 0.3);
+    const groundY = GAME.HEIGHT - 60;  // where rain hits ground
 
     for (const drop of this.rainDrops) {
-      // Move drop (speed is in px/s)
+      // Move drop
       drop.x += sinA * drop.speed * dt;
       drop.y += cosA * drop.speed * dt;
 
-      // Reset when off-screen bottom → recycle to top with new random X
-      if (drop.y > GAME.HEIGHT + 20) {
+      // Check ground impact → create splash
+      if (drop.y > groundY) {
+        // Only near drops create visible splashes (depth > 0.4)
+        if (drop.alpha > 0.2 && splashGfx && this.splashes.length < 30) {
+          this.splashes.push({
+            x: drop.x,
+            y: groundY,
+            life: 200,   // 200ms splash life
+            maxLife: 200,
+            size: 2 + drop.width,
+          });
+        }
+        // Reset drop to top
         drop.y = -20;
         drop.x = Math.random() * this.worldWidth;
       }
-      // Wrap horizontally (in case wind drift pushes drops off the world)
+      // Wrap horizontally
       if (drop.x > this.worldWidth + 20) drop.x = -20;
       if (drop.x < -20) drop.x = this.worldWidth + 20;
 
-      // Draw diagonal line segment
+      // Draw with per-drop alpha and width (depth variation)
+      gfx.lineStyle(drop.width, 0x5070a0, drop.alpha);
       gfx.lineBetween(
         drop.x, drop.y,
         drop.x + sinA * drop.length,
         drop.y + cosA * drop.length,
       );
+    }
+
+    // Draw + update splashes
+    if (splashGfx) {
+      for (let i = this.splashes.length - 1; i >= 0; i--) {
+        const s = this.splashes[i];
+        s.life -= deltaMs;
+        if (s.life <= 0) {
+          this.splashes.splice(i, 1);
+          continue;
+        }
+        const pct = s.life / s.maxLife;
+        const alpha = pct * 0.4;
+        const radius = s.size * (1 + (1 - pct) * 2);  // expand as it fades
+        splashGfx.lineStyle(1, 0x6080a0, alpha);
+        splashGfx.strokeCircle(s.x, s.y, radius);
+      }
     }
   }
 
@@ -736,6 +786,8 @@ export class AtmosphereSystem {
     // Act III (city)
     if (this.rainGfx && this.rainGfx.active) { this.rainGfx.destroy(); this.rainGfx = null; }
     this.rainDrops = [];
+    if (this.splashGfx && this.splashGfx.active) { this.splashGfx.destroy(); this.splashGfx = null; }
+    this.splashes = [];
     if (this.lightningOverlay && this.lightningOverlay.active) {
       this.lightningOverlay.destroy();
       this.lightningOverlay = null;

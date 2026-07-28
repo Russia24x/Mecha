@@ -368,7 +368,8 @@ export class ParallaxBackground {
 
     if (this.theme === 'factory') this.drawFactorySilhouettes(container, SILH_COLOR);
     else if (this.theme === 'wastes') this.drawWastesSilhouettes(container, SILH_COLOR);
-    else if (this.theme === 'city') this.drawCitySilhouettes(container, SILH_COLOR);
+    // City: silhouettes removed per user request (round-22) — didn't match bg art.
+    // Rain effect (in AtmosphereSystem) provides enough atmospheric depth for city.
 
     this.layers.push(container);
   }
