@@ -76,13 +76,123 @@ export class BossEntity {
   }
 
   private buildVisual(): void {
-    if (this.id === 'leviathan_hulk') {
+    if (this.id === 'guardian_ax09') {
+      this.buildGuardianVisual();
+    } else if (this.id === 'leviathan_hulk') {
       this.buildLeviathanVisual();
     } else if (this.id === 'iron_magistrate') {
       this.buildIronMagistrateVisual();
     } else {
       this.buildGenericBossVisual();
     }
+  }
+
+  /** Guardian AX-09 — heavy quadrupedal mech sentinel.
+   * Theme: "The last watchman" — ancient, immovable, relentless.
+   * Visual: dark steel hull with amber optic, massive twin shoulder cannons,
+   * reinforced legs, shield-like chest plate. Cyan accent lights for "scan" mode.
+   * Slightly smaller than Iron Magistrate but more heavily armored.
+   */
+  private buildGuardianVisual(): void {
+    const g = this.scene.add.graphics();
+    g.setDepth(14);
+
+    // ── Main hull — heavily armored, angular ──
+    g.fillStyle(0x1a1e26, 1);
+    g.fillRoundedRect(-40, -40, 80, 80, 6);
+    // Armor plating — chest (reinforced, with diagonal seam)
+    g.fillStyle(0x2a2e36, 0.9);
+    g.fillRect(-38, -38, 76, 10);    // upper chest plate
+    g.fillRect(-38, 12, 76, 10);     // lower chest plate
+    // Diagonal seam across chest (battle damage)
+    g.lineStyle(1, 0x0a0e14, 0.6);
+    g.lineBetween(-38, -28, 38, 12);
+    // Amber core (single eye/optic in center of chest)
+    g.fillStyle(0xffc040, 0.4);
+    g.fillCircle(0, -8, 8);
+    g.fillStyle(0xffc040, 0.7);
+    g.fillCircle(0, -8, 5);
+    g.fillStyle(0xfff0a0, 0.9);
+    g.fillCircle(0, -8, 2);
+
+    // ── Shoulder cannons (twin, heavy) ──
+    g.fillStyle(0x12161e, 1);
+    g.fillRoundedRect(-55, -48, 18, 36, 3);   // left cannon housing
+    g.fillRoundedRect(37, -48, 18, 36, 3);     // right cannon housing
+    // Cannon barrels (cylindrical, extending upward)
+    g.fillStyle(0x1a1e26, 0.9);
+    g.fillRect(-52, -58, 8, 14);   // left barrel
+    g.fillRect(44, -58, 8, 14);    // right barrel
+    // Muzzle flash ports (amber circles at barrel tips)
+    g.fillStyle(0xffc040, 0.5);
+    g.fillCircle(-48, -58, 3);
+    g.fillCircle(48, -58, 3);
+
+    // ── Head — sensor array (small, recessed) ──
+    g.fillStyle(0x0a0d12, 1);
+    g.fillRoundedRect(-16, -60, 32, 18, 4);
+    // Single large amber optic (cyclops scanner)
+    g.fillStyle(0xffc040, 0.3);
+    g.fillCircle(0, -52, 7);
+    g.fillStyle(0xffc040, 0.8);
+    g.fillCircle(0, -52, 4);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(0, -52, 1.5);
+    // Optic housing rim
+    g.lineStyle(1, 0x3a3040, 0.6);
+    g.strokeCircle(0, -52, 7);
+    // Side sensor fins (small rectangles on head sides)
+    g.fillStyle(0x2a2e36, 0.8);
+    g.fillRect(-20, -56, 4, 10);
+    g.fillRect(16, -56, 4, 10);
+
+    // ── Reinforced legs (stubby, wide base) ──
+    g.fillStyle(0x12161e, 1);
+    g.fillRoundedRect(-38, 35, 22, 20, 3);    // left leg
+    g.fillRoundedRect(16, 35, 22, 20, 3);      // right leg
+    // Leg armor plating
+    g.fillStyle(0x2a2e36, 0.7);
+    g.fillRect(-36, 36, 18, 6);
+    g.fillRect(18, 36, 18, 6);
+    // Foot pads (wide, stable)
+    g.fillStyle(0x0a0d12, 0.9);
+    g.fillRoundedRect(-42, 50, 28, 8, 2);
+    g.fillRoundedRect(14, 50, 28, 8, 2);
+
+    // ── Shield arm (left — carries a riot shield) ──
+    g.fillStyle(0x1a1e26, 0.9);
+    g.fillRoundedRect(-62, -20, 14, 40, 2);
+    // Shield face (hexagonal pattern)
+    g.fillStyle(0x2a2e36, 0.6);
+    g.fillRoundedRect(-60, -18, 10, 36, 2);
+    // Shield edge (amber when phase 1, red when phase 2)
+    g.lineStyle(2, 0xffc040, 0.4);
+    g.strokeRoundedRect(-62, -20, 14, 40, 2);
+
+    // ── Weapon arm (right — heavy impact mace) ──
+    g.fillStyle(0x1a1e26, 0.9);
+    g.fillRoundedRect(48, -20, 14, 30, 2);     // arm
+    g.fillStyle(0x2a2e36, 0.8);
+    g.fillCircle(55, 18, 14);                    // mace head
+    // Mace spikes (small triangles)
+    g.fillStyle(0x0a0d12, 0.9);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const sx = 55 + Math.cos(a) * 14;
+      const sy = 18 + Math.sin(a) * 14;
+      g.fillTriangle(sx, sy, sx + Math.cos(a) * 6, sy + Math.sin(a) * 6,
+        sx + Math.cos(a + 0.3) * 4, sy + Math.sin(a + 0.3) * 4);
+    }
+
+    // ── Outline (overall silhouette) ──
+    g.lineStyle(1, 0x0a0d12, 0.6);
+    g.strokeRoundedRect(-40, -40, 80, 80, 6);
+
+    this.bossGfx = g;
+    // Core glow (amber, pulsing)
+    this.bossCore = this.scene.add.circle(this.sprite.x, this.sprite.y - 8, 10, 0xffc040, 0.6);
+    this.bossCore.setDepth(15);
+    this.bossCore.setBlendMode(Phaser.BlendModes.ADD);
   }
 
   /** Iron Magistrate — armored judge with scales and greatsword.

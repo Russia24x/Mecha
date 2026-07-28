@@ -345,61 +345,136 @@ export class AreaLoader {
    *   - physicsBody: the sensor body (for cleanup in unload)
    */
   private createExitGate(gate: ExitGateData): Phaser.GameObjects.Container {
-    const GATE_W = 80;   // visual width of arch
-    const GATE_H = 200;  // visual height of arch (ground to mid-air)
-    const SENSOR_W = 40; // physics sensor width (narrower than visual — exact crossing point)
-    const SENSOR_H = 120; // physics sensor height — covers player body (~60px) + margin.
-                          // Gate Y is set in acts.ts to ground level (~600), so sensor spans
-                          // gate.y - 60 to gate.y + 60 = e.g. 540-660 for gate at y=600.
-                          // This ensures the sensor triggers when player walks through on
-                          // the ground (player body at y≈620-680 on flat ground).
-                          // Verified via browser test: with y=460 + SENSOR_H=200, sensor
-                          // spanned 360-560 which missed player at y=657 (ground).
+    const GATE_W = 90;   // visual width of arch
+    const GATE_H = 220;  // visual height of arch (ground to mid-air)
+    const SENSOR_W = 40; // physics sensor width
+    const SENSOR_H = 120; // physics sensor height
     const AMBER = 0xffc040;
+    const AMBER_DIM = 0x6a4a18;
 
     const container = this.scene.add.container(gate.x, gate.y);
 
-    // ── Visual 1: Arch frame (two side pillars + top lintel) ──
-    const pillarL = this.scene.add.rectangle(-GATE_W / 2, 0, 12, GATE_H, 0x1a1814, 0.9);
-    pillarL.setStrokeStyle(2, AMBER, 0.7);
+    // ── Visual 1: Massive industrial gate frame ──
+    // Left pillar — thick metal with rivets (small circles)
+    const pillarL = this.scene.add.rectangle(-GATE_W / 2, 0, 16, GATE_H, 0x0a0d12, 0.95);
+    pillarL.setStrokeStyle(2, 0x2a3040, 0.8);
     container.add(pillarL);
-    const pillarR = this.scene.add.rectangle(GATE_W / 2, 0, 12, GATE_H, 0x1a1814, 0.9);
-    pillarR.setStrokeStyle(2, AMBER, 0.7);
+    // Rivets on left pillar
+    for (let r = -GATE_H / 2 + 20; r < GATE_H / 2; r += 40) {
+      const rivet = this.scene.add.circle(-GATE_W / 2, r, 2, 0x3a4050, 0.8);
+      container.add(rivet);
+    }
+    // Right pillar
+    const pillarR = this.scene.add.rectangle(GATE_W / 2, 0, 16, GATE_H, 0x0a0d12, 0.95);
+    pillarR.setStrokeStyle(2, 0x2a3040, 0.8);
     container.add(pillarR);
-    const lintel = this.scene.add.rectangle(0, -GATE_H / 2, GATE_W + 12, 16, 0x2a2018, 0.95);
-    lintel.setStrokeStyle(2, AMBER, 0.8);
+    for (let r = -GATE_H / 2 + 20; r < GATE_H / 2; r += 40) {
+      const rivet = this.scene.add.circle(GATE_W / 2, r, 2, 0x3a4050, 0.8);
+      container.add(rivet);
+    }
+    // Top lintel — heavy beam
+    const lintel = this.scene.add.rectangle(0, -GATE_H / 2, GATE_W + 16, 20, 0x12161e, 0.95);
+    lintel.setStrokeStyle(2, 0x2a3040, 0.8);
     container.add(lintel);
+    // Amber accent line on lintel
+    const lintelAccent = this.scene.add.rectangle(0, -GATE_H / 2, GATE_W - 4, 3, AMBER, 0.6);
+    container.add(lintelAccent);
 
-    // ── Visual 2: Vertical light beam (faint amber, pulsing) ──
-    const beam = this.scene.add.rectangle(0, 0, GATE_W - 16, GATE_H - 8, AMBER, 0.06);
-    beam.setBlendMode(Phaser.BlendModes.ADD);
-    container.add(beam);
+    // ── Visual 2: Portal energy field (inside the arch) ──
+    // Dark void with pulsing amber energy
+    const portalBg = this.scene.add.rectangle(0, 0, GATE_W - 20, GATE_H - 16, 0x05080c, 0.85);
+    container.add(portalBg);
+
+    // Energy field — multiple horizontal lines creating a "scanning" effect
+    for (let i = 0; i < 5; i++) {
+      const scanY = -GATE_H / 2 + 20 + i * (GATE_H - 40) / 5;
+      const scanLine = this.scene.add.rectangle(0, scanY, GATE_W - 24, 2, AMBER, 0.15);
+      scanLine.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(scanLine);
+      this.trackedTween({
+        targets: scanLine,
+        alpha: { from: 0.05, to: 0.3 },
+        duration: 1500 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+        delay: i * 100,
+      });
+    }
+
+    // ── Visual 3: Central swirling vortex (rotating amber ring) ──
+    const vortex = this.scene.add.graphics();
+    vortex.fillStyle(AMBER, 0.15);
+    // Draw a ring (annulus) — outer circle minus inner
+    const vortexR = 24;
+    vortex.beginPath();
+    vortex.arc(0, 0, vortexR, 0, Math.PI * 2);
+    vortex.arc(0, 0, vortexR * 0.5, 0, Math.PI * 2, true);
+    vortex.fillPath();
+    vortex.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(vortex);
     this.trackedTween({
-      targets: beam,
-      alpha: { from: 0.04, to: 0.12 },
+      targets: vortex,
+      angle: 360,
+      duration: 3000, repeat: -1, ease: 'Linear',
+      alpha: { from: 0.1, to: 0.3 },
+      yoyo: true,  // alpha yoyo but angle continues
+    });
+
+    // ── Visual 4: Suction particles (drawn toward center) ──
+    if (this.scene.add.particles) {
+      const particles = this.scene.add.particles(0, 0, '__white', {
+        x: { min: -GATE_W / 2 + 5, max: GATE_W / 2 - 5 },
+        y: { min: -GATE_H / 2 + 10, max: GATE_H / 2 - 10 },
+        speed: { min: 10, max: 40 },
+        angle: { min: 0, max: 360 },  // toward center from random positions
+        scale: { start: 1.5, end: 0 },
+        alpha: { start: 0.4, end: 0 },
+        lifespan: 600,
+        frequency: 100,
+        tint: AMBER,
+        blendMode: 'ADD',
+      });
+      particles.setDepth(6.5);
+      container.add(particles);
+    }
+
+    // ── Visual 5: Floor marker (amber glow strip on ground) ──
+    const markerGlow = this.scene.add.rectangle(0, GATE_H / 2 + 2, GATE_W + 20, 8, AMBER, 0.3);
+    markerGlow.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(markerGlow);
+    this.trackedTween({
+      targets: markerGlow,
+      alpha: { from: 0.2, to: 0.5 },
       duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
 
-    // ── Visual 3: Floor marker (amber line on ground) ──
-    const marker = this.scene.add.rectangle(0, GATE_H / 2 + 2, GATE_W + 8, 4, AMBER, 0.5);
-    container.add(marker);
-
-    // ── Visual 4: Label above gate (e.g. "CHECKPOINT — INNER WARD") ──
+    // ── Visual 6: Label above gate ──
     if (gate.labelKey) {
-      const labelTxt = this.scene.add.text(0, -GATE_H / 2 - 20, t(gate.labelKey), {
-        fontFamily: 'monospace', fontSize: '10px', color: '#ffc040',
-        stroke: '#000', strokeThickness: 3, letterSpacing: 2,
-      }).setOrigin(0.5).setAlpha(0.8);
+      const labelBg = this.scene.add.rectangle(0, -GATE_H / 2 - 18, 160, 16, 0x05080c, 0.9);
+      labelBg.setStrokeStyle(1, AMBER, 0.4);
+      container.add(labelBg);
+      const labelTxt = this.scene.add.text(0, -GATE_H / 2 - 18, t(gate.labelKey), {
+        fontFamily: 'monospace', fontSize: '9px', color: '#ffc040',
+        stroke: '#000', strokeThickness: 2, letterSpacing: 2,
+      }).setOrigin(0.5);
       container.add(labelTxt);
     }
 
-    // ── Visual 5: Forward arrow (indicating one-way direction) ──
-    const arrow = this.scene.add.triangle(0, GATE_H / 2 - 30, -6, -6, 6, -6, 0, 6, AMBER, 0.9);
-    container.add(arrow);
+    // ── Visual 7: Side warning lights (blinking amber) ──
+    const warnL = this.scene.add.circle(-GATE_W / 2 - 2, -GATE_H / 2 + 14, 4, AMBER, 0.8);
+    warnL.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(warnL);
     this.trackedTween({
-      targets: arrow,
-      x: { from: -3, to: 3 },
-      duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      targets: warnL,
+      alpha: { from: 0.3, to: 1 },
+      duration: 600, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+    const warnR = this.scene.add.circle(GATE_W / 2 + 2, -GATE_H / 2 + 14, 4, AMBER, 0.8);
+    warnR.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(warnR);
+    this.trackedTween({
+      targets: warnR,
+      alpha: { from: 0.3, to: 1 },
+      duration: 600, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      delay: 300,  // offset from left
     });
 
     container.setDepth(6);
