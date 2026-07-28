@@ -3439,3 +3439,48 @@ Stage Summary:
 - checkpointSections conflict resolved (same pattern as Act I/II).
 - All 3 Acts (I, II, III) now have bonfire + exit gate + fast-travel system.
 - Act IV/V still stubs (awaiting content).
+
+---
+Task ID: A5-migration-verify
+Agent: main
+Task: Verify Act III deep-progress migration (advisor round-15 — skipped in initial A5 report)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 56a502d (synced, ahead 0 behind 0).
+
+- Q2 (duplicate boss ID): grep iron_magistrate in acts.ts → exactly 1 occurrence (line 753,
+  in act3_courthouse section 4). A7 fix intact. ✅
+
+- Q1 (deep migration test): Created artificial old save with:
+  * checkpoint.areaId='last_city_1', section=4, x=5000 (near boss position)
+  * bossesKilled=2 (Guardian + Leviathan defeated)
+  * unlockedAreas includes 'last_city_1'
+  * litBonfires=['bf_factory1_1', 'bf_wastes1_1']
+
+- Migration code verified GENERIC (not Act-specific):
+  * SaveSystem.migrate() line 252: checks areaIdMigrations[checkpoint.areaId] — works for ANY entry.
+  * x/y/section reset (lines 271-273) applies uniformly to all migrations.
+  * Multi-unlock (lines 283-294) uses multiUnlockMigrations map — also generic.
+  * No Act-specific if/else branches — single code path for all Acts.
+
+- Browser test result:
+  * Console: "[SaveSystem.migrate] Checkpoint migrated: last_city_1 section 1 →
+    act3_ward_1 section 1 (x/y reset to 200,420)"
+  * State → play (not gameover). Player at (200, 490) — section 1 start of act3_ward_1.
+  * loadedArea: 2 bonfires + 1 exit gate (correct for act3_ward_1).
+  * 0 page errors.
+
+- After AutoSaveManager flush (35s):
+  * checkpoint.areaId: 'last_city_1' → 'act3_ward_1' ✅
+  * checkpoint.section: 4 → 1 ✅ (reset)
+  * checkpoint.x: 5000 → 200 ✅ (reset)
+  * checkpoint.y: 540 → 420 ✅ (reset)
+  * unlockedAreas: 'last_city_1' → ['act3_ward_1', 'act3_ward_2', 'act3_courthouse'] ✅ (multi-unlock)
+  * bossesKilled: 2 ✅ (preserved)
+  * litBonfires: ['bf_factory1_1', 'bf_wastes1_1'] ✅ (preserved)
+
+Stage Summary:
+- Act III deep-progress migration VERIFIED: same generic fix as Act II works correctly.
+- Migration code is generic (not Act-specific) — will work for Act IV/V splits without changes.
+- iron_magistrate duplicate boss ID: still fixed (A7 intact).
+- All 3 Acts (I, II, III) migration verified via browser test with deep-progress old saves.
