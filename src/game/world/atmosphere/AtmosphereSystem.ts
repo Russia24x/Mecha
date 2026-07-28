@@ -1,5 +1,5 @@
 /**
- * MECHA: LAST PROTOCOL — AtmosphereSystem v1.0
+ * MECHA: LAST PROTOCOL — AtmosphereSystem v1.1
  *
  * PHASE 2: Atmospheric effects that transform the world from a flat corridor
  * into a lived-in, breathing place.
@@ -10,20 +10,47 @@
  *   3. AMBIENT PARTICLES — region-specific (embers for factory, spores for forest)
  *   4. DEPTH HAZE — gradual fade with distance (depth 95, multiply blend)
  *
+ * Act II (wastes) additions — v1.1:
+ *   5. WASTES FOG — 4 dark-green horizontal fog bands drifting at different
+ *      speeds (parallax). Graphics objects with fillStyle alpha 0.05-0.1.
+ *      Wrap seamlessly using periodic patterns.
+ *   6. WATER REFLECTION — 18 small 2×1 rectangles near the bottom of the
+ *      screen (y > 620) that flicker randomly each frame to simulate the
+ *      shimmering surface of standing water.
+ *
+ * Act III (city) additions — v1.1:
+ *   7. RAIN — 40-50 diagonal raindrop lines drawn on a single Graphics object
+ *      (lineStyle(1, 0x4060a0, 0.3)). 8-15px long, 300-500px/s. Recycle to top
+ *      when off-screen bottom.
+ *   8. LIGHTNING — Random screen-wide flash every 8-15s. Uses
+ *      scene.cameras.main.flash(150, 200, 220, 255) + brief white overlay rect.
+ *      Plays 'thunder' SFX if registered (silently no-ops otherwise).
+ *   9. NEON PULSE — 4 colored rectangles (cyan, magenta, amber, green) at
+ *      fixed background positions that breathe their alpha on different
+ *      timings (simulate distant neon signs).
+ *  10. ASH PARTICLES — 22 small brown-gray circles drifting upward slowly
+ *      with horizontal sway. radius 1-2px, color 0x4a4030, alpha 0.1-0.3.
+ *
  * Per Phaser 4 skill (filters-and-postfx, particles, cameras):
  *   - Fog = multiple translucent Graphics stripes with slow x-drift tween
  *   - God rays = gradient triangles (ADD blend) with subtle sway
  *   - Particles = Phaser.GameObjects.Arc pool, recycled, ADD blend
+ *   - Rain / Ash / Water-shimmer = single Graphics object cleared+redrawn per
+ *     frame with an array of plain data records ({x, y, speed, ...}).
  *   - All effects scrollFactor locked so they move with camera at depth
  *
  * Lifecycle:
  *   - Tied to PLAY state only — destroyed in cleanupPlay (effect separation)
  *   - Per region: factory = amber dust + ember sparks + dim god rays
  *                  forest = green spores + thick fog + bright god rays
+ *                  wastes = dark-green drifting fog + water shimmer
+ *                  city   = rain + lightning + neon pulse + ash
  */
 import Phaser from 'phaser';
 import { GAME } from '../../shared/Constants';
 import { QualityManager } from '../../systems/QualityManager';
+import { AudioSystem } from '../../systems/AudioSystem';
+import type { SfxName } from '../../systems/AudioSystem';
 import type { RegionTheme } from './ParallaxBackground';
 
 interface Particle {
@@ -35,17 +62,70 @@ interface Particle {
   alive: boolean;
 }
 
+// ─── Act II data records ──────────────────────────────────────────────
+interface WastesFogBand {
+  gfx: Phaser.GameObjects.Graphics;
+  x: number;            // current drift offset (0..segmentWidth)
+  speed: number;        // px/s
+  segmentWidth: number; // wrap period (pattern is periodic)
+}
+
+interface WaterShimmer {
+  x: number;
+  y: number;
+  baseAlpha: number;
+  flickerSpeed: number;
+  phase: number;
+}
+
+// ─── Act III data records ─────────────────────────────────────────────
+interface RainDrop {
+  x: number;
+  y: number;
+  speed: number;   // px/s (300-500)
+  length: number;  // px (8-15)
+}
+
+interface AshParticle {
+  x: number;
+  y: number;
+  baseX: number;        // anchor for sway
+  vy: number;           // upward velocity (negative)
+  baseAlpha: number;
+  radius: number;
+  swayAmp: number;
+  swayFreq: number;
+  phase: number;
+  life: number;
+  maxLife: number;
+}
+
 export class AtmosphereSystem {
   private scene: Phaser.Scene;
   private theme: RegionTheme;
   private worldWidth: number;
+
+  // ─── Existing effect fields ──────────────────────────────────────────
   private fogLayers: Phaser.GameObjects.Graphics[] = [];
   private godRays: Phaser.GameObjects.GameObject[] = [];
   private haze: Phaser.GameObjects.Rectangle | null = null;
   private particles: Particle[] = [];
   private tweens: Phaser.Tweens.Tween[] = [];
   private particleTimer: Phaser.Time.TimerEvent | null = null;
-  // (rayTime field removed per Stage 1.4 — was incremented but never read)
+
+  // ─── Act II (wastes) fields ──────────────────────────────────────────
+  private wastesFogBands: WastesFogBand[] = [];
+  private waterShimmerGfx: Phaser.GameObjects.Graphics | null = null;
+  private waterShimmers: WaterShimmer[] = [];
+
+  // ─── Act III (city) fields ───────────────────────────────────────────
+  private rainGfx: Phaser.GameObjects.Graphics | null = null;
+  private rainDrops: RainDrop[] = [];
+  private lightningOverlay: Phaser.GameObjects.Rectangle | null = null;
+  private nextLightningTime = 0;
+  private neonRects: Phaser.GameObjects.Rectangle[] = [];
+  private ashGfx: Phaser.GameObjects.Graphics | null = null;
+  private ashParticles: AshParticle[] = [];
 
   constructor(scene: Phaser.Scene, theme: RegionTheme, worldWidth: number) {
     this.scene = scene;
@@ -54,7 +134,7 @@ export class AtmosphereSystem {
   }
 
   build(): void {
-    // ⚠️ Stage 2.2: Wastes + City skip fog bands + depth haze.
+    // ⚠️ Stage 2.2: Wastes + City skip the legacy fog bands + depth haze.
     // The painted backdrop art already provides atmospheric color and depth.
     // Procedural fog bands (Graphics with tweens) and depth haze (MULTIPLY
     // overlay) were double-darkening the painted art.
@@ -67,14 +147,22 @@ export class AtmosphereSystem {
     this.buildGodRays();
     this.buildAmbientParticles();
 
-    // City theme: rain + lightning (per user request — dark, rainy, stormy)
+    // ─── Act II (wastes): moving fog + water reflection ─────────────────
+    if (this.theme === 'wastes') {
+      this.buildWastesFog();
+      this.buildWaterReflection();
+    }
+
+    // ─── Act III (city): rain + lightning + neon pulse + ash ────────────
     if (this.theme === 'city') {
       this.buildRain();
       this.buildLightning();
+      this.buildNeonPulse();
+      this.buildAshParticles();
     }
   }
 
-  // ─── FOG ────────────────────────────────────────────────────────────────
+  // ─── FOG (forest/factory) ─────────────────────────────────────────────
   private buildFog(): void {
     const fogColor = this.theme === 'forest' ? 0x40a060 : 0x6a5a4a;
     const fogCount = 4;
@@ -105,7 +193,7 @@ export class AtmosphereSystem {
     }
   }
 
-  // ─── GOD RAYS (volumetric light shafts from above) ──────────────────────
+  // ─── GOD RAYS (volumetric light shafts from above) ────────────────────
   private buildGodRays(): void {
     const rayColor = this.theme === 'forest' ? 0xa0ffd0 : 0xffd080;
     const rayCount = this.theme === 'forest' ? 5 : 3;
@@ -144,7 +232,7 @@ export class AtmosphereSystem {
     }
   }
 
-  // ─── AMBIENT PARTICLES (embers / spores / dust motes) ───────────────────
+  // ─── AMBIENT PARTICLES (embers / spores / dust motes) ─────────────────
   private buildAmbientParticles(): void {
     // Pool of reusable particles
     const poolSize = this.theme === 'forest' ? 60 : 40;
@@ -209,7 +297,7 @@ export class AtmosphereSystem {
     p.alive = true;
   }
 
-  // ─── DEPTH HAZE (subtle distance fade) ──────────────────────────────────
+  // ─── DEPTH HAZE (subtle distance fade) ────────────────────────────────
   private buildDepthHaze(): void {
     // ⚠️ Stage 2.2: wastes branch removed (buildDepthHaze not called for wastes).
     const hazeColor = this.theme === 'forest' ? 0x0a1a10 : 0x0a0805;
@@ -223,9 +311,270 @@ export class AtmosphereSystem {
     this.haze.setBlendMode(Phaser.BlendModes.MULTIPLY);
   }
 
-  /** Per-frame update — moves particles, sweeps god rays. */
+  // ══════════════════════════════════════════════════════════════════════
+  // ─── ACT II (wastes) — MOVING FOG + WATER REFLECTION ──────────────────
+  // ══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Moving fog — 4 semi-transparent dark-green horizontal fog bands that
+   * drift across the screen at different speeds and Y positions (parallax).
+   *
+   * Each band is drawn once as a periodic pattern (period = segmentWidth),
+   * then the Graphics object's x is updated each frame and wrapped by exactly
+   * one segmentWidth — making the wrap visually seamless.
+   */
+  private buildWastesFog(): void {
+    const bandCount = 4;
+    const fogColor = 0x2a4030;     // dark green
+    const segmentWidth = 250;      // pattern repeat period
+
+    for (let i = 0; i < bandCount; i++) {
+      const bandHeight = 80 + i * 15;
+      const y = 180 + i * 110;            // different Y positions
+      const alpha = 0.05 + i * 0.015;     // 0.05–0.095 (within 0.05–0.1 spec)
+      const speed = 8 + i * 4;            // 8, 12, 16, 20 px/s (parallax)
+
+      const g = this.scene.add.graphics();
+      g.setDepth(80 - i * 2);
+      g.setScrollFactor(0.2 + i * 0.1, 0.05);  // parallax per band
+      g.setAlpha(alpha);
+      g.x = 0;
+      g.y = y;
+
+      // Draw a periodic pattern spanning worldWidth + 2 segments of margin.
+      // Pattern repeats every segmentWidth → wrap by segmentWidth is invisible.
+      g.fillStyle(fogColor, 1);
+      const totalWidth = this.worldWidth + segmentWidth * 2;
+      const segments = Math.ceil(totalWidth / segmentWidth) + 1;
+      for (let s = 0; s <= segments; s++) {
+        const x = s * segmentWidth;
+        // Subtle vertical variation per ellipse — same on every period because
+        // we use a small fixed yOffsets table indexed by (s % table.length).
+        const yOffsets = [0, 8, -6, 12, -10, 4];
+        const yOff = yOffsets[s % yOffsets.length];
+        g.fillEllipse(x, yOff, segmentWidth * 1.4, bandHeight);
+      }
+
+      this.wastesFogBands.push({ gfx: g, x: 0, speed, segmentWidth });
+    }
+  }
+
+  /**
+   * Water reflection — 18 small 2×1 rectangles near the bottom of the screen
+   * (y in 625..715) that flicker randomly each frame, simulating the
+   * shimmering surface of standing water.
+   *
+   * One Graphics object is cleared+redrawn per frame (cheap for 18 rects).
+   * Spread across the full worldWidth (world-space X, screen-space Y).
+   */
+  private buildWaterReflection(): void {
+    this.waterShimmerGfx = this.scene.add.graphics();
+    this.waterShimmerGfx.setDepth(82);
+    // World-space X (spreads across worldWidth), screen-space Y (always bottom).
+    this.waterShimmerGfx.setScrollFactor(1, 0);
+
+    const count = 18;
+    for (let i = 0; i < count; i++) {
+      this.waterShimmers.push({
+        x: Math.random() * this.worldWidth,
+        y: 625 + Math.random() * (GAME.HEIGHT - 630),
+        baseAlpha: 0.2 + Math.random() * 0.3,
+        flickerSpeed: 0.5 + Math.random() * 2,
+        phase: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ─── ACT III (city) — RAIN + LIGHTNING + NEON PULSE + ASH ─────────────
+  // ══════════════════════════════════════════════════════════════════════
+
+  /**
+   * Rain — 40-50 diagonal raindrop lines drawn on a single Graphics object.
+   * lineStyle(1, 0x4060a0, 0.3). 8-15px long, 300-500px/s. Slight diagonal
+   * angle (~14°). When a drop goes off-screen bottom, reset to top with new
+   * random X across worldWidth.
+   *
+   * Replaces the prior Line-per-drop implementation (v1.0) with a single
+   * Graphics redraw per frame — fewer draw calls, same visual result.
+   */
+  private buildRain(): void {
+    if (!QualityManager.isRainEnabled()) return;
+
+    this.rainGfx = this.scene.add.graphics();
+    this.rainGfx.setDepth(90);
+    // World-space X (spreads across worldWidth), screen-space Y (always full height).
+    this.rainGfx.setScrollFactor(1, 0);
+
+    // Spec: 40-50 drops. Respect QualityManager but clamp to spec range.
+    const qCount = QualityManager.getRainCount();
+    const targetCount = Math.min(50, Math.max(40, qCount));
+    for (let i = 0; i < targetCount; i++) {
+      this.rainDrops.push({
+        x: Math.random() * this.worldWidth,
+        y: Math.random() * GAME.HEIGHT,
+        speed: 300 + Math.random() * 200,   // 300-500 px/s
+        length: 8 + Math.random() * 7,      // 8-15 px
+      });
+    }
+  }
+
+  /**
+   * Lightning — random screen-wide flash every 8-15 seconds.
+   * Uses scene.cameras.main.flash(150, 200, 220, 255) (bluish-white) plus a
+   * brief white overlay rectangle for an extra "pop". Also plays a 'thunder'
+   * SFX if registered in AudioSystem (silently no-ops otherwise).
+   *
+   * Timing is checked per-frame in updateLightning() using scene.time.now,
+   * per task spec — no recursive delayedCall.
+   */
+  private buildLightning(): void {
+    this.lightningOverlay = this.scene.add.rectangle(
+      GAME.WIDTH / 2, GAME.HEIGHT / 2,
+      GAME.WIDTH, GAME.HEIGHT,
+      0xffffff, 0,
+    );
+    this.lightningOverlay.setDepth(96);
+    this.lightningOverlay.setScrollFactor(0);                 // fixed to screen
+    this.lightningOverlay.setBlendMode(Phaser.BlendModes.ADD);
+
+    // Schedule first strike — 8-15s
+    this.nextLightningTime = this.scene.time.now + 8000 + Math.random() * 7000;
+  }
+
+  private triggerLightning(): void {
+    // ── Camera flash (bluish-white, 150ms) ──
+    this.scene.cameras.main.flash(150, 200, 220, 255);
+
+    // ── White overlay rectangle (brief bright pop, then fade) ──
+    if (this.lightningOverlay) {
+      this.lightningOverlay.setAlpha(0.5);
+      this.scene.time.delayedCall(80, () => {
+        if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0.15);
+      });
+      this.scene.time.delayedCall(180, () => {
+        if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0);
+      });
+    }
+
+    // ── Thunder sound (silently no-ops if 'thunder' isn't registered) ──
+    AudioSystem.play('thunder' as unknown as SfxName);
+  }
+
+  /**
+   * Neon pulse — 4 colored rectangles (cyan, magenta, amber, green) at fixed
+   * positions on the background layer (depth 3, ADD blend). Each rectangle
+   * has its own breathing tween with different duration & delay, simulating
+   * distant neon signs flickering on and off.
+   */
+  private buildNeonPulse(): void {
+    const colors = [0x00ffff, 0xff00ff, 0xffaa00, 0x00ff80];  // cyan, magenta, amber, green
+    const positions = [
+      { x: this.worldWidth * 0.15, y: 150, w: 60, h: 200 },
+      { x: this.worldWidth * 0.35, y: 100, w: 80, h: 250 },
+      { x: this.worldWidth * 0.65, y: 120, w: 50, h: 180 },
+      { x: this.worldWidth * 0.85, y: 80,  w: 70, h: 220 },
+    ];
+    const count = Math.min(colors.length, positions.length);
+
+    for (let i = 0; i < count; i++) {
+      const pos = positions[i];
+      const rect = this.scene.add.rectangle(pos.x, pos.y, pos.w, pos.h, colors[i], 0);
+      rect.setOrigin(0.5, 0);
+      rect.setDepth(3);                                       // background layer
+      rect.setBlendMode(Phaser.BlendModes.ADD);
+      rect.setAlpha(0);
+      this.neonRects.push(rect);
+
+      // Breathing tween — different duration & delay per rectangle
+      this.tweens.push(this.scene.tweens.add({
+        targets: rect,
+        alpha: { from: 0.05, to: 0.22 },
+        duration: 2500 + i * 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.inOut',
+        delay: i * 600,
+      }));
+    }
+  }
+
+  /**
+   * Ash particles — 22 small brown-gray circles drifting upward slowly with
+   * horizontal sway. radius 1-2px, color 0x4a4030, alpha 0.1-0.3. Each
+   * particle has a random lifespan and resets when it goes off-screen top
+   * (or its lifespan expires).
+   *
+   * Drawn on a single Graphics object (cleared+redrawn per frame).
+   */
+  private buildAshParticles(): void {
+    this.ashGfx = this.scene.add.graphics();
+    this.ashGfx.setDepth(85);
+    this.ashGfx.setScrollFactor(1, 0);   // world-space X, screen-space Y
+
+    const count = 22;
+    for (let i = 0; i < count; i++) {
+      this.ashParticles.push(this.createAshParticle(true));
+    }
+  }
+
+  private createAshParticle(initial: boolean): AshParticle {
+    const baseX = Math.random() * this.worldWidth;
+    return {
+      x: baseX,
+      y: initial ? Math.random() * GAME.HEIGHT : GAME.HEIGHT + Math.random() * 60,
+      baseX,
+      vy: -(0.15 + Math.random() * 0.25),     // slow upward drift
+      baseAlpha: 0.1 + Math.random() * 0.2,   // 0.1-0.3
+      radius: 1 + Math.random(),              // 1-2 px
+      swayAmp: 5 + Math.random() * 15,
+      swayFreq: 0.5 + Math.random(),
+      phase: Math.random() * Math.PI * 2,
+      life: 0,
+      maxLife: 4000 + Math.random() * 4000,
+    };
+  }
+
+  private respawnAshParticle(p: AshParticle): void {
+    const fresh = this.createAshParticle(false);
+    // In-place copy so the array reference stays valid
+    p.x = fresh.x;
+    p.y = fresh.y;
+    p.baseX = fresh.baseX;
+    p.vy = fresh.vy;
+    p.baseAlpha = fresh.baseAlpha;
+    p.radius = fresh.radius;
+    p.swayAmp = fresh.swayAmp;
+    p.swayFreq = fresh.swayFreq;
+    p.phase = fresh.phase;
+    p.life = 0;
+    p.maxLife = fresh.maxLife;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ─── UPDATE ───────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
+
+  /** Per-frame update — moves particles, fog, rain, lightning timer, ash. */
   update(deltaMs: number): void {
-    // Update particles
+    // Existing: ambient particles (embers / spores / dust motes)
+    this.updateParticles(deltaMs);
+
+    // ── Act II (wastes) ──
+    if (this.theme === 'wastes') {
+      this.updateWastesFog(deltaMs);
+      this.updateWaterShimmer();
+    }
+
+    // ── Act III (city) ──
+    if (this.theme === 'city') {
+      this.updateRain(deltaMs);
+      this.updateLightning();
+      this.updateAsh(deltaMs);
+    }
+  }
+
+  private updateParticles(deltaMs: number): void {
     for (const p of this.particles) {
       if (!p.alive || !p.go.active) continue;
       p.life += deltaMs;
@@ -243,10 +592,121 @@ export class AtmosphereSystem {
         p.go.setAlpha(baseAlpha * (1 - (fadeT - 0.7) / 0.3));
       }
     }
-
     // God ray breathing is handled by tweens (rotation + alpha flicker set
     // in buildGodRays). No per-frame update needed here.
   }
+
+  private updateWastesFog(deltaMs: number): void {
+    const dt = deltaMs * 0.001;  // seconds
+    for (const band of this.wastesFogBands) {
+      band.x += band.speed * dt;
+      // Wrap when band has drifted a full segmentWidth — seamless because
+      // the drawn pattern is periodic with that exact period.
+      if (band.x >= band.segmentWidth) {
+        band.x -= band.segmentWidth;
+      }
+      // Drift left (gfx.x decreases as band.x increases)
+      band.gfx.x = -band.x;
+    }
+  }
+
+  private updateWaterShimmer(): void {
+    if (!this.waterShimmerGfx) return;
+    const gfx = this.waterShimmerGfx;
+    gfx.clear();
+
+    const t = this.scene.time.now * 0.001;
+    for (const s of this.waterShimmers) {
+      // Combine a slow sin wave with per-frame random noise → flicker
+      const wave = (Math.sin(t * s.flickerSpeed + s.phase) + 1) * 0.5;
+      const noise = Math.random() * 0.4;
+      const alpha = Math.max(0, Math.min(0.6, s.baseAlpha * wave * 0.5 + noise * 0.3));
+      // 2px wide × 1px tall horizontal line (spec)
+      gfx.fillStyle(0x6090a0, alpha);
+      gfx.fillRect(s.x, s.y, 2, 1);
+    }
+  }
+
+  private updateRain(deltaMs: number): void {
+    if (!this.rainGfx) return;
+    const gfx = this.rainGfx;
+    gfx.clear();
+
+    // Slight diagonal angle (~14°) — wind effect
+    const angle = 0.25;
+    const sinA = Math.sin(angle);
+    const cosA = Math.cos(angle);
+    const dt = deltaMs * 0.001;
+
+    // Spec: lineStyle(1, 0x4060a0, 0.3) — set once for all drops
+    gfx.lineStyle(1, 0x4060a0, 0.3);
+
+    for (const drop of this.rainDrops) {
+      // Move drop (speed is in px/s)
+      drop.x += sinA * drop.speed * dt;
+      drop.y += cosA * drop.speed * dt;
+
+      // Reset when off-screen bottom → recycle to top with new random X
+      if (drop.y > GAME.HEIGHT + 20) {
+        drop.y = -20;
+        drop.x = Math.random() * this.worldWidth;
+      }
+      // Wrap horizontally (in case wind drift pushes drops off the world)
+      if (drop.x > this.worldWidth + 20) drop.x = -20;
+      if (drop.x < -20) drop.x = this.worldWidth + 20;
+
+      // Draw diagonal line segment
+      gfx.lineBetween(
+        drop.x, drop.y,
+        drop.x + sinA * drop.length,
+        drop.y + cosA * drop.length,
+      );
+    }
+  }
+
+  private updateLightning(): void {
+    if (this.scene.time.now < this.nextLightningTime) return;
+    this.triggerLightning();
+    // Schedule next strike — 8-15s
+    this.nextLightningTime = this.scene.time.now + 8000 + Math.random() * 7000;
+  }
+
+  private updateAsh(deltaMs: number): void {
+    if (!this.ashGfx) return;
+    const gfx = this.ashGfx;
+    gfx.clear();
+
+    const t = this.scene.time.now * 0.001;
+    const dt = deltaMs * 0.001;
+
+    for (const p of this.ashParticles) {
+      p.life += deltaMs;
+      // Drift upward (slow)
+      p.y += p.vy * dt * 60;
+      // Horizontal sway — oscillate around baseX
+      p.x = p.baseX + Math.sin(t * p.swayFreq + p.phase) * p.swayAmp;
+
+      // Reset when off-screen top OR lifespan expired
+      if (p.y < -10 || p.life >= p.maxLife) {
+        this.respawnAshParticle(p);
+        continue;
+      }
+
+      // Alpha fade near end of life
+      let alpha = p.baseAlpha;
+      if (p.life > p.maxLife * 0.8) {
+        alpha = p.baseAlpha * (1 - (p.life - p.maxLife * 0.8) / (p.maxLife * 0.2));
+      }
+
+      // Color 0x4a4030 per spec — small brown-gray ash
+      gfx.fillStyle(0x4a4030, alpha);
+      gfx.fillCircle(p.x, p.y, p.radius);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════
+  // ─── DESTROY ──────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════
 
   /** Destroy all atmosphere layers. Call on cleanupPlay. */
   destroy(): void {
@@ -254,6 +714,8 @@ export class AtmosphereSystem {
     this.tweens = [];
     this.particleTimer?.remove();
     this.particleTimer = null;
+
+    // Existing effects
     this.fogLayers.forEach(f => { if (f && f.active) f.destroy(); });
     this.fogLayers = [];
     this.godRays.forEach(r => { if (r && r.active) r.destroy(); });
@@ -261,93 +723,28 @@ export class AtmosphereSystem {
     this.particles.forEach(p => { if (p.go && p.go.active) p.go.destroy(); });
     this.particles = [];
     if (this.haze && this.haze.active) { this.haze.destroy(); this.haze = null; }
-    this.rainDrops.forEach(d => { if (d && d.active) d.destroy(); });
-    this.rainDrops = [];
-    if (this.rainTimer) { this.rainTimer.remove(); this.rainTimer = null; }
-    if (this.lightningOverlay && this.lightningOverlay.active) { this.lightningOverlay.destroy(); this.lightningOverlay = null; }
-    if (this.lightningTimer) { this.lightningTimer.remove(); this.lightningTimer = null; }
-  }
 
-  // ─── RAIN (city theme — dark, stormy) ──────────────────────────────────
-  private rainDrops: Phaser.GameObjects.Line[] = [];
-  private rainTimer: Phaser.Time.TimerEvent | null = null;
-
-  private buildRain(): void {
-    // Rain: thin blue-white lines falling diagonally, scrolling with camera.
-    // Per Phaser 4 — use Line game objects with setScrollFactor for parallax.
-    const rainCount = QualityManager.isRainEnabled() ? QualityManager.getRainCount() : 50;
-    for (let i = 0; i < rainCount; i++) {
-      const x = Math.random() * (this.worldWidth + 400) - 200;
-      const y = Math.random() * GAME.HEIGHT;
-      const len = 8 + Math.random() * 12;
-      const drop = this.scene.add.line(x, y, 0, 0, 2, len, 0x6080a0, 0.3);
-      drop.setOrigin(0, 0);
-      drop.setAngle(15);  // slight diagonal (wind effect)
-      drop.setDepth(90);
-      drop.setScrollFactor(0.3, 0);  // rain scrolls slower than world (parallax)
-      this.rainDrops.push(drop);
+    // Act II (wastes)
+    this.wastesFogBands.forEach(b => { if (b.gfx && b.gfx.active) b.gfx.destroy(); });
+    this.wastesFogBands = [];
+    if (this.waterShimmerGfx && this.waterShimmerGfx.active) {
+      this.waterShimmerGfx.destroy();
+      this.waterShimmerGfx = null;
     }
+    this.waterShimmers = [];
 
-    // Rain update loop — move drops downward, recycle when off-screen
-    this.rainTimer = this.scene.time.addEvent({
-      delay: 33,  // ~30fps update for rain (cheaper than 60fps)
-      callback: () => {
-        const cam = this.scene.cameras.main;
-        const viewLeft = cam.scrollX - 200;
-        const viewRight = cam.scrollX + cam.width + 200;
-        for (const drop of this.rainDrops) {
-          if (!drop || !drop.active) continue;
-          drop.y += 12 + Math.random() * 6;  // fall speed
-          drop.x += 2;  // wind drift
-          // Recycle when below screen
-          if (drop.y > GAME.HEIGHT + 20) {
-            drop.y = -20;
-            drop.x = viewLeft + Math.random() * (viewRight - viewLeft);
-          }
-          // Wrap around horizontally
-          if (drop.x > viewRight) drop.x = viewLeft;
-          if (drop.x < viewLeft) drop.x = viewRight;
-        }
-      },
-      loop: true,
-    });
-  }
-
-  // ─── LIGHTNING (city theme — storm) ────────────────────────────────────
-  private lightningOverlay: Phaser.GameObjects.Rectangle | null = null;
-  private lightningTimer: Phaser.Time.TimerEvent | null = null;
-
-  private buildLightning(): void {
-    // Lightning: full-screen white flash at random intervals (3-8 seconds)
-    this.lightningOverlay = this.scene.add.rectangle(
-      GAME.WIDTH / 2, GAME.HEIGHT / 2,
-      GAME.WIDTH, GAME.HEIGHT,
-      0xffffff, 0,
-    );
-    this.lightningOverlay.setDepth(96);
-    this.lightningOverlay.setScrollFactor(0);
-    this.lightningOverlay.setBlendMode(Phaser.BlendModes.ADD);
-
-    // Random lightning strikes
-    const scheduleNext = (): void => {
-      const delay = 3000 + Math.random() * 5000;  // 3-8 seconds
-      this.lightningTimer = this.scene.time.delayedCall(delay, () => {
-        if (!this.lightningOverlay || !this.lightningOverlay.active) return;
-        // Flash sequence: bright → dim → bright → fade (double-flash effect)
-        this.lightningOverlay.setAlpha(0.5);
-        this.scene.time.delayedCall(60, () => {
-          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0.15);
-        });
-        this.scene.time.delayedCall(120, () => {
-          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0.35);
-        });
-        this.scene.time.delayedCall(200, () => {
-          if (this.lightningOverlay?.active) this.lightningOverlay.setAlpha(0);
-        });
-        scheduleNext();
-      });
-    };
-    scheduleNext();
+    // Act III (city)
+    if (this.rainGfx && this.rainGfx.active) { this.rainGfx.destroy(); this.rainGfx = null; }
+    this.rainDrops = [];
+    if (this.lightningOverlay && this.lightningOverlay.active) {
+      this.lightningOverlay.destroy();
+      this.lightningOverlay = null;
+    }
+    this.nextLightningTime = 0;
+    this.neonRects.forEach(r => { if (r && r.active) r.destroy(); });
+    this.neonRects = [];
+    if (this.ashGfx && this.ashGfx.active) { this.ashGfx.destroy(); this.ashGfx = null; }
+    this.ashParticles = [];
   }
 }
 

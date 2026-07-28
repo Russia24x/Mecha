@@ -132,6 +132,8 @@ export const ACTS: ActData[] = [
                 { x: 364, y: 360, w: 30, h: 200 },
                 { x: 764, y: 360, w: 30, h: 200 },
               ], loreObjects: [
+                // INTENTIONALLY HIGH (y=80): wallJump shaft — requires wallJump ability
+                // to ascend vertical pillars at x=364/x=764. Top of shaft = secret reward area.
                 { id: 'lore_s3_echo', type: 'echo', x: 264, y: 80, titleKey: 'lore.s3.echo.title', textKey: 'lore.s3.echo.text' },
                 { id: 'lore_s3_secret', type: 'terminal', x: 234, y: 80, titleKey: 'lore.s3.secret.title', textKey: 'lore.s3.secret.text' },
               ], collectibles: [
@@ -154,7 +156,10 @@ export const ACTS: ActData[] = [
                 { x: 2500, y: 260, w: 180, h: 16 },
               ], loreObjects: [
                 { id: 'lore_s4_terminal', type: 'terminal', x: 1920, y: 250, titleKey: 'lore.s4.terminal.title', textKey: 'lore.s4.terminal.text' },
-                { id: 'lore_s4_corpse', type: 'corpse', x: 2260, y: 230, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
+                // LOWERED from y=230 → y=510 (was floating above lower platform with no surface).
+                // Now sits on platform at (2200,540,w=120) — accessible without abilities.
+                // The high alcove reward (col_s4_health at y=200) remains as exploration incentive.
+                { id: 'lore_s4_corpse', type: 'corpse', x: 2260, y: 510, titleKey: 'lore.s4.corpse.title', textKey: 'lore.s4.corpse.text' },
               ], collectibles: [
                 { id: 'col_s4_health', type: 'health_fragment', x: 2260, y: 200 },
                 { id: 'col_s4_weapon', type: 'weapon_part', x: 1960, y: 230 },
@@ -212,6 +217,9 @@ export const ACTS: ActData[] = [
                 { x: 2788, y: 360, w: 40, h: 200 },
               ], loreObjects: [
                 { id: 'lore_s6_corpse', type: 'corpse', x: 1900, y: 250, titleKey: 'lore.s6.corpse.title', textKey: 'lore.s6.corpse.text' },
+                // INTENTIONALLY HIGH (y=190): on platform at (2300,220,w=160) — top y=212.
+                // Accessible only via doubleJump (col_s6_skill at y=180 requires doubleJump).
+                // Boss arena secret reward — leave high per "requires doubleJump" allowance.
                 { id: 'lore_s6_terminal', type: 'terminal', x: 2300, y: 190, titleKey: 'lore.s6.terminal.title', textKey: 'lore.s6.terminal.text' },
               ], collectibles: [
                 { id: 'col_s6_skill', type: 'skill_point', x: 2300, y: 180, requiredAbility: 'doubleJump' },
@@ -309,6 +317,9 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 3800, y: 660, w: 200, h: 20, damage: 20 },
                 { type: 'lava', x: 4100, y: 660, w: 180, h: 20, damage: 20 },
               ], loreObjects: [
+                // ON UPPER PLATFORM (y=210, platform at (3400,220,w=160) — top y=212).
+                // Accessible via normal platforming chain (y=500→420→380→220). Not lowered
+                // — moving y>=280 would push corpse off the only platform at this x.
                 { id: 'lore_w3_names', type: 'corpse', x: 3400, y: 210, titleKey: 'lore.w3.names.title', textKey: 'lore.w3.names.text' },
               ], collectibles: [
                 { id: 'col_w3_skill', type: 'skill_point', x: 3800, y: 150, requiredAbility: 'wallJump' },
@@ -331,6 +342,9 @@ export const ACTS: ActData[] = [
                 { type: 'spike', x: 5240, y: 640, w: 80, h: 20, damage: 12 },
                 { type: 'spike', x: 5680, y: 640, w: 80, h: 20, damage: 12 },
               ], loreObjects: [
+                // ON UPPER PLATFORM (y=170, platform at (5300,180,w=160) — top y=172).
+                // Accessible via normal platforming chain. Not lowered — moving y>=280
+                // would push terminal off the only platform at this x.
                 { id: 'lore_w4_awaiting', type: 'terminal', x: 5300, y: 170, titleKey: 'lore.w4.awaiting.title', textKey: 'lore.w4.awaiting.text' },
               ], landmarks: [
                 { id: 'lm_w4_standing_mech', type: 'control_room', x: 5050, y: 420, w: 80, h: 200, color: 0x3a4a30 },
@@ -392,6 +406,9 @@ export const ACTS: ActData[] = [
                 { type: 'lava', x: 1756, y: 660, w: 300, h: 20, damage: 18 },
                 { type: 'lava', x: 2656, y: 660, w: 300, h: 20, damage: 18 },
               ], loreObjects: [
+                // ON UPPER PLATFORM (y=170, platform at (2356,180,w=140) — top y=172).
+                // Accessible via upper platform chain. Near col_w6_energy (wallJump-gated)
+                // but terminal itself does not require wallJump — reachable by normal jumps.
                 { id: 'lore_w6_nameplate', type: 'corpse', x: 2356, y: 170, titleKey: 'lore.w6.nameplate.title', textKey: 'lore.w6.nameplate.text' },
               ], collectibles: [
                 { id: 'col_w6_energy', type: 'energy_fragment', x: 2156, y: 270, requiredAbility: 'wallJump' },
@@ -478,7 +495,11 @@ export const ACTS: ActData[] = [
                 { x: 2376, y: 220, w: 160, h: 16 },
                 { x: 3036, y: 360, w: 40, h: 200 },
               ], loreObjects: [
+                // ON UPPER PLATFORM (y=180, platform at (2376,220,w=160) — top y=212).
+                // Accessible via normal platforming chain (y=520→460→380→220).
                 { id: 'lore_w9_cockpit', type: 'terminal', x: 2376, y: 180, titleKey: 'lore.w11.cockpit.title', textKey: 'lore.w11.cockpit.text' },
+                // ON UPPER PLATFORM (y=240, platform at (1976,280,w=200) — top y=272).
+                // Accessible via normal platforming. Corpse body extends to y=254 (above platform top).
                 { id: 'lore_w9_names', type: 'corpse', x: 1976, y: 240, titleKey: 'lore.w11.names.title', textKey: 'lore.w11.names.text' },
               ], collectibles: [
                 { id: 'col_w9_health', type: 'health_fragment', x: 2276, y: 420 },
@@ -604,6 +625,10 @@ export const ACTS: ActData[] = [
               ], grappleAnchors: [
                 { id: 'ga_c3_secret', x: 5460, y: 180 },
               ], loreObjects: [
+                // INTENTIONALLY HIGH (y=190): on platform at (4960,220,w=100) — top y=212.
+                // Near grapple-gated col_c4b_skill (y=140, requiredAbility='grapple').
+                // Terminal accessible via normal jump from y=220 platform; the nearby skill
+                // point requires grapple. Left high per "intentionally high" allowance.
                 { id: 'lore_c4b_fortmap', type: 'terminal', x: 5010, y: 190, titleKey: 'lore.c4b.fortmap.title', textKey: 'lore.c4b.fortmap.text' },
               ], collectibles: [
                 { id: 'col_c4b_skill', type: 'skill_point', x: 5460, y: 140, requiredAbility: 'grapple' },
@@ -795,7 +820,7 @@ export const ACTS: ActData[] = [
             unlockedByDefault: false,
             sections: [
               // S1: Forest entrance — quiet, overgrown
-              { id: 1, nameKey: 'section.forest.1.name', x: 0, enemies: ['flying_ai'], platforms: [
+              { id: 1, nameKey: 'section.forest.1.name', x: 0, enemies: ['flying_ai', 'flying_ai'], platforms: [
                 { x: 300, y: 540, w: 160, h: 20 },
                 { x: 600, y: 440, w: 140, h: 20 },
                 { x: 900, y: 540, w: 160, h: 20 },
@@ -815,7 +840,7 @@ export const ACTS: ActData[] = [
                 { id: 'lore_f2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.f2.terminal.title', textKey: 'lore.f2.terminal.text' },
               ]},
               // S3: Root maze — vertical platforming
-              { id: 3, nameKey: 'section.forest.3.name', x: 2560, enemies: ['spider'], platforms: [
+              { id: 3, nameKey: 'section.forest.3.name', x: 2560, enemies: ['spider', 'spider'], platforms: [
                 { x: 2660, y: 580, w: 200, h: 20 },
                 { x: 2800, y: 400, w: 40, h: 360 },
                 { x: 3100, y: 400, w: 40, h: 360 },
@@ -826,6 +851,9 @@ export const ACTS: ActData[] = [
               ], hazards: [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
               ], loreObjects: [
+                // INTENTIONALLY HIGH (y=120): on platform at (2750,140,w=80) — top y=132.
+                // Root maze vertical platforming section — reached via normal jump chain.
+                // Left high as exploration reward; nearby spike hazard adds risk to approach.
                 { id: 'lore_f3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.f3.echo.title', textKey: 'lore.f3.echo.text' },
               ]},
               // S4: Mini boss

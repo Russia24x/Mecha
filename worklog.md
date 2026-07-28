@@ -3612,3 +3612,212 @@ Step 6 — remaining items for user manual test:
 - Full progression factory_1→2→3→boss→wastes_1→2→3→boss→act3_ward_1→... without
   IndexedDB manipulation — requires killing bosses which needs real gameplay.
 - The Hub now correctly gates Act-level access; within-Act progression is via gates.
+
+---
+Task ID: atmosphere-act2-act3
+Agent: general-purpose (sub-agent)
+Task: Add Act II (wastes) + Act III (city) atmosphere effects to AtmosphereSystem — moving fog, water reflection, lightning, rain, neon pulse, ash particles.
+
+Work Log:
+- Read worklog.md, AtmosphereSystem.ts (v1.0, 354 lines), Constants.ts (GAME.WIDTH=1280, HEIGHT=720), AudioSystem.ts (no 'thunder' SFX in registry — play() silently no-ops), QualityManager.ts (isRainEnabled / getRainCount helpers), ParallaxBackground.ts (RegionTheme type, layer depth conventions).
+- Verified AtmosphereSystem usage in PlayController.ts (calls build/update/destroy) and GameScene.ts (lifecycle tied to PLAY state).
+- Identified existing v1.0 state:
+  - Wastes + city THEMES SKIP legacy buildFog() + buildDepthHaze() (Stage 2.2 comment).
+  - City already had basic rain (50 Line game objects, scrollFactor 0.3/0, 33ms timer) + lightning (3-8s recursive delayedCall, double-flash overlay, no camera.flash, no thunder sound).
+  - Ambient particles already run for all themes (city uses gray 0xa0a0a0).
+- Rewrote AtmosphereSystem.ts → v1.1 (751 lines). Public API unchanged: constructor(scene, theme, worldWidth), build(), update(deltaMs), destroy().
+
+Changes by theme:
+
+ACT II (wastes) — NEW effects:
+1. buildWastesFog() — 4 dark-green (0x2a4030) horizontal fog bands at y=180/290/400/510.
+   Each band: Graphics object, depth 78-80, scrollFactor(0.2+i*0.1, 0.05) for parallax,
+   setAlpha(0.05-0.095). Drawn ONCE as a periodic pattern (segmentWidth=250px, 6-entry
+   yOffsets table indexed mod 6 → pattern repeats every 6 segments). Drift speed per
+   band: 8/12/16/20 px/s. updateWastesFog(dt) increments band.x and wraps modulo
+   segmentWidth — wrap is visually seamless because pattern is periodic.
+2. buildWaterReflection() — 18 small 2×1 rectangles at y=625..715, spread across
+   worldWidth. Single Graphics object at depth 82, scrollFactor(1,0). updateWaterShimmer()
+   clears+redraws each frame with combined slow sin wave + per-frame Math.random() noise
+   for flicker (alpha 0..0.6, fillStyle 0x6090a0).
+
+ACT III (city) — UPGRADED + NEW effects:
+3. buildRain() — REWRITTEN from Line-per-drop to single Graphics object. 40-50 drops
+   (clamped from QualityManager.getRainCount() to spec range 40-50). lineStyle(1, 0x4060a0, 0.3)
+   set once before loop. Each drop: {x, y, speed:300-500, length:8-15}. Slight diagonal
+   angle 0.25rad (~14°). updateRain(dt) moves drops in px/s, recycles to y=-20 with new
+   random X across worldWidth when y > HEIGHT+20. depth 90, scrollFactor(1,0).
+4. buildLightning() — UPGRADED. Replaced recursive delayedCall with nextLightningTime
+   field checked in updateLightning() using scene.time.now. Interval 8-15s per spec.
+   triggerLightning() now calls scene.cameras.main.flash(150, 200, 220, 255) (bluish-white)
+   PLUS the existing white overlay rectangle (brief 0.5→0.15→0 alpha pop over 180ms).
+   Also calls AudioSystem.play('thunder' as unknown as SfxName) — silently no-ops because
+   'thunder' isn't in SFX_REGISTRY (would need a separate task to add it).
+5. buildNeonPulse() — NEW. 4 colored rectangles (cyan 0x00ffff, magenta 0xff00ff,
+   amber 0xffaa00, green 0x00ff80) at fixed background positions (15%/35%/65%/85% of
+   worldWidth, varying y/width/height). depth 3 (background layer), ADD blend. Each has
+   a yoyo breathing tween with duration 2500/3300/4100/4900ms and delay 0/600/1200/1800ms
+   (different timing per rectangle). Alpha oscillates 0.05↔0.22.
+6. buildAshParticles() — NEW. 22 brown-gray (0x4a4030) circles, radius 1-2px, alpha 0.1-0.3.
+   Single Graphics object at depth 85, scrollFactor(1,0). Each particle: vy=-(0.15-0.4),
+   swayAmp=5-20, swayFreq=0.5-1.5, maxLife=4-8s. updateAsh(dt) drifts y upward, oscillates
+   x = baseX + sin(t*freq+phase)*amp (horizontal sway). Resets when y<-10 OR life>=maxLife
+   → respawnAshParticle() in-place copies fresh state. Fade out in last 20% of life.
+
+General implementation notes:
+- All new effects use single Graphics objects cleared+redrawn per frame (cheap, no GC churn).
+- All state stored as plain data interfaces (WastesFogBand, WaterShimmer, RainDrop, AshParticle)
+  in arrays, updated in update() loop — per task spec.
+- All effects spread across worldWidth (not just screen) via scrollFactor(1, 0) — world-space X,
+  screen-space Y. Fog uses parallax scrollFactor(0.2+i*0.1, 0.05).
+- Timing uses scene.time.now for lightning intervals (per spec); ash/fog/rain use deltaMs.
+- destroy() fully cleans up all new fields: wastesFogBands, waterShimmerGfx, rainGfx,
+  lightningOverlay, neonRects, ashGfx + resets all arrays and nextLightningTime.
+- Neon pulse tweens added to this.tweens[] so destroy() stops them.
+- Existing ambient particles (40 for city, gray 0xa0a0a0) KEPT — distinct from new ash
+  particles (22, brown 0x4a4030, with sway). Total city particle load: ~62 (acceptable).
+
+Verification:
+- `npx tsc --noEmit -p tsconfig.json`: 0 errors in src/. 4 pre-existing errors in
+  examples/websocket + skills/image-edit + skills/stock-analysis-skill (unchanged,
+  unrelated to this task — verified via git stash).
+- `npx eslint src/game/world/atmosphere/AtmosphereSystem.ts`: 0 errors, 0 warnings.
+- No breaking API changes — PlayController.ts (line 202-203) and GameScene.ts still
+  call build()/update(deltaMs)/destroy() unchanged.
+
+Next actions for user:
+- Playtest Act II (wastes) — confirm fog bands drift smoothly with no visible wrap seam,
+  and water shimmer at bottom (y>620) is visible without being distracting.
+- Playtest Act III (city) — confirm lightning strikes 8-15s apart with camera flash +
+  overlay pop, rain falls diagonally with correct density (~40-50 visible), neon signs
+  pulse at different rates in background, ash drifts upward with sway.
+- (Optional) Add 'thunder' entry to AudioSystem.SFX_REGISTRY (type:'noise', dur:0.6, vol:0.3)
+  and extend SfxName union — currently the call silently no-ops, which is safe but silent.
+- Consider quality-gating ash particle count via QualityManager.adjustParticleCount() if
+  perf issues arise on low-end devices (currently fixed at 22).
+
+---
+Task ID: parallax-multilayer-placement
+Agent: general-purpose
+Task: Multi-layer parallax (cloud drift + mid silhouettes + vignette) and object placement optimization (lore y-heights, enemy grouping).
+
+Files modified:
+- src/game/world/atmosphere/ParallaxBackground.ts
+- src/game/data/acts/acts.ts
+
+Task 1 — ParallaxBackground.ts:
+Updated build() to call 3 new layer builders AFTER buildBackgroundArt() but BEFORE the
+"wastes/city early return" so they apply to ALL themes (factory, wastes, city, forest).
+Existing sky/bg-art/far/mid/near layers UNCHANGED.
+
+New methods (inserted at lines 322-516, between buildBackgroundArt and buildFactoryFar):
+
+1. buildCloudDrift() (line 322) — 4 large semi-transparent circles.
+   - Container at depth -1.6 (BEHIND painted bg art at -1.5) so they appear as distant
+     atmospheric haze filtering through the skyline.
+   - setScrollFactor(0.08, 0.04, true) — slowest layer; `true` propagates to children.
+   - Color 0x1a2030, alpha 0.03-0.05 (randomized per cloud per spec).
+   - Radius 180-320px; BlendMode.ADD for soft glow.
+   - Tween: 28-50s slow horizontal drift + alpha breathing (yoyo, repeat -1).
+
+2. buildMidSilhouettes() (line 357) — Layer 2 dark structural silhouettes.
+   - Container at depth -1.2 (between sky tint -1.4 and existing far layer -1).
+   - setScrollFactor(0.3, 0.15, true) — propagates to all silhouette children.
+   - Color 0x05080c, alpha 0.6 (per spec). Simple shapes only — rectangles, triangles,
+     ellipses — for performance (no complex paths).
+   - Skipped for forest/generic (forest already has its own procedural mid layer).
+   - Delegates to 3 theme-specific draw methods:
+     • drawFactorySilhouettes (line 377): 2 horizontal pipes (rect + circle caps) +
+       1 vertical tank (rect + ellipse dome + shadow stripe) per 520px tile.
+     • drawWastesSilhouettes (line 409): 1-2 dead trees (rect trunk + 3 triangle
+       branches) + 1 rock formation (triangle) per 420px tile.
+     • drawCitySilhouettes (line 453): 3 building rooftops (rect body + rooftop accent
+       rect + triangle antenna) per 320px tile.
+
+3. buildVignette() (line 483) — Layer 3 foreground haze / cinematic vignette.
+   - Container at depth 9 (above platforms at 5 and landmarks at 6-8; below atmosphere
+     effects at 80+ so rain/lightning still render in front).
+   - setScrollFactor(0.5, 0.25, true) — fastest among new layers per spec.
+   - 2 Graphics rectangles using fillGradientStyle (Phaser 4.2.1 API):
+     • Top: spans (vigX, 0) to (vigX+vigW, 180), gradient alpha 0.6→0 (dark at top,
+       transparent at fadeH).
+     • Bottom: spans (vigX, GAME.HEIGHT-180) to (vigX+vigW, GAME.HEIGHT), gradient
+       alpha 0→0.6 (transparent at top, dark at bottom).
+   - Width = worldWidth + GAME.WIDTH*2 (extends -GAME.WIDTH to worldWidth+GAME.WIDTH)
+     to handle parallax shift: with scrollFactor 0.5, camera moving across worldWidth
+     shifts the vignette by worldWidth/2 in screen space. Buffer ensures vignette
+     always covers visible viewport.
+
+Ambient color tint verification:
+- acts.ts bgColors already correct per theme:
+  • Factory (Act I, 3 areas): 0x05070d (slightly blue) ✓
+  • Wastes (Act II, 3 areas): 0x0a0e08 (slightly green) ✓
+  • City ward_1 (Act III): 0x0d0505 (slightly red) ✓
+    (ward_2 = 0x0a0806 darker amber, courthouse = 0x080404 dark red — intentional variety)
+- PlayController.ts line 164: `scene.cameras.main.setBackgroundColor(area.bgColor)` ✓
+  Verified working — passes area.bgColor directly to camera.
+
+Task 2 — acts.ts:
+1. Lore objects height (y < 250 audit):
+   - LOWERED: lore_s4_corpse (factory_2 S4) — y=230 → y=510.
+     Was floating 310px above lower platform at (2200,540,w=120) with NO surface under it.
+     Now sits on that platform (top y=530, corpse center y=510 → body spans 496-524).
+     col_s4_health (y=200) left in upper alcove as exploration reward (no rule violation).
+   - COMMENTED "INTENTIONALLY HIGH" (ability-gated, leave per spec):
+     • lore_s3_echo, lore_s3_secret (y=80): wallJump shaft — wallJump-gated col_s3_skill nearby.
+     • lore_s6_terminal (y=190): near doubleJump-gated col_s6_skill in boss arena.
+     • lore_c4b_fortmap (y=190): near grapple-gated col_c4b_skill.
+     • lore_f3_echo (y=120): root maze vertical platforming, spike-gauntlet reward.
+   - COMMENTED "ON UPPER PLATFORM" (accessible via normal platforming, on platform top,
+     cannot move y alone without breaking placement):
+     • lore_w3_names (y=210, platform y=220), lore_w4_awaiting (y=170, platform y=180),
+       lore_w6_nameplate (y=170, platform y=180), lore_w9_cockpit (y=180, platform y=220),
+       lore_w9_names (y=240, platform y=280).
+   - Note: lore_s4_terminal (y=250), lore_s5_echo (y=260), lore_s6_corpse (y=250),
+     lore_w2_log (y=270), lore_w5_photo (y=270), lore_w8_shadow (y=270), lore_c4_court
+     (y=250) are at y>=250 — not in scope of the rule.
+
+2. Collectibles in dead-ends:
+   - Audited all 23 collectibles across 5 acts. None are placed in dead-end paths
+     requiring backtracking. All sit either on main-path platforms or in upper
+     alcoves reachable via forward platforming. No changes needed.
+
+3. Enemy grouping (single-enemy sections → pairs):
+   - Forest S1 (toxic_forest): ['flying_ai'] → ['flying_ai', 'flying_ai'] (pair).
+     Was single enemy in 1280px wide "quiet, overgrown" entry — too thin for combat pacing.
+   - Forest S3 (toxic_forest): ['spider'] → ['spider', 'spider'] (pair).
+     Was single enemy in 1280px root maze section with 7 platforms — too thin.
+   - Enemy TYPES unchanged (per spec). Only counts adjusted.
+   - Other combat sections already have 2+ enemies (pairs/trios) — verified, no changes.
+
+Implementation notes:
+- All new parallax methods push to this.layers[] so destroy() cleans them up automatically.
+- All tweens pushed to this.tweens[] so destroy() stops them.
+- Used Phaser 4.2.1 API: Container.setScrollFactor(x, y, true) for child propagation,
+  Graphics.fillGradientStyle(4 colors + 4 alphas) for vignette gradient.
+- Mid silhouettes use Container+Graphics-per-shape (not single Graphics) because each
+  shape has independent position — keeping them as separate GameObjects allows culling
+  and follows the existing pattern in buildFactoryMid/Near.
+
+Verification:
+- `npx tsc --noEmit`: 0 errors in src/. 4 pre-existing baseline errors in examples/
+  and skills/ folders (unchanged, unrelated to this task).
+- No breaking API changes — ParallaxBackground constructor and build()/destroy()
+  signatures unchanged. PlayController.ts and GameScene.ts unchanged.
+- Existing factory/forest Far/Mid/Near layers UNCHANGED (still built for those themes).
+- Existing wastes/city early-return preserved (still skips procedural Far/Mid/Near).
+- Area structure (sections, platforms, bonfires, exit gates) UNCHANGED per spec —
+  only lore y positions and enemy counts adjusted, comments added.
+
+Next actions for user:
+- Playtest Act I (factory): confirm mid silhouettes (pipes/tanks) appear between bg art
+  and existing far smokestacks, scrolling at 0.3 (between bg 0.15 and far 0.1).
+- Playtest Act II (wastes): confirm dead trees + rock formations render as dark
+  silhouettes over the painted bg, and cloud drift is visible as faint haze behind art.
+- Playtest Act III (city): confirm building rooftops silhouette layer scrolls at 0.3,
+  vignette darkens top/bottom of screen without obscuring gameplay.
+- Verify lore_s4_corpse now sits correctly on lower platform in S4 (Assembly Hall).
+- Verify forest S1 and S3 now spawn 2 enemies instead of 1 for better combat pacing.
+- (Optional) If vignette at depth 9 feels too prominent, can lower alpha from 0.6 to 0.4
+  in buildVignette() topG/botG fillGradientStyle calls.
+

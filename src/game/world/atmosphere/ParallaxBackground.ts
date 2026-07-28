@@ -55,8 +55,29 @@ export class ParallaxBackground {
     // === SKY (depth -2, fully static — base color wash) ===
     this.buildSky();
 
-    // === BACKGROUND ART (user-provided images, tiled across world) ===
+    // === BACKGROUND ART (Layer 1 — existing, scrollFactor 0.15, depth -1.5) ===
+    // Painted bg images tiled across world width. Keep as-is per task spec.
     this.buildBackgroundArt();
+
+    // === CLOUD / SMOKE DRIFT (scrollFactor 0.08, depth -1.6) ===
+    // 3-4 large semi-transparent circles drifting slowly across the background.
+    // Rendered BEHIND the painted bg art so it appears as distant atmospheric
+    // haze filtering through the skyline. Color 0x1a2030, alpha 0.03-0.05.
+    this.buildCloudDrift();
+
+    // === Layer 2 — MID SILHOUETTES (scrollFactor 0.3, depth -1.2) ===
+    // Dark structural silhouettes (color 0x05080c, alpha 0.6) that scroll
+    // faster than bg art (0.15) but slower than existing far layer (0.1).
+    // Per theme: factory → pipes/tanks, wastes → dead trees/rocks,
+    // city → building rooftops. Simple shapes only (rectangles, triangles)
+    // for performance. Skipped for forest (already has procedural mid layer).
+    this.buildMidSilhouettes();
+
+    // === Layer 3 — FOREGROUND HAZE / VIGNETTE (scrollFactor 0.5, depth 9) ===
+    // Top + bottom dark gradient (cinematic vignette). Scrolls fastest
+    // among the new layers, adding perceived depth. Rendered above platforms
+    // (depth 5) and landmarks (depth 6-8) but below atmosphere effects (80+).
+    this.buildVignette();
 
     // ⚠️ Stage 2.2: Wastes + City skip procedural Far/Mid/Near silhouette layers.
     // The painted backdrop art at depth -1.5 already contains
@@ -292,6 +313,206 @@ export class ParallaxBackground {
       targets: container, alpha: { from: 0.55, to: 0.75 },
       duration: 5000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     }));
+  }
+
+  // ─── CLOUD / SMOKE DRIFT ────────────────────────────────────────────────
+  // 3-4 large semi-transparent circles drifting slowly across the background.
+  // scrollFactor 0.08 (slowest layer — distant atmospheric haze).
+  // Color 0x1a2030, alpha 0.03-0.05. Rendered BEHIND painted bg art (depth -1.6).
+  private buildCloudDrift(): void {
+    const cloudCount = 4;
+    const container = this.scene.add.container(0, 0);
+    container.setDepth(-1.6);  // behind bg art (-1.5)
+    // ⚠️ Propagate scrollFactor to children (cloud circles).
+    container.setScrollFactor(0.08, 0.04, true);
+
+    for (let i = 0; i < cloudCount; i++) {
+      const cx = (i + 0.5) * (this.worldWidth / cloudCount) + (Math.random() - 0.5) * 200;
+      const cy = 80 + Math.random() * 220;
+      const radius = 180 + Math.random() * 140;
+      const alpha = 0.03 + Math.random() * 0.02;  // 0.03–0.05 per spec
+      const cloud = this.scene.add.circle(cx, cy, radius, 0x1a2030, alpha);
+      cloud.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(cloud);
+      // Slow horizontal drift across the background (very long duration = distant feel)
+      const driftDist = 280 + Math.random() * 240;
+      this.tweens.push(this.scene.tweens.add({
+        targets: cloud,
+        x: cx + driftDist,
+        alpha: { from: alpha * 0.7, to: alpha * 1.3 },
+        duration: 28000 + Math.random() * 22000,
+        yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      }));
+    }
+
+    this.layers.push(container);
+  }
+
+  // ─── Layer 2: MID SILHOUETTES ──────────────────────────────────────────
+  // Dark structural silhouettes (color 0x05080c, alpha 0.6) at scrollFactor 0.3.
+  // Rendered at depth -1.2 (between sky tint -1.4 and existing far layer -1).
+  // Per theme: factory → pipes/tanks, wastes → dead trees/rocks,
+  // city → building rooftops. Simple shapes only (rectangles, triangles, ellipses)
+  // for performance — no complex paths.
+  private buildMidSilhouettes(): void {
+    // Skip themes that already have their own procedural mid layer (forest/generic).
+    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city') return;
+
+    const SILH_COLOR = 0x05080c;
+    const SILH_ALPHA = 0.6;
+    const container = this.scene.add.container(0, 0);
+    container.setDepth(-1.2);
+    container.setAlpha(SILH_ALPHA);
+    // ⚠️ Propagate scrollFactor (0.3) to all silhouette children.
+    container.setScrollFactor(0.3, 0.15, true);
+
+    if (this.theme === 'factory') this.drawFactorySilhouettes(container, SILH_COLOR);
+    else if (this.theme === 'wastes') this.drawWastesSilhouettes(container, SILH_COLOR);
+    else if (this.theme === 'city') this.drawCitySilhouettes(container, SILH_COLOR);
+
+    this.layers.push(container);
+  }
+
+  // Factory silhouettes: horizontal pipes + vertical tanks (industrial decay).
+  private drawFactorySilhouettes(container: Phaser.GameObjects.Container, color: number): void {
+    const tileW = 520;
+    const tiles = Math.ceil(this.worldWidth / tileW) + 1;
+    for (let t = 0; t < tiles; t++) {
+      const baseX = t * tileW;
+      // 2 horizontal pipes per tile (rectangles with rounded end caps).
+      for (let p = 0; p < 2; p++) {
+        const px = baseX + 60 + p * 220 + Math.random() * 30;
+        const py = 180 + Math.random() * 220;
+        const pw = 120 + Math.random() * 80;
+        const g = this.scene.add.graphics();
+        g.fillStyle(color, 1);
+        g.fillRect(px, py, pw, 14);                // pipe body
+        g.fillCircle(px, py + 7, 10);              // left cap
+        g.fillCircle(px + pw, py + 7, 10);         // right cap
+        container.add(g);
+      }
+      // 1 vertical tank per tile (cylinder shape).
+      const tx = baseX + 340 + Math.random() * 60;
+      const ty = GAME.HEIGHT - 280;
+      const tw = 54;
+      const th = 130 + Math.random() * 70;
+      const tank = this.scene.add.graphics();
+      tank.fillStyle(color, 1);
+      tank.fillRect(tx, ty, tw, th);                // tank body
+      tank.fillEllipse(tx + tw / 2, ty, tw, 18);    // top dome
+      tank.fillRect(tx - 4, ty + 24, 4, th - 36);   // left shadow stripe (depth)
+      container.add(tank);
+    }
+  }
+
+  // Wastes silhouettes: dead trees (vertical + branch triangles) + rock formations.
+  private drawWastesSilhouettes(container: Phaser.GameObjects.Container, color: number): void {
+    const tileW = 420;
+    const tiles = Math.ceil(this.worldWidth / tileW) + 1;
+    for (let t = 0; t < tiles; t++) {
+      const baseX = t * tileW;
+      // 1-2 dead trees per tile (alternating for spacing variety).
+      const treeCount = 1 + (t % 2);
+      for (let i = 0; i < treeCount; i++) {
+        const x = baseX + 80 + i * 180 + Math.random() * 40;
+        const trunkH = 180 + Math.random() * 120;
+        const trunkW = 8 + Math.random() * 4;
+        const yTop = GAME.HEIGHT - trunkH;
+        const g = this.scene.add.graphics();
+        g.fillStyle(color, 1);
+        g.fillRect(x, yTop, trunkW, trunkH);         // trunk
+        // 3 branches (simple triangles for stark silhouettes).
+        for (let b = 0; b < 3; b++) {
+          const by = yTop + 40 + b * 50;
+          const dir = b % 2 === 0 ? -1 : 1;
+          g.fillTriangle(
+            x + trunkW / 2, by,
+            x + trunkW / 2 + dir * 32, by - 12,
+            x + trunkW / 2 + dir * 32, by + 6
+          );
+        }
+        container.add(g);
+      }
+      // 1 rock formation per tile (triangle = simple jagged rock).
+      const rx = baseX + 250 + Math.random() * 60;
+      const ry = GAME.HEIGHT - 80;
+      const rw = 110 + Math.random() * 70;
+      const rh = 70 + Math.random() * 50;
+      const rock = this.scene.add.graphics();
+      rock.fillStyle(color, 1);
+      rock.fillTriangle(
+        rx, ry,
+        rx + rw / 2, ry - rh,
+        rx + rw, ry
+      );
+      container.add(rock);
+    }
+  }
+
+  // City silhouettes: building rooftops (rectangles of varying heights + antenna).
+  private drawCitySilhouettes(container: Phaser.GameObjects.Container, color: number): void {
+    const tileW = 320;
+    const tiles = Math.ceil(this.worldWidth / tileW) + 1;
+    for (let t = 0; t < tiles; t++) {
+      const baseX = t * tileW;
+      // 3 buildings per tile for dense skyline.
+      for (let i = 0; i < 3; i++) {
+        const x = baseX + i * 100 + Math.random() * 20;
+        const bldH = 160 + Math.random() * 220;
+        const bldW = 60 + Math.random() * 32;
+        const yTop = GAME.HEIGHT - bldH;
+        const g = this.scene.add.graphics();
+        g.fillStyle(color, 1);
+        g.fillRect(x, yTop, bldW, bldH);             // building body
+        g.fillRect(x + bldW * 0.2, yTop - 12, bldW * 0.6, 12);  // rooftop accent
+        // Antenna spire (thin triangle on top).
+        g.fillTriangle(
+          x + bldW / 2 - 2, yTop - 12,
+          x + bldW / 2 + 2, yTop - 12,
+          x + bldW / 2, yTop - 32
+        );
+        container.add(g);
+      }
+    }
+  }
+
+  // ─── Layer 3: FOREGROUND HAZE / VIGNETTE ───────────────────────────────
+  // Top + bottom dark gradient (cinematic vignette) at scrollFactor 0.5.
+  // 2 Graphics rectangles with fillGradientStyle for smooth gradient fade.
+  // Rendered at depth 9 (above platforms 5, landmarks 6-8; below atmosphere 80+).
+  private buildVignette(): void {
+    const container = this.scene.add.container(0, 0);
+    container.setDepth(9);
+    // ⚠️ Propagate scrollFactor (0.5) to children (top + bottom gradient rects).
+    container.setScrollFactor(0.5, 0.25, true);
+
+    // Extend width beyond world to handle parallax shift:
+    // With scrollFactor 0.5, camera moving across worldWidth shifts the vignette
+    // by worldWidth/2 in screen space. Adding GAME.WIDTH * 2 buffer on each side
+    // ensures the vignette always covers the visible viewport.
+    const vigW = this.worldWidth + GAME.WIDTH * 2;
+    const vigX = -GAME.WIDTH;          // start before world origin
+    const fadeH = 180;                  // gradient fade height
+
+    // Top vignette: dark (alpha 0.6) at y=0 → transparent at y=fadeH.
+    const topG = this.scene.add.graphics();
+    topG.fillGradientStyle(
+      0x000000, 0x000000, 0x000000, 0x000000,  // colors (all black)
+      0.6, 0.6, 0, 0                            // alphas (top dark, bottom clear)
+    );
+    topG.fillRect(vigX, 0, vigW, fadeH);
+    container.add(topG);
+
+    // Bottom vignette: transparent at y=GAME.HEIGHT-fadeH → dark at y=GAME.HEIGHT.
+    const botG = this.scene.add.graphics();
+    botG.fillGradientStyle(
+      0x000000, 0x000000, 0x000000, 0x000000,
+      0, 0, 0.6, 0.6                            // top clear, bottom dark
+    );
+    botG.fillRect(vigX, GAME.HEIGHT - fadeH, vigW, fadeH);
+    container.add(botG);
+
+    this.layers.push(container);
   }
 
   // ─── FACTORY: FAR — distant smokestacks + skyline ───────────────────────
