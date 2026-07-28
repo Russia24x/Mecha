@@ -118,7 +118,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x05070d,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // S3: VERTICAL SHAFT (rebased from x:3072 to x:0)
               { id: 1, nameKey: 'section.3.name', x: 0, enemies: ['drone', 'drone', 'spider', 'sniper'], platforms: [
@@ -179,7 +179,7 @@ export const ACTS: ActData[] = [
             sectionWidth: 1536,
             bgColor: 0x05070d,
             checkpointSections: [],
-            unlockedByDefault: false,
+            unlockedByDefault: true,
             sections: [
               // S5: CHECKPOINT — GUARDIAN AT THE DOOR (rebased from x:6144 to x:0)
               { id: 1, nameKey: 'section.5.name', x: 0, enemies: [], platforms: [
