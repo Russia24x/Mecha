@@ -3291,3 +3291,58 @@ Stage Summary:
 - Cross-section narrative placements preserved.
 - Boss unlock chain updated to new area ID.
 - Ready for E3 benchmark (FPS test in wastes_1, largest area) + browser test.
+
+---
+Task ID: A4-migration-fix
+Agent: main
+Task: Fix Act II deep-progress migration (advisor round-13 — checkpoint x/y out of bounds after split)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 287f554 (synced, ahead 0 behind 0).
+
+- Q2 verified: lore_w8_shadow (line 462) + lm_w8_leviathan_silhouette (line 467) are both
+  in wastes_3 (starts at line 436). Cross-section placements preserved correctly. ✅
+
+- Q1 (BLOCKER): Deep-progress migration test with artificial old save:
+  * Created save: checkpoint.areaId='drowned_wastes_1', section=8, x=11988 (near boss),
+    bossesKilled=1, unlockedAreas includes 'drowned_wastes_1'.
+  * Before fix: migration mapped areaId → 'wastes_1' but did NOT rebase x/y.
+    Player loaded at x=11988 in wastes_1 (only 6144px wide) → OUT OF BOUNDS → fell into
+    void → state='gameover'. Real bug exactly as advisor predicted.
+  * Also: unlockedAreas migration was 1:1 ('drowned_wastes_1' → 'wastes_1' only),
+    silently losing access to wastes_2/wastes_3 for players who had full Act II access.
+
+FIX (src/game/systems/SaveSystem.ts):
+1. Checkpoint migration: when areaId is migrated, also reset section=1, x=200, y=420.
+   Old coordinates are invalid in new split areas (different world widths).
+   Trade-off (documented): deep-progress players restart at entry area section 1.
+   Acceptable because:
+     - Bonfire fast-travel (Phase D) lets them return to where they were if they had
+       lit bonfires (litBonfires array preserved).
+     - bossesKilled preserved (progression gates remain open).
+     - All 3 sub-areas unlocked (see below).
+2. unlockedAreas migration: multi-unlock for split areas.
+   'drowned_wastes_1' → ['wastes_1', 'wastes_2', 'wastes_3'] (all 3 unlocked).
+   Player who had full old Act II access retains access to all split sub-areas.
+   Act I: 'factory'/'abandoned_factory' → ['factory_1'] only (entry — must progress
+   through gates). This is intentional: Act I old saves were smaller (9216px) and
+   players are less likely to be deep into them.
+
+Browser test (after fix):
+- Same deep old save (section 8, x=11988, bossesKilled=1).
+- Console: "[SaveSystem.migrate] Checkpoint migrated: drowned_wastes_1 section 1 →
+  wastes_1 section 1 (x/y reset to 200,420)"
+- State → play (not gameover). Player at (200, 485) — section 1 start of wastes_1.
+- loadedArea: 2 bonfires + 1 exit gate (correct for wastes_1).
+- 0 page errors.
+
+Verification:
+- tsc: 0 errors in src/game/.
+- Browser: deep-progress migration works, no out-of-bounds, no errors.
+
+Stage Summary:
+- Deep-progress migration bug FIXED: checkpoint x/y/section reset on areaId migration.
+- Multi-unlock migration: old single area → all split sub-areas unlocked.
+- Trade-off documented: deep-progress players restart at entry area section 1, but
+  retain bossesKilled + litBonfires + all sub-area access.
+- Ready for E3 benchmark.

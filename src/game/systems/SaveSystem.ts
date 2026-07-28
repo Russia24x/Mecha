@@ -250,10 +250,61 @@ export class SaveSystem {
       'act3_inner_court': 'act3_ward_2',
     };
     if (migrated.checkpoint && areaIdMigrations[migrated.checkpoint.areaId]) {
-      migrated.checkpoint.areaId = areaIdMigrations[migrated.checkpoint.areaId];
+      // Area ID migration: old area → new entry area.
+      // CRITICAL: also reset checkpoint x/y/section to the new area's section 1 start.
+      // Old checkpoint coordinates (e.g., x=11988 in drowned_wastes_1 section 8) are
+      // INVALID in the new split area (wastes_1 is only 6144px wide — x=11988 is
+      // out of bounds, player would fall into void and die).
+      //
+      // Trade-off (documented per advisor round-13): deep-progress players in old
+      // saves will restart at the beginning of the entry area (section 1, x=200).
+      // This is acceptable because:
+      //   1. Bonfire fast-travel (Phase D) lets them quickly return to where they were
+      //      IF they had lit bonfires along the way (litBonfires array is preserved).
+      //   2. bossesKilled is preserved (progression gates remain open).
+      //   3. unlockedAreas is migrated (see below) — all 3 sub-areas unlocked if old
+      //      single area was unlocked.
+      // The alternative (rebuilding checkpoint position from old section number) is
+      // fragile and error-prone — section boundaries changed in the split.
+      const oldAreaId = migrated.checkpoint.areaId;
+      migrated.checkpoint.areaId = areaIdMigrations[oldAreaId];
+      migrated.checkpoint.section = 1;
+      migrated.checkpoint.x = 200;
+      migrated.checkpoint.y = 420;
+      console.log(`[SaveSystem.migrate] Checkpoint migrated: ${oldAreaId} section ${migrated.checkpoint.section} → ${migrated.checkpoint.areaId} section 1 (x/y reset to 200,420)`);
     }
     if (migrated.unlockedAreas) {
-      migrated.unlockedAreas = migrated.unlockedAreas.map(id => areaIdMigrations[id] || id);
+      // Migrate old area IDs → new area IDs.
+      // For split areas (old single area → 3 new areas), unlock ALL 3 new areas
+      // if the old one was unlocked — the player had access to the full old area,
+      // so they should retain access to all parts of the split.
+      // Per advisor round-13: without this, a player who completed old Act II
+      // would silently lose access to wastes_2/wastes_3.
+      const multiUnlockMigrations: Record<string, string[]> = {
+        'drowned_wastes_1': ['wastes_1', 'wastes_2', 'wastes_3'],
+        // Act I: 'factory'/'abandoned_factory' → only factory_1 (entry) —
+        // player must progress through gates to unlock factory_2/3.
+        // This is intentional: Act I old saves didn't have the split structure,
+        // so we only unlock the entry area. Act II is different because the old
+        // area was 15360px (much larger) and players could be deep into it.
+        'factory': ['factory_1'],
+        'abandoned_factory': ['factory_1'],
+      };
+      const newUnlocked: string[] = [];
+      for (const id of migrated.unlockedAreas) {
+        if (multiUnlockMigrations[id]) {
+          // Old area was split — unlock all sub-areas
+          newUnlocked.push(...multiUnlockMigrations[id]);
+        } else if (areaIdMigrations[id]) {
+          // Simple 1:1 migration
+          newUnlocked.push(areaIdMigrations[id]);
+        } else {
+          // No migration needed — keep as-is
+          newUnlocked.push(id);
+        }
+      }
+      // Deduplicate (in case old save had both 'factory' and 'abandoned_factory')
+      migrated.unlockedAreas = [...new Set(newUnlocked)];
     }
     if (migrated.discoveredAreas) {
       migrated.discoveredAreas = migrated.discoveredAreas.map(id => areaIdMigrations[id] || id);
