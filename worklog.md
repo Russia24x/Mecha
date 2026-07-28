@@ -3158,3 +3158,85 @@ Stage Summary:
 - E7 COMPLETE: Act III regression test PASS (no crash with missing bonfire data).
 - Phase E complete (E1✅ E2 deferred E3 deferred E4✅ E5✅ E6✅ E7✅).
 - Ready for Phase F (enemy respawn) or final summary.
+
+---
+Task ID: vertical-slice-complete
+Agent: main
+Task: Final summary — Bonfire + Multi-Area + Fast-Travel vertical slice (Phases A-E) complete
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 05ef8e8 (synced, ahead 0 behind 0, clean working tree).
+- Advisor round-11 recommendation: close vertical slice here, do NOT start Phase F in this session.
+  Reasons: (1) session size = context-fatigue risk, (2) F1 needs user design input not technical advisor,
+  (3) vertical slice is a complete deliverable with 0 known unfixed bugs.
+
+Vertical Slice Summary (Phases A-E):
+
+Phase A — Data Layer (commits 4a02df5, 4cdc1e3, b4b0f7d):
+- BonfireData + ExitGateData types added to types.ts
+- litBonfires field added to SaveData + SaveSystem.lightBonfire/isBonfireLit/getLitBonfires methods
+- Act I split from single area 'abandoned_factory' (9216px) into factory_1/2/3 (3072px each)
+- isEntryPoint field added to BonfireData (static flag, not naming convention)
+- preLit policy: only bf_factory1_1 is statically preLit (game-start anchor)
+- All other entry bonfires lit dynamically via gate crossing (event-driven)
+
+Phase B — Bonfire System (commits b50728d, 2c3c670):
+- BonfireController.ts (NPC pattern: distance + prompt + E key, no Matter sensor)
+- spawnBonfires + syncLitState + tryInteract + cleanup
+- NpcInteractionController.updatePrompt extended with bonfire nearest-check (unified prompt)
+- GameScene.tryInteract: bonfire branch after NPC+Lore (priority chain)
+- 5 localization keys: interaction.talk/examine/rest + bonfire.lit/rested
+- BONFIRE_LIT EventBus event + onBonfireLit handler (fixed TOAST-pattern bug found via browser test)
+- Ownership: BonfireController owns GameObjects, LoadedArea.bonfires is borrowed reference
+
+Phase C — Exit Gate System (commits e91fe66, 2652f5d, 15135d2):
+- AreaLoader.createExitGate: physics.addSensor (isSensor: true, non-blocking, NOT addStaticRect)
+- CollisionController: onExitGate route + ExitGatePayload + extractGatePayload
+- GameScene.handleExitGate: event-driven FADE_OUT_COMPLETE (not synchronous)
+  * Pre-fade: setGameplayBlocked(true) + extendInvuln(600) + AudioSystem.play('gate_travel') + fadeOut(500)
+  * Post-fade: try { travelTo + lightBonfire(getEntryBonfireId) + saveCheckpoint + cleanupPlay + buildPlay + fadeIn } catch { console.error + force fadeIn + toast } finally { gateTransitioning=false + setGameplayBlocked(false) }
+- gateTransitioning flag in GameScene (not CollisionController — pure routing)
+- gate_travel SFX added to AudioSystem (C5 before C3, prevents TOAST-pattern bug)
+- Real bug found via browser test: gate Y=460 was too high, sensor missed player on ground (y=657). Fixed: Y=600, SENSOR_H=120.
+- C6 validator: exitGate.toAreaId existence + toSection/toX/toY bounds check
+
+Phase D — World Map Fast-Travel (commit d16e397):
+- WorldSystem.travelTo(areaId, section, bonfireId?) — uses bonfire.x/y directly (not getRespawnPosition fallback)
+- getBonfireById + getBonfiresForArea helpers
+- WorldMapUI: bonfire sub-nodes (amber circles, r=6) below area nodes, only lit bonfires clickable
+- fastTraveling debounce guard in GameScene (prevents double-click concurrent travels)
+- Reset in buildPlay completion + early-return path
+
+Phase E — Cleanup + Polish (commits 9fc83e1, 05ef8e8):
+- E1: getRespawnPosition fallback reads from area data (not hardcoded {200,420})
+- E2: DEFERRED (isBossInAreaDefeated — until multiple Acts split)
+- E3: DEFERRED (enemy culling benchmark — until Act II split)
+- E4: 8 localization keys (6 bonfire names + 2 gate labels) in en.json + fa.json
+- E5: Migration fix — 'factory'/'abandoned_factory' → 'factory_1' added to areaIdMigrations
+  * Real bug found via browser test with artificial old save: "Area not found — falling back to hub"
+  * After fix: old save loads into factory_1 correctly, save data migrated + persisted
+- E6: continueCurrentProfile calls await SaveSystem.selectSlot(currentSlot) (fixes stale GLOBAL_KEY_SELECTED_SLOT)
+- E7: Act III regression test PASS (no crash with missing bonfire data)
+- Q1 verified: areaIdMigrations is stateless + idempotent (runs every loadFromSlot, no isMigrationDone flag)
+
+Browser Tests (all passed, 0 page errors):
+- Bonfire rest → die → respawn at bonfire position (Dark-Souls-like confirmed)
+- Gate crossing: collisionstart fires exactly once per crossing, debounce works
+- Gate crossing happy path: factory_1 → factory_2 → factory_3 (all entry bonfires auto-lit)
+- Gate crossing error path: invalid toAreaId → catch fires, fadeIn forced, toast shown
+- Fast-travel from World Map: click bonfire sub-node → spawn at exact bonfire position (not fallback)
+- Migration: artificial old save (checkpoint.areaId='factory') → loads into factory_1, save data migrated
+- Act III regression: no bonfire data → no crash, BonfireController handles 0 bonfires
+
+Verification:
+- tsc --noEmit --strict --skipLibCheck: 0 errors in src/game/
+- validate-section-bounds.ts (with C6): 0 ERROR, 2 INFO, 0 gate errors
+- en.json + fa.json: valid JSON
+- GitHub: synced (HEAD = origin/main = 05ef8e8)
+
+Stage Summary:
+- Vertical Slice (Phases A-E) COMPLETE with 0 known unfixed bugs.
+- All tests passed via real browser testing (not just tsc/JSON validation).
+- 3 real bugs found + fixed via browser tests (TOAST event, gate Y position, migration missing Act I entries).
+- Phase F (enemy respawn) deferred to new session — needs user design input on F1 questions.
+- Ready for final report to user.
