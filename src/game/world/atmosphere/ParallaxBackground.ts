@@ -241,16 +241,87 @@ export class ParallaxBackground {
     container.setScrollFactor(0.15, 0.05, true);  // slow parallax, propagate to children
     container.setAlpha(this.theme === 'wastes' ? 0.7 : this.theme === 'city' ? 0.7 : 0.65);  // city/wastes slightly more visible
 
+    if (this.theme === 'city' && bgKeys.length === 2) {
+      // ward_2: city_bg_2 first half, city_bg_3 second half (per user round-23)
+      // FIXED (round-24): tileW was computed from bgKeys[0] only, but city_bg_2
+      // and city_bg_3 may have different widths. Now each image gets its own
+      // tile width and is placed sequentially (not via percentage-based selection).
+      // Image 0 (city_bg_2) covers x=0 to tileW0, then repeats.
+      // Image 1 (city_bg_3) covers x=tileW0 onward, then repeats.
+      const tex0 = this.scene.textures.get(bgKeys[0]);
+      const tex1 = this.scene.textures.get(bgKeys[1]);
+      const imgW0 = tex0.getSourceImage().width;
+      const imgW1 = tex1.getSourceImage().width;
+      const tileW0 = imgW0 * scale;
+      const tileW1 = imgW1 * scale;
+      const halfWorld = this.worldWidth / 2;
+
+      // Place city_bg_2 tiles in first half
+      const tiles0 = Math.ceil(halfWorld / tileW0) + 1;
+      for (let i = 0; i < tiles0; i++) {
+        const x = i * tileW0;
+        if (x >= halfWorld) break;
+        const img = this.scene.add.image(x, GAME.HEIGHT / 2, bgKeys[0]);
+        img.setOrigin(0, 0.5);
+        img.setScale(scale);
+        if (i % 2 === 1) img.setFlipX(true);
+        container.add(img);
+        // Seam cover
+        if (i > 0) {
+          const seam = this.scene.add.graphics();
+          seam.fillStyle(0x000000, 0.3);
+          seam.fillRect(x - 30, 0, 60, GAME.HEIGHT);
+          for (let g = 0; g < 6; g++) {
+            seam.fillStyle(0x000000, 0.15 - g * 0.02);
+            seam.fillRect(x - 30 + g * 10, 0, 10, GAME.HEIGHT);
+          }
+          seam.setDepth(-1.4);
+          container.add(seam);
+        }
+      }
+
+      // Place city_bg_3 tiles in second half
+      const tiles1 = Math.ceil(halfWorld / tileW1) + 1;
+      for (let i = 0; i < tiles1; i++) {
+        const x = halfWorld + i * tileW1;
+        if (x >= this.worldWidth) break;
+        const img = this.scene.add.image(x, GAME.HEIGHT / 2, bgKeys[1]);
+        img.setOrigin(0, 0.5);
+        img.setScale(scale);
+        if (i % 2 === 1) img.setFlipX(true);
+        container.add(img);
+        // Seam cover
+        if (i > 0) {
+          const seam = this.scene.add.graphics();
+          seam.fillStyle(0x000000, 0.3);
+          seam.fillRect(x - 30, 0, 60, GAME.HEIGHT);
+          for (let g = 0; g < 6; g++) {
+            seam.fillStyle(0x000000, 0.15 - g * 0.02);
+            seam.fillRect(x - 30 + g * 10, 0, 10, GAME.HEIGHT);
+          }
+          seam.setDepth(-1.4);
+          container.add(seam);
+        }
+      }
+
+      // Boundary seam between bg_2 and bg_3
+      const boundarySeam = this.scene.add.graphics();
+      boundarySeam.fillStyle(0x000000, 0.35);
+      boundarySeam.fillRect(halfWorld - 30, 0, 60, GAME.HEIGHT);
+      for (let g = 0; g < 6; g++) {
+        boundarySeam.fillStyle(0x000000, 0.18 - g * 0.02);
+        boundarySeam.fillRect(halfWorld - 30 + g * 10, 0, 10, GAME.HEIGHT);
+      }
+      boundarySeam.setDepth(-1.4);
+      container.add(boundarySeam);
+
+      return;  // Skip the generic tiling loop below
+    }
+
     for (let i = 0; i < tileCount; i++) {
       const x = i * tileW;
       let key: string;
-      if (this.theme === 'city' && bgKeys.length === 2) {
-        // ward_2: city_bg_2 first half, city_bg_3 second half (per user round-23)
-        // Each image covers half the world width.
-        const worldPct = x / this.worldWidth;
-        if (worldPct < 0.5) key = bgKeys[0];   // city_bg_2
-        else key = bgKeys[1];                    // city_bg_3
-      } else if (this.theme === 'city' && bgKeys.length === 4) {
+      if (this.theme === 'city' && bgKeys.length === 4) {
         // Legacy 4-image city layout (unused but kept for safety)
         const worldPct = x / this.worldWidth;
         if (worldPct < 0.30) key = bgKeys[0];
