@@ -80,7 +80,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s1_health', type: 'health_fragment', x: 940, y: 150, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_factory1_1', x: 200, y: 540, section: 1, preLit: true, isEntryPoint: true },
+                { id: 'bf_factory1_1', x: 200, y: 660, section: 1, preLit: true, isEntryPoint: true },
               ], shortcuts: [
                 { id: 'sc_s1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
@@ -99,7 +99,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s2_energy', type: 'energy_fragment', x: 1920, y: 230, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_factory1_2', x: 2600, y: 580, section: 2 },
+                { id: 'bf_factory1_2', x: 2600, y: 660, section: 2 },
               ], exitGates: [
                 { id: 'gate_factory1_to_2', x: 2850, y: 600, toAreaId: 'factory_2', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.factory1_to_2.label' },
               ]},
@@ -140,7 +140,7 @@ export const ACTS: ActData[] = [
                 // bf_factory2_1: NOT preLit — lit dynamically when player crosses gate_factory1_to_2 (Phase C).
                 // See BonfireData.preLit policy in types.ts.
                 // isEntryPoint: true — this is the entry bonfire for factory_2 (auto-lit on gate crossing).
-                { id: 'bf_factory2_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_factory2_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // S4: ASSEMBLY HALL + MINI BOSS (rebased from x:4608 to x:1536)
@@ -159,7 +159,7 @@ export const ACTS: ActData[] = [
                 { id: 'col_s4_health', type: 'health_fragment', x: 2260, y: 200 },
                 { id: 'col_s4_weapon', type: 'weapon_part', x: 1960, y: 230 },
               ], bonfires: [
-                { id: 'bf_factory2_2', x: 2600, y: 580, section: 2 },
+                { id: 'bf_factory2_2', x: 2600, y: 660, section: 2 },
               ], exitGates: [
                 { id: 'gate_factory2_to_3', x: 2850, y: 600, toAreaId: 'factory_3', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.factory2_to_3.label' },
               ]},
@@ -198,7 +198,7 @@ export const ACTS: ActData[] = [
                 // bf_factory3_1: NOT preLit — lit dynamically when player crosses gate_factory2_to_3 (Phase C).
                 // See BonfireData.preLit policy in types.ts.
                 // isEntryPoint: true — this is the entry bonfire for factory_3 (auto-lit on gate crossing).
-                { id: 'bf_factory3_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_factory3_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // S6: BOSS ARENA — GUARDIAN AX-09 (rebased from x:7680 to x:1536)
@@ -216,7 +216,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_s6_skill', type: 'skill_point', x: 2300, y: 180, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_factory3_2', x: 2600, y: 580, section: 2 },
+                { id: 'bf_factory3_2', x: 2600, y: 660, section: 2 },
               ]},
             ],
           },
@@ -267,7 +267,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_w1_energy', type: 'energy_fragment', x: 900, y: 270, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_wastes1_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_wastes1_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ], shortcuts: [
                 { id: 'sc_w1_to_s2', x: 1440, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
@@ -288,7 +288,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_w2_health', type: 'health_fragment', x: 2500, y: 230, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_wastes1_2', x: 2900, y: 580, section: 2 },
+                { id: 'bf_wastes1_2', x: 2900, y: 660, section: 2 },
               ]},
 
               // Section 3: THE FOG (mosquito territory)
@@ -371,7 +371,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_w5_health', type: 'health_fragment', x: 956, y: 350 },
               ], bonfires: [
-                { id: 'bf_wastes2_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_wastes2_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ], shortcuts: [
                 { id: 'sc_w5_to_s6', x: 1436, y: 650, w: 40, h: 60, toSection: 2, opensFrom: 'left' },
               ]},
@@ -419,7 +419,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_w7_skill', type: 'skill_point', x: 3856, y: 270, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_wastes2_2', x: 4456, y: 580, section: 3 },
+                { id: 'bf_wastes2_2', x: 4456, y: 660, section: 3 },
               ], exitGates: [
                 { id: 'gate_wastes2_to_3', x: 4500, y: 600, toAreaId: 'wastes_3', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.wastes2_to_3.label' },
               ]},
@@ -466,7 +466,7 @@ export const ACTS: ActData[] = [
                 // Distant Leviathan silhouette — first sighting from section 1.
                 { id: 'lm_w8_leviathan_silhouette', type: 'tower', x: 2176, y: 100, w: 300, h: 500, color: 0x1a2a18 },
               ], bonfires: [
-                { id: 'bf_wastes3_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_wastes3_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // Section 2 (was 9): THE VIGIL — rebased: 12288→1536
@@ -503,7 +503,7 @@ export const ACTS: ActData[] = [
                 { id: 'lm_w10_leviathan_body', type: 'tower', x: 3576, y: 100, w: 400, h: 500, color: 0x2a3a20 },
                 { id: 'lm_w10_leviathan_head', type: 'control_room', x: 3676, y: 50, w: 200, h: 100, color: 0x3a4a30 },
               ], bonfires: [
-                { id: 'bf_wastes3_2', x: 4200, y: 580, section: 3 },
+                { id: 'bf_wastes3_2', x: 4200, y: 660, section: 3 },
               ]},
             ],
           },
@@ -554,7 +554,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_c1_energy', type: 'energy_fragment', x: 1180, y: 320, requiredAbility: 'doubleJump' },
               ], bonfires: [
-                { id: 'bf_act3_ward1_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_act3_ward1_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // S2: Burning Block — Memory: child's toy in 2nd-floor window
@@ -608,7 +608,7 @@ export const ACTS: ActData[] = [
               ], collectibles: [
                 { id: 'col_c4b_skill', type: 'skill_point', x: 5460, y: 140, requiredAbility: 'grapple' },
               ], bonfires: [
-                { id: 'bf_act3_ward1_2', x: 5800, y: 580, section: 4 },
+                { id: 'bf_act3_ward1_2', x: 5800, y: 660, section: 4 },
               ], exitGates: [
                 { id: 'gate_act3_ward1_to_2', x: 6000, y: 600, toAreaId: 'act3_ward_2', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward1_to_2.label' },
               ]},
@@ -647,7 +647,7 @@ export const ACTS: ActData[] = [
                 { id: 'col_c4_health', type: 'health_fragment', x: 1120, y: 340 },
                 { id: 'col_c4_weapon', type: 'weapon_part', x: 800, y: 180, requiredAbility: 'wallJump' },
               ], bonfires: [
-                { id: 'bf_act3_ward2_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_act3_ward2_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // S2: Road to Courthouse — Memory: blind justice statue
@@ -692,7 +692,7 @@ export const ACTS: ActData[] = [
               ], landmarks: [
                 { id: 'lm_c8_judge_chair', type: 'tower', x: 5260, y: 100, w: 200, h: 200, color: 0x2a2020 },
               ], bonfires: [
-                { id: 'bf_act3_ward2_2', x: 5800, y: 580, section: 4 },
+                { id: 'bf_act3_ward2_2', x: 5800, y: 660, section: 4 },
               ], exitGates: [
                 { id: 'gate_act3_ward2_to_courthouse', x: 6000, y: 600, toAreaId: 'act3_courthouse', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.act3_ward2_to_courthouse.label' },
               ]},
@@ -723,7 +723,7 @@ export const ACTS: ActData[] = [
               ], loreObjects: [
                 { id: 'lore_c7_poster', type: 'terminal', x: 600, y: 420, titleKey: 'lore.c7.poster.title', textKey: 'lore.c7.poster.text' },
               ], bonfires: [
-                { id: 'bf_act3_courthouse_1', x: 200, y: 540, section: 1, isEntryPoint: true },
+                { id: 'bf_act3_courthouse_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
 
               // S2: The Courthouse Steps — Memory: blind justice statue
@@ -763,7 +763,7 @@ export const ACTS: ActData[] = [
               ], landmarks: [
                 { id: 'lm_c12_judge_chair', type: 'tower', x: 5260, y: 100, w: 200, h: 200, color: 0x2a2020 },
               ], bonfires: [
-                { id: 'bf_act3_courthouse_2', x: 5800, y: 580, section: 4 },
+                { id: 'bf_act3_courthouse_2', x: 5800, y: 660, section: 4 },
               ]},
             ],
           },

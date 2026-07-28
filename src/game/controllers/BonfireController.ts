@@ -245,77 +245,145 @@ export class BonfireController {
   }
 
   /**
-   * Create a bonfire visual: amber mech terminal with glow halo.
-   * Container has setData('bonfireId', id) and setData('isLit', false) for
-   * NpcInteractionController.updatePrompt bonfire loop.
+   * Create a repair terminal visual — mech-style save point.
+   * Redesigned per user request (round-20): more professional, thematic.
+   * Visual: dark metal pillar with amber screen + pulsing halo + particle
+   * sparks when lit. Screen brightens when activated.
    */
   private createBonfireVisual(bf: BonfireData): Phaser.GameObjects.Container {
     const container = this.scene.add.container(bf.x, bf.y);
 
-    // Base pedestal (dark metal)
-    const base = this.scene.add.rectangle(0, TERMINAL_H / 2 + 4, TERMINAL_W + 12, 8, 0x1a1814, 0.9);
-    base.setStrokeStyle(1, 0x3a3018, 0.6);
-    container.add(base);
+    // ── Base: wide metal plinth (ground-level, wider than terminal) ──
+    const plinth = this.scene.add.rectangle(0, TERMINAL_H / 2 + 6, TERMINAL_W + 20, 12, 0x0a0d12, 0.95);
+    plinth.setStrokeStyle(1, 0x1a2030, 0.8);
+    container.add(plinth);
 
-    // Terminal body (tall rectangle, dim by default)
-    const body = this.scene.add.rectangle(0, 0, TERMINAL_W, TERMINAL_H, 0x2a2018, 0.85);
-    body.setStrokeStyle(1, AMBER_DIM, 0.6);
+    // ── Pillar: dark metal column (slightly tapered look via 2 rects) ──
+    const pillarBase = this.scene.add.rectangle(0, TERMINAL_H / 2 - 2, TERMINAL_W + 4, 8, 0x12161e, 0.9);
+    pillarBase.setStrokeStyle(1, 0x1a2030, 0.5);
+    container.add(pillarBase);
+
+    const body = this.scene.add.rectangle(0, 0, TERMINAL_W, TERMINAL_H, 0x0d1118, 0.92);
+    body.setStrokeStyle(2, 0x1a2530, 0.7);
     container.add(body);
 
-    // Inner amber core (small rectangle — brightens when lit)
-    const core = this.scene.add.rectangle(0, -4, TERMINAL_W - 8, TERMINAL_H - 16, AMBER_DIM, 0.5);
-    core.setBlendMode(Phaser.BlendModes.ADD);
-    container.add(core);
-    container.setData('core', core);
+    // ── Screen: amber panel in the center of the pillar ──
+    const screenW = TERMINAL_W - 6;
+    const screenH = TERMINAL_H - 10;
+    const screen = this.scene.add.rectangle(0, -2, screenW, screenH, AMBER_DIM, 0.3);
+    screen.setStrokeStyle(1, 0x2a3038, 0.5);
+    container.add(screen);
+    container.setData('screen', screen);
 
-    // Glow halo (radial pulse — brightens when lit)
-    const glow = this.scene.add.circle(0, -4, TERMINAL_W * 1.5, AMBER, 0);
-    glow.setBlendMode(Phaser.BlendModes.ADD);
-    container.add(glow);
-    container.setData('glow', glow);
+    // ── Screen glow (additive, brightens when lit) ──
+    const screenGlow = this.scene.add.rectangle(0, -2, screenW, screenH, AMBER, 0);
+    screenGlow.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(screenGlow);
+    container.setData('screenGlow', screenGlow);
 
-    // Pulse tween on glow (tracked for cleanup)
-    const tween = this.scene.tweens.add({
-      targets: glow,
+    // ── Halo: large soft circle behind the terminal (pulses when lit) ──
+    const halo = this.scene.add.circle(0, 0, TERMINAL_W * 2.2, AMBER, 0);
+    halo.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(halo);
+    container.setData('halo', halo);
+
+    // Move halo behind everything (first in container = rendered first = behind)
+    container.moveTo(halo, 0);
+
+    // ── Top indicator light (small bright dot) ──
+    const topLight = this.scene.add.circle(0, -TERMINAL_H / 2 + 4, 3, AMBER_DIM, 0.6);
+    topLight.setBlendMode(Phaser.BlendModes.ADD);
+    container.add(topLight);
+    container.setData('topLight', topLight);
+
+    // ── Pulse animations ──
+    // Halo pulse (slow breathing)
+    const haloTween = this.scene.tweens.add({
+      targets: halo,
       alpha: { from: 0.0, to: 0.0 },  // overridden by applyLitVisual
-      scale: { from: 0.9, to: 1.1 },
-      duration: 1500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.inOut',
+      scale: { from: 0.85, to: 1.15 },
+      duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
-    this.activeTweens.push(tween);
+    this.activeTweens.push(haloTween);
 
-    // Metadata for NpcInteractionController bonfire loop + tryInteract
+    // Screen glow flicker (subtle, like a CRT)
+    const flickerTween = this.scene.tweens.add({
+      targets: screenGlow,
+      alpha: { from: 0.0, to: 0.0 },  // overridden by applyLitVisual
+      duration: 80, repeat: -1,
+      onRepeat: () => {
+        const base = screenGlow.fillAlpha;
+        screenGlow.setFillStyle(AMBER, base + (Math.random() - 0.5) * 0.05);
+      },
+    });
+    this.activeTweens.push(flickerTween);
+
+    // Top light blink
+    const topTween = this.scene.tweens.add({
+      targets: topLight,
+      alpha: { from: 0.3, to: 0.7 },
+      duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+    });
+    this.activeTweens.push(topTween);
+
+    // ── Upward particles when lit (amber sparks rising) ──
+    // Only visible when lit — emitter is paused until activated.
+    if (this.scene.add.particles) {
+      const particles = this.scene.add.particles(0, -TERMINAL_H / 2, '__white', {
+        speed: { min: 20, max: 50 },
+        angle: { min: 250, max: 290 },  // mostly upward
+        scale: { start: 1.5, end: 0 },
+        alpha: { start: 0.6, end: 0 },
+        lifespan: 800,
+        frequency: 200,
+        tint: AMBER,
+        blendMode: 'ADD',
+        emitting: false,  // starts paused — activated in applyLitVisual
+      });
+      particles.setDepth(7);
+      container.add(particles);
+      container.setData('particles', particles);
+    }
+
+    // ── Metadata ──
     container.setData('bonfireId', bf.id);
     container.setData('isLit', false);
     container.setData('isBonfire', true);
     container.setDepth(6);
-    container.setSize(TERMINAL_W + 16, TERMINAL_H + 16);
+    container.setSize(TERMINAL_W + 20, TERMINAL_H + 20);
 
     return container;
   }
 
   /**
-   * Apply lit/unlit visual state to a bonfire container.
-   * Lit: bright amber glow + bright core.
-   * Unlit: dim amber core, no glow.
+   * Apply lit/unlit visual state to a terminal container.
+   * Lit: bright amber screen + pulsing halo + upward particles + top light.
+   * Unlit: dark screen, no halo, no particles.
    */
   private applyLitVisual(container: Phaser.GameObjects.Container, isLit: boolean): void {
-    const core = container.getData('core') as Phaser.GameObjects.Rectangle | null;
-    const glow = container.getData('glow') as Phaser.GameObjects.Arc | null;
-    const body = container.getAt(1) as Phaser.GameObjects.Rectangle | null;
+    const screen = container.getData('screen') as Phaser.GameObjects.Rectangle | null;
+    const screenGlow = container.getData('screenGlow') as Phaser.GameObjects.Rectangle | null;
+    const halo = container.getData('halo') as Phaser.GameObjects.Arc | null;
+    const topLight = container.getData('topLight') as Phaser.GameObjects.Arc | null;
+    const particles = container.getData('particles') as Phaser.GameObjects.Particles.ParticleEmitter | null;
+    const body = container.getAt(2) as Phaser.GameObjects.Rectangle | null;
 
     if (isLit) {
-      // Lit: bright amber
-      if (core) { core.setFillStyle(AMBER, 0.85); }
-      if (glow) { glow.setFillStyle(AMBER, 0.18); }
-      if (body) { body.setStrokeStyle(1, AMBER, 0.8); }
+      // Lit: bright amber terminal
+      if (screen) { screen.setFillStyle(AMBER, 0.4); }
+      if (screenGlow) { screenGlow.setFillStyle(AMBER, 0.35); }
+      if (halo) { halo.setFillStyle(AMBER, 0.15); }
+      if (topLight) { topLight.setFillStyle(AMBER, 0.9); }
+      if (body) { body.setStrokeStyle(2, AMBER, 0.6); }
+      if (particles) { particles.emitting = true; }
     } else {
-      // Unlit: dim
-      if (core) { core.setFillStyle(AMBER_DIM, 0.5); }
-      if (glow) { glow.setFillStyle(AMBER, 0.0); }
-      if (body) { body.setStrokeStyle(1, AMBER_DIM, 0.6); }
+      // Unlit: dark terminal
+      if (screen) { screen.setFillStyle(AMBER_DIM, 0.3); }
+      if (screenGlow) { screenGlow.setFillStyle(AMBER, 0); }
+      if (halo) { halo.setFillStyle(AMBER, 0); }
+      if (topLight) { topLight.setFillStyle(AMBER_DIM, 0.4); }
+      if (body) { body.setStrokeStyle(2, 0x1a2530, 0.7); }
+      if (particles) { particles.emitting = false; }
     }
   }
 }

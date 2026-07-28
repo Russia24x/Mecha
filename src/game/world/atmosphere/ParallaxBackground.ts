@@ -176,12 +176,21 @@ export class ParallaxBackground {
       if (!this.scene.textures.exists(key)) return;
       bgKeys.push(key);
     } else if (this.theme === 'city') {
-      // bgStartIndex: 0=ward_1 → city_bg_1, 1=ward_2 → city_bg_2, 2=courthouse → city_bg_3 + city_bg_4(boss)
-      const k1 = `city_bg_${this.bgStartIndex + 1}`;
-      if (!this.scene.textures.exists(k1)) return;
-      bgKeys.push(k1);
-      // For courthouse area, also add city_bg_4 for boss arena
-      if (this.bgStartIndex === 2 && this.scene.textures.exists('city_bg_4')) {
+      // Per user request (round-20):
+      //   ward_1 → city_bg_1
+      //   ward_2 → city_bg_2 + city_bg_3 (double width area, two images tiled)
+      //   courthouse (boss) → city_bg_4 only
+      if (this.bgStartIndex === 0) {
+        if (!this.scene.textures.exists('city_bg_1')) return;
+        bgKeys.push('city_bg_1');
+      } else if (this.bgStartIndex === 1) {
+        // ward_2: two images for double-width area
+        if (!this.scene.textures.exists('city_bg_2')) return;
+        bgKeys.push('city_bg_2');
+        if (this.scene.textures.exists('city_bg_3')) bgKeys.push('city_bg_3');
+      } else if (this.bgStartIndex === 2) {
+        // courthouse (boss): only city_bg_4
+        if (!this.scene.textures.exists('city_bg_4')) return;
         bgKeys.push('city_bg_4');
       }
     }
