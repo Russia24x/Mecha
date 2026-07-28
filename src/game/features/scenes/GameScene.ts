@@ -770,12 +770,24 @@ export class GameScene extends Phaser.Scene {
   private handleExitGate(gateData: ExitGatePayload): void {
     // ── Debounce guard ──
     if (this.gateTransitioning) {
-      // Extra event during fade window — Matter fired multiple times as
-      // advisor predicted (physics not paused during fade). Ignored.
       this.exitGateCollisionCount++;
       console.log(`[ExitGate] DEBOUNCE: ignored extra collision #${this.exitGateCollisionCount} for gate ${gateData.id} (gateTransitioning=true)`);
       return;
     }
+
+    // ── Pre-check: is destination area accessible? ──
+    // Per user bug report: crossing gate to factory_2 before killing Guardian AX-09
+    // (which unlocks factory_2) caused console.error from the catch block. This is
+    // a normal game state (area locked), not an exceptional error — handle it
+    // gracefully with a toast BEFORE starting the fade, not via throw→catch.
+    if (!WorldSystem.isAreaUnlocked(gateData.toAreaId)) {
+      this.hud?.toast(getLocale() === 'fa'
+        ? '🔒 این منطقه هنوز قفل است'
+        : '🔒 AREA LOCKED');
+      console.log(`[ExitGate] Gate ${gateData.id} → ${gateData.toAreaId} blocked: area not unlocked`);
+      return;
+    }
+
     this.gateTransitioning = true;
     this.exitGateCollisionCount = 1;
     console.log(`[ExitGate] CROSSED gate ${gateData.id} → area ${gateData.toAreaId} section ${gateData.toSection}`);

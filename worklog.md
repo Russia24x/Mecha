@@ -3533,3 +3533,32 @@ Stage Summary:
   boss arena entry, fast-travel from World Map.
 - No regression from A7 (iron_magistrate single occurrence).
 - All 3 Acts (I, II, III) now fully tested with bonfire + exit gate + fast-travel.
+
+---
+Task ID: fix-locked-gate-error
+Agent: main
+Task: Fix console.error when crossing gate to locked area (user bug report)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = eb14f02 (synced, ahead 0 behind 0).
+- User reported: "WorldSystem.travelTo failed for area factory_2 — area not found, locked, or ability-gated"
+  thrown as console.error from GameScene.ts:809 (catch block of handleExitGate).
+- Root cause: player crossed gate_factory1_to_2 before killing Guardian AX-09 (which
+  unlocks factory_2). travelTo returned false → code threw Error → catch block fired
+  with console.error. This is a NORMAL game state (area locked), not an exceptional error.
+- Fix: added pre-check in handleExitGate BEFORE starting fade:
+  if (!WorldSystem.isAreaUnlocked(gateData.toAreaId)) → show toast "🔒 AREA LOCKED"
+  + console.log (not error) + return early. No fade, no throw, no catch.
+- The throw→catch path remains for ACTUAL errors (area data corrupted, etc.) —
+  the pre-check only handles the "locked" case gracefully.
+
+Browser test:
+- Save with factory_2 NOT unlocked (bossesKilled=0).
+- Crossed gate_factory1_to_2.
+- Console: "[ExitGate] Gate gate_factory1_to_2 → factory_2 blocked: area not unlocked"
+  (console.log, NOT console.error).
+- Toast: "🔒 AREA LOCKED".
+- State: play (player stays in factory_1, walks through gate without traveling).
+- 0 console errors.
+
+Verification: tsc 0 errors. Browser: graceful handling, 0 errors.
