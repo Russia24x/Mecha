@@ -343,7 +343,12 @@ Per-frame (از PlayController.update):
 
 **مجموع Phase F:** ~2 ساعت
 
-### **مجموع کل:** ~15.5 ساعت (Phase A 4h + B 2.25h + C 2h + D 2h + E 3h + F 2h)
+> **Phase F — DEFERRED (per user round-25):** Respawn بی‌قید-و-شرط فعلی (spawn-once-per-section-entry)
+> برای بازی تک‌نفره‌ی غیررقابتی کافی تشخیص داده شد. بازبینی احتمالی در فازهای نهایی توسعه
+> — اگر واقعاً لازم شد، با الهام از بازی‌های مرجع (Dark Souls، Blasphemous) طراحی مجدد شود.
+> این یک تصمیم صریح است، نه یک کار فراموش‌شده.
+
+### **مجموع کل:** ~15.5 ساعت (Phase A 4h + B 2.25h + C 2h + D 2h + E 3h + F deferred)
 
 ---
 

@@ -4004,3 +4004,56 @@ Next actions for user:
   noticeable than factory dust — full windX, not 0.5x).
 - (Optional) Add barrels to VisualCuller iteration for off-screen culling — currently
   not culled because there are only ~3 per area (negligible perf impact).
+
+---
+Task ID: act4-forensics
+Agent: main
+Task: Phase F deferred + Act IV (toxic_forest) fresh forensics
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = 69bea9a (synced, ahead 0 behind 0).
+  Unrelated skills/ changes ignored.
+
+- Phase F deferred: documented in MASTER_PLAN as explicit decision (not forgotten).
+  Respawn (spawn-once-per-section-entry) deemed sufficient for single-player non-competitive.
+
+- Fresh forensics on toxic_forest (NOT relying on old audit from July 15):
+
+  | Content | Count | Comparison to Act I (factory_1) |
+  |---------|-------|----------------------------------|
+  | Sections | 6 | Same (6) |
+  | totalWidth | 7680px | Smaller (Act I factory_1=3072, but Act I total=9216) |
+  | sectionWidth | 1280px | Smaller (Act I=1536) |
+  | Platforms | 41 | Act I factory_1 has ~15 per area |
+  | Enemies | 9 total (2+3+2+3+0+0) | Act I has ~16 across 3 areas |
+  | Lore objects | 4 | Act I has 11 — significantly less |
+  | Hazards | 1 (spike in S3) | Act I has several |
+  | Collectibles | 0 | Act I has 6 — COMPLETELY MISSING |
+  | Shortcuts | 0 | Act I has 2 — MISSING |
+  | EMP doors | 0 | MISSING |
+  | Grapple anchors | 0 | MISSING |
+  | Landmarks | 3 | Act I has 3 — OK |
+  | Bonfires | 0 | Will be added when split happens (later) |
+  | Exit gates | 0 | Will be added when split happens (later) |
+  | Boss | neural_overseer (S6) | Present ✅ |
+  | checkpointSections | [2, 5] | Present (will be cleared on split) |
+
+- NPC check: "Overseer's Apprentice" (Wanderer) — NOT in code (grep returned 0 results).
+  Only exists in WORLD_BIBLE document. Needs to be added if desired.
+
+- Weapon unlock chain: Neural Overseer kill → energy_blade unlock (GameScene.ts:1255-1257). ✅ Working.
+  Also unlocks orbital_station_1 (Act V entry) at line 1294-1295.
+
+- unlockedByDefault: false (correct — unlocked by Iron Magistrate kill in Act III).
+  DEFAULT_SAVE.unlockedAreas: ['factory_1'] (toxic_forest not included — correct).
+
+Key findings:
+1. Metroidvania layer COMPLETELY ABSENT: 0 collectibles, 0 shortcuts, 0 EMP doors, 0 grapple anchors.
+   This is the #1 priority for Act IV content completion.
+2. Lore is sparse: 4 objects (vs 11 in Act I). Need at least 4-5 more for proper Memory Layer.
+3. No NPC: "Overseer's Apprentice" exists only in WORLD_BIBLE, not in code.
+4. Hazards are minimal: only 1 spike in S3. Could use 2-3 more for variety.
+5. Boss + weapon unlock chain: working correctly. ✅
+6. No split yet (correct per plan — content first, split later).
+
+Ready for content design decisions.
