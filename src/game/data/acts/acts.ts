@@ -918,6 +918,9 @@ export const ACTS: ActData[] = [
                 { id: 'lore_f1_corpse', type: 'corpse', x: 400, y: 660, titleKey: 'lore.f1.corpse.title', textKey: 'lore.f1.corpse.text' },
               ], landmarks: [
                 { id: 'lm_f1_mech', type: 'crashed_mech', x: 150, y: 580, w: 120, h: 100, color: 0x1a2818 },
+              ], collectibles: [
+                // Health fragment — on upper platform (accessible via jump from y=440 platform)
+                { id: 'col_f1_health', type: 'health_fragment', x: 500, y: 250 },
               ]},
               // S2: Overgrown combat
               { id: 2, nameKey: 'section.forest.2.name', x: 1280, enemies: ['flying_ai', 'flying_ai', 'spider'], platforms: [
@@ -927,6 +930,9 @@ export const ACTS: ActData[] = [
                 { x: 2300, y: 460, w: 120, h: 20 },
               ], loreObjects: [
                 { id: 'lore_f2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.f2.terminal.title', textKey: 'lore.f2.terminal.text' },
+              ], collectibles: [
+                // Energy fragment — on platform at (2300, 460) — requires jump from (2000, 520)
+                { id: 'col_f2_energy', type: 'energy_fragment', x: 2350, y: 430 },
               ]},
               // S3: Root maze — vertical platforming
               { id: 3, nameKey: 'section.forest.3.name', x: 2560, enemies: ['spider', 'spider'], platforms: [
@@ -940,10 +946,13 @@ export const ACTS: ActData[] = [
               ], hazards: [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
               ], loreObjects: [
-                // INTENTIONALLY HIGH (y=120): on platform at (2750,140,w=80) — top y=132.
-                // Root maze vertical platforming section — reached via normal jump chain.
-                // Left high as exploration reward; nearby spike hazard adds risk to approach.
                 { id: 'lore_f3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.f3.echo.title', textKey: 'lore.f3.echo.text' },
+              ], collectibles: [
+                // Skill point — high in root maze, requires wallJump to reach
+                { id: 'col_f3_skill', type: 'skill_point', x: 2750, y: 110, requiredAbility: 'wallJump' },
+              ], grappleAnchors: [
+                // Grapple anchor — hidden secret above root maze, leads to bio-luminescent platform
+                { id: 'ga_f3_secret', x: 3200, y: 100 },
               ]},
               // S4: Mini boss
               { id: 4, nameKey: 'section.forest.4.name', x: 3840, enemies: ['spider', 'spider', 'heavy'], platforms: [
@@ -955,13 +964,26 @@ export const ACTS: ActData[] = [
                 { x: 4360, y: 260, w: 60, h: 16 },
               ], landmarks: [
                 { id: 'lm_f4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 200, h: 80, color: 0x1a2818 },
+              ], collectibles: [
+                // Weapon part — on high platform after mini-boss area (requires doubleJump)
+                { id: 'col_f4_weapon', type: 'weapon_part', x: 4360, y: 230, requiredAbility: 'doubleJump' },
               ]},
-              // S5: Checkpoint
+              // S5: Checkpoint — with shortcut back to S4 + collectibles
               { id: 5, nameKey: 'section.forest.5.name', x: 5120, enemies: [], platforms: [
                 { x: 5360, y: 560, w: 140, h: 20 },
                 { x: 5700, y: 420, w: 120, h: 20 },
+                // Hidden platform for skill point (accessible via grapple from S3 anchor)
+                { x: 5900, y: 200, w: 80, h: 16 },
               ], loreObjects: [
                 { id: 'lore_f5_echo', type: 'echo', x: 5600, y: 580, titleKey: 'lore.f5.echo.title', textKey: 'lore.f5.echo.text' },
+              ], collectibles: [
+                // Energy fragment — on mid platform
+                { id: 'col_f5_energy', type: 'energy_fragment', x: 5750, y: 390 },
+                // Skill point — hidden high platform, reachable via grapple anchor from S3
+                { id: 'col_f5_skill', type: 'skill_point', x: 5940, y: 170, requiredAbility: 'grapple' },
+              ], shortcuts: [
+                // Short-range shortcut: S5→S4 (adjacent sections, will stay in same area on split)
+                { id: 'sc_f5_to_s4', x: 5180, y: 650, w: 40, h: 60, toSection: 4, opensFrom: 'left' },
               ]},
               // S6: Boss arena — Neural Overseer
               { id: 6, nameKey: 'section.forest.6.name', x: 6400, enemies: [], bossId: 'neural_overseer', platforms: [
@@ -971,6 +993,9 @@ export const ACTS: ActData[] = [
                 { x: 7280, y: 520, w: 80, h: 20 },
               ], landmarks: [
                 { id: 'lm_f6_door', type: 'tower', x: 6440, y: 300, w: 60, h: 400, color: 0x2a3818 },
+              ], collectibles: [
+                // Health fragment — reward for reaching boss arena (on side platform)
+                { id: 'col_f6_health', type: 'health_fragment', x: 7280, y: 490 },
               ]},
             ],
           },
