@@ -4160,3 +4160,68 @@ Stage Summary:
   not codex-registered — same as terminal/corpse/echo).
 - 0 page errors.
 - Ready for Priority 3 (NPC).
+
+---
+Task ID: act4-npc-test
+Agent: main
+Task: Browser test NPC Overseer's Apprentice — spawn/visual/prompt/dialogue/progression
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = f50a724 (synced, ahead 0 behind 0).
+
+Test 1 — NPC visible at (1900, 600):
+- npcVisuals map has key 'overseer_apprentice' (count=1).
+- Container: active=true, x=1900, y=477 (floating offset from 600), visible=true.
+- Child count: 9 (shadow, hover, body, head, visor, 3 bio-dots, arm).
+- PASS: NPC is rendered and visible in the world. ✅
+
+Test 2 — Name label above NPC:
+- npcLabels has key 'overseer_apprentice'.
+- Text: "The Apprentice", visible=true, alpha=0.48 (pulsing tween).
+- Position: (1900, -7) — above NPC head.
+- PASS: Name label displayed. ✅
+
+Test 3 — Prompt [E] TALK appears near NPC:
+- Player moved to NPC position (1900, 540).
+- interactionPrompt: visible=true, text="[E] TALK".
+- PASS: Unified nearest-check correctly identifies NPC as nearest interactable. ✅
+
+Test 4 — E press → dialogue opens:
+- Pressed E → dialogue UI opened (container.visible=true).
+- First line shown: "You're... not from here. I can tell. Your roots haven't found the soil yet."
+- This is dialogue.apprentice_intro.1 — the intro dialogue. ✅
+- Pressing E advanced through dialogue. Second line visible: lore node about Overseer.
+- PASS: Dialogue opens with correct intro text. ✅
+
+Test 5 — Re-interaction after closing:
+- Closed dialogue (via hide() — ESC/click didn't work in headless, but that's
+  a known agent-browser limitation, not a game bug).
+- Re-interacted with E → dialogue opened again, showing the LORE node
+  ("The Overseer... she doesn't hate us...") NOT the intro again.
+- This confirms: 'met' flag was set by intro dialogue → conditionFlag='met'
+  on lore node correctly allows progression to next dialogue node.
+- PASS: Dialogue progresses correctly (intro→lore, not intro→intro). ✅
+
+Test 6 — Prompt interference with nearby lore:
+- NPC at (1900, 600) in S2. Nearest lore objects:
+  * lore_f2_terminal at (2400, 580) — 500px away (no interference)
+  * lore_f2_specimen at (1650, 660) — 250px away
+  * lore_f1_notebook at (900, 510) — 1000px away (S1, no interference)
+- At NPC position, prompt shows [E] TALK (not EXAMINE/LISTEN).
+- The 250px gap to lore_f2_specimen is outside the 70-80px interaction radius.
+- PASS: No prompt interference. ✅
+
+All tests: 0 page errors.
+
+Note on dialogue advancement: DialogueUI.show() is called by NPCSystem.interact()
+which cycles through dialogue nodes based on conditionFlag. The 'met' flag is
+set by intro dialogue, enabling lore and warning nodes on subsequent interactions.
+This is the SAME proven pattern as Kara and Ghost Operator.
+
+Stage Summary:
+- NPC spawn/render: PASS (visible, 9 children, name label).
+- Prompt: PASS ([E] TALK, no interference with lore objects).
+- Dialogue: PASS (intro opens, advances, progresses to lore on re-interact).
+- Flag system: PASS ('met' flag set by intro, enables subsequent nodes).
+- 0 page errors.
+- Ready for Priority 4 (Hazards).
