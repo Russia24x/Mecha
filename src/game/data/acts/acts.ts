@@ -916,6 +916,8 @@ export const ACTS: ActData[] = [
                 { x: 500, y: 280, w: 100, h: 16 },
               ], loreObjects: [
                 { id: 'lore_f1_corpse', type: 'corpse', x: 400, y: 660, titleKey: 'lore.f1.corpse.title', textKey: 'lore.f1.corpse.text' },
+                // Supporting lore: guard's notebook (foreshadows assimilation)
+                { id: 'lore_f1_notebook', type: 'terminal', x: 900, y: 510, titleKey: 'lore.f1.notebook.title', textKey: 'lore.f1.notebook.text' },
               ], landmarks: [
                 { id: 'lm_f1_mech', type: 'crashed_mech', x: 150, y: 580, w: 120, h: 100, color: 0x1a2818 },
               ], collectibles: [
@@ -930,6 +932,8 @@ export const ACTS: ActData[] = [
                 { x: 2300, y: 460, w: 120, h: 20 },
               ], loreObjects: [
                 { id: 'lore_f2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.f2.terminal.title', textKey: 'lore.f2.terminal.text' },
+                // Supporting lore: connected specimen (foreshadows neural network)
+                { id: 'lore_f2_specimen', type: 'corpse', x: 1650, y: 660, titleKey: 'lore.f2.specimen.title', textKey: 'lore.f2.specimen.text' },
               ], collectibles: [
                 // Energy fragment — on platform at (2300, 460) — requires jump from (2000, 520)
                 { id: 'col_f2_energy', type: 'energy_fragment', x: 2350, y: 430 },
@@ -947,6 +951,8 @@ export const ACTS: ActData[] = [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
               ], loreObjects: [
                 { id: 'lore_f3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.f3.echo.title', textKey: 'lore.f3.echo.text' },
+                // Supporting lore: AI's old message to itself (foreshadows Overseer's nature)
+                { id: 'lore_f3_ai_message', type: 'terminal', x: 3500, y: 580, titleKey: 'lore.f3.aimessage.title', textKey: 'lore.f3.aimessage.text' },
               ], collectibles: [
                 // Skill point — high in root maze, requires wallJump to reach
                 { id: 'col_f3_skill', type: 'skill_point', x: 2750, y: 110, requiredAbility: 'wallJump' },
@@ -968,7 +974,7 @@ export const ACTS: ActData[] = [
                 // Weapon part — on high platform after mini-boss area (requires doubleJump)
                 { id: 'col_f4_weapon', type: 'weapon_part', x: 4360, y: 230, requiredAbility: 'doubleJump' },
               ]},
-              // S5: Checkpoint — with shortcut back to S4 + collectibles
+              // S5: Checkpoint — with shortcut back to S4 + collectibles + Memory Layer moment
               { id: 5, nameKey: 'section.forest.5.name', x: 5120, enemies: [], platforms: [
                 { x: 5360, y: 560, w: 140, h: 20 },
                 { x: 5700, y: 420, w: 120, h: 20 },
@@ -976,6 +982,12 @@ export const ACTS: ActData[] = [
                 { x: 5900, y: 200, w: 80, h: 16 },
               ], loreObjects: [
                 { id: 'lore_f5_echo', type: 'echo', x: 5600, y: 580, titleKey: 'lore.f5.echo.title', textKey: 'lore.f5.echo.text' },
+                // MEMORY LAYER MOMENT (per advisor round-28):
+                // The Assimilated — a mech half-absorbed into the neural network.
+                // Placed near boss (S6) to create pre-echo before meeting Neural Overseer.
+                // Visible from distance (glow + sound ring), interaction reveals
+                // a fragmentary plea — not a full explanation.
+                { id: 'lore_f5_assimilated', type: 'assimilated', x: 5500, y: 600, titleKey: 'lore.f5.assimilated.title', textKey: 'lore.f5.assimilated.text' },
               ], collectibles: [
                 // Energy fragment — on mid platform
                 { id: 'col_f5_energy', type: 'energy_fragment', x: 5750, y: 390 },

@@ -719,7 +719,7 @@ export class AreaLoader {
       parts.push(label);
       this.trackedTween({ targets: label, alpha: { from: 0.3, to: 0.8 }, duration: 1000, yoyo: true, repeat: -1 });
 
-    } else {
+    } else if (lore.type === 'echo') {
       // ECHO: Suspended speaker array with visible sound waves
       // Speaker body
       const speaker = this.scene.add.rectangle(0, 0, 30, 24, 0x101820, 0.9);
@@ -753,6 +753,107 @@ export class AreaLoader {
       const label = this.scene.add.text(0, 24, '▼ LISTEN', { fontFamily: 'monospace', fontSize: '8px', color: '#40c0ff', letterSpacing: 1 }).setOrigin(0.5);
       parts.push(label);
       this.trackedTween({ targets: label, alpha: { from: 0.4, to: 1 }, duration: 800, yoyo: true, repeat: -1 });
+
+    } else if (lore.type === 'assimilated') {
+      // ASSIMILATED: A mech half-absorbed into the neural network —
+      // roots/vines grow through its body. Part mechanical (flickering
+      // amber light), part organic (bio-luminescent green veins).
+      // This is the "Memory Layer moment" for Act IV (per advisor round-28).
+
+      // ── Body: slumped mech, partially overgrown ──
+      const body = this.scene.add.rectangle(0, 0, 52, 30, 0x1a2018, 0.92);
+      body.setStrokeStyle(1, 0x2a3820, 0.5);
+      body.setAngle(-5);
+      parts.push(body);
+
+      // ── Arm: outstretched, reaching upward (pleading gesture) ──
+      const arm = this.scene.add.rectangle(-20, -12, 24, 8, 0x1a2018, 0.9);
+      arm.setStrokeStyle(1, 0x2a3020, 0.4);
+      arm.setAngle(-60);
+      parts.push(arm);
+
+      // ── Head: tilted, one eye still flickering ──
+      const head = this.scene.add.rectangle(18, -8, 16, 14, 0x12160e, 0.95);
+      head.setStrokeStyle(1, 0x2a3020, 0.5);
+      head.setAngle(15);
+      parts.push(head);
+
+      // ── Flickering amber eye (mechanical part — still "alive") ──
+      // Slow, irregular pulse — like a dying heartbeat
+      const eye = this.scene.add.circle(20, -10, 3, 0xffc040, 0.5);
+      eye.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(eye);
+      this.trackedTween({
+        targets: eye,
+        alpha: { from: 0.1, to: 0.7 },
+        duration: 600 + Math.random() * 400,  // irregular — feels alive
+        yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      });
+
+      // ── Bio-luminescent roots growing through body (organic part) ──
+      // Small green dots along the body — neural network integration
+      for (let i = 0; i < 5; i++) {
+        const veinX = -18 + i * 8;
+        const veinY = -4 + Math.sin(i * 1.5) * 6;
+        const vein = this.scene.add.circle(veinX, veinY, 2, 0x40ff80, 0.4);
+        vein.setBlendMode(Phaser.BlendModes.ADD);
+        parts.push(vein);
+        // Each vein pulses at slightly different rate — organic, not mechanical
+        this.trackedTween({
+          targets: vein,
+          alpha: { from: 0.15, to: 0.5 },
+          duration: 1200 + i * 300,
+          yoyo: true, repeat: -1, ease: 'Sine.inOut',
+          delay: i * 200,
+        });
+      }
+
+      // ── Root tendrils wrapping around legs (ground level) ──
+      const rootGfx = this.scene.add.graphics();
+      rootGfx.lineStyle(2, 0x2a4020, 0.5);
+      // Winding root from ground up into body
+      rootGfx.beginPath();
+      rootGfx.moveTo(-15, 20);
+      rootGfx.lineTo(-10, 10);
+      rootGfx.lineTo(-5, 16);
+      rootGfx.lineTo(0, 8);
+      rootGfx.lineTo(8, 14);
+      rootGfx.lineTo(15, 6);
+      rootGfx.strokePath();
+      parts.push(rootGfx);
+
+      // ── Large ambient glow (visible from distance — Approach phase) ──
+      // Green-amber blend — different from normal amber terminals
+      const glow = this.scene.add.circle(0, 0, 70, 0x60ff80, 0.03);
+      glow.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(glow);
+      this.trackedTween({
+        targets: glow,
+        scale: { from: 0.8, to: 1.3 },
+        alpha: { from: 0.02, to: 0.06 },
+        duration: 3000, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      });
+
+      // ── Weak mechanical sound indicator (pulsing ring — visual proxy) ──
+      // Since AudioSystem can't play per-object sounds easily, this visual
+      // ring simulates "you can hear something from far away"
+      const soundRing = this.scene.add.circle(0, 0, 30, 0xffc040, 0);
+      soundRing.setStrokeStyle(1, 0xffc040, 0.15);
+      soundRing.setBlendMode(Phaser.BlendModes.ADD);
+      parts.push(soundRing);
+      this.trackedTween({
+        targets: soundRing,
+        scale: { from: 0.5, to: 3 },
+        alpha: { from: 0.15, to: 0 },
+        duration: 2500, repeat: -1, ease: 'Sine.out',
+      });
+
+      // ── Prompt ──
+      const label = this.scene.add.text(0, 30, '▼ LISTEN', {
+        fontFamily: 'monospace', fontSize: '8px', color: '#60ff80', letterSpacing: 1,
+      }).setOrigin(0.5);
+      parts.push(label);
+      this.trackedTween({ targets: label, alpha: { from: 0.3, to: 0.9 }, duration: 1000, yoyo: true, repeat: -1 });
     }
 
     container.add(parts);

@@ -310,7 +310,7 @@ export interface SectionData {
 
 export interface LoreObjectData {
   id: string;
-  type: 'terminal' | 'corpse' | 'echo';
+  type: 'terminal' | 'corpse' | 'echo' | 'assimilated';
   x: number;
   y: number;
   titleKey: string;
