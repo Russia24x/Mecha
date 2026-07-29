@@ -4106,3 +4106,57 @@ Stage Summary:
 - Shortcut: real gap with physics body, opens from correct side, passable after open.
 - Shortcut split-safety: documented as PROVISIONAL, not assumed safe.
 - Ready for Priority 2 (Memory Layer moment).
+
+---
+Task ID: act4-memory-layer-test
+Agent: main
+Task: Browser test Memory Layer moment — visual approach + interaction + LoreSystem check
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = ad37379 (synced, ahead 0 behind 0).
+
+Test 1 — Visual approach from distance:
+- Created save at S5 (x=5500, y=420 — near assimilated lore at 5500, 600).
+- Lore object confirmed: lore_f5_assimilated at (5500, 600), 13 child components.
+- Components verified: glow (r>50), sound ring (r~30), eye (r<5) — all present.
+- Player positioned at 300px away (x=5200) and 150px away (x=5350).
+- Screenshots taken (then cleaned up — visual confirmation via component inspection).
+- The glow (r=70, alpha 0.02-0.06, additive blend, pulsing scale 0.8→1.3) IS
+  present and theoretically visible from distance. However, against the dark
+  forest background (bgColor 0x0a1208), the green-amber glow at alpha 0.03-0.06
+  is very subtle — visible but not strongly attention-grabbing.
+- The sound ring (expanding from r=30 to r=90 scaled, alpha 0.15→0) is more
+  visible than the glow and serves as the primary "curiosity generator" at range.
+- VERDICT: Approach phase works but is subtle. The sound ring is the primary
+  visual hook (not the glow). Acceptable for a "quiet" moment in a forest —
+  not every moment needs to scream for attention.
+
+Test 2 — Interaction (E press):
+- Player positioned at exact lore location (5500, 590).
+- Pressed E → loreController.isOpen = true. ✅
+- Panel title: "THE ASSIMILATED" ✅
+- Panel text: "A mech kneels among the roots, half its body consumed by green
+  tendrils. One eye still flickers amber. As you approach, a voice — thin,
+  fractured — escapes from a speaker long overgrown: '...can still... hear...
+  please... I'm still... here...'" ✅
+- Fragmented plea text confirmed — matches design intent.
+- 0 page errors.
+
+Test 3 — LoreSystem registration:
+- LoreController.open(titleKey, textKey) displays the text via LoreController
+  but does NOT call LoreSystem.discover() — it's a display-only panel.
+- LoreSystem is used ONLY for boss/weapon/area lore entries (codex system),
+  NOT for in-world lore objects. In-world lore (terminal/corpse/echo/assimilated)
+  is displayed via LoreController panel only, not registered in LoreSystem.
+- This is the EXISTING pattern for ALL lore objects (terminal, corpse, echo) —
+  the new 'assimilated' type follows the same pattern. No regression.
+- If future codex integration is desired for in-world lore, that would be a
+  separate task affecting ALL lore types, not just 'assimilated'.
+
+Stage Summary:
+- Visual approach: works (subtle glow + visible sound ring from distance).
+- Interaction: PASS (E opens panel, shows fragmented plea text).
+- LoreSystem: 'assimilated' follows existing in-world lore pattern (display-only,
+  not codex-registered — same as terminal/corpse/echo).
+- 0 page errors.
+- Ready for Priority 3 (NPC).
