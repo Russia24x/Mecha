@@ -982,7 +982,12 @@ export const ACTS: ActData[] = [
                 // Skill point — hidden high platform, reachable via grapple anchor from S3
                 { id: 'col_f5_skill', type: 'skill_point', x: 5940, y: 170, requiredAbility: 'grapple' },
               ], shortcuts: [
-                // Short-range shortcut: S5→S4 (adjacent sections, will stay in same area on split)
+                // ⚠️ PROVISIONAL (per advisor round-27): sc_f5_to_s4 is short-range (S5→S4,
+                // adjacent sections) but "split-safe" is NOT verified — we don't yet know
+                // where Act IV will be cut when it's split into forest_1/2.
+                // When split happens: FIRST check if this shortcut stays within one Area.
+                // If it crosses the split boundary, it MUST be removed (same as sc_s4_to_s2
+                // in Act I which was deleted in commit 4cdc1e3). Do NOT assume it's safe.
                 { id: 'sc_f5_to_s4', x: 5180, y: 650, w: 40, h: 60, toSection: 4, opensFrom: 'left' },
               ]},
               // S6: Boss arena — Neural Overseer
