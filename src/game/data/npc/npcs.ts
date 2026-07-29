@@ -26,6 +26,21 @@ export const NPCS: Record<string, NPCData> = {
     dialogues: ['ghost_intro', 'ghost_lore', 'ghost_warning'],
     flags: { met: false },
   },
+  // ─── Act IV: Overseer's Apprentice (Wanderer) ───
+  // Per advisor round-30: dialogue only, no quest.
+  // Theme: "lost freedom — roots hold them back" (WORLD_BIBLE).
+  // Visual: mech partially overgrown with vines (not fully assimilated like
+  // the lore object — this NPC is still mobile, still choosing to stay).
+  // Placed in S2 (early, before dark moments in S5/boss).
+  overseer_apprentice: {
+    id: 'overseer_apprentice',
+    nameKey: 'npc.overseer_apprentice.name',
+    areaId: 'toxic_forest',
+    x: 1900,
+    y: 600,
+    dialogues: ['apprentice_intro', 'apprentice_lore', 'apprentice_warning'],
+    flags: { met: false },
+  },
 };
 
 export function getNPC(id: string): NPCData | undefined {

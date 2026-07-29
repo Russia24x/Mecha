@@ -1169,6 +1169,87 @@ export class MechaSpriteFactory {
       destroy: () => { parts.forEach(p => { if (p && p.active) p.destroy(); }); if (container && container.active) container.destroy(); },
     };
   }
+
+  /**
+   * Overseer's Apprentice — a Wanderer mech partially overgrown with vines.
+   * Per WORLD_BIBLE: "lost freedom — roots hold them back."
+   * Visual: like Kara but with green vine accents growing on the body,
+   * dimmer visor (exhausted), small bio-luminescent dots (early assimilation).
+   * Still standing upright (not kneeling like the Assimilated lore object).
+   */
+  static buildNPC_OverseerApprentice(scene: Phaser.Scene): MechVisualHandle {
+    const container = scene.add.container(0, 0);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+
+    // Shadow
+    const shadow = scene.add.ellipse(0, 26, 40, 8, 0x000000, 0.4);
+    shadow.setDepth(-1); parts.push(shadow);
+
+    // Hover glow (green-tinged, not cyan like Kara)
+    const hover = scene.add.circle(0, 14, 8, 0x40ff80, 0.2);
+    hover.setBlendMode(Phaser.BlendModes.ADD); hover.setDepth(0); parts.push(hover);
+    scene.tweens.add({ targets: hover, alpha: { from: 0.1, to: 0.3 }, scale: { from: 0.8, to: 1.2 }, duration: 500, yoyo: true, repeat: -1 });
+
+    // Body — dark, with vine accents
+    const body = scene.add.graphics();
+    body.setDepth(5);
+    // Main hull (darker than Kara — faded paint)
+    body.fillStyle(0x1a2818, 1); body.fillRoundedRect(-14, -14, 28, 24, 4);
+    // Chest plate (weathered green-gray)
+    body.fillStyle(0x2a3820, 1); body.fillRoundedRect(-12, -12, 24, 6, 2);
+    // Faint amber strip (old, dim — power fading)
+    body.fillStyle(0xffc040, 0.3); body.fillRoundedRect(-10, -2, 20, 3, 1);
+    // Vine lines growing across body (green, organic)
+    body.lineStyle(1, 0x40ff80, 0.3);
+    body.beginPath(); body.moveTo(-14, -8); body.lineTo(-6, -4); body.lineTo(-2, 0); body.strokePath();
+    body.beginPath(); body.moveTo(14, 6); body.lineTo(8, 2); body.lineTo(4, 8); body.strokePath();
+    // Outline
+    body.lineStyle(1, 0x2a4020, 0.5); body.strokeRoundedRect(-14, -14, 28, 24, 4);
+    parts.push(body);
+
+    // Head — tilted slightly (exhausted posture)
+    const head = scene.add.graphics();
+    head.setDepth(8);
+    head.fillStyle(0x2a3820, 1); head.fillRoundedRect(-7, -24, 14, 12, 2);
+    // Vine on head
+    head.lineStyle(1, 0x40ff80, 0.25); head.beginPath(); head.moveTo(-7, -22); head.lineTo(-3, -18); head.strokePath();
+    head.lineStyle(1, 0x2a4020, 0.4); head.strokeRoundedRect(-7, -24, 14, 12, 2);
+    parts.push(head);
+
+    // Visor — dim green (not bright cyan — power fading, green = forest influence)
+    const visor = scene.add.rectangle(0, -20, 10, 2, 0x40ff80, 0.5);
+    visor.setBlendMode(Phaser.BlendModes.ADD); visor.setDepth(9); parts.push(visor);
+    scene.tweens.add({ targets: visor, alpha: { from: 0.3, to: 0.6 }, duration: 1500, yoyo: true, repeat: -1 });
+
+    // Bio-luminescent dots (early assimilation — 3 small green spots on body)
+    for (let i = 0; i < 3; i++) {
+      const dot = scene.add.circle(-8 + i * 8, 2 + Math.sin(i * 2) * 4, 1.5, 0x40ff80, 0.4);
+      dot.setBlendMode(Phaser.BlendModes.ADD); dot.setDepth(6); parts.push(dot);
+      scene.tweens.add({ targets: dot, alpha: { from: 0.2, to: 0.5 }, duration: 1200 + i * 400, yoyo: true, repeat: -1, delay: i * 200 });
+    }
+
+    // Arm — one vine wrapping around the forearm
+    const arm = scene.add.graphics();
+    arm.setDepth(7);
+    arm.fillStyle(0x1a2818, 1); arm.fillRect(8, -8, 6, 14);
+    arm.fillStyle(0xffc040, 0.2); arm.fillRect(8, -7, 6, 1);
+    arm.lineStyle(1, 0x40ff80, 0.3); arm.beginPath(); arm.moveTo(8, -6); arm.lineTo(14, -2); arm.lineTo(10, 4); arm.strokePath();
+    parts.push(arm);
+
+    // Subtle floating (slower than Kara — exhausted)
+    scene.tweens.add({ targets: container, y: -2, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+
+    container.add(parts);
+    container.setDepth(14);
+
+    return {
+      container,
+      setFacing: (facing: 1 | -1) => container.setScale(facing, 1),
+      setCorePulse: (b: number) => visor.setAlpha(0.3 + b * 0.3),
+      setThrusterIntensity: (i: number) => hover.setAlpha(0.1 + i * 0.2),
+      destroy: () => { parts.forEach(p => { if (p && p.active) p.destroy(); }); if (container && container.active) container.destroy(); },
+    };
+  }
 }
 
 export default MechaSpriteFactory;

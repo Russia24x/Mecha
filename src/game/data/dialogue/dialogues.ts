@@ -68,6 +68,31 @@ export const DIALOGUES: Record<string, DialogueData> = {
     lines: ['dialogue.ghost_warning.1'],
     conditionFlag: 'met',
   },
+
+  // ─── Overseer's Apprentice (Act IV) ───
+  // Per advisor round-30: dialogue only, no quest.
+  // Three nodes: intro (first meeting), lore (world-building), warning (about boss).
+  apprentice_intro: {
+    id: 'apprentice_intro',
+    type: 'normal',
+    npcId: 'overseer_apprentice',
+    lines: ['dialogue.apprentice_intro.1', 'dialogue.apprentice_intro.2'],
+    setFlag: 'met',
+  },
+  apprentice_lore: {
+    id: 'apprentice_lore',
+    type: 'normal',
+    npcId: 'overseer_apprentice',
+    lines: ['dialogue.apprentice_lore.1', 'dialogue.apprentice_lore.2'],
+    conditionFlag: 'met',
+  },
+  apprentice_warning: {
+    id: 'apprentice_warning',
+    type: 'normal',
+    npcId: 'overseer_apprentice',
+    lines: ['dialogue.apprentice_warning.1'],
+    conditionFlag: 'met',
+  },
 };
 
 export function getDialogue(id: string): DialogueData | undefined {

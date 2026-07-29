@@ -38,6 +38,8 @@ export class NpcInteractionController {
         visual = MechaSpriteFactory.buildNPC_Kara(this.scene);
       } else if (npc.id === 'ghost_operator') {
         visual = MechaSpriteFactory.buildNPC_GhostOperator(this.scene);
+      } else if (npc.id === 'overseer_apprentice') {
+        visual = MechaSpriteFactory.buildNPC_OverseerApprentice(this.scene);
       } else {
         visual = MechaSpriteFactory.buildNPC_Kara(this.scene);
       }
