@@ -4057,3 +4057,52 @@ Key findings:
 6. No split yet (correct per plan — content first, split later).
 
 Ready for content design decisions.
+
+---
+Task ID: act4-metroidvania-test
+Agent: main
+Task: Browser test Act IV metroidvania layer (collectible enforcement + grapple anchor + shortcut gap)
+
+Work Log:
+- SESSION-START-SYNC-CHECK: HEAD = origin/main = db68a40 (synced, ahead 0 behind 0).
+
+Note 1 — split-safe shortcut documented:
+- Added explicit PROVISIONAL comment in acts.ts: "split-safe is NOT verified.
+  When split happens, FIRST check if this shortcut stays within one Area.
+  If it crosses the split boundary, it MUST be removed."
+
+Note 2a — Collectible requiredAbility enforcement:
+- Created save WITHOUT wallJump ability.
+- Teleported player to exact location of col_f3_skill (x=2750, y=110).
+- Result: collected=false, toast="🔒 REQUIRES WALLJUMP".
+- PASS: ability gate works correctly — player at exact position but
+  cannot collect without required ability. Enforcement is global
+  (MetroidvaniaController line 78: player.hasAbility check), not
+  Act I-specific.
+
+Note 2b — Grapple anchor exists + is generic:
+- Anchor ga_f3_secret found at (3200, 100) with correct ID.
+- Player doesn't have grapple ability (expected for this test).
+- Anchor was created by AreaLoader.createGrappleAnchor() — same code
+  path as Act I anchors. PlayController.build reads from
+  loadedArea.grappleAnchors and passes to player.setExternalRefs.
+  Generic, NOT Act I-specific. ✅
+
+Note 2c — Shortcut is in a real gap (not on solid wall):
+- Before opening: shortcut has physicsBody (isStatic=true, isSensor=false).
+  Player walking into it from left is BLOCKED at x=5252 (can't pass).
+  This confirms it's a solid wall, not a visual-only door.
+- After approaching from left (opensFrom=left, px<sx): shortcutOpen=true.
+  Physics body destroyed (active=false, not in world).
+- After opening: player walks through at x=5160→5301 — passes freely.
+  Gap is real, not visual-only. ✅
+- No "door on wall" bug (unlike bugfix-round-2-real-paths historical issue).
+
+All 3 tests: 0 page errors.
+
+Stage Summary:
+- Collectible ability enforcement: PASS (🔒 REQUIRES WALLJUMP shown).
+- Grapple anchor: generic, works for any area (not Act I-specific).
+- Shortcut: real gap with physics body, opens from correct side, passable after open.
+- Shortcut split-safety: documented as PROVISIONAL, not assumed safe.
+- Ready for Priority 2 (Memory Layer moment).
