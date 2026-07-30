@@ -30,6 +30,10 @@ export class BootScene extends Phaser.Scene {
     this.load.image('city_bg_2', '/game-assets/backgrounds/city_bg_2.png');
     this.load.image('city_bg_3', '/game-assets/backgrounds/city_bg_3.png');
     this.load.image('city_bg_4', '/game-assets/backgrounds/city_bg_4.png');
+    this.load.image('forest_bg_1', '/game-assets/backgrounds/forest_bg_1.png');
+    this.load.image('forest_bg_2', '/game-assets/backgrounds/forest_bg_2.png');
+    this.load.image('forest_bg_3', '/game-assets/backgrounds/forest_bg_3.png');
+    this.load.image('forest_bg_4', '/game-assets/backgrounds/forest_bg_4.png');
 
     // Loading bar.
     const w = GAME.WIDTH;

@@ -178,7 +178,7 @@ export class ParallaxBackground {
    */
   private buildBackgroundArt(): void {
     // Factory, Wastes, and City have painted background art
-    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city') return;
+    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city' && this.theme !== 'forest') return;
 
     // Determine texture keys based on theme + bgStartIndex (per-area selection).
     // Per user request (round-19):
@@ -205,14 +205,30 @@ export class ParallaxBackground {
         if (!this.scene.textures.exists('city_bg_1')) return;
         bgKeys.push('city_bg_1');
       } else if (this.bgStartIndex === 1) {
-        // ward_2: two images for double-width area
         if (!this.scene.textures.exists('city_bg_2')) return;
         bgKeys.push('city_bg_2');
         if (this.scene.textures.exists('city_bg_3')) bgKeys.push('city_bg_3');
       } else if (this.bgStartIndex === 2) {
-        // courthouse (boss): only city_bg_4
         if (!this.scene.textures.exists('city_bg_4')) return;
         bgKeys.push('city_bg_4');
+      }
+    } else if (this.theme === 'forest') {
+      // Act IV (toxic_forest) — per user round-33:
+      //   forest_1 (area 1) → forest_bg_1 + forest_bg_2 (two images, first area is longer)
+      //   forest_2 (area 2) → forest_bg_3
+      //   forest_3 (boss) → forest_bg_4
+      // Until split happens, toxic_forest is one area (bgStartIndex=0):
+      //   Use forest_bg_1 + forest_bg_2 tiled across full width.
+      if (this.bgStartIndex === 0) {
+        if (!this.scene.textures.exists('forest_bg_1')) return;
+        bgKeys.push('forest_bg_1');
+        if (this.scene.textures.exists('forest_bg_2')) bgKeys.push('forest_bg_2');
+      } else if (this.bgStartIndex === 1) {
+        if (!this.scene.textures.exists('forest_bg_3')) return;
+        bgKeys.push('forest_bg_3');
+      } else if (this.bgStartIndex === 2) {
+        if (!this.scene.textures.exists('forest_bg_4')) return;
+        bgKeys.push('forest_bg_4');
       }
     }
     if (bgKeys.length === 0) return;
@@ -426,7 +442,7 @@ export class ParallaxBackground {
   // for performance — no complex paths.
   private buildMidSilhouettes(): void {
     // Skip themes that already have their own procedural mid layer (forest/generic).
-    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city') return;
+    if (this.theme !== 'factory' && this.theme !== 'wastes' && this.theme !== 'city' && this.theme !== 'forest') return;
 
     const SILH_COLOR = 0x05080c;
     const SILH_ALPHA = 0.6;
