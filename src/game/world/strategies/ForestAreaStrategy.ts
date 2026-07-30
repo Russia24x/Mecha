@@ -84,6 +84,62 @@ export class ForestAreaStrategy extends AreaStrategy {
           duration: 1200 + Math.random() * 600, repeat: -1, delay: Math.random() * 1500,
         });
       }
+    } else if (hazard.type === 'root_snare') {
+      // Root snare — tendrils that burst from the ground when stepped on.
+      // Theme-appropriate for Act IV: organic, unpredictable, alive.
+      // Visual: cluster of dark roots with green thorns + bio-luminescent glow.
+      // The roots look dormant until you step on them (no animation trigger —
+      // the sensor handles damage, visual is always visible as a warning).
+
+      // Dark root cluster base (ground-level mound)
+      const mound = this.scene.add.ellipse(0, hazard.h / 4, hazard.w + 8, hazard.h / 2, 0x1a2010, 0.9);
+      mound.setStrokeStyle(1, 0x2a3020, 0.5);
+      container.add(mound);
+
+      // Root tendrils — jagged lines rising from ground (like grasping fingers)
+      const rootGfx = this.scene.add.graphics();
+      rootGfx.lineStyle(2, 0x2a4020, 0.8);
+      const tendrilCount = Math.max(3, Math.floor(hazard.w / 20));
+      for (let i = 0; i < tendrilCount; i++) {
+        const tx = -hazard.w / 2 + (i + 0.5) * (hazard.w / tendrilCount);
+        rootGfx.beginPath();
+        rootGfx.moveTo(tx, hazard.h / 2);
+        rootGfx.lineTo(tx - 3, hazard.h / 4);
+        rootGfx.lineTo(tx + 4, 0);
+        rootGfx.lineTo(tx - 2, -hazard.h / 4);
+        rootGfx.lineTo(tx + 3, -hazard.h / 2);
+        rootGfx.strokePath();
+      }
+      container.add(rootGfx);
+
+      // Thorn tips (green, sharp — the damaging part)
+      for (let i = 0; i < tendrilCount; i++) {
+        const tx = -hazard.w / 2 + (i + 0.5) * (hazard.w / tendrilCount);
+        const thorn = this.scene.add.triangle(tx, -hazard.h / 2, -3, 2, 3, 2, 0, -6, 0x4a6a28, 0.9);
+        thorn.setStrokeStyle(1, 0x5a7a38, 0.5);
+        container.add(thorn);
+        // Bio-luminescent tip (warning glow — visible even in dark forest)
+        const tipGlow = this.scene.add.circle(tx, -hazard.h / 2 - 2, 1.5, 0x40ff80, 0.5);
+        tipGlow.setBlendMode(Phaser.BlendModes.ADD);
+        container.add(tipGlow);
+        this.trackedTween({
+          targets: tipGlow,
+          alpha: { from: 0.2, to: 0.6 },
+          duration: 800 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+          delay: i * 150,
+        });
+      }
+
+      // Subtle ground glow (organic hazard zone indicator)
+      const groundGlow = this.scene.add.rectangle(0, hazard.h / 4, hazard.w, 4, 0x40ff80, 0.08);
+      groundGlow.setBlendMode(Phaser.BlendModes.ADD);
+      container.add(groundGlow);
+      this.trackedTween({
+        targets: groundGlow,
+        alpha: { from: 0.05, to: 0.12 },
+        duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
+      });
+
     } else {
       // Default forest hazard
       const vis = this.scene.add.rectangle(0, 0, hazard.w, hazard.h, 0x40a020, 0.3);

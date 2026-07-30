@@ -335,7 +335,7 @@ export interface PlatformData {
 }
 
 export interface HazardData {
-  type: 'spike' | 'lava' | 'laser';
+  type: 'spike' | 'lava' | 'laser' | 'root_snare';
   x: number;
   y: number;
   w: number;

@@ -949,6 +949,8 @@ export const ACTS: ActData[] = [
                 { x: 3540, y: 440, w: 140, h: 20 },
               ], hazards: [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
+                // Root snare — organic hazard (theme-appropriate for Act IV)
+                { type: 'root_snare', x: 3350, y: 690, w: 100, h: 30, damage: 18 },
               ], loreObjects: [
                 { id: 'lore_f3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.f3.echo.title', textKey: 'lore.f3.echo.text' },
                 // Supporting lore: AI's old message to itself (foreshadows Overseer's nature)
@@ -968,6 +970,9 @@ export const ACTS: ActData[] = [
                 { x: 4040, y: 480, w: 80, h: 20 },
                 { x: 4900, y: 480, w: 80, h: 20 },
                 { x: 4360, y: 260, w: 60, h: 16 },
+              ], hazards: [
+                // Root snare near mini-boss area — adds environmental danger to combat
+                { type: 'root_snare', x: 4150, y: 690, w: 80, h: 30, damage: 15 },
               ], landmarks: [
                 { id: 'lm_f4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 200, h: 80, color: 0x1a2818 },
               ], collectibles: [
