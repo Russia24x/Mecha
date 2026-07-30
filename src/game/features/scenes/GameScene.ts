@@ -1287,7 +1287,7 @@ export class GameScene extends Phaser.Scene {
     }
     // Act III boss: Iron Magistrate → unlock Act IV (Silent Canopy / Toxic Forest)
     if (data.id === 'iron_magistrate') {
-      SaveSystem.unlockArea('toxic_forest');
+      SaveSystem.unlockArea('forest_1');
       this.hud?.toast(getLocale() === 'fa' ? 'منطقه جدید: سایه‌آرام' : 'NEW AREA: The Silent Canopy');
     }
     // Act IV boss: Neural Overseer → unlock Act V (Orbital Descent)

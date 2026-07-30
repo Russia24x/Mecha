@@ -35,7 +35,7 @@ export const NPCS: Record<string, NPCData> = {
   overseer_apprentice: {
     id: 'overseer_apprentice',
     nameKey: 'npc.overseer_apprentice.name',
-    areaId: 'toxic_forest',
+    areaId: 'forest_1',
     x: 1900,
     y: 600,
     dialogues: ['apprentice_intro', 'apprentice_lore', 'apprentice_warning'],

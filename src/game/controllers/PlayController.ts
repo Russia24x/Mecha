@@ -198,6 +198,10 @@ export class PlayController {
       else if (area.id === 'act3_ward_2') parallax.bgStartIndex = 1;
       else if (area.id === 'act3_courthouse') parallax.bgStartIndex = 2;
       else parallax.bgStartIndex = 0;
+    } else if (theme === 'forest') {
+      if (area.id === 'forest_1') parallax.bgStartIndex = 0;
+      else if (area.id === 'forest_2') parallax.bgStartIndex = 1;
+      else parallax.bgStartIndex = 0;
     }
     parallax.build();
     const atmosphere = new AtmosphereSystem(scene, theme as RegionTheme, area.totalWidth);

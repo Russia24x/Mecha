@@ -244,6 +244,8 @@ export class SaveSystem {
       'abandoned_factory': 'factory_1',  // old v3 area ID
       // Act II — pre-split area ID → wastes_1 (entry area)
       'drowned_wastes_1': 'wastes_1',    // old v3 area ID (was 15360px single area)
+      // Act IV — pre-split area ID → forest_1 (entry area)
+      'toxic_forest': 'forest_1',
       // Act III — pre-split area IDs → act3_ward_1 (entry area)
       'last_city_1': 'act3_ward_1',
       'act3_outer_ward': 'act3_ward_1',
@@ -284,6 +286,8 @@ export class SaveSystem {
         'drowned_wastes_1': ['wastes_1', 'wastes_2', 'wastes_3'],
         // Act III: old single area → all 3 sub-areas (same logic as Act II)
         'last_city_1': ['act3_ward_1', 'act3_ward_2', 'act3_courthouse'],
+        // Act IV: old single area → both sub-areas
+        'toxic_forest': ['forest_1', 'forest_2'],
         // Act I: 'factory'/'abandoned_factory' → only factory_1 (entry) —
         // player must progress through gates to unlock factory_2/3.
         // This is intentional: Act I old saves didn't have the split structure,

@@ -898,17 +898,21 @@ export const ACTS: ActData[] = [
         id: 'forest',
         nameKey: 'region.forest.name',
         areas: [
+          // ═══════════════════════════════════════════════════════════════
+          // Area 1: forest_1 — Sections 1-3 (Entrance + Combat + Root Maze)
+          // bg: forest_bg_1 + forest_bg_2
+          // ═══════════════════════════════════════════════════════════════
           {
-            id: 'toxic_forest',
-            nameKey: 'area.toxic_forest.name',
+            id: 'forest_1',
+            nameKey: 'area.forest_1.name',
             regionId: 'forest',
-            totalWidth: 7680,
+            totalWidth: 3840,
             sectionWidth: 1280,
             bgColor: 0x0a1208,
-            checkpointSections: [2, 5],
+            checkpointSections: [],
             unlockedByDefault: false,
             sections: [
-              // S1: Forest entrance — quiet, overgrown
+              // S1: Forest entrance — quiet, overgrown (no rebase, x starts at 0)
               { id: 1, nameKey: 'section.forest.1.name', x: 0, enemies: ['flying_ai', 'flying_ai'], platforms: [
                 { x: 300, y: 540, w: 160, h: 20 },
                 { x: 600, y: 440, w: 140, h: 20 },
@@ -916,15 +920,16 @@ export const ACTS: ActData[] = [
                 { x: 500, y: 280, w: 100, h: 16 },
               ], loreObjects: [
                 { id: 'lore_f1_corpse', type: 'corpse', x: 400, y: 660, titleKey: 'lore.f1.corpse.title', textKey: 'lore.f1.corpse.text' },
-                // Supporting lore: guard's notebook (foreshadows assimilation)
                 { id: 'lore_f1_notebook', type: 'terminal', x: 900, y: 510, titleKey: 'lore.f1.notebook.title', textKey: 'lore.f1.notebook.text' },
               ], landmarks: [
                 { id: 'lm_f1_mech', type: 'crashed_mech', x: 150, y: 580, w: 120, h: 100, color: 0x1a2818 },
               ], collectibles: [
-                // Health fragment — on upper platform (accessible via jump from y=440 platform)
                 { id: 'col_f1_health', type: 'health_fragment', x: 500, y: 250 },
+              ], bonfires: [
+                { id: 'bf_forest1_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
-              // S2: Overgrown combat
+
+              // S2: Overgrown combat — NPC (Overseer's Apprentice) at (1900, 600)
               { id: 2, nameKey: 'section.forest.2.name', x: 1280, enemies: ['flying_ai', 'flying_ai', 'spider'], platforms: [
                 { x: 1480, y: 520, w: 100, h: 20 },
                 { x: 1700, y: 420, w: 140, h: 20 },
@@ -932,13 +937,14 @@ export const ACTS: ActData[] = [
                 { x: 2300, y: 460, w: 120, h: 20 },
               ], loreObjects: [
                 { id: 'lore_f2_terminal', type: 'terminal', x: 2400, y: 580, titleKey: 'lore.f2.terminal.title', textKey: 'lore.f2.terminal.text' },
-                // Supporting lore: connected specimen (foreshadows neural network)
                 { id: 'lore_f2_specimen', type: 'corpse', x: 1650, y: 660, titleKey: 'lore.f2.specimen.title', textKey: 'lore.f2.specimen.text' },
               ], collectibles: [
-                // Energy fragment — on platform at (2300, 460) — requires jump from (2000, 520)
                 { id: 'col_f2_energy', type: 'energy_fragment', x: 2350, y: 430 },
+              ], bonfires: [
+                { id: 'bf_forest1_2', x: 2500, y: 660, section: 2 },
               ]},
-              // S3: Root maze — vertical platforming
+
+              // S3: Root maze — vertical platforming + exit gate to forest_2
               { id: 3, nameKey: 'section.forest.3.name', x: 2560, enemies: ['spider', 'spider'], platforms: [
                 { x: 2660, y: 580, w: 200, h: 20 },
                 { x: 2800, y: 400, w: 40, h: 360 },
@@ -949,75 +955,86 @@ export const ACTS: ActData[] = [
                 { x: 3540, y: 440, w: 140, h: 20 },
               ], hazards: [
                 { type: 'spike', x: 2850, y: 690, w: 240, h: 20, damage: 25 },
-                // Root snare — organic hazard (theme-appropriate for Act IV)
                 { type: 'root_snare', x: 3350, y: 690, w: 100, h: 30, damage: 18 },
               ], loreObjects: [
                 { id: 'lore_f3_echo', type: 'echo', x: 2780, y: 120, titleKey: 'lore.f3.echo.title', textKey: 'lore.f3.echo.text' },
-                // Supporting lore: AI's old message to itself (foreshadows Overseer's nature)
                 { id: 'lore_f3_ai_message', type: 'terminal', x: 3500, y: 580, titleKey: 'lore.f3.aimessage.title', textKey: 'lore.f3.aimessage.text' },
               ], collectibles: [
-                // Skill point — high in root maze, requires wallJump to reach
                 { id: 'col_f3_skill', type: 'skill_point', x: 2750, y: 110, requiredAbility: 'wallJump' },
               ], grappleAnchors: [
-                // Grapple anchor — hidden secret above root maze, leads to bio-luminescent platform
                 { id: 'ga_f3_secret', x: 3200, y: 100 },
+              ], exitGates: [
+                { id: 'gate_forest1_to_2', x: 3700, y: 600, toAreaId: 'forest_2', toSection: 1, toX: 200, toY: 420, labelKey: 'gate.forest1_to_2.label' },
               ]},
-              // S4: Mini boss
-              { id: 4, nameKey: 'section.forest.4.name', x: 3840, enemies: ['spider', 'spider', 'heavy'], platforms: [
-                { x: 4240, y: 460, w: 40, h: 220 },
-                { x: 4680, y: 460, w: 40, h: 220 },
-                { x: 4440, y: 400, w: 100, h: 20 },
-                { x: 4040, y: 480, w: 80, h: 20 },
-                { x: 4900, y: 480, w: 80, h: 20 },
-                { x: 4360, y: 260, w: 60, h: 16 },
+            ],
+          },
+
+          // ═══════════════════════════════════════════════════════════════
+          // Area 2: forest_2 — Sections 4-6 (Mini-boss + Checkpoint + Boss)
+          // bg: forest_bg_3 + forest_bg_4 (boss)
+          // Rebased: all x coords - 3840
+          // ═══════════════════════════════════════════════════════════════
+          {
+            id: 'forest_2',
+            nameKey: 'area.forest_2.name',
+            regionId: 'forest',
+            totalWidth: 3840,
+            sectionWidth: 1280,
+            bgColor: 0x0a1208,
+            checkpointSections: [],
+            unlockedByDefault: true,
+            sections: [
+              // S1 (was S4): Mini boss — rebased: 3840→0
+              { id: 1, nameKey: 'section.forest.4.name', x: 0, enemies: ['spider', 'spider', 'heavy'], platforms: [
+                { x: 400, y: 460, w: 40, h: 220 },
+                { x: 840, y: 460, w: 40, h: 220 },
+                { x: 600, y: 400, w: 100, h: 20 },
+                { x: 200, y: 480, w: 80, h: 20 },
+                { x: 1060, y: 480, w: 80, h: 20 },
+                { x: 520, y: 260, w: 60, h: 16 },
               ], hazards: [
-                // Root snare near mini-boss area — adds environmental danger to combat
-                { type: 'root_snare', x: 4150, y: 690, w: 80, h: 30, damage: 15 },
+                { type: 'root_snare', x: 310, y: 690, w: 80, h: 30, damage: 15 },
               ], landmarks: [
-                { id: 'lm_f4_assembly', type: 'assembly_line', x: 4460, y: 500, w: 200, h: 80, color: 0x1a2818 },
+                { id: 'lm_f4_assembly', type: 'assembly_line', x: 620, y: 500, w: 200, h: 80, color: 0x1a2818 },
               ], collectibles: [
-                // Weapon part — on high platform after mini-boss area (requires doubleJump)
-                { id: 'col_f4_weapon', type: 'weapon_part', x: 4360, y: 230, requiredAbility: 'doubleJump' },
+                { id: 'col_f4_weapon', type: 'weapon_part', x: 520, y: 230, requiredAbility: 'doubleJump' },
+              ], bonfires: [
+                { id: 'bf_forest2_1', x: 200, y: 660, section: 1, isEntryPoint: true },
               ]},
-              // S5: Checkpoint — with shortcut back to S4 + collectibles + Memory Layer moment
-              { id: 5, nameKey: 'section.forest.5.name', x: 5120, enemies: [], platforms: [
-                { x: 5360, y: 560, w: 140, h: 20 },
-                { x: 5700, y: 420, w: 120, h: 20 },
-                // Hidden platform for skill point (accessible via grapple from S3 anchor)
-                { x: 5900, y: 200, w: 80, h: 16 },
+
+              // S2 (was S5): Checkpoint + Memory Layer moment — rebased: 5120→1280
+              // sc_f5_to_s4 was PROVISIONAL — now confirmed: S5→S4 becomes S2→S1
+              // within forest_2 (same area). Shortcut is SAFE — stays within one Area.
+              { id: 2, nameKey: 'section.forest.5.name', x: 1280, enemies: [], platforms: [
+                { x: 1520, y: 560, w: 140, h: 20 },
+                { x: 1860, y: 420, w: 120, h: 20 },
+                { x: 2060, y: 200, w: 80, h: 16 },
               ], loreObjects: [
-                { id: 'lore_f5_echo', type: 'echo', x: 5600, y: 580, titleKey: 'lore.f5.echo.title', textKey: 'lore.f5.echo.text' },
-                // MEMORY LAYER MOMENT (per advisor round-28):
-                // The Assimilated — a mech half-absorbed into the neural network.
-                // Placed near boss (S6) to create pre-echo before meeting Neural Overseer.
-                // Visible from distance (glow + sound ring), interaction reveals
-                // a fragmentary plea — not a full explanation.
-                { id: 'lore_f5_assimilated', type: 'assimilated', x: 5500, y: 600, titleKey: 'lore.f5.assimilated.title', textKey: 'lore.f5.assimilated.text' },
+                { id: 'lore_f5_echo', type: 'echo', x: 1760, y: 580, titleKey: 'lore.f5.echo.title', textKey: 'lore.f5.echo.text' },
+                { id: 'lore_f5_assimilated', type: 'assimilated', x: 1660, y: 600, titleKey: 'lore.f5.assimilated.title', textKey: 'lore.f5.assimilated.text' },
               ], collectibles: [
-                // Energy fragment — on mid platform
-                { id: 'col_f5_energy', type: 'energy_fragment', x: 5750, y: 390 },
-                // Skill point — hidden high platform, reachable via grapple anchor from S3
-                { id: 'col_f5_skill', type: 'skill_point', x: 5940, y: 170, requiredAbility: 'grapple' },
+                { id: 'col_f5_energy', type: 'energy_fragment', x: 1910, y: 390 },
+                { id: 'col_f5_skill', type: 'skill_point', x: 2100, y: 170, requiredAbility: 'grapple' },
+              ], bonfires: [
+                { id: 'bf_forest2_2', x: 1950, y: 660, section: 2 },
               ], shortcuts: [
-                // ⚠️ PROVISIONAL (per advisor round-27): sc_f5_to_s4 is short-range (S5→S4,
-                // adjacent sections) but "split-safe" is NOT verified — we don't yet know
-                // where Act IV will be cut when it's split into forest_1/2.
-                // When split happens: FIRST check if this shortcut stays within one Area.
-                // If it crosses the split boundary, it MUST be removed (same as sc_s4_to_s2
-                // in Act I which was deleted in commit 4cdc1e3). Do NOT assume it's safe.
-                { id: 'sc_f5_to_s4', x: 5180, y: 650, w: 40, h: 60, toSection: 4, opensFrom: 'left' },
+                // CONFIRMED SAFE (per advisor round-27 provisional check):
+                // S5→S4 is now S2→S1 within forest_2 (same area). Shortcut stays.
+                { id: 'sc_f5_to_s4', x: 1340, y: 650, w: 40, h: 60, toSection: 1, opensFrom: 'left' },
               ]},
-              // S6: Boss arena — Neural Overseer
-              { id: 6, nameKey: 'section.forest.6.name', x: 6400, enemies: [], bossId: 'neural_overseer', platforms: [
-                { x: 6480, y: 440, w: 40, h: 240 },
-                { x: 7600, y: 440, w: 40, h: 240 },
-                { x: 6800, y: 520, w: 80, h: 20 },
-                { x: 7280, y: 520, w: 80, h: 20 },
+
+              // S3 (was S6): Boss arena — Neural Overseer — rebased: 6400→2560
+              { id: 3, nameKey: 'section.forest.6.name', x: 2560, enemies: [], bossId: 'neural_overseer', platforms: [
+                { x: 2640, y: 440, w: 40, h: 240 },
+                { x: 3760, y: 440, w: 40, h: 240 },
+                { x: 2960, y: 520, w: 80, h: 20 },
+                { x: 3440, y: 520, w: 80, h: 20 },
               ], landmarks: [
-                { id: 'lm_f6_door', type: 'tower', x: 6440, y: 300, w: 60, h: 400, color: 0x2a3818 },
+                { id: 'lm_f6_door', type: 'tower', x: 2600, y: 300, w: 60, h: 400, color: 0x2a3818 },
               ], collectibles: [
-                // Health fragment — reward for reaching boss arena (on side platform)
-                { id: 'col_f6_health', type: 'health_fragment', x: 7280, y: 490 },
+                { id: 'col_f6_health', type: 'health_fragment', x: 3440, y: 490 },
+              ], bonfires: [
+                { id: 'bf_forest2_3', x: 3400, y: 660, section: 3 },
               ]},
             ],
           },
